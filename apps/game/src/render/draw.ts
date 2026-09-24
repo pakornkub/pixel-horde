@@ -2,7 +2,7 @@
 import { REALMS, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
-import { INK, HERO_SPR, ENEMY_SPR, PET_SPR } from './sprites';
+import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
 import { tileAtT } from './tiles';
 import { MET, TAU, fxRng, rnd, vfx, zoomK } from './vfx';
 import { lang, t } from '@pixel-horde/i18n';
@@ -197,11 +197,20 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         const CS2 = HERO_SPR[P.ch] || HERO_SPR.mage;
         if (P.down) { b.globalAlpha = 0.35; b.drawImage(CS2.w, Math.round(P.x + ox - 8), Math.round(P.y + oy - 9)); b.globalAlpha = 1; continue; }
         const fr = P.moving ? Math.floor(P.anim * 8) & 1 : 0;
-        const img = P.inv > 0 && Math.floor(clock * 20) & 1 ? CS2.w : P.face < 0 ? CS2.l[fr] : CS2.r[fr];
+        // facing: down / up when moving mostly vertically, else the side view (left mirrored)
+        const dir = P.dx === 0 && P.dy === 0 ? 'down' : Math.abs(P.dy) > Math.abs(P.dx) + 0.1 ? (P.dy > 0 ? 'down' : 'up') : 'side';
+        const img = P.inv > 0 && Math.floor(clock * 20) & 1 ? CS2.w : dir === 'down' ? CS2.down[fr] : dir === 'up' ? CS2.up[fr] : P.face < 0 ? CS2.l[fr] : CS2.r[fr];
+        const hw = HELD_SPR[v.weapon], hx = Math.round(P.x + ox), hy = Math.round(P.y + oy);
         const bob = P.moving ? (fr ? -1 : 0) : 0;
         b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(P.x + ox, P.y + oy + 7, 5, 2, 0, 0, TAU); b.fill();
         if (P.clone) { const c = P.clone, dk = P.face < 0 ? CS2.dkl : CS2.dk; b.globalAlpha = 0.75; b.drawImage(dk[fr], Math.round(c.x + ox - 8), Math.round(c.y + oy - 9)); b.globalAlpha = 1; }
+        if (hw && dir === 'up') b.drawImage(hw[0], hx + 1, hy - 9 + bob); // the Weapon on the back
         b.drawImage(img, Math.round(P.x + ox - 8), Math.round(P.y + oy - 9 + bob));
+        if (hw && dir !== 'up') { // in the hand
+          if (dir === 'down') b.drawImage(hw[0], hx + 4, hy - 4 + bob);
+          else if (P.face < 0) b.drawImage(hw[1], hx - 10, hy - 5 + bob);
+          else b.drawImage(hw[0], hx + 4, hy - 5 + bob);
+        }
         if (P.pet) {
           const pt = P.pet;
           b.fillStyle = 'rgba(30,27,51,.25)'; b.beginPath(); b.ellipse(pt.x + ox, pt.y + oy + 14, 4, 1.5, 0, 0, TAU); b.fill();
