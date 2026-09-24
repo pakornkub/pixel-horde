@@ -61,9 +61,6 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .lb{margin:0;padding-left:26px;font-size:14px}
 .lb li{padding:3px 0}
 .lb li.me{font-weight:700}
-.coop{margin-top:18px;padding-top:14px;border-top:3px dashed var(--ink)}
-.coop h3{font-family:var(--pix);font-weight:400;font-size:12px;margin:0 0 10px}
-.coop p{font-size:14px;margin:0 0 10px}
 .lrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 8px;background:var(--paper2);border-radius:4px;margin-bottom:6px;font-size:15px}
 .goldline{font-family:var(--pix);font-size:12px;color:#9a6a00;margin:0 0 12px}
 .opts{display:flex;flex-direction:column;gap:8px}
@@ -86,3 +83,11 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 #pauseBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(64px + env(safe-area-inset-top,0px));
   width:36px;height:36px;border:3px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);font-family:var(--pix);font-size:10px;z-index:3;display:none;cursor:pointer;padding:0}
 @media (prefers-reduced-motion: reduce){#ultBtn.ready{animation:none;box-shadow:0 0 0 6px var(--gold)}}
+
+/* English uses the pixel font; Thai keeps Chakra Petch (ticket 06) */
+html[lang="en"] .box{font-family:var(--pix);font-size:10px;line-height:1.9}
+html[lang="en"] .btn,html[lang="en"] .buy{font-family:var(--pix);font-weight:400;font-size:11px;line-height:1.6}
+html[lang="en"] .opt .ds,html[lang="en"] .srow .ds,html[lang="en"] .chdesc,html[lang="en"] .keys,html[lang="en"] .slots{font-size:9px;line-height:1.8}
+html[lang="en"] .stats{font-size:10px}
+html[lang="en"] .ch .cc{font-size:8px}
+html[lang="en"] .chestTxt{font-size:11px}

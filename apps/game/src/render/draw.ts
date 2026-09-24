@@ -5,7 +5,8 @@ import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, PET_R, PET_LEFT } from './sprites';
 import { tileAtT } from './tiles';
 import { MET, TAU, fxRng, rnd, vfx } from './vfx';
-import { PASSIVE_TEXT, SKILL_TEXT, THEME_TEXT } from '../ui/text';
+import { lang, t } from '@pixel-horde/i18n';
+import { PASSIVE_ICON, SKILL_ICON, bossName } from '../ui/text';
 
 const K = INK;
 const R = fxRng.next;
@@ -296,7 +297,7 @@ function outlined(txt: string, x: number, y: number, px: number, col: string, lw
   ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
 function thaiText(txt: string, x: number, y: number, px: number, col: string, lw: number): void {
-  ctx.font = `700 ${Math.round(px)}px "Chakra Petch", Tahoma, sans-serif`;
+  ctx.font = lang() === 'en' ? `${Math.round(px * 0.8)}px "Press Start 2P", ui-monospace, monospace` : `700 ${Math.round(px)}px "Chakra Petch", Tahoma, sans-serif`;
   ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
 
@@ -346,7 +347,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   if (v.streak >= 10) {
     const pulse = 1 + 0.25 * Math.max(0, 1 - (2.2 - v.streakT) / 0.15);
     const c = v.streak >= 200 ? '#ff5cf4' : v.streak >= 100 ? '#ff7a3d' : v.streak >= 50 ? '#ffd23f' : '#ffffff';
-    outlined(v.streak + ' STREAK', right, top + 54 * D, 11 * D * pulse * (v.streak >= 100 ? 1.25 : 1), c);
+    outlined(t('hud.streak', { n: v.streak }), right, top + 54 * D, 11 * D * pulse * (v.streak >= 100 ? 1.25 : 1), c);
   }
   // boss bars
   {
@@ -355,7 +356,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.textAlign = 'center';
     const ti = themeIndex(v.stage);
     const bars: [Enemy | null, string, string, string][] = [
-      [v.boss, THEME_TEXT[ti].bossName, '#4fa8ff', '#8fdcff'],
+      [v.boss, bossName(ti), '#4fa8ff', '#8fdcff'],
       [v.dragonE, 'INFERNO DRAGON', '#ff6a2a', '#ffb347'],
       [v.rivalE, 'SHADOW ???', '#8a5ad6', '#d9b8ff'],
     ];
@@ -372,7 +373,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   if (P.clone) ids.push('_clone');
   const sz = 24 * D, gap = 5 * D, by = cv.height - (SAFE.b + 14) * D - sz;
   ids.forEach((id, i) => {
-    const sk = SKILL_TEXT[id as SkillId], ps = PASSIVE_TEXT[id as PassiveId];
+    const sk = SKILL_ICON[id as SkillId], ps = PASSIVE_ICON[id as PassiveId];
     const m = sk || ps || (id === '_pet' ? { col: '#ff6a2a', g: 'D' } : { col: '#6a4a9a', g: 'S' });
     const lv = P.skills[id as SkillId] || P.pas[id as PassiveId] || (id === '_pet' ? P.pet!.lv : id === '_clone' ? P.clone!.lv : 1);
     const x = left + i * (sz + gap);

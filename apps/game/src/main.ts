@@ -1,6 +1,8 @@
 import './style.css';
 import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions } from '@pixel-horde/sim';
+import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
+import { applyLang, settings } from './settings';
 import { active } from './config';
 import { META, getBest, saveMeta, setBest, simMeta } from './meta';
 import { keys, readInput, touch } from './platform/input';
@@ -9,7 +11,7 @@ import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
   $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderChars, renderLevelUp,
-  setPlayUI, show, showClear, showOver, showPause,
+  setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
 /* ---------- debug flags: ?debug=dragon|rival|bloodmoon|god (comma separated) ---------- */
@@ -147,11 +149,14 @@ function resume(): void {
   cmd({ type: 'resume' });
   last = performance.now();
 }
+function metLabel(): void {
+  $('metBtn').textContent = t('pause.meter', { state: t(MET.on ? 'pause.on' : 'pause.off') });
+}
 function toggleMet(): void {
   MET.on = !MET.on;
   MET.dmg = [];
   MET.ttk = [];
-  $('metBtn').textContent = 'ตัววัดค่า: ' + (MET.on ? 'เปิด' : 'ปิด');
+  metLabel();
 }
 const playing = (): boolean => !!sim && sim.view().phase === 'play';
 
@@ -186,7 +191,7 @@ $('resumeBtn').addEventListener('click', resume);
 $('metBtn').addEventListener('click', toggleMet);
 $('homeBtn').addEventListener('click', toTitle);
 $('leaveBtn').addEventListener('click', () => {
-  if (!leaveArmed) { leaveArmed = true; $('leaveBtn').textContent = 'กดอีกครั้งเพื่อยืนยัน'; return; }
+  if (!leaveArmed) { leaveArmed = true; $('leaveBtn').textContent = t('pause.confirm'); return; }
   leaveArmed = false;
   bank();
   toTitle();
@@ -213,6 +218,15 @@ function downloadReplay(): void {
 $('replayBtn').addEventListener('click', downloadReplay);
 $('replayBtn2').addEventListener('click', downloadReplay);
 
-$('bestTxt').textContent = bestLine();
-renderChars();
+/* ---------- language ---------- */
+function refreshText(): void {
+  applyStaticText();
+  metLabel();
+  renderChars();
+  $('bestTxt').textContent = bestLine();
+}
+onLangChange(refreshText);
+$('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
+applyLang(settings.lang);
+refreshText();
 requestAnimationFrame(frame);

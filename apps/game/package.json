@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run check -w @pixel-horde/i18n && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@pixel-horde/sim": "*"
+    "@pixel-horde/sim": "*",
+    "@pixel-horde/i18n": "*"
   }
 }

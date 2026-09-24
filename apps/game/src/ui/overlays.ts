@@ -5,7 +5,8 @@ import { META, U, getBest, ownsHero, saveMeta } from '../meta';
 import { active } from '../config';
 import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
-import { EVO_TEXT, HERO_TEXT, PASSIVE_TEXT, SHOP_TEXT, SKILL_TEXT, skillDetail } from './text';
+import { t } from '@pixel-horde/i18n';
+import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, evoDesc, evoName, heroDesc, heroName, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -14,7 +15,7 @@ const focusSoon = (id: string): void => { setTimeout(() => $(id).focus({ prevent
 
 export function bestLine(): string {
   const bb = getBest();
-  return `เหรียญในกระเป๋า ${META.gold}G` + (bb ? ` | สถิติดีที่สุด: ถึงด่าน ${bb.stage}, KO ${bb.kills}` : '');
+  return t('title.best', { gold: META.gold }) + (bb ? t('title.bestRecord', { stage: bb.stage, kills: bb.kills }) : '');
 }
 
 export function statRows(rows: [string, string | number][]): string {
@@ -39,16 +40,16 @@ export function renderChars(): void {
   const box = $('chars');
   box.innerHTML = '';
   for (const k of HERO_IDS) {
-    const c = active.cfg.heroes[k], t = HERO_TEXT[k], owned = ownsHero(k);
+    const c = active.cfg.heroes[k], name = heroName(k), owned = ownsHero(k);
     const bt = document.createElement('button');
     bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked');
     const im = document.createElement('img'); im.alt = ''; im.src = charImg(k);
-    const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = t.name;
-    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? 'เลือกอยู่' : 'เลือก') : 'ปลดล็อก ' + c.cost + 'G';
+    const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = name;
+    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : t('hero.unlock', { cost: c.cost });
     bt.append(im, cn, cc);
     bt.addEventListener('click', () => {
       if (!owned) {
-        if (META.gold < c.cost) { $('chDesc').textContent = `${t.name} ต้องใช้ ${c.cost}G ในการปลดล็อก ตอนนี้มี ${META.gold}G`; return; }
+        if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
         META.gold -= c.cost;
         META.owned.push(k);
         sfx('lv');
@@ -61,7 +62,7 @@ export function renderChars(): void {
     box.appendChild(bt);
   }
   const sel = HEROES[META.ch];
-  $('chDesc').textContent = `${HERO_TEXT[META.ch].name}: เริ่มด้วย ${SKILL_TEXT[sel.start].name}, ${HERO_TEXT[META.ch].th}`;
+  $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), skill: skillName(sel.start), bonus: heroDesc(META.ch) });
 }
 
 /* ---------- shop ---------- */
@@ -71,13 +72,13 @@ function renderShop(): void {
   const list = $('shopList');
   list.innerHTML = '';
   for (const id of SHOP_IDS) {
-    const m = SHOP_TEXT[id], lv = U(id), max = shopMax(active.cfg, id), maxed = lv >= max, c = shopCost(active.cfg, id, lv);
+    const m = SHOP_ICON[id], lv = U(id), max = shopMax(active.cfg, id), maxed = lv >= max, c = shopCost(active.cfg, id, lv);
     const row = document.createElement('div');
     row.className = 'srow';
-    row.innerHTML = `<span class="ico" style="background:${m.col}">${m.g}</span><span><span class="nm">${m.name} ${lv}/${max}</span><span class="ds">${m.th}</span></span>`;
+    row.innerHTML = `<span class="ico" style="background:${m.col}">${m.g}</span><span><span class="nm">${shopName(id)} ${lv}/${max}</span><span class="ds">${shopDesc(id)}</span></span>`;
     const bt = document.createElement('button');
     bt.className = 'buy';
-    bt.textContent = maxed ? 'เต็มแล้ว' : `ซื้อ ${c}G`;
+    bt.textContent = maxed ? t('shop.maxed') : t('shop.buy', { cost: c });
     bt.disabled = maxed || META.gold < c;
     bt.addEventListener('click', () => {
       const cost = shopCost(active.cfg, id, U(id));
@@ -112,35 +113,34 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
   box.innerHTML = '';
-  $('lvSlots').textContent = `ช่องสกิลโจมตี ${Object.keys(P.skills).length}/6 (เต็มแล้วจะได้แค่อัปเกรดสกิลเดิม)`;
-  $('lvTitle').textContent = lu.chest ? 'TREASURE CHEST' : 'LEVEL UP!  LV ' + lu.lv;
+  $('lvSlots').textContent = t('level.slots', { n: Object.keys(P.skills).length, max: v.cfg.maxAttackSlots });
+  $('lvTitle').textContent = lu.chest ? t('level.chestTitle') : t('level.title', { lv: lu.lv });
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
     bt.className = 'opt';
     let meta: { col: string; g: string }, name: string, desc: string, tag = '';
     if (o.kind === 'evo') {
-      const ev = EVO_TEXT[o.id];
-      meta = { col: '#ffd23f', g: SKILL_TEXT[o.id].g };
-      name = ev.name; tag = '<i>EVOLVE!</i>';
-      desc = `${ev.th} (${SKILL_TEXT[o.id].name} + ${PASSIVE_TEXT[EVO_PASSIVE[o.id]].name})`;
+      meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g };
+      name = evoName(o.id); tag = `<i>${t('level.evolve')}</i>`;
+      desc = `${evoDesc(o.id)} (${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id])})`;
       bt.classList.add('evo');
     } else if (o.kind === 'skill') {
-      meta = SKILL_TEXT[o.id];
+      meta = SKILL_ICON[o.id];
       const lv = P.skills[o.id] || 0;
-      name = SKILL_TEXT[o.id].name;
-      tag = lv ? `LV ${lv}→${lv + 1}` : '<i>NEW!</i>';
-      desc = (lv ? '' : SKILL_TEXT[o.id].th + ' ') + '(' + skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false)) + ')';
-      if (lv + 1 === v.cfg.skills[o.id].max) desc += ` ขั้นสุดท้าย วิวัฒน์ได้ถ้ามี ${PASSIVE_TEXT[EVO_PASSIVE[o.id]].name}`;
+      name = skillName(o.id);
+      tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t('level.new')}</i>`;
+      desc = (lv ? '' : skillDesc(o.id) + ' ') + '(' + skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false)) + ')';
+      if (lv + 1 === v.cfg.skills[o.id].max) desc += t('level.final', { passive: passiveName(EVO_PASSIVE[o.id]) });
     } else if (o.kind === 'pas') {
-      meta = PASSIVE_TEXT[o.id];
+      meta = PASSIVE_ICON[o.id];
       const lv = P.pas[o.id] || 0;
-      name = PASSIVE_TEXT[o.id].name;
-      tag = lv ? `LV ${lv}→${lv + 1}` : '<i>NEW!</i>';
-      desc = PASSIVE_TEXT[o.id].th;
+      name = passiveName(o.id);
+      tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t('level.new')}</i>`;
+      desc = passiveDesc(o.id);
     } else {
       meta = { col: '#ffa6c2', g: '♥' };
-      name = 'Recover';
-      desc = 'ฟื้น HP เต็มหลอด';
+      name = t('level.recover');
+      desc = t('level.recoverDesc');
     }
     bt.innerHTML = `<span class="cur">▶</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span><span class="nm">${name} ${tag}</span><span class="ds">${desc}</span></span>`;
     bt.addEventListener('click', () => onPick(idx));
@@ -160,7 +160,7 @@ export function openChest(res: number, target: number, start: number): void {
   const w = $('wheel');
   w.innerHTML = '';
   WHEEL.forEach((val) => { const c = document.createElement('div'); c.className = 'cell'; c.textContent = 'x' + val; w.appendChild(c); });
-  $('chestTxt').textContent = 'กำลังหมุน...';
+  $('chestTxt').textContent = t('chest.spinning');
   hlWheel();
   show('ovChest');
 }
@@ -177,7 +177,7 @@ export function chestTick(rdt: number): boolean {
     hlWheel();
     if (spin.left === 0) {
       spin.done = true;
-      $('chestTxt').textContent = `ได้อัปเกรดฟรี ${spin.res} ครั้ง!`;
+      $('chestTxt').textContent = t('chest.won', { n: spin.res });
       sfx('clear');
       const c = $('wheel').children[spin.idx];
       if (c) c.classList.add('win');
@@ -192,23 +192,23 @@ export function cancelChest(): void { spin = null; hide('ovChest'); }
 
 /* ---------- stage clear / game over ---------- */
 export function showClear(v: Readonly<SimState>, runGold: number): void {
-  $('clearTitle').textContent = 'STAGE ' + v.stage + ' CLEAR';
-  $('clearStats').innerHTML = statRows([['KO ในด่านนี้', v.stageKills], ['เหรียญรอบนี้', runGold + 'G'], ['KO รวม', v.kills], ['Kill Streak สูงสุด', v.maxStreak], ['เลเวล', v.P.lv]]);
+  $('clearTitle').textContent = t('clear.title', { n: v.stage });
+  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
 
 export function showOver(v: Readonly<SimState>, runGold: number): void {
   $('retryBtn').hidden = false;
-  $('overStats').innerHTML = statRows([['ตัวละคร', HERO_TEXT[v.hero].name], ['เหรียญที่ได้รอบนี้', runGold + 'G'], ['เหรียญในกระเป๋า', META.gold + 'G'], ['ด่านที่ไปถึง', v.stage], ['เวลารอดรวม', fmtT(v.totalTime)], ['KO รวม', v.kills], ['Kill Streak สูงสุด', v.maxStreak], ['เลเวล', v.P.lv]]);
+  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold + 'G'], [t('stat.wallet'), META.gold + 'G'], [t('stat.stage'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();
   show('ovOver');
   focusSoon('retryBtn');
 }
 
 export function showPause(): void {
-  $('leaveBtn').textContent = 'จบรอบนี้และกลับหน้าแรก';
-  $('pauseTxt').textContent = 'กด P หรือปุ่มด้านล่างเพื่อเล่นต่อ';
+  $('leaveBtn').textContent = t('pause.leave');
+  $('pauseTxt').textContent = t('pause.text');
   show('ovPause');
   focusSoon('resumeBtn');
 }
@@ -216,4 +216,11 @@ export function showPause(): void {
 export function setPlayUI(on: boolean): void {
   $('ultBtn').style.display = on ? 'block' : 'none';
   $('pauseBtn').style.display = on ? 'block' : 'none';
+}
+
+/** Fill every [data-i18n], [data-i18n-html] and [data-i18n-aria] element. */
+export function applyStaticText(): void {
+  document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n!); });
+  document.querySelectorAll<HTMLElement>('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml!); });
+  document.querySelectorAll<HTMLElement>('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria!)); });
 }
