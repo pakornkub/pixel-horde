@@ -37,7 +37,7 @@ The Heart's original guardian, restored by fusing all three Guardians defeated w
 _Avoid_: hydra, fused pet
 
 **Companion**:
-A Guardian travelling with the Hero. One is active; the others wait in Companion storage (1 + 2 slots) and swap at stage end.
+A Guardian travelling with the Hero. One is active; the others wait in Companion storage (1 + 2 slots) and swap at stage end. Levels 1–5 within a Run (level-up card, Skill Points, or defeating the same Guardian again); its attacks leave Statuses and trigger Combos as the owner's own Skills.
 _Avoid_: pet (code name), familiar
 
 **Hero**:
