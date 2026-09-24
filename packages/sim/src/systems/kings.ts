@@ -15,8 +15,8 @@ export const KING_KITS: Partial<Record<EnemyId, KingKit>> = {
   bossD: { moves: ['sandLine', 'burrow'], ult: 'quicksand' },
   bossC: { moves: ['boneFan', 'raise'], ult: 'crypt' },
   bossS: { moves: ['iceSpears', 'iceFloor'], ult: 'throne' },
-  // Placeholder until ticket 29: shadow moves, and the ultimates of the Kings that escaped.
-  umbra: { moves: ['boneFan', 'sandLine'], ult: 'splash' },
+  // Umbra: shadow copies of the Hero's skills; stolen King ultimates from phase 2 (see umbraUlt).
+  umbra: { moves: ['shadowBolts', 'shadowMeteors'], ult: 'splash' },
 };
 
 export const ULTS: KingMove[] = ['splash', 'quicksand', 'crypt', 'throne'];
@@ -49,6 +49,21 @@ function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
   const K = s.cfg.kings, R = s.rng.ai, P = s.P, kg = e.kg!;
   const tx = P.x, ty = P.y, a = atan2(ty - e.y, tx - e.x), D = e.dmg * mul, W = K.ultWarn;
   switch (k) {
+    case 'shadowBolts': {
+      const U = s.cfg.umbra;
+      for (let i = 0; i < U.bolts; i++) {
+        const aa = a + (i - (U.bolts - 1) / 2) * U.boltSpread;
+        addHz(s, { k: 'line', x: e.x, y: e.y, a: aa, r: 90, te: 0.5, d: D * U.boltDmg, c: 1, fire: true, sp: U.boltSpeed });
+      }
+      kg.lock = 0.5;
+      break;
+    }
+    case 'shadowMeteors': {
+      const U = s.cfg.umbra;
+      for (let i = 0; i < U.meteors; i++) addHz(s, { k: 'circ', x: tx + (i ? R.range(-50, 50) : 0), y: ty + (i ? R.range(-35, 35) : 0), r: U.meteorR, te: U.meteorWarn + i * 0.12, d: D * U.meteorDmg, c: 1 });
+      kg.lock = 0.4;
+      break;
+    }
     case 'slam': {
       const c = K.slam;
       addHz(s, { k: 'circ', x: tx, y: ty, r: c.r, te: c.warn, d: D * c.dmg, c: 3 });
@@ -155,8 +170,17 @@ function doNext(s: SimState, e: Enemy, k: KingMove): void {
 }
 
 export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number, damp: number): void {
-  const K = s.cfg.kings, kg = e.kg!, R = s.rng.ai, kit = KING_KITS[e.type]!;
-  if (kg.phase === 1 && e.hp < e.maxHp * K.phaseAt) {
+  const K = s.cfg.kings, kg = e.kg!, R = s.rng.ai, kit = KING_KITS[e.type]!, umbra = e.type === 'umbra';
+  if (umbra && kg.phase === 2 && e.hp < e.maxHp * s.cfg.umbra.phase3) {
+    // the darkened heart: the screen goes dark, ultimates come faster
+    kg.phase = 3;
+    s.darkness = true;
+    kg.ultCd = Math.min(kg.ultCd, K.ultFirst);
+    say(s, e, 'heart');
+    flash(s, 0.5, '#1a1030');
+    shake(s, 8);
+  }
+  if (kg.phase === 1 && e.hp < e.maxHp * (umbra ? s.cfg.umbra.phase2 : K.phaseAt)) {
     kg.phase = 2;
     kg.ultCd = Math.min(kg.ultCd, K.ultFirst);
     say(s, e, 'half');
@@ -188,8 +212,8 @@ export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number
   kg.cd -= dt;
   if (kg.cd > 0) return;
   kg.cd = R.range(K.cdMin, K.cdMax);
-  if ((kg.phase === 2 || s.overtime) && kg.ultCd <= 0) {
-    kg.ultCd = K.ultCd * (s.overtime ? K.overtimeUltMul : 1);
+  if ((kg.phase >= 2 || s.overtime) && kg.ultCd <= 0) {
+    kg.ultCd = K.ultCd * (s.overtime ? K.overtimeUltMul : 1) * (kg.phase === 3 ? s.cfg.umbra.ultCdMul3 : 1);
     const u = e.type === 'umbra' ? umbraUlt(s) : { k: kit.ult, mul: 1 };
     flash(s, 0.2, '#ffffff');
     sfx(s, 'ult');

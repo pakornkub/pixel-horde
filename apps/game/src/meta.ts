@@ -15,6 +15,9 @@ export interface MetaSave {
   /** Weapon collection ("lumora:thornwhip") and the Weapon picked for the next Run. */
   weapons: string[];
   weapon: WeaponId;
+  /** Heart Crack: highest unlocked tier and the one picked for the next Run. */
+  crackMax: number;
+  crack: number;
 }
 
 export type QueueOp =
@@ -36,6 +39,8 @@ export function parseMeta(raw: unknown): MetaSave {
     ch: isHero(m.ch) ? m.ch : 'mage',
     weapons: Array.isArray(m.weapons) ? m.weapons.filter((w): w is string => typeof w === 'string') : [],
     weapon: isWeapon(m.weapon) ? m.weapon : 'judgement',
+    crackMax: Math.max(0, Math.min(3, Math.floor(Number(m.crackMax) || 0))),
+    crack: Math.max(0, Math.min(3, Math.floor(Number(m.crack) || 0))),
   };
 }
 
@@ -64,6 +69,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     meta.owned = (s.heroes || []).filter(isHero);
     meta.weapons = Array.isArray(s.weapons) ? s.weapons : meta.weapons;
     if (!ownsWeapon(meta.weapon)) meta.weapon = 'judgement';
+    meta.crackMax = Math.max(meta.crackMax, Math.min(3, Number(s.stats?.heartCrack) || 0));
     if (!ownsHero(meta.ch)) meta.ch = 'mage';
     save();
   }
@@ -142,6 +148,9 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (found.length) save();
   }
   function selectWeapon(w: WeaponId): void { if (ownsWeapon(w)) { meta.weapon = w; save(); } }
+  function selectCrack(n: number): void { if (n >= 0 && n <= meta.crackMax) { meta.crack = n; save(); } }
+  /** Beating Umbra on tier n unlocks n+1 (up to 3); the server confirms on submit. */
+  function unlockCrack(n: number): void { if (n + 1 > meta.crackMax) { meta.crackMax = Math.min(3, n + 1); save(); } }
 
   function recordRun(result: RunResult, ticket: RunTicket | null, live: boolean): void {
     queue = queue.filter((q) => !(q.kind === 'run' && q.result.clientRunId === result.clientRunId));
@@ -166,6 +175,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     ownsWeapon,
     addWeapons,
     selectWeapon,
+    selectCrack,
+    unlockCrack,
     bankLocal,
     spendLocal,
     pending: (): readonly QueueOp[] => queue,

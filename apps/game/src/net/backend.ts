@@ -34,6 +34,7 @@ export interface ServerMeta {
   shop: Record<string, number>;
   heroes: string[];
   weapons: string[];
+  stats?: { heartCrack?: number };
   legacyImported: boolean;
 }
 
@@ -49,6 +50,10 @@ export interface RunResult {
   kills: number;
   level: number;
   gold: number;
+  /** Endless Score (after Umbra), victory and Heart Crack tier. */
+  endlessScore?: number;
+  victory?: boolean;
+  crack?: number;
   /** Weapon used and Weapons found this Run. */
   weapon?: string;
   weaponsFound?: string[];

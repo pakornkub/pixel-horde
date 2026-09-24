@@ -8,12 +8,14 @@ import type { PassiveId, SkillId } from './data/skills';
 import type { ShopId } from './data/shop';
 import type { WeaponId } from './data/weapons';
 
+export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'revive'; count: number; points: number }
+
 /** Fixed simulation rate. */
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
 
 /** 'revive' = down, offered the bought revive (the sim waits). */
-export type Phase = 'play' | 'levelup' | 'chest' | 'pause' | 'clearing' | 'clear' | 'route' | 'revive' | 'over';
+export type Phase = 'play' | 'levelup' | 'chest' | 'pause' | 'clearing' | 'clear' | 'route' | 'revive' | 'victory' | 'over';
 
 /** Player input for one tick. mx/my in [-1, 1]; magnitude <= 1. */
 export interface InputFrame {
@@ -29,6 +31,7 @@ export type Command =
   | { type: 'next' } // continue from the clear screen (to the route choice or the next Chapter)
   | { type: 'route'; index: number } // pick one of the offered Realms
   | { type: 'weapon'; id: WeaponId } // clear screen: switch to a Weapon found this Run
+  | { type: 'endless'; go: boolean } // after Umbra: continue in Endless or finish the Run
   | { type: 'reroll' } // level-up: new offers for Skill Points
   | { type: 'banish'; index: number } // level-up: remove that offer's Skill/passive from this Run
   | { type: 'spUpgrade'; id: SkillId } // level-up / clear screen: +1 level for Skill Points
@@ -72,6 +75,8 @@ export interface SimOptions {
   mode?: 'solo' | 'daily' | 'endless';
   /** Weapon picked for this Run (default Judgement). */
   weapon?: WeaponId;
+  /** Heart Crack difficulty tier 0–3 (unlocked by beating Umbra). */
+  crack?: number;
 }
 
 export interface Pet { lv: number; cd: number; dive: number; x: number; y: number }
@@ -162,10 +167,10 @@ export interface Enemy {
 
 export interface BenchSkill { id: SkillId; lv: number; evo: boolean }
 
-export type KingMove = 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne';
+export type KingMove = 'shadowBolts' | 'shadowMeteors' | 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne';
 
 export interface KingState {
-  phase: 1 | 2;
+  phase: 1 | 2 | 3;
   cd: number;
   ultCd: number;
   /** Standing still while a move plays out. */
@@ -177,7 +182,7 @@ export interface KingState {
 }
 
 /** Dialogue beats (lines live in i18n: king.<enemy>.<beat>). */
-export type SayBeat = 'arrive' | 'half' | 'defeat' | 'escape' | 'absorb';
+export type SayBeat = 'arrive' | 'half' | 'heart' | 'defeat' | 'escape' | 'absorb';
 
 export type RivalSkill = 'bolt' | 'lance' | 'nova' | 'meteor' | 'zap';
 
@@ -346,6 +351,14 @@ export interface SimState {
   victory: boolean;
   victoryTime: number;
   mode: 'solo' | 'daily' | 'endless';
+  crack: number;
+  /** Endless (after Umbra): the main Score is frozen in `main`; Endless scores from `endlessFrom`. */
+  endless: boolean;
+  main: { lines: ScoreLine[]; total: number } | null;
+  endlessFrom: { kills: number; combos: number; escapes: number } | null;
+  reviveEndless: boolean;
+  /** Umbra's darkened heart: the renderer darkens all but a light around the player. */
+  darkness: boolean;
   weapon: WeaponId;
   /** Weapons found this Run (kept forever; switchable at the next Stage end). */
   foundWeapons: WeaponId[];

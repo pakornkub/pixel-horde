@@ -136,7 +136,7 @@ export function killE(s: SimState, e: Enemy): void {
       if (w) findWeapon(s, w.id); else s.runGold += C.weapons.umbraGold;
     }
     if (e.kg) say(s, e, 'defeat');
-    if (e.type === 'umbra') { s.victory = true; s.victoryTime = s.totalTime; }
+    if (e.type === 'umbra') { s.victory = true; s.victoryTime = s.totalTime; s.darkness = false; }
     shake(s, 10); flash(s, 0.35, '#ffffff'); s.hitstop = 0.12; sfx(s, 'boom');
     for (let i = 0; i < L.bossGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.bossGems), mag: false });
     s.gems.push({ kind: 'heart', x: e.x, y: e.y, v: L.heartBig, mag: false });

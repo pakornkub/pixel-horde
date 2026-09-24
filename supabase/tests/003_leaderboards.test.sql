@@ -1,6 +1,6 @@
 -- Ticket 10: best Run per board, tie order, co-op unverified, my rank + neighbours, Hero filter.
 begin;
-select plan(14);
+select plan(16);
 
 insert into auth.users (id, raw_user_meta_data)
 select ('00000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, jsonb_build_object('nickname', 'P' || i)
@@ -36,6 +36,13 @@ select public.record_leaderboard((select id from public.runs where false));
 insert into public.runs (user_id, hero, status, score, chapter) values ('00000000-0000-0000-0000-000000000004', 'mage', 'offline', 9999999, 3);
 select public.record_leaderboard((select id from public.runs where status = 'offline'));
 select isnt((public.get_leaderboard('solo') -> 'top' -> 0 ->> 'name'), 'P4', 'offline Runs are not ranked');
+
+-- a Run that continued into Endless also feeds the Endless board with its Endless score
+insert into public.runs (user_id, hero, mode, status, score, endless_score, victory, chapter, ended_at)
+values ('00000000-0000-0000-0000-000000000006', 'mage', 'solo', 'submitted', 80000, 12345, true, 11, now());
+select public.record_leaderboard((select id from public.runs where endless_score = 12345));
+select is((select score from public.leaderboard where board = 'endless' and user_id = '00000000-0000-0000-0000-000000000006'), 12345::bigint, 'Endless score lands on the Endless board');
+select is((select score from public.leaderboard where board = 'solo' and user_id = '00000000-0000-0000-0000-000000000006'), 80000::bigint, 'and the main score on the Season board');
 
 -- view as player 5 (rank near the bottom, outside the top 100)
 set local role authenticated;

@@ -418,6 +418,13 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       }
     }
     if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.14)'; b.fillRect(0, 0, LW, LH); }
+    if (v.darkness) {
+      // Umbra's darkened heart: only a light around the player remains
+      const r = v.cfg.umbra.lightR, px = P.x + ox, py = P.y + oy;
+      const g = b.createRadialGradient(px, py, r * 0.55, px, py, r);
+      g.addColorStop(0, 'rgba(10,6,20,0)'); g.addColorStop(1, 'rgba(10,6,20,0.92)');
+      b.fillStyle = g; b.fillRect(0, 0, LW, LH);
+    }
     // particles
     for (const p of vfx.fx) { b.globalAlpha = Math.max(0, 1 - p.t / p.life); b.fillStyle = p.col; b.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), p.sz, p.sz); }
     b.globalAlpha = 1;
@@ -536,7 +543,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     const rem = v.stageDur - v.stageTime;
     outlined(fmtT(rem), W / 2, top + 18 * D, 20 * D, rem <= 10 && v.phase === 'play' ? (Math.floor(clock * 4) & 1 ? '#ff4b5c' : '#ffffff') : '#ffffff');
   }
-  outlined(t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
+  outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
   ctx.textAlign = 'right';
   outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
   outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');

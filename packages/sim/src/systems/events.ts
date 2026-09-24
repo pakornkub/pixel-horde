@@ -81,7 +81,7 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'line') {
       if (h.fire && !h.fired && h.t >= h.te!) {
         h.fired = true;
-        const sp = s.cfg.rival.lance.speed;
+        const sp = h.sp ?? s.cfg.rival.lance.speed;
         addHz(s, { k: 'proj', x: h.x, y: h.y, vx: cos(h.a!) * sp, vy: sin(h.a!) * sp, r: 4, d: h.d, life: 1.2, c: h.c || 1 });
       }
     } else if (h.k === 'proj') {

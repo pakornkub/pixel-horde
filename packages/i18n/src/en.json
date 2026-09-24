@@ -514,5 +514,19 @@
  "banner.weaponFound.sub": "{weapon}: switch to it at the next Stage end",
  "king.rival.arrive": "I am the shadow of your own strength.",
  "king.rival.defeat": "Umbra... will remember this...",
- "king.rival.escape": "I return to the dark. Umbra waits."
+ "king.rival.escape": "I return to the dark. Umbra waits.",
+ "ending.title": "LUMORA IS SAVED",
+ "ending.l1": "The last shard returns. The Heart of Lumora beats whole again.",
+ "ending.l2": "The Kings wake from the crystal fever, a little embarrassed.",
+ "ending.l3": "But deep in the Heart, a new crack glints...",
+ "ending.endless": "Continue: Endless",
+ "ending.finish": "Finish the Run",
+ "ending.note": "Your main Score is saved. Endless keeps everything you have and gets harder each Chapter; it has its own board.",
+ "hud.endless": "ENDLESS",
+ "score.endlessTitle": "ENDLESS SCORE",
+ "crack.pick": "Heart Crack (harder):",
+ "crack.0": "Normal",
+ "crack.n": "Crack {n}",
+ "king.umbra.heart": "Then let the light go out!",
+ "over.endlessEnd": "ENDLESS OVER"
 }

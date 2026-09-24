@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, reviveCost } from '@pixel-horde/sim';
+import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
@@ -51,6 +51,7 @@ function runResult(result: RunResult['result']): RunResult | null {
   const playMs = Math.round(v.totalTime * 1000);
   return {
     clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
+    endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack,
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
     summary: telemetry.summary(v),
@@ -96,6 +97,7 @@ async function newRun(): Promise<void> {
     seed: ticket ? ticket.seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
+    crack: Math.min(META.crack, META.crackMax),
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH },
     config: active.cfg,
@@ -117,7 +119,7 @@ async function newRun(): Promise<void> {
 function toTitle(): void {
   sim = null;
   queue = [];
-  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovMsg'].forEach(hide);
+  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
   setPlayUI(false);
@@ -159,6 +161,8 @@ function syncOverlays(): void {
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
     if (v.phase === 'clear') renderClear(v);
     if (v.phase === 'revive') showRevive(v, reviveCost(v as SimState));
+    if (v.phase === 'victory') { metaSync.unlockCrack(v.crack); show('ovEnding'); }
+    if (prev === 'victory' && v.phase !== 'victory') hide('ovEnding');
     if (prev === 'revive' && v.phase !== 'revive') hide('ovRevive');
     if (v.phase === 'route' && v.route) {
       renderRoute(v, (i) => {
@@ -166,7 +170,7 @@ function syncOverlays(): void {
       });
     }
     if (v.phase === 'over') {
-      bank(v.victory ? 'victory' : 'dead');
+      bank(v.victory && !v.endless && v.P.hp > 0 ? 'victory' : 'dead');
       const bb = getBest();
       if (!bb || v.stage > bb.stage || (v.stage === bb.stage && v.kills > bb.kills)) setBest({ stage: v.stage, kills: v.kills });
       showOver(v, v.runGold);
@@ -293,6 +297,8 @@ $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('o
 $('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
 $('setBack').addEventListener('click', closeSettings);
 $('startBtn').addEventListener('click', () => void newRun());
+$('endlessBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: true }); last = performance.now(); });
+$('finishBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: false }); });
 $('reviveBtn').addEventListener('click', () => { cmd({ type: 'revive' }); last = performance.now(); });
 $('giveUpBtn').addEventListener('click', () => { hide('ovRevive'); cmd({ type: 'giveUp' }); });
 $('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });

@@ -25,6 +25,7 @@ export function startStage(s: SimState, n: number): void {
   s.stage = n;
   s.swaps = 0;
   s.awakenOffer = false;
+  s.darkness = false;
   P.linkStart = maxLinks(s);
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
   s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
@@ -147,7 +148,13 @@ export function afterStage(s: SimState): void {
     chapter = s.stage;
   } else s.repicks = 0;
   s.skipped = null;
-  if (chapter >= G.chapters) {
+  if (s.endless) {
+    // Endless: random available Realms, rising difficulty, no route choice
+    const pool = ROUTE_REALMS.filter((r) => REALMS[r].available);
+    s.realm = pool[s.rng.route.int(pool.length)];
+    s.visited.push(s.realm);
+    startStage(s, chapter);
+  } else if (chapter >= G.chapters) {
     s.realm = 'crater';
     s.visited.push('crater');
     startStage(s, chapter);
@@ -393,6 +400,7 @@ export function buyRevive(s: SimState): void {
   const P = s.P, E = s.cfg.economy;
   if (s.phase !== 'revive' || !spendGold(s, reviveCost(s))) return;
   s.revivesBought++;
+  if (s.endless) s.reviveEndless = true; // in Endless the penalty hits only the Endless Score
   P.hp = Math.round(P.maxHp * E.reviveHp);
   P.inv = E.reviveInv;
   s.phase = 'play';
@@ -400,4 +408,14 @@ export function buyRevive(s: SimState): void {
   flash(s, 0.4, '#fff35c');
   sfx(s, 'ult');
   s.events.push({ t: 'spent', what: 'revive' });
+}
+
+/** After Umbra: continue the same Run in Endless, or finish it. */
+export function chooseEndless(s: SimState, go: boolean): void {
+  if (s.phase !== 'victory') return;
+  if (!go) { gameOver(s); return; }
+  s.endless = true;
+  s.endlessFrom = { kills: s.kills, combos: s.combos, escapes: s.escapes };
+  s.lastEnd = 'clear';
+  afterStage(s);
 }

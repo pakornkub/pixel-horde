@@ -45,7 +45,7 @@ export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, eli
     id: s.eid++ & 262143, type, x, y,
     hp: b.hp * hm * (elite ? c.eliteHp : 1), maxHp: 0,
     spd: b.spd * (1 + c.spdPerStage * (s.stage - 1)) * (elite ? c.eliteSpd : 1) * R.range(1 - c.spdJitter, 1 + c.spdJitter),
-    dmg: b.dmg * dm * (elite ? c.eliteDmg : 1),
+    dmg: b.dmg * dm * (elite ? c.eliteDmg : 1) * extraDmg(s),
     xp: b.xp * (elite ? c.eliteXp : 1), r: b.r * (elite ? c.eliteR : 1), sc: t.sc || (t.boss ? 3 : elite ? 2 : 1),
     elite, boss: !!t.boss, dmgMul: 1,
     kx: 0, ky: 0, flash: 0, slowT: 0, frz: 0, oc: 0, wob: R.range(-c.wobble, c.wobble), ph: R.next() * TAU, dead: false, armor: 0, born: s.clock,
@@ -63,8 +63,17 @@ export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, eli
 /** Monster HP multiplier right now (Chapter, Stage progress, player level, Director). */
 export function hpScale(s: SimState): number {
   const c = s.cfg.scaling;
-  return ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * (1 + c.hpPerLv * (s.P.lv - 1)) * (c.hpDirBase + c.hpDirK * s.dir.v);
+  return ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * (1 + c.hpPerLv * (s.P.lv - 1)) * (c.hpDirBase + c.hpDirK * s.dir.v) * extraHp(s);
 }
+
+/** Heart Crack tier and Endless depth on top of the Chapter formulas. */
+const crackMul = (s: SimState, k: 'hp' | 'dmg' | 'spawn'): number => {
+  const H = s.cfg.heartCrack;
+  return s.crack === 1 ? H[`${k}1`] : s.crack === 2 ? H[`${k}2`] : s.crack === 3 ? H[`${k}3`] : 1;
+};
+const beyond = (s: SimState): number => Math.max(0, s.stage - s.cfg.stage.chapters);
+export const extraHp = (s: SimState): number => crackMul(s, 'hp') * ipow(s.cfg.endless.hpGrowth, beyond(s));
+export const extraDmg = (s: SimState): number => crackMul(s, 'dmg') * ipow(s.cfg.endless.dmgGrowth, beyond(s));
 
 /** HP of this Chapter's normal monster (the Realm's first mob) right now. */
 export const chapterMobHp = (s: SimState): number => s.cfg.enemies[realm(s).pool[0]].hp * hpScale(s);
@@ -91,7 +100,7 @@ export function directorStep(s: SimState, dt: number): void {
 export function spawnStep(s: SimState, dt: number): void {
   const R = s.rng.spawn, C = s.cfg.spawn, mates = 0;
   directorStep(s, dt);
-  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * s.dir.v;
+  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * crackMul(s, 'spawn') * s.dir.v;
   s.spawnAcc += rate * dt;
   const pool = typePool(s);
   while (s.spawnAcc >= 1) {

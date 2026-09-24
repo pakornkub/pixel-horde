@@ -1,6 +1,6 @@
 -- Ticket 09: server-counted Gold, Run start/submit checks, Shop, offline Runs, legacy import.
 begin;
-select plan(36);
+select plan(37);
 
 insert into auth.users (id, raw_user_meta_data) values ('11111111-1111-1111-1111-111111111111', '{"nickname":"Alice"}'), ('22222222-2222-2222-2222-222222222222', '{"nickname":"Bob"}');
 
@@ -45,6 +45,7 @@ set local role authenticated;
 select is((select public.submit_run(jsonb_build_object('runId', (select id from public.runs where token = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), 'token', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'chapter', 3, 'kills', 800, 'gold', 500, 'score', 3000800, 'pausedMs', 60000)) ->> 'status'),
           'submitted', 'a plausible Run is accepted');
 select is((public.get_meta() ->> 'gold')::int, 500, 'its Gold is credited by the server');
+select is((select victory from public.runs where token = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'), false, 'a Run without victory unlocks nothing');
 select is((public.get_leaderboard('solo') -> 'me' ->> 'score')::bigint, 3000800::bigint, 'and it lands on the Season board');
 
 reset role;

@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, endlessBreakdown, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -63,6 +63,7 @@ export function renderChars(): void {
     box.appendChild(bt);
   }
   renderWeapons();
+  renderCracks();
   const sel = HEROES[META.ch];
   $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), role: heroRole(META.ch), skill: skillName(sel.start), bonus: heroDesc(META.ch) });
 }
@@ -82,6 +83,21 @@ function renderWeapons(): void {
   }
   const d = document.createElement('span'); d.textContent = t(`weapon.${META.weapon}.desc`); d.style.flexBasis = '100%';
   row.appendChild(d);
+}
+
+/* ---------- Heart Crack pick (title) ---------- */
+function renderCracks(): void {
+  const row = $('crackRow');
+  row.hidden = META.crackMax < 1;
+  if (row.hidden) return;
+  row.innerHTML = `<span class="lbl">${t('crack.pick')}</span>`;
+  for (let n = 0; n <= META.crackMax; n++) {
+    const bt = document.createElement('button');
+    bt.className = META.crack === n ? 'sel' : '';
+    bt.textContent = n ? t('crack.n', { n }) : t('crack.0');
+    bt.addEventListener('click', () => { metaSync.selectCrack(n); renderCracks(); });
+    row.appendChild(bt);
+  }
 }
 
 /* ---------- shop ---------- */
@@ -367,13 +383,17 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
 }
 
 /** Itemised Score that counts up line by line (decision #15). */
-let countUp = 0;
+const countUps: (() => void)[] = [];
 function showScore(v: Readonly<SimState>): void {
-  const { lines, total } = scoreBreakdown(v);
-  const box = $('scoreBox');
+  countUpBox($('scoreBox'), scoreBreakdown(v));
+  const eb = $('endlessBox');
+  eb.hidden = !v.endless;
+  if (v.endless) { countUpBox(eb, endlessBreakdown(v)); eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`); }
+}
+function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; points: number }[]; total: number }): void {
+  const { lines, total } = b;
   const rows = lines.filter((l) => l.points !== 0 || l.key === 'kills');
   box.innerHTML = '';
-  cancelAnimationFrame(countUp);
   const cells = rows.map((l) => {
     const a = document.createElement('span'); a.textContent = t(`score.${l.key}`, { n: l.count });
     const b = document.createElement('span'); b.textContent = '0';
@@ -386,19 +406,22 @@ function showScore(v: Readonly<SimState>): void {
   const fmt = (n: number): string => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const per = reduce ? 0 : 450, start = performance.now();
+  let raf = 0;
   const tick = (now: number): void => {
     const el = now - start;
     cells.forEach((c, i) => { const f = per ? Math.min(1, Math.max(0, (el - i * per) / per)) : 1; c.b.textContent = fmt(Math.round(c.to * f)); });
     const done = !per || el >= cells.length * per;
     tb.textContent = fmt(done ? total : Math.round(total * Math.min(1, el / (cells.length * per))));
-    if (!done) countUp = requestAnimationFrame(tick);
+    if (!done) raf = requestAnimationFrame(tick);
   };
-  countUp = requestAnimationFrame(tick);
+  raf = requestAnimationFrame(tick);
+  countUps.push(() => cancelAnimationFrame(raf));
 }
 
 export function showOver(v: Readonly<SimState>, runGold: number): void {
   $('retryBtn').hidden = false;
-  $('overTitle').textContent = v.victory ? t('over.victory') : t('over.title');
+  $('overTitle').textContent = v.endless ? t('over.endlessEnd') : v.victory ? t('over.victory') : t('over.title');
+  countUps.splice(0).forEach((f) => f());
   showScore(v);
   $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold + 'G'], [t('stat.wallet'), META.gold + 'G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();

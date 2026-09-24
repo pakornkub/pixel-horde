@@ -299,6 +299,23 @@ const shared = obj({
     reviveHp: frac(0.5, 'HP after a bought revive'),
     reviveInv: sec(2.5, 'Invulnerable after a bought revive (s)'),
   }, 'In-Run economy'),
+  umbra: obj({
+    phase2: frac(0.66, 'Umbra: stolen King ultimates below this HP'),
+    phase3: frac(0.33, 'Umbra: darkened heart below this HP (the screen goes dark)'),
+    ultCdMul3: frac(0.6, 'Ultimate cooldown × in the darkened-heart phase'),
+    lightR: pos(70, 'Light radius around the player in the dark'),
+    bolts: int(7, 1, 30, 'Shadow bolts per fan'), boltSpread: n(0.2, 0, 1.5, 'Angle between bolts (rad)'), boltSpeed: pos(120, 'Shadow bolt speed'), boltDmg: mul(0.8, 'Shadow bolt damage ×'),
+    meteors: int(5, 1, 30, 'Shadow meteors'), meteorR: pos(20, 'Shadow meteor radius'), meteorWarn: sec(1, 'Shadow meteor warning (s)'), meteorDmg: mul(1.2, 'Shadow meteor damage ×'),
+  }, 'Umbra, the final King'),
+  endless: obj({
+    hpGrowth: mul(1.1, 'Extra monster HP × per Chapter beyond the last'),
+    dmgGrowth: mul(1.05, 'Extra monster damage × per Chapter beyond the last'),
+  }, 'Endless mode (after Umbra)'),
+  heartCrack: obj({
+    hp1: mul(1.25, 'Tier 1: monster HP ×'), dmg1: mul(1.15, 'Tier 1: monster damage ×'), spawn1: mul(1.15, 'Tier 1: spawn rate ×'),
+    hp2: mul(1.5, 'Tier 2: monster HP ×'), dmg2: mul(1.3, 'Tier 2: monster damage ×'), spawn2: mul(1.3, 'Tier 2: spawn rate ×'),
+    hp3: mul(1.8, 'Tier 3: monster HP ×'), dmg3: mul(1.45, 'Tier 3: monster damage ×'), spawn3: mul(1.45, 'Tier 3: spawn rate ×'),
+  }, 'Heart Crack difficulty tiers (unlocked by beating Umbra)'),
   awaken: obj({
     links: int(2, 1, 3, 'Max-level Links needed (and consumed)'),
     stages: int(1, 1, 5, 'Full Stages the Links must have been max level and equipped'),

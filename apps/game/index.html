@@ -22,6 +22,7 @@
   <div class="chars" id="chars"></div>
   <p class="chdesc" id="chDesc"></p>
   <div class="weapons" id="weaponRow"></div>
+  <div class="weapons" id="crackRow" hidden></div>
   <div class="keys" data-i18n-html="title.keys"></div>
   <button class="btn" id="startBtn" data-i18n="title.start"></button>
   <button class="btn ghost" id="shopBtn1" data-i18n="title.shop"></button>
@@ -39,6 +40,16 @@
   <p class="slots" id="lvSlots"></p>
   <div class="opts" id="opts"></div>
   <div class="sptools" id="lvTools"></div>
+</div></div>
+
+<div class="overlay" id="ovEnding"><div class="box">
+  <h2 data-i18n="ending.title"></h2>
+  <p data-i18n="ending.l1"></p>
+  <p data-i18n="ending.l2"></p>
+  <p data-i18n="ending.l3"></p>
+  <p class="note" data-i18n="ending.note"></p>
+  <button class="btn" id="endlessBtn" data-i18n="ending.endless"></button>
+  <button class="btn ghost" id="finishBtn" data-i18n="ending.finish"></button>
 </div></div>
 
 <div class="overlay" id="ovRevive"><div class="box">
@@ -68,6 +79,7 @@
 <div class="overlay" id="ovOver"><div class="box">
   <h2 id="overTitle" data-i18n="over.title"></h2>
   <div class="stats score" id="scoreBox"></div>
+  <div class="stats score" id="endlessBox" hidden></div>
   <div class="stats" id="overStats"></div>
   <button class="btn" id="retryBtn" data-i18n="over.retry"></button>
   <button class="btn ghost" id="shopBtn2" data-i18n="title.shop"></button>

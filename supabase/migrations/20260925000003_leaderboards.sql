@@ -65,6 +65,11 @@ begin
   if r.mode = 'solo' then
     perform public.upsert_board(r.world, season, 'solo', r, true);
     perform public.upsert_board(r.world, 0, 'alltime', r, true);
+    -- a Run that went on into Endless also lands on the Endless board with its Endless score
+    if coalesce(r.endless_score, 0) > 0 then
+      r.score := r.endless_score;
+      perform public.upsert_board(r.world, season, 'endless', r, true);
+    end if;
   elsif r.mode = 'coop' then
     perform public.upsert_board(r.world, season, 'coop', r, false);  -- co-op entries stay "unverified"
   elsif r.mode = 'endless' then
@@ -96,6 +101,9 @@ begin
     ended_at = now(), paused_ms = greatest(coalesce((p ->> 'pausedMs')::bigint, 0), 0),
     result = coalesce(p ->> 'result', 'dead'), chapter = (p ->> 'chapter')::int, kills = (p ->> 'kills')::int,
     level = (p ->> 'level')::int, gold_earned = g, score = (p ->> 'score')::bigint,
+    endless_score = greatest(coalesce((p ->> 'endlessScore')::bigint, 0), 0),
+    victory = coalesce((p ->> 'victory')::boolean, false),
+    crack = least(greatest(coalesce((p ->> 'crack')::int, 0), 0), 3),
     summary = coalesce(p -> 'summary', '{}'::jsonb),
     status = case when problem is null then 'submitted' else 'rejected' end,
     reject_reason = problem
@@ -105,6 +113,13 @@ begin
     update public.meta_progress set gold = gold + g, updated_at = now() where user_id = uid returning * into m;
   end if;
   if problem is null then m := public.add_found_weapons(uid, r.world, p -> 'weaponsFound'); end if;
+  -- beating Umbra unlocks the next Heart Crack tier (1–3), only above the tier the Run used
+  if problem is null and coalesce((p ->> 'victory')::boolean, false) then
+    update public.meta_progress
+      set stats = jsonb_set(stats, '{heartCrack}', to_jsonb(least(3, greatest(coalesce((stats ->> 'heartCrack')::int, 0),
+                  least(greatest(coalesce((p ->> 'crack')::int, 0), 0), 3) + 1)))), updated_at = now()
+    where user_id = uid returning * into m;
+  end if;
   -- Gold the Run took from the wallet (Stage-end swaps etc.) is always charged, never below zero.
   if coalesce((p ->> 'walletSpent')::int, 0) > 0 then
     update public.meta_progress set gold = greatest(0, gold - (p ->> 'walletSpent')::int), updated_at = now() where user_id = uid returning * into m;

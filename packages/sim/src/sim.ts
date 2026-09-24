@@ -3,7 +3,7 @@ import { createStreams } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, answerAwaken, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
+import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
@@ -11,7 +11,7 @@ import { banner, shake } from './systems/fx';
 import { directionOf, initKing } from './systems/kings';
 import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
-import { DT, type Command, type InputFrame, type Phase, type SimEvent, type SimOptions, type SimState } from './types';
+import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 
 
 export interface Sim {
@@ -62,7 +62,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -98,6 +98,7 @@ export function createSim(opts: SimOptions): Sim {
       case 'swap': swapBench(s, c.bench, c.slot); break;
       case 'awaken': answerAwaken(s, c.accept); break;
       case 'weapon': if (s.phase === 'clear' && s.foundWeapons.includes(c.id)) s.weapon = c.id; break;
+      case 'endless': chooseEndless(s, c.go); break;
       case 'reroll': reroll(s); break;
       case 'banish': banish(s, c.index); break;
       case 'spUpgrade': spUpgrade(s, c.id); break;
@@ -220,7 +221,12 @@ export function createSim(opts: SimOptions): Sim {
     } else if (s.phase === 'clearing') {
       s.clearT -= DT;
       if (s.clearT <= 0) {
-        if (s.victory && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) { s.events.push({ t: 'victory' }); gameOver(s); }
+        if (s.victory && !s.endless && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) {
+          // the main Score is final now; the player may continue in Endless
+          s.main = scoreBreakdown(s);
+          s.events.push({ t: 'victory' });
+          s.phase = 'victory';
+        }
         else s.phase = 'clear';
       }
     }
@@ -246,7 +252,6 @@ export function createSim(opts: SimOptions): Sim {
   };
 }
 
-export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'revive'; count: number; points: number }
 
 /**
  * Arcade Score (decision #15): progress dominates, kills and Combos separate equal progress.
@@ -254,6 +259,7 @@ export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'v
  * fast finish +(1,500 − s)×10 · Escapes −3,000 each · a bought revive −15%.
  */
 export function scoreBreakdown(s: Readonly<SimState>): { lines: ScoreLine[]; total: number } {
+  if (s.main) return s.main;
   const C = s.cfg.score;
   const sum = (a: number[]): number => a.reduce((x, y) => x + y, 0);
   const lines: ScoreLine[] = [
@@ -276,12 +282,31 @@ export function scoreBreakdown(s: Readonly<SimState>): { lines: ScoreLine[]; tot
   return { lines, total };
 }
 
+/** Endless Score (its own board): Chapters and Kings beyond the last, kills and Combos since Umbra. */
+export function endlessBreakdown(s: Readonly<SimState>): { lines: ScoreLine[]; total: number } {
+  const C = s.cfg.score, from = s.endlessFrom, last = s.cfg.stage.chapters;
+  if (!from) return { lines: [], total: 0 };
+  const sum = (a: number[]): number => a.reduce((x, y) => x + y, 0);
+  const ch = s.chaptersCleared.filter((c) => c > last), kg = s.kingsKilled.filter((c) => c > last);
+  const lines: ScoreLine[] = [
+    { key: 'chapters', count: ch.length, points: C.chapter * sum(ch) },
+    { key: 'kings', count: kg.length, points: C.king * sum(kg) },
+    { key: 'kills', count: s.kills - from.kills, points: C.kill * (s.kills - from.kills) },
+    { key: 'combos', count: s.combos - from.combos, points: C.combo * (s.combos - from.combos) },
+  ];
+  const esc = s.escapes - from.escapes;
+  if (esc) lines.push({ key: 'escapes', count: esc, points: -C.escape * esc });
+  let total = Math.max(0, sum(lines.map((l) => l.points)));
+  if (s.reviveEndless) { const cut = Math.round(total * C.revivePenalty); lines.push({ key: 'revive', count: 1, points: -cut }); total -= cut; }
+  return { lines, total };
+}
+
 /** The one score computation. */
 export function scoreOf(s: Readonly<SimState>): number {
   return scoreBreakdown(s).total;
 }
 
-const PHASES: Phase[] = ['play', 'levelup', 'chest', 'pause', 'clearing', 'clear', 'over', 'route', 'revive'];
+const PHASES: Phase[] = ['play', 'levelup', 'chest', 'pause', 'clearing', 'clear', 'over', 'route', 'revive', 'victory'];
 
 /** FNV-1a over the bytes of the gameplay-relevant numbers. */
 export function hashState(s: Readonly<SimState>): number {
