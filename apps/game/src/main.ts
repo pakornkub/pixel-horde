@@ -16,6 +16,7 @@ import { backend, type Announcement, type RunResult, type RunTicket } from './ne
 import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
+import { createTips, type TipId } from './tips';
 import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
@@ -48,6 +49,15 @@ let acc = 0;
 let last = performance.now();
 let rclock = 0;
 const fpsWatch = createFpsWatch();
+const tips = createTips({ seen: () => META.tips, mark: (id) => metaSync.markTip(id), enabled: () => settings.tips });
+let tipShown: TipId | null = null;
+function showTip(id: TipId | null): void {
+  if (id === tipShown) return;
+  tipShown = id;
+  const bar = $('tipBar');
+  bar.hidden = !id;
+  if (id) bar.textContent = t(`tip.${id}`);
+}
 
 const cmd = (c: Command): void => { queue.push(c); };
 
@@ -83,6 +93,7 @@ function bank(final?: RunResult['result']): void {
   if (r) metaSync.recordRun(r, ticket, !final);
   if (final) {
     clearSave();
+    metaSync.markTip('first');
     newAch = metaSync.recordFacts(runFacts(sim.view()));
     noteRunFinished(final === 'victory');
     telemetry.queueSample(backend.account()?.id ?? '', ticket?.runId ?? null, r?.configVersion ?? 0);
@@ -108,6 +119,7 @@ async function newRun(): Promise<void> {
     hero: isHero(META.ch) ? META.ch : 'mage',
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
     crack: Math.min(META.crack, META.crackMax),
+    firstRun: !META.tips.includes('first'), // the account's very first Greenvale is a little easier
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
     config: active.cfg,
@@ -219,6 +231,8 @@ function toTitle(): void {
   sim = null;
   queue = [];
   $('fpsTip').hidden = true;
+  tips.reset();
+  showTip(null);
   ['ovHero', 'ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
@@ -297,6 +311,7 @@ function frame(now: number): void {
         queue = [];
         const v = sim.view();
         consume(events, v);
+        tips.observe(events, v);
         if (events.some((e) => e.t === 'spent')) syncWallet();
         const found = events.filter((e) => e.t === 'weaponFound').map((e) => (e as { id: WeaponId }).id);
         if (found.length) metaSync.addWeapons(found);
@@ -315,6 +330,7 @@ function frame(now: number): void {
       if (steps >= 8) acc = 0;
       syncOverlays();
       const v = sim.view();
+      showTip(tips.tick(rdt));
       stepVfx(rdt, rdt * (v.slowT > 0 ? 0.3 : 1) * (vfx.slowmo > 0 ? v.cfg.fx.slowmoScale : 1));
       if (v.phase === 'play') {
         telemetry.frame(rdt);

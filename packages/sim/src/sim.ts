@@ -90,7 +90,7 @@ export function createSim(opts: SimOptions): Sim {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
     meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0), weapons: [...(opts.meta.weapons || [])] },
-    viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile,
+    viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile, firstRun: !!opts.firstRun,
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
     chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
@@ -208,6 +208,7 @@ export function createSim(opts: SimOptions): Sim {
         const b = spawnEnemy(s, realm(s).king, x, y, false);
         b.hp *= ipow(s.cfg.stage.bossHpGrowth, s.stage - 1);
         if (b.type === 'umbra') b.hp *= 1 + s.cfg.stage.umbraEscapeHp * s.escapes;
+        if (s.firstRun && s.stage === 1) b.hp *= s.cfg.tutorial.kingHp;
         b.maxHp = b.hp;
         s.boss = b;
         initKing(s, b);

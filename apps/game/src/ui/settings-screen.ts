@@ -1,5 +1,6 @@
 // Settings overlay (ticket 07): every option applies immediately and persists on the device.
 import { t } from '@pixel-horde/i18n';
+import { metaSync } from '../meta';
 import { applyLang, canVibrate, saveSettings, settings, type Settings } from '../settings';
 import { $, hide, show } from './overlays';
 
@@ -66,7 +67,7 @@ function render(): void {
   replay.textContent = t('set.tipsReplay');
   const msg = document.createElement('p');
   msg.className = 'setmsg';
-  replay.addEventListener('click', () => { settings.tipsSeen = []; settings.tips = true; saveSettings(); render(); $('setList').querySelector('.setmsg')!.textContent = t('set.tipsReplayed'); });
+  replay.addEventListener('click', () => { settings.tipsSeen = []; settings.tips = true; saveSettings(); metaSync.replayTips(); render(); $('setList').querySelector('.setmsg')!.textContent = t('set.tipsReplayed'); });
   list.append(replay, msg);
 }
 

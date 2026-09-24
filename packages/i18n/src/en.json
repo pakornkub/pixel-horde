@@ -668,5 +668,18 @@
  "title.hero": "Hero & Weapon",
  "title.heroDone": "Done",
  "title.coop": "Co-op",
- "title.soon": "coming soon"
+ "title.soon": "coming soon",
+ "tip.move": "Move with WASD / arrow keys (phone: touch and drag). Keep moving to dodge!",
+ "tip.auto": "Your Skills fire on their own — you only move and dodge.",
+ "tip.crystals": "Walk over EXP crystals to collect them and level up.",
+ "tip.levelup": "Level up! Pick one: a new Skill, a stronger Skill or a passive.",
+ "tip.ult": "Ultimate ready! Press SPACE (or the ULT button).",
+ "tip.king": "The King is here. Defeat it before the timer ends or it escapes.",
+ "tip.stageEnd": "Chapter clear! Check your build, then choose where to go next.",
+ "tip.combo": "Combo! Different Skill elements on one monster make a bonus effect.",
+ "tip.bench": "Your Bench grew: keep spare Skills there and swap them between Stages.",
+ "tip.bloodMoon": "Blood Moon: many more monsters, double Gold and a bonus chest.",
+ "tip.dragon": "A Guardian dragon is coming. Watch the red warnings and beat it to tame it!",
+ "tip.awaken": "Awakening: fuse your finished Skill lines into one much stronger Skill.",
+ "tip.escape": "Overtime! Kill the King soon — if it escapes, the final boss gets stronger."
 }

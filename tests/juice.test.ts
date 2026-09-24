@@ -1,7 +1,7 @@
 // Ticket 39: presentation events and device caps.
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { createSim, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { DEFAULT_RESOLVED, createSim, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { stageClear } from '../packages/sim/src/systems/progress';
 import { botOptions } from './bot';
 
@@ -60,5 +60,24 @@ describe('juice & performance', () => {
     s.gems.push({ kind: 'coin', x: s.P.x + 150, y: s.P.y, v: 1, mag: false }, { kind: 'xp', x: s.P.x - 150, y: s.P.y, v: 1, mag: false });
     stageClear(s);
     expect(s.gems.every((g) => g.mag)).toBe(true);
+  });
+});
+
+describe('the first Run (ticket 44)', () => {
+  it('has a weaker King and fewer spawns in Chapter 1 only', () => {
+    const onlyHp = resolveConfig(parseBalanceConfig({ shared: { tutorial: { spawn: 1 } } }));
+    const kingHp = (firstRun: boolean): number => {
+      const sim = createSim(botOptions(8, { debug: { god: true }, events: quiet, firstRun, config: onlyHp }));
+      const s = sim.view() as SimState;
+      for (let i = 0; i < 200 * 60 && !s.boss; i++) run(sim, 1);
+      return s.boss!.maxHp;
+    };
+    expect(kingHp(true) / kingHp(false)).toBeCloseTo(DEFAULT_RESOLVED.tutorial.kingHp, 5);
+    const spawned = (firstRun: boolean): number => {
+      const sim = createSim(botOptions(8, { debug: { god: true }, events: quiet, firstRun }));
+      run(sim, 15 * 60);
+      return (sim.view() as SimState).eid;
+    };
+    expect(spawned(true)).toBeLessThan(spawned(false));
   });
 });

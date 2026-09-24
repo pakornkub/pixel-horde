@@ -82,6 +82,8 @@ export interface SimOptions {
   crack?: number;
   /** Phone/tablet: lower monster caps (recorded in replays, so still deterministic). */
   mobile?: boolean;
+  /** The account's very first Run: Chapter 1 is slightly easier. */
+  firstRun?: boolean;
   /** Resume from a checkpoint (`Sim.checkpoint().data`); `config` must be its locked version. */
   resume?: string;
 }
@@ -351,6 +353,8 @@ export interface SimState {
   viewport: { w: number; h: number };
   /** Lower monster caps (phones/tablets). */
   mobile: boolean;
+  /** The account's very first Run (easier Chapter 1). */
+  firstRun: boolean;
   debug: { event?: DebugEvent; god?: boolean };
 
   /** Chapter number (difficulty follows it). */

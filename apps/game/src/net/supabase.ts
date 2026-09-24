@@ -123,6 +123,7 @@ export function createSupabaseBackend(): Backend {
     async getCheckpoint() { online(); return rpc<ServerCheckpoint | null>('get_checkpoint'); },
     async getCollection() { online(); return rpc<Collection | null>('get_collection'); },
     async setTitle(title) { online(); await rpc('set_title', { p_title: title }); },
+    async setTips(tips) { online(); return rpc<string[]>('set_tips', { p_tips: tips }); },
     async resumeRun(runId, hash) { online(); return rpc<{ ok: boolean; seasonChanged: boolean }>('resume_run', { p_run: runId, p_hash: hash }); },
     async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },
     async unlockHero(hero) { online(); return rpc<ServerMeta>('unlock_hero', { p_hero: hero }); },

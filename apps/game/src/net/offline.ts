@@ -50,6 +50,7 @@ export function createOfflineBackend(store: KeyValue = browserStore): Backend {
     resumeRun: offlineErr,
     getCollection: async () => null,
     setTitle: offlineErr,
+    setTips: offlineErr,
     buyUpgrade: offlineErr,
     unlockHero: offlineErr,
     importLegacy: offlineErr,

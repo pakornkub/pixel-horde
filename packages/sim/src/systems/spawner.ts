@@ -100,7 +100,7 @@ export function directorStep(s: SimState, dt: number): void {
 export function spawnStep(s: SimState, dt: number): void {
   const R = s.rng.spawn, C = s.cfg.spawn, mates = 0;
   directorStep(s, dt);
-  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * crackMul(s, 'spawn') * s.dir.v;
+  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * crackMul(s, 'spawn') * s.dir.v * (s.firstRun && s.stage === 1 ? s.cfg.tutorial.spawn : 1);
   s.spawnAcc += rate * dt;
   const pool = typePool(s);
   while (s.spawnAcc >= 1) {

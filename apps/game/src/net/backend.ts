@@ -34,7 +34,7 @@ export interface ServerMeta {
   shop: Record<string, number>;
   heroes: string[];
   weapons: string[];
-  stats?: { heartCrack?: number };
+  stats?: { heartCrack?: number; tips?: string[] };
   legacyImported: boolean;
 }
 
@@ -120,6 +120,8 @@ export interface Backend {
   /** Collection menu (ticket 32). */
   getCollection(): Promise<Collection | null>;
   setTitle(title: string | null): Promise<void>;
+  /** Tutorial hints seen by this account (ticket 44); replaces the list. */
+  setTips(tips: string[]): Promise<string[]>;
   buyUpgrade(item: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;

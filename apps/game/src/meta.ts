@@ -24,6 +24,8 @@ export interface MetaSave {
   bestiary: Record<string, number>;
   titles: string[];
   shownTitle: string | null;
+  /** Tutorial hints this account has seen; "first" = the first Run is finished (ticket 44). */
+  tips: string[];
 }
 
 export type QueueOp =
@@ -52,6 +54,7 @@ export function parseMeta(raw: unknown): MetaSave {
     bestiary: m.bestiary && typeof m.bestiary === 'object' ? (m.bestiary as Record<string, number>) : {},
     titles: Array.isArray(m.titles) ? m.titles.filter((x): x is string => typeof x === 'string') : [],
     shownTitle: typeof m.shownTitle === 'string' ? m.shownTitle : null,
+    tips: Array.isArray(m.tips) ? m.tips.filter((x): x is string => typeof x === 'string') : [],
   };
 }
 
@@ -82,7 +85,28 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (!ownsWeapon(meta.weapon)) meta.weapon = 'judgement';
     meta.crackMax = Math.max(meta.crackMax, Math.min(3, Number(s.stats?.heartCrack) || 0));
     if (!ownsHero(meta.ch)) meta.ch = 'mage';
+    const srvTips = Array.isArray(s.stats?.tips) ? s.stats.tips : [];
+    if (!tipsDirty) meta.tips = [...new Set([...meta.tips, ...srvTips])];
     save();
+  }
+
+  /* ---------- tutorial hints (once per account) ---------- */
+  let tipsDirty = false;
+  async function pushTips(): Promise<void> {
+    if (!online()) { tipsDirty = true; return; }
+    try { await backend.setTips(meta.tips); tipsDirty = false; } catch { tipsDirty = true; }
+  }
+  function markTip(id: string): void {
+    if (meta.tips.includes(id)) return;
+    meta.tips.push(id);
+    save();
+    void pushTips();
+  }
+  /** Settings → "show hints again": forget every hint (but not that the first Run is done). */
+  function replayTips(): void {
+    meta.tips = meta.tips.filter((x) => x === 'first');
+    save();
+    void pushTips();
   }
 
   function ownsHero(k: HeroId): boolean { return active.cfg.heroes[k].cost === 0 || meta.owned.includes(k); }
@@ -115,6 +139,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
         queue = queue.filter((q) => q !== op);
         save();
       }
+      if (tipsDirty) await pushTips();
       applyServer(await backend.getMeta());
       if (!store.get(K_LEGACY_DONE)) store.set(K_LEGACY_DONE, '1');
       return true;
@@ -214,6 +239,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     unlockCrack,
     bankLocal,
     spendLocal,
+    markTip,
+    replayTips,
     pending: (): readonly QueueOp[] => queue,
     onChange(fn: () => void): () => void { listeners.add(fn); return () => listeners.delete(fn); },
     save,

@@ -209,3 +209,12 @@ html[lang="en"] .tmenu button,html[lang="en"] .tagline,html[lang="en"] .tfoot{fo
 html[lang="en"] .tagline{font-size:10px}
 @media (max-width:360px){.tmenu{grid-template-columns:repeat(2,1fr)}}
 @media (max-height:520px){.logo{font-size:24px}.logo br{display:none}.tagline{display:none}.thero canvas{width:64px;height:64px}.tmain{gap:8px}}
+
+/* tutorial hints (ticket 44): never block input */
+#tipBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:7;pointer-events:none;
+  max-width:min(520px,calc(100% - 120px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--gold);border-radius:4px;
+  padding:8px 12px;font-family:var(--th);font-weight:700;font-size:15px;line-height:1.45;text-align:center;animation:tipIn .25s ease-out}
+#tipBar[hidden]{display:none}
+html[lang="en"] #tipBar{font-family:var(--pix);font-weight:400;font-size:9px;line-height:1.8}
+@keyframes tipIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion: reduce){#tipBar{animation:none}}

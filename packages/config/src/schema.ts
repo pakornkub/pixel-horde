@@ -220,6 +220,7 @@ const shared = obj({
     slow: sec(0.55, 'Slow-motion time (s)'), delay: sec(0.3, 'Strike delay (s)'), kb: pos(120, 'Knockback'),
   }, 'Ultimate (Judgement)'),
   streak: obj({ window: sec(2.2, 'Seconds between kills to keep the Kill Streak'), popupEvery: int(25, 5, 1000, 'Show a "×N KO!" popup every N kills of a streak') }, 'Kill Streak'),
+  tutorial: obj({ kingHp: frac(0.8, 'King HP × in the account\'s very first Greenvale'), spawn: frac(0.8, 'Spawn rate × in that first Greenvale') }, 'First Run (easier Greenvale)'),
   fx: obj({
     particles: int(900, 50, 5000, 'Particle cap (desktop)'), particlesMobile: int(500, 50, 5000, 'Particle cap (phones/tablets)'),
     lowFps: int(45, 10, 60, 'Suggest lowering effects when FPS stays under this'), lowFpsSecs: sec(8, 'Seconds of low FPS before the suggestion'),

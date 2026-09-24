@@ -49,6 +49,7 @@ function fakeBackend(start: BackendStatus = 'offline') {
     resumeRun: async () => ({ ok: false, seasonChanged: false }),
     getCollection: async () => null,
     setTitle: async () => undefined,
+    setTips: async (x: string[]) => x,
   };
   return { b, status, server, calls };
 }
