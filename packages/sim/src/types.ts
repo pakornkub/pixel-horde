@@ -24,7 +24,12 @@ export type Command =
   | { type: 'resume' }
   | { type: 'next' } // continue to the next stage from the clear screen
   | { type: 'ult' }
-  | { type: 'viewport'; w: number; h: number }; // low-res view size changed (affects on-screen rules)
+  | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
+  | { type: 'setConfig'; config: ResolvedConfig } // new Balance Config: applies at the next Stage start
+  | { type: 'setEvents'; events: EventSwitches }; // feature flags for events: apply at the next Stage start
+
+/** Server feature flags that switch special events off. */
+export interface EventSwitches { bloodMoon: boolean; dragon: boolean; rival: boolean }
 
 export interface Meta {
   /** Permanent shop levels. */
@@ -43,6 +48,8 @@ export interface SimOptions {
   /** Resolved Balance Config; defaults to the built-in one. */
   config?: ResolvedConfig;
   debug?: { event?: DebugEvent; god?: boolean };
+  /** Event feature flags at Run start (default: all on). */
+  events?: EventSwitches;
 }
 
 export interface Pet { lv: number; cd: number; dive: number; x: number; y: number }
@@ -202,6 +209,11 @@ export interface SimState {
   clock: number;
   seed: number;
   cfg: ResolvedConfig;
+  /** Config versions used by this Run, in order. */
+  configVersions: number[];
+  eventSwitches: EventSwitches;
+  /** Waiting for the next Stage start. */
+  pending: { cfg?: ResolvedConfig; events?: EventSwitches };
   phase: Phase;
   hero: HeroId;
   meta: Meta;

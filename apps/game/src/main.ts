@@ -8,7 +8,8 @@ import { checkSession, initAccount, renderAccountLine } from './ui/account';
 import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
-import { backend, type RunResult, type RunTicket } from './net';
+import { backend, type Announcement, type RunResult, type RunTicket } from './net';
+import { announcementText, live } from './live';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
@@ -49,13 +50,15 @@ function runResult(result: RunResult['result']): RunResult | null {
   return {
     clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold,
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
-    configVersion: ticket?.configVersion ?? active.cfg.version,
+    configVersion: ticket?.configVersion ?? v.configVersions[0],
+    summary: { configVersions: v.configVersions },
   };
 }
 
 /** Stage clear / Run end: show the Gold in the wallet now; the server credits it on submit. */
 function bank(final?: RunResult['result']): void {
   if (!sim) return;
+  if (final) void refreshLive();
   const add = sim.view().runGold - runBanked;
   if (add > 0) { metaSync.bankLocal(add); runBanked += add; }
   const r = runResult(final ?? 'quit');
@@ -80,6 +83,7 @@ async function newRun(): Promise<void> {
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH },
     config: active.cfg,
+    events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
   });
   queue = [];
@@ -146,7 +150,7 @@ function frame(now: number): void {
         const v = sim.view();
         consume(events, v);
         if (events.some((e) => e.t === 'stageClear')) bank();
-        if (events.some((e) => e.t === 'stageStart')) checkSession();
+        if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); }
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
         acc -= DT;
         steps++;
@@ -255,6 +259,35 @@ function downloadReplay(): void {
 $('replayBtn').addEventListener('click', downloadReplay);
 $('replayBtn2').addEventListener('click', downloadReplay);
 
+/* ---------- live state: flags, announcements, maintenance, config ---------- */
+let news: Announcement[] = [];
+let maintDismissed = false;
+function renderNews(): void {
+  const box = $('news');
+  box.innerHTML = '';
+  for (const a of news) {
+    const { title, body } = announcementText(a);
+    const d = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = title;
+    const p = document.createElement('span'); p.textContent = body;
+    d.append(b, p);
+    box.appendChild(d);
+  }
+  box.hidden = news.length === 0;
+}
+async function refreshLive(): Promise<void> {
+  await live.refresh({
+    onAnnouncements: (list) => { news = list; renderNews(); },
+    onMaintenance: (on) => { if (on && !maintDismissed) { pause(); show('ovMaint'); } if (!on) hide('ovMaint'); },
+    onTooOld: () => { pause(); show('ovUpdate'); },
+    onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: cfg }); },
+  });
+  const f = live.flags();
+  if (sim) cmd({ type: 'setEvents', events: { bloodMoon: f.bloodMoon, dragon: f.dragon, rival: f.rival } });
+}
+$('maintBtn').addEventListener('click', () => { maintDismissed = true; hide('ovMaint'); });
+$('updateBtn').addEventListener('click', () => location.reload());
+
 /* ---------- language ---------- */
 function refreshText(): void {
   applyStaticText();
@@ -262,11 +295,13 @@ function refreshText(): void {
   renderChars();
   $('bestTxt').textContent = bestLine();
   renderAccountLine();
+  renderNews();
 }
 onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
-initAccount({ pauseGame: pause, onMetaChanged: refreshText });
+initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); } });
+void refreshLive();
 initLeaderboard();
 requestAnimationFrame(frame);

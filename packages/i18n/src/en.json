@@ -268,5 +268,11 @@
  "board.unverified": "unverified",
  "board.chapter": "Ch {n}",
  "board.you": "You",
- "board.season": "Season {n}"
+ "board.season": "Season {n}",
+ "maint.title": "MAINTENANCE",
+ "maint.text": "Online features (leaderboards, co-op, cloud save) are paused for maintenance. Solo play works as usual; your results upload once we are back.",
+ "maint.play": "Keep playing solo",
+ "update.title": "NEW VERSION",
+ "update.text": "The game was updated. Reload to get the latest version.",
+ "update.reload": "Reload"
 }

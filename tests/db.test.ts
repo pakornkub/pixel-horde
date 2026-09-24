@@ -62,3 +62,15 @@ describe('server copy of the Balance Config', () => {
     }
   });
 });
+
+describe('server copy of the config JSON Schema', () => {
+  it('equals the schema generated from zod', async () => {
+    const { z } = await import('zod');
+    const { BalanceConfigSchema, DEFAULT_CONFIG } = await import('@pixel-horde/config');
+    const db = await freshDb();
+    const r = await db.query<{ schema: unknown }>('select schema from public.config_schema where id = 1');
+    expect(r.rows[0].schema).toEqual(JSON.parse(JSON.stringify(z.toJSONSchema(BalanceConfigSchema, { io: 'input', unrepresentable: 'any' }))));
+    const p = await db.query<{ p: string[] }>('select public.config_problems($1::jsonb) as p', [JSON.stringify(DEFAULT_CONFIG)]);
+    expect(p.rows[0].p).toEqual([]);
+  });
+});

@@ -41,12 +41,20 @@ export const HASH_EVERY = 60;
 
 const NO_COMMANDS: readonly Command[] = [];
 
+const lnCache = new WeakMap<object, number>();
+/** ln(kbDecay), cached per config object. */
+function knockbackLog(cfg: SimState['cfg']): number {
+  let v = lnCache.get(cfg);
+  if (v === undefined) { v = log(cfg.player.kbDecay); lnCache.set(cfg, v); }
+  return v;
+}
+
 export function createSim(opts: SimOptions): Sim {
   const cfg = opts.config ?? DEFAULT_RESOLVED;
   const P = newPlayer(cfg, opts.hero);
-  const LN_KNOCKBACK = log(cfg.player.kbDecay);
   const s: SimState = {
-    tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, phase: 'play', hero: opts.hero,
+    tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
+    phase: 'play', hero: opts.hero,
     meta: { up: { ...opts.meta.up } },
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
@@ -85,6 +93,8 @@ export function createSim(opts: SimOptions): Sim {
       case 'viewport':
         if (c.w > 0 && c.h > 0) { s.viewport.w = c.w; s.viewport.h = c.h; }
         break;
+      case 'setConfig': s.pending.cfg = c.config; break;
+      case 'setEvents': s.pending.events = { ...c.events }; break;
     }
   }
 
@@ -138,7 +148,7 @@ export function createSim(opts: SimOptions): Sim {
     if (live && !P.down) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
-    const damp = exp(dt * LN_KNOCKBACK);
+    const damp = exp(dt * knockbackLog(s.cfg));
     stepEnemies(s, dt, damp, live);
     if (s.phase === 'over') return;
     if (live) stepHz(s, dt);

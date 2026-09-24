@@ -31,6 +31,7 @@ async function mockSupabase(page: Page): Promise<Fake> {
       switch (fn) {
         case 'claim_session': return json(route, { id: USER, nickname: f.nickname, role: 'player' });
         case 'check_session': return json(route, true);
+        case 'get_live_state': return json(route, { flags: { coop: true }, configVersion: 0, announcements: [{ id: 1, title: { th: 'อีเวนต์ Blood Moon', en: 'Blood Moon weekend' }, body: { th: 'เหรียญ ×2', en: 'Gold ×2' }, endsAt: null }] });
         case 'get_meta': return json(route, f.meta);
         case 'start_run': return json(route, { runId: '22222222-2222-4222-8222-222222222222', token: '33333333-3333-4333-8333-333333333333', seed: 12345, configVersion: 0 });
         case 'submit_run': {
@@ -59,8 +60,10 @@ test('online: sign in with a nickname, server Gold, shop, leaderboard, Run submi
   await page.click('#nameOk');
   await expect(page.locator('#acctTxt')).toContainText('Pim');
   await expect(page.locator('#acctTxt')).not.toContainText(/offline|ออฟไลน์/);
-  expect(f.calls.slice(0, 2)).toEqual(['signup', 'claim_session']);
+  expect(f.calls.filter((c) => c === 'signup' || c === 'claim_session').slice(0, 2)).toEqual(['signup', 'claim_session']);
+  expect(f.calls).toContain('get_live_state');
   await expect(page.locator('#bestTxt')).toContainText('300');
+  await expect(page.locator('#news')).toContainText(/Blood Moon/);
 
   await page.click('#shopBtn1');
   await page.locator('#shopList .srow').first().locator('.buy').click();

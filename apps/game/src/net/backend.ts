@@ -11,7 +11,7 @@ export interface Account {
 export type BackendStatus = 'online' | 'offline' | 'replaced';
 export type BackendErrorCode =
   | 'SESSION_REPLACED' | 'NICKNAME_REJECTED' | 'NOT_SIGNED_IN' | 'OFFLINE' | 'UNKNOWN'
-  | 'NOT_ENOUGH_GOLD' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND';
+  | 'NOT_ENOUGH_GOLD' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE';
 
 export class BackendError extends Error {
   constructor(public code: BackendErrorCode, message?: string) { super(message || code); }
@@ -21,7 +21,7 @@ export class BackendError extends Error {
 export function toBackendError(e: unknown): BackendError {
   if (e instanceof BackendError) return e;
   const msg = String((e as { message?: string })?.message ?? e ?? '');
-  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND'] as const) {
+  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE'] as const) {
     if (msg.includes(code)) return new BackendError(code, msg);
   }
   if (/fetch|network|Failed to|timeout|ECONN|503|502|504/i.test(msg)) return new BackendError('OFFLINE', msg);
@@ -67,6 +67,9 @@ export interface BoardRow {
 }
 export interface BoardView { board: BoardId; season: number; top: BoardRow[]; me: BoardRow | null; around: BoardRow[]; total: number }
 
+export interface Announcement { id: number; title: { th: string; en: string }; body: { th: string; en: string }; endsAt: string | null }
+export interface LiveState { flags: Record<string, unknown>; configVersion: number; announcements: Announcement[]; serverTime?: string }
+
 export interface Backend {
   readonly kind: 'supabase' | 'offline';
   status(): BackendStatus;
@@ -90,6 +93,9 @@ export interface Backend {
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;
   getLeaderboard(board: BoardId, hero?: string | null): Promise<BoardView>;
+  /** Flags + config version + announcements in one cheap REST call (works signed out too). */
+  getLive(): Promise<LiveState>;
+  getConfig(version: number): Promise<{ version: number; data: unknown } | null>;
 }
 
 /** Small helper both adapters use for status listeners. */

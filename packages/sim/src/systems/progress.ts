@@ -6,6 +6,14 @@ import { recompute, U, xpNeed } from './player';
 import { DEATH_COL } from '../data/enemies';
 
 export function startStage(s: SimState, n: number): void {
+  // A new Balance Config / event switches take effect only here, never mid-Stage.
+  if (n > 1 && s.pending.cfg) {
+    s.cfg = s.pending.cfg;
+    if (s.configVersions[s.configVersions.length - 1] !== s.cfg.version) s.configVersions.push(s.cfg.version);
+    recompute(s);
+  }
+  if (n > 1 && s.pending.events) s.eventSwitches = s.pending.events;
+  s.pending = {};
   const P = s.P, G = s.cfg.stage;
   if (s.specialStage) s.chestQueue++;
   rollStage(s, n);
