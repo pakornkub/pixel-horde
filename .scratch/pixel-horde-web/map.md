@@ -44,6 +44,7 @@ Label: wayfinder:map
 - [Research: backend + database ฟรีที่รองรับ anonymous account และ realtime](issues/02-free-backend-database.md): Supabase Free ครบทุกข้อ (ต้องกันโปรเจกต์ถูก pause และประหยัด egress) และ Cloudflare Workers + D1 เป็นทางสำรอง
 - [Research: ช่องทางส่งข้อมูล co-op 2–4 คนที่ใช้ได้ฟรี](issues/03-coop-transport.md): Cloudflare Worker + Durable Object ต่อห้อง (WebSocket ผ่าน CGNAT ได้, ฟรี ~6–12 ชม.เล่น/วัน) และ PeerJS + Cloudflare TURN เป็นทางสำรอง ส่วน Supabase Realtime ไม่พอ (ขัดกับ `CLAUDE.md` ที่ระบุ PeerJS)
 - [Research: เก็บสถิติสำหรับ Admin v1 ให้อยู่ในโควตาฟรี](issues/04-telemetry-within-free-quota.md): เก็บในตารางของเราเอง ส่งสรุปครั้งเดียวต่อ Run (~0.8 KB) สรุปรวมทุกคืน เก็บรายละเอียดเฉพาะ 5% ของผู้เล่น ส่วน error/FPS/retention ทำเองได้ทั้งหมด
+- [Grilling: โลก เรื่องราว และตัวเอกของเกม](issues/07-story-premise-and-world.md): โลก Lumora, หัวใจคริสตัลแตก, บอสใหญ่ Umbra, ฮีโร่ 4 คน (Lyra/Bram/Kit/Vex), 10 ดินแดน + Heart Crater, มังกรพิทักษ์ 3 ตนที่รวมร่างเป็นมังกร 3 หัวได้, ช่องสัตว์คู่ใจ 1+2
 - [Task: พิมพ์เขียว diagram ของระบบปัจจุบัน](issues/06-current-system-blueprint.md): `docs/blueprint/current-system.html` มี 4 ภาพ (โมดูล, state machine, วงจร Run, co-op) + การ์ดสรุประบบ ใช้เป็นฐานร่วมกันตอนตัดสินว่าจะปรับระบบไหน
 - [Grilling: เลือก hosting, backend และช่องทาง co-op](issues/12-backend-and-hosting-choice.md): Cloudflare Pages (+itch.io), Supabase Free (สำรอง Workers+D1), co-op ผ่าน Worker + Durable Object (สำรอง PeerJS+TURN), สถิติในตารางตัวเอง, repo private, เกมเล่น solo ได้แม้ server ล่ม ส่วนข้อสงสัยของแพ็กฟรีไปทดสอบใน #17
 - [Task: ทดสอบข้อสงสัยของแพ็กฟรีที่เอกสารไม่ได้ตอบ](issues/17-verify-free-tier-unknowns.md): ผ่านทุกข้อ สร้าง Supabase `pixel-horde` (สิงคโปร์) แล้ว, `pg_cron` ใช้ได้, anonymous นับ MAU, Realtime ฟรีรับได้แค่ 200 connection (ผู้เล่นห้ามเปิดค้างไว้), Cloudflare ไม่ต้องผูกบัตร
@@ -51,7 +52,7 @@ Label: wayfinder:map
 
 ## Not yet specified
 
-- **แผนแบ่งรุ่นปล่อย (release slicing)**: หลัง blueprint ครบแล้ว อะไรต้องมีในรุ่นแรกที่ปล่อยให้คนเล่น อะไรตามมาทีหลัง Admin v1 ที่เลือกไว้ใหญ่มาก อาจต้องทยอยปล่อย
+- **แผนแบ่งรุ่นปล่อย (release slicing)**: หลัง blueprint ครบแล้ว อะไรต้องมีในรุ่นแรกที่ปล่อยให้คนเล่น อะไรตามมาทีหลัง Admin v1 ที่เลือกไว้ใหญ่มาก และเนื้อหาจาก #07 (11 ดินแดน, มอน ~30, มังกร 3 + ร่างรวม) ใหญ่มากเช่นกัน ข้อแนะนำตั้งต้นคือรุ่นแรก ~5–6 ดินแดน + มังกร 1–2 ตน ที่เหลือเป็นอัปเดต
 - **เสียงและดนตรี**: pillar "ดาเมจสะใจ" ต้องพึ่งเสียงด้วย ตอนนี้สร้างเสียงสดด้วย Web Audio ยังไม่มีดนตรี ต้องตัดสินใจว่าจะทำต่อทางไหน
 - **ประสิทธิภาพบนมือถือ**: มอนเยอะ + สกิลอลังการ อาจเกินกำลังมือถือ ต้องมีงบประมาณ (จำนวนมอน, particle, FPS เป้าหมาย) หลังรู้ขอบเขตเนื้อหา
 - **รายละเอียดด่านท้าทายประจำวันและอีเวนต์ตามเวลา**: กติกา รางวัล การผูกกับ leaderboard รอให้ chapter และ data model ชัดก่อน

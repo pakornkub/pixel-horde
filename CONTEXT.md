@@ -4,6 +4,42 @@ A top-down pixel-art horde-survivor web game: the player survives timed stages w
 
 ## Language
 
+### World and story
+
+**Lumora**:
+The game world.
+
+**Heart of Lumora**:
+The crystal that sustains the world. Its shattering drives monsters into hordes; XP crystals are its fragments.
+_Avoid_: core, orb, crystal (alone)
+
+**Umbra**:
+The shadow born from the dark side of the Heart of Lumora, who shattered it; the final boss. Shadow Rivals are fragments of Umbra.
+
+**Realm**:
+A story region of Lumora ruled by a King who holds a large Heart shard. Each Realm has one Theme and is told as one Chapter.
+_Avoid_: zone, world, land
+
+**King**:
+The boss who rules a Realm, corrupted by the Heart shard it holds.
+_Avoid_: stage boss (use Boss for any boss-flagged enemy)
+
+**Guardian**:
+One of the three dragons (Inferno, Frost, Storm) torn from the Heart's original three-headed guardian. Found maddened during Blood Moon; defeating one turns it into a Companion.
+_Avoid_: legendary beast, boss dragon
+
+**Three-headed Dragon**:
+The Heart's original guardian, restored by fusing the Guardians. Unlocked permanently once all three Guardians have ever been defeated; each Run still needs at least one Guardian first. (Final name to be chosen.)
+_Avoid_: hydra, fused pet
+
+**Companion**:
+A Guardian travelling with the Hero. One is active; the others wait in Companion storage (1 + 2 slots) and swap at stage end.
+_Avoid_: pet (code name), familiar
+
+**Hero**:
+A playable character with a personal name, class, and motive (Lyra the Mage, Bram the Knight, Kit the Ranger, Vex the Alchemist). The four travel as one team.
+_Avoid_: character class, avatar
+
 ### Structure of play
 
 **Run**:
@@ -19,7 +55,7 @@ A story unit made of consecutive stages sharing one Theme, closed by that theme'
 _Avoid_: act, world, episode
 
 **Theme**:
-The visual and enemy set of a stage (tiles, three regular mobs, one boss). Currently grass, desert, cave, snow.
+The visual and enemy set of a Realm (tiles, three regular mobs, its King). Currently grass, desert, cave, snow.
 _Avoid_: biome, map, zone
 
 **Special Event**:
