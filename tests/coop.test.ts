@@ -2,7 +2,7 @@
 // snapshots the way the client does (JSON round-trips, 15 Hz snapshots, 10 Hz guest messages).
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { createSim, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type Sim, type SimState } from '@pixel-horde/sim';
+import { createSim, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
 import { botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
