@@ -40,6 +40,7 @@ Label: wayfinder:map
 - [Research: ช่องทางส่งข้อมูล co-op 2–4 คนที่ใช้ได้ฟรี](issues/03-coop-transport.md): Cloudflare Worker + Durable Object ต่อห้อง (WebSocket ผ่าน CGNAT ได้, ฟรี ~6–12 ชม.เล่น/วัน) และ PeerJS + Cloudflare TURN เป็นทางสำรอง ส่วน Supabase Realtime ไม่พอ (ขัดกับ `CLAUDE.md` ที่ระบุ PeerJS)
 - [Research: เก็บสถิติสำหรับ Admin v1 ให้อยู่ในโควตาฟรี](issues/04-telemetry-within-free-quota.md): เก็บในตารางของเราเอง ส่งสรุปครั้งเดียวต่อ Run (~0.8 KB) สรุปรวมทุกคืน เก็บรายละเอียดเฉพาะ 5% ของผู้เล่น ส่วน error/FPS/retention ทำเองได้ทั้งหมด
 - [Grilling: เลือก hosting, backend และช่องทาง co-op](issues/12-backend-and-hosting-choice.md): Cloudflare Pages (+itch.io), Supabase Free (สำรอง Workers+D1), co-op ผ่าน Worker + Durable Object (สำรอง PeerJS+TURN), สถิติในตารางตัวเอง, repo private, เกมเล่น solo ได้แม้ server ล่ม ส่วนข้อสงสัยของแพ็กฟรีไปทดสอบใน #17
+- [Task: ทดสอบข้อสงสัยของแพ็กฟรีที่เอกสารไม่ได้ตอบ](issues/17-verify-free-tier-unknowns.md): ผ่านทุกข้อ สร้าง Supabase `pixel-horde` (สิงคโปร์) แล้ว, `pg_cron` ใช้ได้, anonymous นับ MAU, Realtime ฟรีรับได้แค่ 200 connection (ผู้เล่นห้ามเปิดค้างไว้), Cloudflare ไม่ต้องผูกบัตร
 - [Research: กันโกง leaderboard ในเกมเว็บที่คำนวณในเครื่องผู้เล่น](issues/05-leaderboard-anticheat.md): ทำเป็น tier: RPC + Run token + plausibility check ก่อน, ทำ sim ให้ผลลัพธ์ซ้ำได้ระหว่าง port, แล้วค่อยตรวจ replay บน GitHub Actions เมื่อเปิดด่านท้าทายประจำวัน ส่วน co-op ติดป้าย unverified
 
 ## Not yet specified
@@ -49,6 +50,7 @@ Label: wayfinder:map
 - **ประสิทธิภาพบนมือถือ**: มอนเยอะ + สกิลอลังการ อาจเกินกำลังมือถือ ต้องมีงบประมาณ (จำนวนมอน, particle, FPS เป้าหมาย) หลังรู้ขอบเขตเนื้อหา
 - **รายละเอียดด่านท้าทายประจำวันและอีเวนต์ตามเวลา**: กติกา รางวัล การผูกกับ leaderboard รอให้ chapter และ data model ชัดก่อน
 - **ขั้นตอนผูกบัญชี Google**: ถ้าผูกแล้วเจอเซฟสองชุดชนกันจะทำยังไง รอเลือก backend ก่อน
+- **วัด co-op จริงตอน spike แรก**: latency ของ Durable Object จากไทย, P2P ล้มเหลวบ่อยแค่ไหนบน AIS/True/dtac, TURN ต้องผูกบัตรไหม (เลื่อนมาจาก #17 ไม่กระทบ blueprint)
 - **ขั้นตอนแปลภาษา**: เก็บข้อความไทย/อังกฤษไว้ที่ไหน ใครแปล
 
 ## Out of scope
