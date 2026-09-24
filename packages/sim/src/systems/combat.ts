@@ -2,7 +2,7 @@ import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL } from '../data/enemies';
 import { linAt, type HitTag } from '../data/skills';
 import { WEAPONS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
-import { REALMS } from '../content/lumora/realms';
+import { REALMS, type RealmId } from '../content/lumora/realms';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
 import { grantShadow } from './events';
@@ -11,12 +11,14 @@ import { banner, burst, flash, sfx, shake, text } from './fx';
 import { say } from './kings';
 import { gameOver, offerRevive } from './progress';
 import { spawnEnemy } from './spawner';
+import { isGuest, isHost, queueHit } from './coop';
 
 /** ALL damage to enemies goes through here. */
 export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: number, tag?: HitTag): void {
   if (e.dead || e.hide) return;
   const P = s.P, R = s.rng.combat, pl = s.cfg.player;
   let after: (() => void)[] | null = null;
+  if (tag?.remote) return remoteHit(s, e, base, !!tag.raw);
   if (tag?.raw) return rawHit(s, e, base, col, kb, tag);
   if (tag && !tag.combo) {
     const c = combosFor(s, e, base, tag);
@@ -36,7 +38,8 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
     burst(s, e.x, e.y - e.r, '#d0d6e0', 2, 40, 0.2, 0.3);
   }
   s.events.push({ t: 'dmg', d });
-  e.hp -= d;
+  const guest = isGuest(s);
+  if (guest) queueHit(s, e, d, false); else e.hp -= d;
   e.flash = 0.08;
   const dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1, k = (kb == null ? pl.kb : kb) * (e.boss ? pl.kbBoss : e.elite ? pl.kbElite : 1);
   e.kx += (dx / l) * k;
@@ -49,11 +52,28 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
     else if (tag.applies === 'shocked') e.shock = S.shocked * m;
     else { e.pois = S.poisoned * m; e.poisDps = d / s.cfg.skills.toxic.tick; }
   }
-  if (e.hp <= 0) killE(s, e);
+  if (!guest && e.hp <= 0) killE(s, e);
   if (after) for (const f of after) f();
 }
 
+/** Co-op host: a guest's hit, already calculated on the guest (Ultimate hits still capped on bosses). */
+function remoteHit(s: SimState, e: Enemy, d: number, ult: boolean): void {
+  const U = s.cfg.ult;
+  if (ult && e.boss) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap));
+  d = Math.max(1, Math.round(d));
+  s.events.push({ t: 'dmg', d });
+  e.hp -= d;
+  e.flash = 0.08;
+  if (e.hp <= 0) killE(s, e);
+}
+
 const NO_RESIST = new Set(['dragon', 'frostDragon', 'stormDragon', 'whelp', 'rival']);
+
+/** King reward: a small chance of that Realm's Weapon (only ones not owned yet). */
+export function rollKingWeapon(s: SimState, realm: RealmId): void {
+  const w = weaponOfRealm(realm);
+  if (w && !ownsWeapon(s, w.id) && s.rng.loot.next() < s.cfg.weapons.drop) findWeapon(s, w.id);
+}
 
 const ownsWeapon = (s: SimState, id: WeaponId): boolean => (s.meta.weapons || []).includes(weaponKey(id)) || s.foundWeapons.includes(id);
 function findWeapon(s: SimState, id: WeaponId): void {
@@ -66,16 +86,17 @@ function findWeapon(s: SimState, id: WeaponId): void {
 function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | undefined, tag: HitTag): void {
   const U = s.cfg.ult;
   let d = base;
-  if (e.boss) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap));
+  const guest = isGuest(s);
+  if (e.boss && !guest) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap)); // guests: the host caps it
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
-  e.hp -= d;
+  if (guest) queueHit(s, e, d, true); else e.hp -= d;
   e.flash = 0.08;
   const P = s.P, dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1, k = (kb ?? 0) * (e.boss ? s.cfg.player.kbBoss : 1);
   e.kx += (dx / l) * k; e.ky += (dy / l) * k;
   text(s, e.x, e.y - e.r * 1.2, d, col, false, { jitter: true });
   if (tag.applies === 'burning' && e.hp > 0) e.burn = s.cfg.status.burning * P.statusMul;
-  if (e.hp <= 0) killE(s, e);
+  if (!guest && e.hp <= 0) killE(s, e);
 }
 
 export function killE(s: SimState, e: Enemy): void {
@@ -114,9 +135,11 @@ export function killE(s: SimState, e: Enemy): void {
   }
   burst(s, e.x, e.y, DEATH_COL[e.type], e.boss ? 80 : e.elite ? 24 : 9, e.boss ? 110 : 60, e.boss ? 1 : 0.45);
   const v = e.xp;
+  if (isHost(s)) s.coop!.teamXp += v; // guests level from the team's kills
   if (e === s.dragonE || e.type === 'rival') {
     const isD = e === s.dragonE;
-    if (isD) { s.dragonE = null; grantGuardian(s, s.dragonKind); } else { s.rivalE = null; say(s, e, 'defeat'); grantShadow(s); }
+    if (isD) { s.dragonE = null; grantGuardian(s, s.dragonKind); if (isHost(s)) { s.coop!.guardians++; s.coop!.lastGuardian = s.dragonKind; } }
+    else { s.rivalE = null; say(s, e, 'defeat'); grantShadow(s); if (isHost(s)) s.coop!.rivals++; }
     shake(s, 10); flash(s, 0.3, undefined, true); s.hitstop = 0.12; sfx(s, 'boom');
     burst(s, e.x, e.y, isD ? '#ffd23f' : '#b07cff', 40, 120, 0.9);
     for (let i = 0; i < L.eventGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.eventGems), mag: false });
@@ -130,8 +153,8 @@ export function killE(s: SimState, e: Enemy): void {
       // King reward: Skill Point(s) and the chest wheel (Gold drops below)
       s.sp += C.economy.kingSkillPoints;
       s.chestQueue += C.economy.kingChest;
-      const w = weaponOfRealm(kingRealm);
-      if (w && !ownsWeapon(s, w.id) && R.next() < C.weapons.drop) findWeapon(s, w.id);
+      rollKingWeapon(s, kingRealm);
+      if (isHost(s)) s.coop!.kingKills++;
     }
     if (e.type === 'umbra') {
       // beating Umbra always gives a missing Weapon (or Gold when the collection is complete)
@@ -187,6 +210,12 @@ export function handleDown(s: SimState): boolean {
     return false;
   }
   P.hp = 0;
+  if (s.coop) { // co-op: wait for an ally, the next Stage or buy a revive; the Run ends when everyone is down
+    P.down = true;
+    s.bolts = [];
+    sfx(s, 'hurt');
+    return true;
+  }
   if (offerRevive(s)) return true;
   gameOver(s);
   return true;

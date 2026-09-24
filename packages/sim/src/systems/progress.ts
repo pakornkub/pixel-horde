@@ -25,6 +25,7 @@ export function startStage(s: SimState, n: number): void {
   if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * G.reviveHp); P.inv = 2; }
   s.stage = n;
   s.swaps = 0;
+  if (s.coop) s.coop.revivedStage = [];
   s.awakenOffer = false;
   s.darkness = false;
   P.linkStart = maxLinks(s);
@@ -406,7 +407,10 @@ export function offerRevive(s: SimState): boolean {
 
 export function buyRevive(s: SimState): void {
   const P = s.P, E = s.cfg.economy;
-  if (s.phase !== 'revive' || !spendGold(s, reviveCost(s))) return;
+  if (s.coop) { // co-op: a downed player buys their revive without stopping the room
+    if (!P.down || s.phase !== 'play' || s.mode === 'daily' || s.revivesBought > 0 || !spendGold(s, reviveCost(s))) return;
+    P.down = false;
+  } else if (s.phase !== 'revive' || !spendGold(s, reviveCost(s))) return;
   s.revivesBought++;
   if (s.endless) s.reviveEndless = true; // in Endless the penalty hits only the Endless Score
   P.hp = Math.round(P.maxHp * E.reviveHp);

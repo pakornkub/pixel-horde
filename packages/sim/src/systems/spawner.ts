@@ -4,6 +4,7 @@ import { REALMS } from '../content/lumora/realms';
 import type { BannerKey, Enemy, SimState } from '../types';
 import { banner } from './fx';
 import { aliveTargets } from './query';
+import { aliveMates, coopBossMul } from './coop';
 
 export const prog = (s: SimState): number => clamp(s.stageTime / s.stageDur, 0, 1);
 export const realm = (s: SimState) => REALMS[s.realm];
@@ -43,7 +44,7 @@ export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, eli
   const dm = ipow(c.dmgGrowth, s.stage - 1) * (1 + c.dmgProg * prog(s)) * (1 + c.dmgPerLv * (P.lv - 1));
   const e: Enemy = {
     id: s.eid++ & 262143, type, x, y,
-    hp: b.hp * hm * (elite ? c.eliteHp : 1), maxHp: 0,
+    hp: b.hp * hm * (elite ? c.eliteHp : 1) * (t.boss ? coopBossMul(s) : 1), maxHp: 0,
     spd: b.spd * (1 + c.spdPerStage * (s.stage - 1)) * (elite ? c.eliteSpd : 1) * R.range(1 - c.spdJitter, 1 + c.spdJitter),
     dmg: b.dmg * dm * (elite ? c.eliteDmg : 1) * extraDmg(s),
     xp: b.xp * (elite ? c.eliteXp : 1), r: b.r * (elite ? c.eliteR : 1), sc: t.sc || (t.boss ? 3 : elite ? 2 : 1),
@@ -98,7 +99,7 @@ export function directorStep(s: SimState, dt: number): void {
 }
 
 export function spawnStep(s: SimState, dt: number): void {
-  const R = s.rng.spawn, C = s.cfg.spawn, mates = 0;
+  const R = s.rng.spawn, C = s.cfg.spawn, mates = aliveMates(s);
   directorStep(s, dt);
   const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * crackMul(s, 'spawn') * s.dir.v * (s.firstRun && s.stage === 1 ? s.cfg.tutorial.spawn : 1);
   s.spawnAcc += rate * dt;

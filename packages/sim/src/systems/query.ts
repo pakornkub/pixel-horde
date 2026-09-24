@@ -1,4 +1,4 @@
-import type { Enemy, Player, SimState } from '../types';
+import type { Enemy, SimState } from '../types';
 
 export function nearest(s: SimState, x: number, y: number, max: number, skip?: Set<Enemy>): Enemy | null {
   let best: Enemy | null = null, bd = max * max;
@@ -27,7 +27,9 @@ export function onScreen(s: SimState, e: { x: number; y: number }): boolean {
 
 export const visibleEnemies = (s: SimState): Enemy[] => s.enemies.filter((e) => !e.dead && !e.hide && onScreen(s, e));
 
-/** Players enemies can target (solo: the player unless downed). */
-export function aliveTargets(s: SimState): Player[] {
-  return s.P.down ? [] : [s.P];
+/** Players enemies can target (the player unless downed, plus living co-op mates on the host). */
+export function aliveTargets(s: SimState): { x: number; y: number }[] {
+  const t: { x: number; y: number }[] = s.P.down ? [] : [s.P];
+  if (s.coop?.role === 'host') for (const m of s.coop.mates) if (!m.dn) t.push(m);
+  return t;
 }

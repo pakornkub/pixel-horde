@@ -3,7 +3,7 @@ import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
+import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems, levelCheck } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, spawnRival, stepHz } from './systems/events';
@@ -14,6 +14,7 @@ import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
+import { applyRemoteHits, applySnap, guestEnemies, hostStep, initCoop, setMates, smoothMates, teamWaiting } from './systems/coop';
 
 
 export interface Sim {
@@ -34,7 +35,7 @@ export interface Sim {
 /** A Stage-start snapshot. `hash` identifies it on the server (single use). */
 export interface Checkpoint { chapter: number; configVersion: number; hash: string; data: string }
 
-const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile']); // mobile: the resuming device decides
+const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile', 'coop']); // mobile: the resuming device decides
 
 /** Serialize the state at a Stage start (no live monsters, effects or menus). */
 function snapshotOf(s: SimState): Checkpoint {
@@ -90,7 +91,7 @@ export function createSim(opts: SimOptions): Sim {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
     meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0), weapons: [...(opts.meta.weapons || [])] },
-    viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile, firstRun: !!opts.firstRun,
+    viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile, firstRun: !!opts.firstRun, coop: opts.coop ? initCoop(opts.coop.role, opts.coop.self) : null,
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
     chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
@@ -116,7 +117,12 @@ export function createSim(opts: SimOptions): Sim {
   let lastMx = NaN, lastMy = NaN;
 
   function apply(c: Command): void {
+    // guests follow the host's Stage flow; these become votes/ready messages in the client
+    if (s.coop?.role === 'guest' && (c.type === 'next' || c.type === 'route' || c.type === 'endless' || c.type === 'pause' || c.type === 'resume')) return;
     switch (c.type) {
+      case 'mates': setMates(s, c.mates); break;
+      case 'remoteHits': applyRemoteHits(s, c.hits); break;
+      case 'snap': applySnap(s, c.snap); break;
       case 'pick': choose(s, c.index); break;
       case 'chestStop': chestStop(s); break;
       case 'pause': if (s.phase === 'play') s.phase = 'pause'; break;
@@ -150,15 +156,8 @@ export function createSim(opts: SimOptions): Sim {
     }
   }
 
-  function update(input: InputFrame): void {
-    const phase: Phase = s.phase;
-    const live = phase === 'play';
-    if (!live && phase !== 'clearing') return;
-    if (s.hitstop > 0) { s.hitstop -= DT; return; }
-    let dt = DT;
-    if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
-
-    // player movement
+  /** Player movement (shared by every role). */
+  function move(input: InputFrame, dt: number): void {
     let mx = input.mx || 0, my = input.my || 0;
     const ml = hypot(mx, my);
     if (ml > 1) { mx /= ml; my /= ml; }
@@ -184,6 +183,44 @@ export function createSim(opts: SimOptions): Sim {
       P.dy = my;
     }
     P.inv -= dt;
+  }
+
+  /** Co-op guest: own Hero and Skills against the host's mirrored world. */
+  function guestUpdate(input: InputFrame): void {
+    smoothMates(s, DT);
+    if (s.phase !== 'play' || s.coop!.hostPhase !== 'play') return; // menus, or the room is waiting / paused
+    if (s.hitstop > 0) { s.hitstop -= DT; return; }
+    let dt = DT;
+    if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
+    move(input, dt);
+    s.stageTime = Math.min(s.stageDur, s.stageTime + dt);
+    s.totalTime += dt;
+    const U = s.cfg.ult, rate = U.max / U.fill;
+    s.ult = Math.min(U.max, s.ult + rate * dt);
+    if (!P.down) updSkills(s, dt);
+    stepBolts(s, dt);
+    updEffects(s, dt);
+    guestEnemies(s, dt, true);
+    if (s.phase !== 'play') return;
+    stepHz(s, dt);
+    petStep(s, dt); cloneStep(s, dt);
+    if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
+    levelCheck(s);
+    if (s.chestQueue > 0) { s.chestQueue--; openChest(s); return; }
+    if (s.pendingLv > 0 || s.pendingChest > 0) openLevelUp(s);
+  }
+
+  function update(input: InputFrame): void {
+    if (s.coop?.role === 'guest') { guestUpdate(input); return; }
+    if (s.coop) { smoothMates(s, DT); if (s.phase === 'play' && teamWaiting(s)) return; } // the room waits for a choosing player
+    const phase: Phase = s.phase;
+    const live = phase === 'play';
+    if (!live && phase !== 'clearing') return;
+    if (s.hitstop > 0) { s.hitstop -= DT; return; }
+    let dt = DT;
+    if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
+
+    move(input, dt);
 
     if (live) {
       s.stageTime += dt;
@@ -235,6 +272,7 @@ export function createSim(opts: SimOptions): Sim {
     if (s.phase === 'over') return;
     if (live) stepHz(s, dt);
     if (live) { petStep(s, dt); cloneStep(s, dt); }
+    if (live && s.coop) { hostStep(s, dt); if ((s.phase as Phase) === 'over') return; }
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
     stepGems(s, dt);
 
@@ -277,7 +315,7 @@ export function createSim(opts: SimOptions): Sim {
       const mx = input.mx || 0, my = input.my || 0;
       if (mx !== lastMx || my !== lastMy) { rec.inputs.push([i, mx, my]); lastMx = mx; lastMy = my; }
       s.events = [];
-      for (const c of commands) { rec.commands.push([i, { ...c }]); apply(c); }
+      for (const c of commands) { if (c.type !== 'snap') rec.commands.push([i, { ...c }]); apply(c); } // snapshots are too big to record
       if (s.events.some((e) => e.t === 'stageStart')) cp = snapshotOf(s); // auto-save point
       s.tick++;
       s.clock += DT;

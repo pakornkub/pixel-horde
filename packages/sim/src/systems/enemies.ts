@@ -7,6 +7,7 @@ import { kingAI } from './kings';
 import { frostDragonAI, stormDragonAI } from './guardians';
 import { stepStatuses } from './combos';
 import { edgePos } from './spawner';
+import { nearestTarget } from './coop';
 
 function casterAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number, damp: number): void {
   const R = s.rng.ai, C = s.cfg.caster;
@@ -65,7 +66,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
   const P = s.P, farDist = hypot(s.viewport.w, s.viewport.h) * s.cfg.spawn.despawn, slow = s.cfg.skills.frost.slow, contact = s.cfg.player.contact;
   for (const e of s.enemies) {
     if (e.dead) continue;
-    const tx = P.x, ty = P.y;
+    const tg = nearestTarget(s, e.x, e.y), tx = tg.x, ty = tg.y;
     const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1, lp = hypot(P.x - e.x, P.y - e.y);
     if (e.type === 'dragon') dragonAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'frostDragon') frostDragonAI(s, e, dt, tx, ty, damp);

@@ -46,7 +46,11 @@ export type Command =
   | { type: 'ult' }
   | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
   | { type: 'setConfig'; config: ResolvedConfig } // new Balance Config: applies at the next Stage start
-  | { type: 'setEvents'; events: EventSwitches }; // feature flags for events: apply at the next Stage start
+  | { type: 'setEvents'; events: EventSwitches } // feature flags for events: apply at the next Stage start
+  // co-op (ticket 41/42)
+  | { type: 'mates'; mates: MateWire[] } // host: latest guest presence
+  | { type: 'remoteHits'; hits: number[] } // host: guest damage [enemyId, dmg, …] (dmg < 0 = Ultimate hit, capped on bosses)
+  | { type: 'snap'; snap: HostSnap }; // guest: the host's world
 
 /** Server feature flags that switch special events off. */
 export interface EventSwitches { bloodMoon: boolean; dragon: boolean; rival: boolean }
@@ -84,8 +88,61 @@ export interface SimOptions {
   mobile?: boolean;
   /** The account's very first Run: Chapter 1 is slightly easier. */
   firstRun?: boolean;
+  /** Co-op role; `self` is this player's room id. Solo when absent. */
+  coop?: { role: CoopRole; self: string };
   /** Resume from a checkpoint (`Sim.checkpoint().data`); `config` must be its locked version. */
   resume?: string;
+}
+
+export type CoopRole = 'host' | 'guest';
+/** What the host's players do right now (guests follow it). */
+export type HostPhase = 'play' | 'wait' | 'pause' | 'clear' | 'route' | 'victory' | 'over';
+
+/** A player as sent over the network (guest → host 10 Hz; host → guests inside the snapshot). */
+export interface MateWire {
+  id: string; name?: string; x: number; y: number; hp: number; mh: number; lv: number;
+  dn: boolean; fc: number; mv: boolean; hero: HeroId; sel: boolean; pet: CompanionKind | null;
+}
+/** Another player in this Run (host: the guests; guest: everyone else, host included). */
+export interface Mate extends MateWire {
+  /** Smoothed render position. */
+  rx: number; ry: number;
+}
+
+/** Host → guests ~15 Hz. Enemies are packed 11 characters each (see systems/coop.ts). */
+export interface HostSnap {
+  st: number; realm: RealmId; t: number; dur: number; ph: HostPhase;
+  ox: number; oy: number; e: string;
+  /** Bosses: [role k|k2|d|r, enemy id, HP %]. */
+  bs: [string, number, number][];
+  /** Team counters: EXP from kills, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
+  xp: number; kc: number; bk: number; gd: number; gk: GuardianKind; rk: number;
+  hz: Hazard[]; sp: boolean; dark: boolean; ot: boolean; le: 'clear' | 'escape' | null;
+  /** Every player, host first. */
+  pl: MateWire[];
+  /** Ally revives granted per player id this Run. */
+  rv: Record<string, number>;
+  route: { chapter: number; choices: RealmId[] } | null;
+  victory: boolean;
+}
+
+export interface CoopState {
+  role: CoopRole;
+  self: string;
+  mates: Mate[];
+  // host
+  teamXp: number; kingKills: number; guardians: number; lastGuardian: GuardianKind; rivals: number;
+  /** Ally revive progress (s) per downed player id, and revives granted. */
+  reviveT: Record<string, number>;
+  revived: Record<string, number>;
+  /** Players already revived by an ally this Stage (once per player per Stage). */
+  revivedStage: string[];
+  // guest
+  hostPhase: HostPhase;
+  /** Damage waiting to be sent to the host, per enemy id. */
+  out: Record<number, number>;
+  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; st: number; realm: RealmId | null; ph: HostPhase };
+  goldAcc: number;
 }
 
 export type GuardianKind = 'inferno' | 'frost' | 'storm';
@@ -142,6 +199,8 @@ export interface Player {
 
 export interface Enemy {
   id: number;
+  /** Guest mirror: latest position from the host. */
+  tx?: number; ty?: number;
   type: EnemyId;
   x: number; y: number;
   hp: number; maxHp: number;
@@ -353,6 +412,8 @@ export interface SimState {
   viewport: { w: number; h: number };
   /** Lower monster caps (phones/tablets). */
   mobile: boolean;
+  /** Co-op state (null = solo). */
+  coop: CoopState | null;
   /** The account's very first Run (easier Chapter 1). */
   firstRun: boolean;
   debug: { event?: DebugEvent; god?: boolean };
