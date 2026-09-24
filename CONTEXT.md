@@ -75,12 +75,12 @@ The visual and enemy set of a Realm (tiles, three regular mobs, its King). Curre
 _Avoid_: biome, map, zone
 
 **Special Event**:
-A rare stage modifier with run-only rewards: Blood Moon, Inferno Dragon, Shadow Rival.
+A rare stage modifier with run-only rewards: Blood Moon (never announced in advance), a Guardian inside Blood Moon, Shadow Rival, or a double-King stage.
 
 ### Player power
 
 **Skill**:
-An auto-firing attack the player holds (max 6 slots), levelled on level-up.
+An auto-firing attack the player holds in one of 4 attack slots (one locked to the Signature Skill), levelled on level-up.
 _Avoid_: weapon, spell
 
 **Passive**:
@@ -118,7 +118,7 @@ The storage slots holding Skills that are owned but not firing (1 slot, +1 after
 _Avoid_: inventory, reserve, stash
 
 **Skill Point**:
-A boss reward spent on Skills during a Run (exact use to be decided).
+A boss reward spent during a Run: 1 to reroll level-up choices, 1 to banish a Skill from the Run, 2 to raise a chosen Skill one level.
 _Avoid_: points (ambiguous with score)
 
 **Meta Progression**:
