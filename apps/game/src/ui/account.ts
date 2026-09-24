@@ -21,18 +21,23 @@ let hooks: AccountHooks;
 let started = false;
 
 const RUNS = 'pixelhorde-runs-done';
+const WON = 'pixelhorde-won';
 /** Count finished Runs; after the 3rd one the game suggests linking Google. */
-export function noteRunFinished(): void {
-  try { localStorage.setItem(RUNS, String((Number(localStorage.getItem(RUNS)) || 0) + 1)); } catch { /* ignore */ }
+export function noteRunFinished(victory = false): void {
+  try {
+    localStorage.setItem(RUNS, String((Number(localStorage.getItem(RUNS)) || 0) + 1));
+    if (victory) localStorage.setItem(WON, '1');
+  } catch { /* ignore */ }
   renderAccountLine();
 }
 const runsDone = (): number => { try { return Number(localStorage.getItem(RUNS)) || 0; } catch { return 0; } };
+const hasWon = (): boolean => { try { return localStorage.getItem(WON) === '1'; } catch { return false; } };
 
 export function renderAccountLine(): void {
   const a = backend.account();
   const canLink = !!a && a.anonymous && backend.status() === 'online';
   $('linkRow').hidden = !canLink;
-  $('linkBtn2').hidden = !(canLink && runsDone() >= 3);
+  $('linkBtn2').hidden = !(canLink && (runsDone() >= 3 || hasWon())); // suggested after the 3rd Run and the first victory
   const res = backend.linkResult();
   if (res) $('linkTxt').textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : t('link.failed');
   if (res && !res.startsWith('failed')) $('linkRow').hidden = false;

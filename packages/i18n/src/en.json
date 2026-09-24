@@ -3,8 +3,8 @@
  "ui.pause": "Pause",
  "title.intro": "Monsters swarm in hordes. Survive each Chapter and defeat its King, collect EXP crystals to level up and pick new skills. Every skill fires on its own, so all you do is move and dodge.",
  "title.keys": "<b>WASD</b>/<b>ARROWS</b> move<br><b>SPACE</b> Ultimate when the gauge is full<br><b>P</b> pause &nbsp; <b>M</b> mute<br>Mobile: touch and drag to move",
- "title.start": "Start",
- "title.shop": "Permanent upgrades",
+ "title.start": "PLAY",
+ "title.shop": "Upgrades",
  "title.lang": "ภาษา: ไทย",
  "title.settings": "Settings",
  "title.best": "Wallet {gold}G",
@@ -663,5 +663,10 @@
  "intro.kingOf": "Ruler of {realm}",
  "fx.lowFps": "The game is running slowly. Lower the effects to keep it smooth?",
  "fx.lower": "LOWER EFFECTS",
- "fx.keep": "KEEP"
+ "fx.keep": "KEEP",
+ "title.tagline": "Survive the horde. Defeat the Kings.",
+ "title.hero": "Hero & Weapon",
+ "title.heroDone": "Done",
+ "title.coop": "Co-op",
+ "title.soon": "coming soon"
 }

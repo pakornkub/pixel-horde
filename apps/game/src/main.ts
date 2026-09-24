@@ -9,6 +9,7 @@ import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { heroName } from './ui/text';
 import { initCollection, openCollection } from './ui/collection';
+import { initTitle, renderTitleSel } from './ui/title';
 import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
@@ -83,7 +84,7 @@ function bank(final?: RunResult['result']): void {
   if (final) {
     clearSave();
     newAch = metaSync.recordFacts(runFacts(sim.view()));
-    noteRunFinished();
+    noteRunFinished(final === 'victory');
     telemetry.queueSample(backend.account()?.id ?? '', ticket?.runId ?? null, r?.configVersion ?? 0);
     void metaSync.sync().then(() => telemetry.flush());
   }
@@ -218,11 +219,12 @@ function toTitle(): void {
   sim = null;
   queue = [];
   $('fpsTip').hidden = true;
-  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
+  ['ovHero', 'ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
   setPlayUI(false);
   renderChars();
+  renderTitleSel();
   $('bestTxt').textContent = bestLine();
   show('ovTitle');
   void refreshContinue();
@@ -401,6 +403,7 @@ $('msgBtn').addEventListener('click', toTitle);
 $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle'); });
 $('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
 initCollection();
+initTitle();
 $('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
 $('shopBack').addEventListener('click', closeShop);
 $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
@@ -468,6 +471,7 @@ $('updateBtn').addEventListener('click', () => location.reload());
 /* ---------- language ---------- */
 function refreshText(): void {
   applyStaticText();
+  renderTitleSel();
   metLabel();
   renderChars();
   $('bestTxt').textContent = bestLine();

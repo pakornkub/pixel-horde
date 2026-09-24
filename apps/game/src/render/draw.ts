@@ -117,7 +117,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
   const { LW, LH, S } = screen;
   const P = v?.P;
   const sh = vfx.shake, sx = sh ? rnd(-sh, sh) : 0, sy = sh ? rnd(-sh, sh) : 0;
-  ox = Math.round(LW / 2 - (P ? P.x : 0) + sx);
+  ox = Math.round(LW / 2 - (P ? P.x : clock * 6) + sx); // title: the scene drifts slowly
   oy = Math.round(LH / 2 - (P ? P.y : 0) + sy);
   b.imageSmoothingEnabled = false;
   const ti = REALMS[v ? v.realm : 'greenvale'].theme;
@@ -462,6 +462,16 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       b.beginPath(); b.ellipse(r.x + ox, r.y + oy, r.r * k, r.r * k * 0.8, 0, 0, TAU); b.stroke();
     }
     for (const p of vfx.fx) { b.globalAlpha = Math.max(0, 1 - p.t / p.life); b.fillStyle = p.col; b.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), p.sz, p.sz); }
+    b.globalAlpha = 1;
+  }
+  if (!v) { // title sparkle: fixed twinkling stars over the scene
+    for (let i = 0; i < 14; i++) {
+      const a = Math.sin(clock * (1.3 + (i % 5) * 0.37) + i * 2.1);
+      if (a < 0.4) continue;
+      const x = Math.round(((i * 97 + 31) % 100) / 100 * LW), y = Math.round(((i * 61 + 17) % 100) / 100 * LH);
+      b.globalAlpha = (a - 0.4) / 0.6; b.fillStyle = i % 3 ? '#ffffff' : '#fff35c';
+      b.fillRect(x, y - 1, 1, 3); b.fillRect(x - 1, y, 3, 1);
+    }
     b.globalAlpha = 1;
   }
   // blit

@@ -16,26 +16,41 @@
 <button id="pauseBtn" data-i18n-aria="ui.pause">II</button>
 <div id="fpsTip" role="status" hidden><span data-i18n="fx.lowFps"></span><button id="fpsLower" data-i18n="fx.lower"></button><button id="fpsKeep" data-i18n="fx.keep"></button></div>
 
-<div class="overlay on" id="ovTitle"><div class="box">
-  <h1>PIXEL HORDE</h1>
-  <p class="draft" id="draftBadge" data-i18n="draft.badge" hidden></p>
+<div class="overlay title on" id="ovTitle">
+  <div class="tbg" id="titleBg"></div>
+  <div class="tmain">
+    <h1 class="logo">PIXEL<br>HORDE</h1>
+    <p class="draft" id="draftBadge" data-i18n="draft.badge" hidden></p>
+    <p class="tagline" data-i18n="title.tagline"></p>
+    <button class="thero" id="heroBtn2" data-i18n-aria="title.hero"><canvas id="titleHero" width="64" height="64"></canvas><span id="titleSel"></span></button>
+    <button class="btn play" id="continueBtn" hidden></button>
+    <button class="btn play big" id="startBtn" data-i18n="title.start"></button>
+    <div class="tmenu">
+      <button id="heroBtn" data-i18n="title.hero"></button>
+      <button id="coopBtn" disabled><span data-i18n="title.coop"></span> <small data-i18n="title.soon"></small></button>
+      <button id="boardBtn" data-i18n="board.open"></button>
+      <button id="shopBtn1" data-i18n="title.shop"></button>
+      <button id="collBtn" data-i18n="coll.open"></button>
+      <button id="settingsBtn1" data-i18n="title.settings"></button>
+    </div>
+    <div class="news" id="news" hidden></div>
+    <div class="tfoot">
+      <div class="best" id="bestTxt"></div>
+      <div class="best acct"><span id="acctTxt"></span> <button class="link" id="renameBtn" data-i18n="account.rename"></button> · <button class="link" id="langBtn" data-i18n="title.lang"></button></div>
+      <div class="best link-row" id="linkRow" hidden><span id="linkTxt" data-i18n="link.hint"></span> <button class="link" id="linkBtn" data-i18n="link.button"></button></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovHero"><div class="box">
+  <h2 data-i18n="title.hero"></h2>
   <p data-i18n="title.intro"></p>
   <div class="chars" id="chars"></div>
   <p class="chdesc" id="chDesc"></p>
   <div class="weapons" id="weaponRow"></div>
   <div class="weapons" id="crackRow" hidden></div>
   <div class="keys" data-i18n-html="title.keys"></div>
-  <button class="btn" id="continueBtn" hidden></button>
-  <button class="btn" id="startBtn" data-i18n="title.start"></button>
-  <button class="btn ghost" id="shopBtn1" data-i18n="title.shop"></button>
-  <button class="btn ghost" id="boardBtn" data-i18n="board.open"></button>
-  <button class="btn ghost" id="collBtn" data-i18n="coll.open"></button>
-  <button class="btn ghost" id="settingsBtn1" data-i18n="title.settings"></button>
-  <button class="btn ghost" id="langBtn" data-i18n="title.lang"></button>
-  <div class="best" id="bestTxt"></div>
-  <div class="news" id="news" hidden></div>
-  <div class="best acct"><span id="acctTxt"></span> <button class="link" id="renameBtn" data-i18n="account.rename"></button></div>
-  <div class="best link-row" id="linkRow" hidden><span id="linkTxt" data-i18n="link.hint"></span> <button class="link" id="linkBtn" data-i18n="link.button"></button></div>
+  <button class="btn" id="heroDone" data-i18n="title.heroDone"></button>
 </div></div>
 
 <div class="overlay" id="ovLevel"><div class="box">
