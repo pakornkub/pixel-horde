@@ -10,6 +10,7 @@ import { active } from './config';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
 import { announcementText, live } from './live';
+import { installTelemetry, telemetry } from './telemetry';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
@@ -51,7 +52,7 @@ function runResult(result: RunResult['result']): RunResult | null {
     clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold,
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
-    summary: { configVersions: v.configVersions },
+    summary: telemetry.summary(v),
   };
 }
 
@@ -63,7 +64,10 @@ function bank(final?: RunResult['result']): void {
   if (add > 0) { metaSync.bankLocal(add); runBanked += add; }
   const r = runResult(final ?? 'quit');
   if (r) metaSync.recordRun(r, ticket, !final);
-  if (final) void metaSync.sync();
+  if (final) {
+    telemetry.queueSample(backend.account()?.id ?? '', ticket?.runId ?? null, r?.configVersion ?? 0);
+    void metaSync.sync().then(() => telemetry.flush());
+  }
 }
 
 async function newRun(): Promise<void> {
@@ -75,6 +79,7 @@ async function newRun(): Promise<void> {
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   runWallStart = performance.now();
+  telemetry.startRun();
   hide('ovTitle'); hide('ovOver');
   clearVfx();
   sim = createSim({
@@ -116,7 +121,12 @@ function syncOverlays(): void {
   if (v.phase === 'levelup' && v.levelUp && v.levelUp !== shownLevelUp) {
     shownLevelUp = v.levelUp;
     renderLevelUp(v, (i) => {
-      if (sim && sim.view().phase === 'levelup') { hide('ovLevel'); cmd({ type: 'pick', index: i }); }
+      if (sim && sim.view().phase === 'levelup') {
+        const o = sim.view().levelUp?.options[i];
+        if (o) { const id = o.kind === 'heal' ? 'heal' : o.kind + ':' + o.id; telemetry.pick(id); telemetry.event({ k: 'pick', id, lv: sim.view().P.lv, t: Math.round(sim.view().totalTime) }); }
+        hide('ovLevel');
+        cmd({ type: 'pick', index: i });
+      }
     });
   }
   if (v.phase !== shownPhase) {
@@ -149,7 +159,7 @@ function frame(now: number): void {
         queue = [];
         const v = sim.view();
         consume(events, v);
-        if (events.some((e) => e.t === 'stageClear')) bank();
+        if (events.some((e) => e.t === 'stageClear')) { bank(); telemetry.event({ k: 'clear', st: v.stage, t: Math.round(v.totalTime), hp: Math.round(v.P.hp), lv: v.P.lv }); }
         if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); }
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
         acc -= DT;
@@ -160,9 +170,11 @@ function frame(now: number): void {
       syncOverlays();
       const v = sim.view();
       stepVfx(rdt, v.slowT > 0 ? rdt * 0.3 : rdt);
+      if (v.phase === 'play') telemetry.frame(rdt);
     } else stepVfx(rdt, rdt);
   } catch (err) {
     console.error(err);
+    telemetry.recordError(String((err as Error)?.message ?? err), (err as Error)?.stack ?? '');
   }
   const v = sim ? sim.view() : null;
   renderWorld(v, v ? v.clock : rclock, !v || v.phase === 'over');
@@ -304,4 +316,5 @@ refreshText();
 initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); } });
 void refreshLive();
 initLeaderboard();
+installTelemetry();
 requestAnimationFrame(frame);

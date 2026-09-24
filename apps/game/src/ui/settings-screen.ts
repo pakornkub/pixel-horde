@@ -59,6 +59,7 @@ function render(): void {
     row('set.effects', seg('effects', ['off', 'some', 'all'] as const, (v) => t(`set.opt.${v}`))),
     row('set.numbers', seg('numbers', ['off', 'some', 'all'] as const, (v) => t(`set.opt.${v}`))),
     row('set.tips', seg('tips', [false, true] as const, onOff)),
+    row('set.stats', seg('stats', [false, true] as const, onOff)),
   );
   const replay = document.createElement('button');
   replay.className = 'btn ghost';

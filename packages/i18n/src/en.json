@@ -274,5 +274,6 @@
  "maint.play": "Keep playing solo",
  "update.title": "NEW VERSION",
  "update.text": "The game was updated. Reload to get the latest version.",
- "update.reload": "Reload"
+ "update.reload": "Reload",
+ "set.stats": "Send anonymous play statistics"
 }

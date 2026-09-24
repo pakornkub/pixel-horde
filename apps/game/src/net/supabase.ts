@@ -105,5 +105,17 @@ export function createSupabaseBackend(): Backend {
     async getLeaderboard(board, hero) { online(); return rpc<BoardView>('get_leaderboard', { p_board: board, p_hero: hero ?? null }); },
     async getLive() { return rpc<LiveState>('get_live_state'); },
     async getConfig(version) { return rpc<{ version: number; data: unknown } | null>('get_config', { p_version: version }); },
+    async report(fn, payload, keepalive = false) {
+      // Plain fetch so it can use keepalive (sendBeacon cannot send the apikey header / JSON).
+      try {
+        const token = sb ? (await sb.auth.getSession()).data.session?.access_token : undefined;
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+          method: 'POST', keepalive,
+          headers: { apikey: SUPABASE_KEY, 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) },
+          body: JSON.stringify({ p: payload }),
+        });
+        return r.ok;
+      } catch { return false; }
+    },
   };
 }

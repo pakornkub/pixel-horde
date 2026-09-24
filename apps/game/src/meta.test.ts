@@ -41,6 +41,7 @@ function fakeBackend(start: BackendStatus = 'offline') {
     getLeaderboard: async () => { throw new BackendError('OFFLINE'); },
     getLive: async () => { throw new BackendError('OFFLINE'); },
     getConfig: async () => null,
+    report: async () => false,
   };
   return { b, status, server, calls };
 }

@@ -51,5 +51,6 @@ export function createOfflineBackend(store: KeyValue = browserStore): Backend {
     getLeaderboard: offlineErr,
     getLive: offlineErr,
     getConfig: offlineErr,
+    report: async () => false,
   };
 }

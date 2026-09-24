@@ -16,6 +16,8 @@ export interface Settings {
   tips: boolean;
   /** Tip ids already shown (ticket 44). */
   tipsSeen: string[];
+  /** Send anonymous play statistics / error reports (PDPA opt-out). */
+  stats: boolean;
 }
 
 const KEY = 'pixelhorde-settings';
@@ -35,6 +37,7 @@ export function parseSettings(raw: unknown, browserLangs: readonly string[]): Se
     numbers: pick(s.numbers, ['off', 'some', 'all'] as const, 'all'),
     tips: typeof s.tips === 'boolean' ? s.tips : true,
     tipsSeen: Array.isArray(s.tipsSeen) ? s.tipsSeen.filter((x): x is string => typeof x === 'string') : [],
+    stats: typeof s.stats === 'boolean' ? s.stats : true,
   };
 }
 

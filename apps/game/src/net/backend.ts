@@ -96,6 +96,8 @@ export interface Backend {
   /** Flags + config version + announcements in one cheap REST call (works signed out too). */
   getLive(): Promise<LiveState>;
   getConfig(version: number): Promise<{ version: number; data: unknown } | null>;
+  /** Fire-and-forget uploads (errors, samples). keepalive=true survives the tab closing. */
+  report(fn: 'report_errors' | 'report_telemetry', payload: unknown, keepalive?: boolean): Promise<boolean>;
 }
 
 /** Small helper both adapters use for status listeners. */
