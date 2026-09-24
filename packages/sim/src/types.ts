@@ -382,6 +382,11 @@ export interface SimState {
   foundWeapons: WeaponId[];
   /** Kill charge still allowed (kills add at most killCap × the time rate). */
   ultBudget: number;
+  /** Achievement / bestiary facts: Combos by kind, kills by monster type. */
+  comboCounts: Partial<Record<ComboId, number>>;
+  killsByType: Partial<Record<EnemyId, number>>;
+  /** Double-King Stages cleared with both Kings dead. */
+  doubleKingsBeaten: number;
   /** Skill Points (King rewards, bought with Gold). */
   sp: number;
   /** Skills/passives banished for this Run. */

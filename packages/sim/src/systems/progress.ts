@@ -91,6 +91,7 @@ export function stageClear(s: SimState, escaped = false): void {
   s.clearT = s.cfg.stage.clearDelay;
   s.lastEnd = escaped ? 'escape' : 'clear';
   if (!escaped) s.chaptersCleared.push(s.stage);
+  if (!escaped && s.doubleKing) s.doubleKingsBeaten++;
   sfx(s, 'clear');
   if (escaped) banner(s, 'kingEscaped', 2.4, true);
   else if (s.rivalE && !s.rivalE.dead) banner(s, 'stageClearRivalFled', 2, true);

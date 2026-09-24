@@ -38,6 +38,10 @@ export interface ServerMeta {
   legacyImported: boolean;
 }
 
+export interface Collection {
+  achievements: string[]; titles: string[]; badges: { badge: string; season: number }[];
+  shownTitle: string | null; bestiary: Record<string, number>; weapons: string[];
+}
 export interface CheckpointSave { runId: string; token: string; chapter: number; hash: string; data: string; configVersion: number; quit?: boolean }
 export interface ServerCheckpoint {
   runId: string; token: string; seed: number; hero: string; weapon: string | null; chapter: number;
@@ -56,6 +60,8 @@ export interface RunResult {
   kills: number;
   level: number;
   gold: number;
+  /** Achievement / bestiary facts (ticket 32). */
+  facts?: Record<string, unknown>;
   /** Continued from this checkpoint while offline (the server checks it on submit). */
   resumedHash?: string;
   /** Endless Score (after Umbra), victory and Heart Crack tier. */
@@ -111,6 +117,9 @@ export interface Backend {
   saveCheckpoint(p: CheckpointSave): Promise<boolean>;
   getCheckpoint(): Promise<ServerCheckpoint | null>;
   resumeRun(runId: string, hash: string): Promise<{ ok: boolean; seasonChanged: boolean }>;
+  /** Collection menu (ticket 32). */
+  getCollection(): Promise<Collection | null>;
+  setTitle(title: string | null): Promise<void>;
   buyUpgrade(item: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;

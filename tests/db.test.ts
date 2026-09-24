@@ -74,3 +74,31 @@ describe('server copy of the config JSON Schema', () => {
     expect(p.rows[0].p).toEqual([]);
   });
 });
+
+describe('achievement rules agree between the sim and the server', () => {
+  it('same achievements for sample Runs', async () => {
+    const { ACHIEVEMENTS, newAchievements } = await import('@pixel-horde/sim');
+    const db = await freshDb();
+    const ids = (await db.query<{ id: string }>('select id from public.achievements order by sort')).rows.map((r) => r.id);
+    expect(ids).toEqual(ACHIEVEMENTS.map((a) => a.id));
+    const base = { hero: 'mage', victory: false, chapter: 1, escapes: 0, kingsKilled: 0, kills: 0, maxStreak: 0, time: 0, victoryTime: 0, revivesBought: 0,
+      awakened: false, crack: 0, endlessChapter: 0, combos: {}, guardians: [] as string[], fused: false, companionMax: 0, doubleKings: 0, killsByType: {} };
+    const fixtures = [
+      base,
+      { ...base, chapter: 5, kingsKilled: 4, combos: { overload: 3 }, guardians: ['storm'], maxStreak: 600 },
+      { ...base, hero: 'ranger', victory: true, chapter: 8, kingsKilled: 8, victoryTime: 800, crack: 3, fused: true, companionMax: 5, guardians: ['inferno', 'frost', 'storm'] },
+      { ...base, hero: 'alchemist', victory: true, chapter: 12, endlessChapter: 12, escapes: 2, revivesBought: 1, awakened: true, doubleKings: 1,
+        combos: { shatter: 30, firestorm: 20, overload: 10, superconduct: 5, toxicBurst: 5, grinder: 20, catalyst: 20 } },
+    ];
+    let n = 0;
+    for (const f of fixtures) {
+      const uid = `00000000-0000-0000-0000-${String(900 + n++).padStart(12, '0')}`;
+      await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, '{"nickname":"Fx"}')`, [uid]);
+      await db.query('insert into public.meta_progress (user_id) values ($1) on conflict do nothing', [uid]);
+      await db.query('select public.apply_run_facts($1, $2::jsonb)', [uid, JSON.stringify(f)]);
+      const sql = (await db.query<{ a: string }>('select achievement_id as a from public.player_achievements where user_id = $1', [uid])).rows.map((r) => r.a).sort();
+      const ts = newAchievements(f as never, { heroesWon: [], combos: {} }, []).sort();
+      expect(sql, JSON.stringify(f)).toEqual(ts);
+    }
+  });
+});

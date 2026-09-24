@@ -456,13 +456,16 @@ function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; 
   countUps.push(() => cancelAnimationFrame(raf));
 }
 
-export function showOver(v: Readonly<SimState>, runGold: number): void {
+export function showOver(v: Readonly<SimState>, runGold: number, newAch: string[] = []): void {
   $('retryBtn').hidden = false;
   $('overTitle').textContent = v.endless ? t('over.endlessEnd') : v.victory ? t('over.victory') : t('over.title');
   countUps.splice(0).forEach((f) => f());
   showScore(v);
   $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold + 'G'], [t('stat.wallet'), META.gold + 'G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();
+  const na = $('newAch');
+  na.hidden = !newAch.length;
+  na.textContent = newAch.length ? t('over.newAch', { list: newAch.map((a) => t(`ach.${a}.name`)).join(', ') }) : '';
   show('ovOver');
   focusSoon('retryBtn');
 }

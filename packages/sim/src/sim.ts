@@ -13,6 +13,7 @@ import { directionOf, initKing } from './systems/kings';
 import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
+import type { RunFacts } from './data/achievements';
 
 
 export interface Sim {
@@ -92,7 +93,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -336,6 +337,18 @@ export function endlessBreakdown(s: Readonly<SimState>): { lines: ScoreLine[]; t
   let total = Math.max(0, sum(lines.map((l) => l.points)));
   if (s.reviveEndless) { const cut = Math.round(total * C.revivePenalty); lines.push({ key: 'revive', count: 1, points: -cut }); total -= cut; }
   return { lines, total };
+}
+
+/** Facts about the Run for achievements and the bestiary (sent in the Run summary). */
+export function runFacts(s: Readonly<SimState>): RunFacts {
+  const pets = [s.P.pet, ...s.P.petStore].filter(Boolean) as { kind: string; lv: number }[];
+  return {
+    hero: s.hero, victory: s.victory, chapter: s.stage, escapes: s.escapes, kingsKilled: s.kingsKilled.length, kills: s.kills,
+    maxStreak: s.maxStreak, time: Math.round(s.totalTime), victoryTime: Math.round(s.victoryTime), revivesBought: s.revivesBought,
+    awakened: s.P.awakened, crack: s.crack, endlessChapter: s.endless ? s.stage : 0, combos: { ...s.comboCounts },
+    guardians: [...s.P.guardiansBeaten], fused: pets.some((p) => p.kind === 'tri'), companionMax: Math.max(0, ...pets.map((p) => p.lv)),
+    doubleKings: s.doubleKingsBeaten, killsByType: { ...s.killsByType },
+  };
 }
 
 /** The one score computation. */

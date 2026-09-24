@@ -28,6 +28,7 @@
   <button class="btn" id="startBtn" data-i18n="title.start"></button>
   <button class="btn ghost" id="shopBtn1" data-i18n="title.shop"></button>
   <button class="btn ghost" id="boardBtn" data-i18n="board.open"></button>
+  <button class="btn ghost" id="collBtn" data-i18n="coll.open"></button>
   <button class="btn ghost" id="settingsBtn1" data-i18n="title.settings"></button>
   <button class="btn ghost" id="langBtn" data-i18n="title.lang"></button>
   <div class="best" id="bestTxt"></div>
@@ -51,6 +52,17 @@
   <p class="note" data-i18n="ending.note"></p>
   <button class="btn" id="endlessBtn" data-i18n="ending.endless"></button>
   <button class="btn ghost" id="finishBtn" data-i18n="ending.finish"></button>
+</div></div>
+
+<div class="overlay" id="ovCollection"><div class="box">
+  <h2 data-i18n="coll.title"></h2>
+  <div class="weapons" id="collTabs">
+    <button data-tab="ach" data-i18n="coll.ach"></button><button data-tab="titles" data-i18n="coll.titles"></button>
+    <button data-tab="badges" data-i18n="coll.badges"></button><button data-tab="bestiary" data-i18n="coll.bestiary"></button>
+    <button data-tab="weapons" data-i18n="coll.weapons"></button>
+  </div>
+  <div class="coll" id="collBody"></div>
+  <button class="btn" id="collBack" data-i18n="coll.back"></button>
 </div></div>
 
 <div class="overlay" id="ovRevive"><div class="box">
@@ -82,6 +94,7 @@
   <h2 id="overTitle" data-i18n="over.title"></h2>
   <div class="stats score" id="scoreBox"></div>
   <div class="stats score" id="endlessBox" hidden></div>
+  <p class="note" id="newAch" hidden></p>
   <div class="stats" id="overStats"></div>
   <button class="btn" id="retryBtn" data-i18n="over.retry"></button>
   <button class="btn ghost" id="shopBtn2" data-i18n="title.shop"></button>

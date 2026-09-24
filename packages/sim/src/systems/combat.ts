@@ -101,6 +101,7 @@ export function killE(s: SimState, e: Enemy): void {
     }
   }
   s.kills++;
+  s.killsByType[e.type] = (s.killsByType[e.type] || 0) + 1;
   s.stageKills++;
   s.streak++;
   s.streakT = C.streak.window;

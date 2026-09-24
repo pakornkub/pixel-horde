@@ -19,6 +19,9 @@ export interface DailyRow { day: string; v: number; metric: string; key: string;
 export interface SurvivalRow { chapter: number; reached: number; runs: number }
 export interface Stats { daily: DailyRow[]; survivalA: SurvivalRow[]; survivalB: SurvivalRow[]; errors: { message: string; stack: string; count: number; last: string; build: number | null }[] }
 
+export interface SeasonReward { userId: string; name: string; kind: 'title' | 'badge'; reward: string; rank: number | null; board: string }
+export interface SeasonPreview { season: number; pendingCoop: number; rewards: SeasonReward[] }
+
 export interface AdminApi {
   mode: 'live' | 'demo';
   whoami(): Promise<{ email: string; isAdmin: boolean } | null>;
@@ -39,6 +42,8 @@ export interface AdminApi {
   hideScore(userId: string, board: string, hidden: boolean): Promise<void>;
   banPlayer(userId: string, until: string | null): Promise<void>;
   verifyCoop(userId: string): Promise<void>;
+  seasonPreview(): Promise<SeasonPreview>;
+  openSeason(name: string): Promise<number>;
   players(search: string): Promise<PlayerRow[]>;
   stats(days: number, a?: number | null, b?: number | null): Promise<Stats>;
 }
@@ -82,6 +87,8 @@ async function liveApi(): Promise<AdminApi> {
     hideScore: (userId, board, hidden) => rpc('hide_score', { p_user: userId, p_board: board, p_hidden: hidden }),
     banPlayer: (userId, until) => rpc('ban_player', { p_user: userId, p_until: until }),
     verifyCoop: (userId) => rpc('verify_coop', { p_user: userId }),
+    seasonPreview: () => rpc('admin_season_rewards_preview'),
+    openSeason: (name) => rpc('admin_open_season', { p_name: name }),
     players: (search) => rpc('admin_players', { p_search: search }),
     stats: (days, a, b) => rpc('admin_stats', { p_days: days, p_version_a: a ?? null, p_version_b: b ?? null }),
   };
@@ -104,6 +111,7 @@ function demoApi(): AdminApi {
   const note = (action: string, target: string, detail: unknown): void => { audit.unshift({ id: audit.length + 1, at: now(), actor: 'Owner (demo)', action, target, detail }); };
   const names = ['KitMain', 'lyra_th', 'speedyyy', 'bramfan', 'ด.ช.มอนเยอะ', 'Pim', 'Hero#4821'];
   const board: BoardRow[] = names.map((n, i) => ({ userId: 'u' + i, name: n, score: 80900 - i * 7000, chapter: 8 - (i >> 1), hero: ['kit', 'lyra', 'bram', 'vex'][i % 4], weapon: null, hidden: false, banned: false, at: now(), status: i === 2 ? 'suspicious' : i === 3 ? 'pending' : 'verified' }));
+  let season = 1;
   const players: PlayerRow[] = names.map((n, i) => ({ id: 'u' + i, name: n, role: 'player', gold: i === 2 ? 98000 : 3000 - i * 300, linked: i % 2 === 0, banned: false, lastSeen: now() }));
   let ann: Announcement[] = [{ id: 1, title_th: 'Blood Moon สุดสัปดาห์', title_en: 'Blood Moon weekend', body_th: 'เหรียญ ×2', body_en: 'Gold ×2', starts_at: now(), ends_at: null }];
   const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10));
@@ -147,6 +155,13 @@ function demoApi(): AdminApi {
     async hideScore(u, b, h) { const r = board.find((x) => x.userId === u); if (r) r.hidden = h; note('update', 'leaderboard', { user: u, board: b, hidden: h }); },
     async banPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) p.banned = !!until; const r = board.find((x) => x.userId === u); if (r) r.banned = !!until; note('update', 'profiles', { user: u, banned_until: until }); },
     async verifyCoop(u) { const r = board.find((x) => x.userId === u); if (r) r.status = 'verified'; note('verify', 'leaderboard', { user: u }); },
+    async seasonPreview() {
+      const top = board.filter((r) => r.status === 'verified' && !r.hidden).slice(0, 12);
+      return { season, pendingCoop: board.filter((r) => r.status === 'pending').length, rewards: top.flatMap((r, i) => i === 0
+        ? [{ userId: r.userId, name: r.name, kind: 'title' as const, reward: `Season ${season} Champion`, rank: 1, board: 'solo' }, { userId: r.userId, name: r.name, kind: 'badge' as const, reward: 'gold_frame', rank: 1, board: 'solo' }]
+        : [{ userId: r.userId, name: r.name, kind: 'badge' as const, reward: i < 10 ? 'champion' : 'top100', rank: i + 1, board: 'solo' }]) };
+    },
+    async openSeason(name) { note('open_season', 'seasons', { closed: season, name }); season++; return season; },
     players: async (q) => clone(players.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))),
     stats: async (_d, _a, b) => ({ daily, survivalA: surv(0), survivalB: b == null ? [] : surv(-1.5), errors: [{ message: 'TypeError: e.st is undefined', stack: 'at dragonAI (events.ts:88)', count: 64, last: now(), build: 202609251200 }, { message: 'AudioContext was not allowed to start', stack: '', count: 12, last: now(), build: 202609251200 }] }),
   };

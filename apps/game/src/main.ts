@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost } from '@pixel-horde/sim';
+import { createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, settings } from './settings';
@@ -8,6 +8,7 @@ import { checkSession, initAccount, noteRunFinished, renderAccountLine } from '.
 import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { heroName } from './ui/text';
+import { initCollection, openCollection } from './ui/collection';
 import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
@@ -53,7 +54,7 @@ function runResult(result: RunResult['result']): RunResult | null {
   const playMs = Math.round(v.totalTime * 1000);
   return {
     clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, resumedHash, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
-    endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack,
+    endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack, facts: { ...runFacts(v) },
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
     summary: telemetry.summary(v),
@@ -78,6 +79,7 @@ function bank(final?: RunResult['result']): void {
   if (r) metaSync.recordRun(r, ticket, !final);
   if (final) {
     clearSave();
+    newAch = metaSync.recordFacts(runFacts(sim.view()));
     noteRunFinished();
     telemetry.queueSample(backend.account()?.id ?? '', ticket?.runId ?? null, r?.configVersion ?? 0);
     void metaSync.sync().then(() => telemetry.flush());
@@ -133,6 +135,8 @@ function beginRun(s: Sim): void {
 /* ---------- suspend / resume (ticket 31) ---------- */
 function showMsg(txt: string): void { $('msgTxt').textContent = txt; hide('ovTitle'); show('ovMsg'); }
 let resumedHash: string | undefined;
+/** Achievements unlocked by the Run that just ended (shown on the Run-end screen). */
+let newAch: string[] = [];
 /** The checkpoint this session continued from: single use, never saved again (no Stage retries). */
 let usedHash: string | undefined;
 const canSave = (): boolean => !!sim && active.cfg.version !== -1 && sim.view().mode !== 'daily' && sim.checkpoint().hash !== usedHash;
@@ -267,7 +271,7 @@ function syncOverlays(): void {
       bank(v.victory && !v.endless && v.P.hp > 0 ? 'victory' : 'dead');
       const bb = getBest();
       if (!bb || v.stage > bb.stage || (v.stage === bb.stage && v.kills > bb.kills)) setBest({ stage: v.stage, kills: v.kills });
-      showOver(v, v.runGold);
+      showOver(v, v.runGold, newAch);
     }
   }
 }
@@ -388,6 +392,8 @@ $('leaveBtn').addEventListener('click', () => {
 });
 $('msgBtn').addEventListener('click', toTitle);
 $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle'); });
+$('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
+initCollection();
 $('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
 $('shopBack').addEventListener('click', closeShop);
 $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });

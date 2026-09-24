@@ -26,6 +26,7 @@ export function combosFor(s: SimState, e: Enemy, base: number, tag: HitTag): Com
   const go = (id: ComboId): void => {
     (e.ccd ??= {})[id] = now + C.cooldown;
     s.combos++;
+    s.comboCounts[id] = (s.comboCounts[id] || 0) + 1;
     s.events.push({ t: 'combo', id, x: e.x, y: e.y });
   };
   const x = e.x, y = e.y;

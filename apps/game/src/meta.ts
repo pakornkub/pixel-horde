@@ -1,9 +1,9 @@
 // Meta progression. The server owns Gold/Shop/unlocks (ticket 09); this module keeps a local cache
 // (`pixelhorde-meta`, also the offline save) plus a queue of offline actions, and lets the server
 // win whenever it is reachable. The old artifact save is uploaded once.
-import { HERO_IDS, isHero, isWeapon, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
+import { ACHIEVEMENTS, HERO_IDS, addToLifetime, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
-import { BackendError, type Backend, type RunResult, type RunTicket, type ServerMeta } from './net/backend';
+import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
 import { backend } from './net';
 
@@ -18,6 +18,12 @@ export interface MetaSave {
   /** Heart Crack: highest unlocked tier and the one picked for the next Run. */
   crackMax: number;
   crack: number;
+  /** Local mirror of achievements, lifetime totals, bestiary and Titles (the server is the truth). */
+  ach: string[];
+  life: Lifetime;
+  bestiary: Record<string, number>;
+  titles: string[];
+  shownTitle: string | null;
 }
 
 export type QueueOp =
@@ -41,6 +47,11 @@ export function parseMeta(raw: unknown): MetaSave {
     weapon: isWeapon(m.weapon) ? m.weapon : 'judgement',
     crackMax: Math.max(0, Math.min(3, Math.floor(Number(m.crackMax) || 0))),
     crack: Math.max(0, Math.min(3, Math.floor(Number(m.crack) || 0))),
+    ach: Array.isArray(m.ach) ? m.ach.filter((x): x is string => typeof x === 'string') : [],
+    life: m.life && typeof m.life === 'object' ? (m.life as Lifetime) : { heroesWon: [], combos: {} },
+    bestiary: m.bestiary && typeof m.bestiary === 'object' ? (m.bestiary as Record<string, number>) : {},
+    titles: Array.isArray(m.titles) ? m.titles.filter((x): x is string => typeof x === 'string') : [],
+    shownTitle: typeof m.shownTitle === 'string' ? m.shownTitle : null,
   };
 }
 
@@ -152,6 +163,28 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
   /** Beating Umbra on tier n unlocks n+1 (up to 3); the server confirms on submit. */
   function unlockCrack(n: number): void { if (n + 1 > meta.crackMax) { meta.crackMax = Math.min(3, n + 1); save(); } }
 
+  /** A finished Run's facts: returns achievements newly unlocked (shown at once; the server confirms). */
+  function recordFacts(f: RunFacts): string[] {
+    const fresh = newAchievements(f, meta.life, meta.ach);
+    meta.life = addToLifetime(meta.life, f);
+    for (const [k, n] of Object.entries(f.killsByType)) meta.bestiary[k] = (meta.bestiary[k] || 0) + (n || 0);
+    for (const id of fresh) {
+      meta.ach.push(id);
+      const title = ACHIEVEMENTS.find((a) => a.id === id)?.title;
+      if (title && !meta.titles.includes(title)) meta.titles.push(title);
+    }
+    save();
+    return fresh;
+  }
+  /** Server collection wins when online. */
+  function applyCollection(c: Collection): void {
+    meta.ach = [...new Set([...meta.ach, ...c.achievements])];
+    meta.titles = [...new Set([...meta.titles, ...c.titles])];
+    meta.shownTitle = c.shownTitle;
+    for (const [k, n] of Object.entries(c.bestiary || {})) meta.bestiary[k] = Math.max(meta.bestiary[k] || 0, Number(n) || 0);
+    save();
+  }
+
   function recordRun(result: RunResult, ticket: RunTicket | null, live: boolean): void {
     queue = queue.filter((q) => !(q.kind === 'run' && q.result.clientRunId === result.clientRunId));
     queue.push({ kind: 'run', result, ticket: ticket ?? undefined, live });
@@ -172,6 +205,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     buy,
     unlockHero,
     recordRun,
+    recordFacts,
+    applyCollection,
     ownsWeapon,
     addWeapons,
     selectWeapon,

@@ -119,6 +119,11 @@ begin
     update public.meta_progress set gold = gold + g, updated_at = now() where user_id = uid returning * into m;
   end if;
   if problem is null then m := public.add_found_weapons(uid, r.world, p -> 'weaponsFound'); end if;
+  -- achievements, lifetime totals and the bestiary (ticket 32)
+  if problem is null then
+    perform public.apply_run_facts(uid, p -> 'facts');
+    select * into m from public.meta_progress where user_id = uid;
+  end if;
   -- beating Umbra unlocks the next Heart Crack tier (1–3), only above the tier the Run used
   if problem is null and coalesce((p ->> 'victory')::boolean, false) then
     update public.meta_progress

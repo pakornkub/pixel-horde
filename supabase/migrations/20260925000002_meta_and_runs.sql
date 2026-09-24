@@ -283,6 +283,10 @@ begin
     update public.meta_progress set gold = gold + g, updated_at = now() where user_id = uid returning * into m;
   end if;
   if id is not null and problem is null then m := public.add_found_weapons(uid, 'lumora', p -> 'weaponsFound'); end if;
+  if id is not null and problem is null then
+    perform public.apply_run_facts(uid, p -> 'facts');
+    select * into m from public.meta_progress where user_id = uid;
+  end if;
   -- Gold the Run took from the wallet (Stage-end swaps etc.) is always charged, never below zero.
   if id is not null and coalesce((p ->> 'walletSpent')::int, 0) > 0 then
     update public.meta_progress set gold = greatest(0, gold - (p ->> 'walletSpent')::int), updated_at = now() where user_id = uid returning * into m;
