@@ -1,4 +1,202 @@
 import './style.css';
-// Ticket 01: the original game runs unchanged. Ticket 02 replaces this with the
-// sim-driven loop (packages/sim) and apps/game render/ui/audio modules.
-import './legacy/game.js';
+import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions } from '@pixel-horde/sim';
+import { initAudio, audio } from './audio/sfx';
+import { META, getBest, saveMeta, setBest, simMeta } from './meta';
+import { keys, readInput, touch } from './platform/input';
+import { cv, onResize, screen } from './platform/screen';
+import { drawHud, drawTexts, renderWorld } from './render/draw';
+import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
+import {
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderChars, renderLevelUp,
+  setPlayUI, show, showClear, showOver, showPause,
+} from './ui/overlays';
+
+/* ---------- debug flags: ?debug=dragon|rival|bloodmoon|god (comma separated) ---------- */
+const debugFlags = new Set((new URLSearchParams(location.search).get('debug') || '').split(',').filter(Boolean));
+const debug: SimOptions['debug'] = {
+  god: debugFlags.has('god'),
+  event: (['dragon', 'rival', 'bloodmoon'] as DebugEvent[]).find((k) => debugFlags.has(k)),
+};
+
+/* ---------- run state ---------- */
+let sim: Sim | null = null;
+let queue: Command[] = [];
+let runBanked = 0;
+let shownLevelUp: object | null = null;
+let shownPhase = '';
+let acc = 0;
+let last = performance.now();
+let rclock = 0;
+
+const cmd = (c: Command): void => { queue.push(c); };
+
+function bank(): void {
+  if (!sim) return;
+  const add = sim.view().runGold - runBanked;
+  if (add > 0) { META.gold += add; runBanked += add; saveMeta(); }
+}
+
+function newRun(): void {
+  initAudio();
+  hide('ovTitle'); hide('ovOver');
+  clearVfx();
+  sim = createSim({
+    seed: (Math.random() * 4294967296) >>> 0,
+    hero: isHero(META.ch) ? META.ch : 'mage',
+    meta: simMeta(),
+    viewport: { w: screen.LW, h: screen.LH },
+    debug,
+  });
+  queue = [];
+  runBanked = 0;
+  shownLevelUp = null;
+  shownPhase = '';
+  consume(sim.view().events, sim.view());
+  setPlayUI(true);
+  last = performance.now();
+  acc = 0;
+}
+
+function toTitle(): void {
+  sim = null;
+  queue = [];
+  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovMsg'].forEach(hide);
+  cancelChest();
+  clearVfx();
+  setPlayUI(false);
+  renderChars();
+  $('bestTxt').textContent = bestLine();
+  show('ovTitle');
+}
+
+/** Open/close overlays when the sim's phase changes. */
+function syncOverlays(): void {
+  if (!sim) return;
+  const v = sim.view();
+  if (v.phase === 'levelup' && v.levelUp && v.levelUp !== shownLevelUp) {
+    shownLevelUp = v.levelUp;
+    renderLevelUp(v, (i) => {
+      if (sim && sim.view().phase === 'levelup') { hide('ovLevel'); cmd({ type: 'pick', index: i }); }
+    });
+  }
+  if (v.phase !== shownPhase) {
+    const prev = shownPhase;
+    shownPhase = v.phase;
+    if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
+    if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
+    if (v.phase === 'clear') showClear(v, v.runGold);
+    if (v.phase === 'over') {
+      bank();
+      const bb = getBest();
+      if (!bb || v.stage > bb.stage || (v.stage === bb.stage && v.kills > bb.kills)) setBest({ stage: v.stage, kills: v.kills });
+      showOver(v, v.runGold);
+    }
+  }
+}
+
+function frame(now: number): void {
+  const rdt = Math.min(0.25, Math.max(0, (now - last) / 1000));
+  last = now;
+  rclock += rdt;
+  try {
+    if (sim) {
+      if (chestTick(rdt)) cmd({ type: 'chestStop' });
+      acc += rdt;
+      let steps = 0;
+      while (acc >= DT && steps < 8) {
+        const input = readInput();
+        const events = sim.step(input, queue);
+        queue = [];
+        const v = sim.view();
+        consume(events, v);
+        if (events.some((e) => e.t === 'stageClear')) bank();
+        if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
+        acc -= DT;
+        steps++;
+        if (v.phase !== 'play' && v.phase !== 'clearing') { acc = 0; break; }
+      }
+      if (steps >= 8) acc = 0;
+      syncOverlays();
+      const v = sim.view();
+      stepVfx(rdt, v.slowT > 0 ? rdt * 0.3 : rdt);
+    } else stepVfx(rdt, rdt);
+  } catch (err) {
+    console.error(err);
+  }
+  const v = sim ? sim.view() : null;
+  renderWorld(v, v ? v.clock : rclock, !v || v.phase === 'over');
+  if (v) { drawTexts(v.clock); drawHud(v, v.clock, v.runGold); }
+  requestAnimationFrame(frame);
+}
+
+onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.LW, h: screen.LH }); });
+
+/* ---------- input ---------- */
+let leaveArmed = false;
+function pause(): void {
+  if (!sim || sim.view().phase !== 'play') return;
+  cmd({ type: 'pause' });
+  leaveArmed = false;
+  showPause();
+}
+function resume(): void {
+  if (!sim || sim.view().phase !== 'pause') return;
+  hide('ovPause');
+  cmd({ type: 'resume' });
+  last = performance.now();
+}
+function toggleMet(): void {
+  MET.on = !MET.on;
+  MET.dmg = [];
+  MET.ttk = [];
+  $('metBtn').textContent = 'ตัววัดค่า: ' + (MET.on ? 'เปิด' : 'ปิด');
+}
+const playing = (): boolean => !!sim && sim.view().phase === 'play';
+
+addEventListener('keydown', (e) => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && playing()) e.preventDefault();
+  keys.add(e.code);
+  if (e.code === 'Space' && playing()) cmd({ type: 'ult' });
+  if (e.code === 'KeyP' || e.code === 'Escape') { if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
+  if (e.code === 'KeyM') audio.muted = !audio.muted;
+  if (e.code === 'KeyI') toggleMet();
+  if (sim && sim.view().phase === 'levelup' && /^Digit[1-3]$/.test(e.code)) {
+    const bt = $('opts').children[+e.code.slice(5) - 1] as HTMLElement | undefined;
+    if (bt) bt.click();
+  }
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => { keys.clear(); pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+cv.addEventListener('pointerdown', (e) => {
+  if (!playing()) return;
+  touch.joy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, cx: e.clientX, cy: e.clientY, act: true };
+  try { cv.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+});
+cv.addEventListener('pointermove', (e) => { const j = touch.joy; if (j && j.id === e.pointerId) { j.cx = e.clientX; j.cy = e.clientY; } });
+const endJoy = (e: PointerEvent): void => { if (touch.joy && touch.joy.id === e.pointerId) touch.joy = null; };
+cv.addEventListener('pointerup', endJoy);
+cv.addEventListener('pointercancel', endJoy);
+
+$('ultBtn').addEventListener('click', () => cmd({ type: 'ult' }));
+$('pauseBtn').addEventListener('click', () => (sim && sim.view().phase === 'pause' ? resume() : pause()));
+$('resumeBtn').addEventListener('click', resume);
+$('metBtn').addEventListener('click', toggleMet);
+$('homeBtn').addEventListener('click', toTitle);
+$('leaveBtn').addEventListener('click', () => {
+  if (!leaveArmed) { leaveArmed = true; $('leaveBtn').textContent = 'กดอีกครั้งเพื่อยืนยัน'; return; }
+  leaveArmed = false;
+  bank();
+  toTitle();
+});
+$('msgBtn').addEventListener('click', toTitle);
+$('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle'); });
+$('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
+$('shopBack').addEventListener('click', closeShop);
+$('startBtn').addEventListener('click', newRun);
+$('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });
+$('retryBtn').addEventListener('click', newRun);
+
+$('bestTxt').textContent = bestLine();
+renderChars();
+requestAnimationFrame(frame);
