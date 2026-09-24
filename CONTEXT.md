@@ -142,6 +142,14 @@ _Avoid_: settings, remote config, tuning
 A leaderboard period opened manually by the admin (typically after a big Balance Config change). Solo and co-op are ranked separately inside a season; an all-time board is kept for display only.
 _Avoid_: ladder, league
 
+**Score**:
+The arcade-style number a Run earns, computed only by the sim: progress (Chapters cleared, Kings killed, victory, fast finish) dominates, kills and Combos separate equal progress, Escapes subtract, and a purchased revive cuts it by 15%.
+_Avoid_: points, rank (rank is a position on a board)
+
+**Title**:
+A cosmetic name tag shown under a player's nickname, earned from Season rank or an achievement; one is shown at a time. Titles, badges and Season palettes never give power.
+_Avoid_: rank, badge (a badge is a separate collectible)
+
 **Admin Console**:
 The web back-office where the admin edits Balance Config, reads play statistics, and moderates leaderboards.
 _Avoid_: dashboard, backend, CMS

@@ -52,3 +52,5 @@ Blocked by: 11, 12, 17
 7. **ทุกการแก้ไขของ admin** ผ่าน RPC ที่ trigger บันทึก audit_log
 8. **Seed**: server สุ่มตอน `start_run` และ seed ด่านประจำวันอ่านได้เฉพาะตั้งแต่วันนั้น (สร้างล่วงหน้าด้วย pg_cron)
 9. ผู้เล่น**ไม่เปิด Realtime ค้างไว้** (เพดาน 200 connection จาก #17) เช็กเลขเวอร์ชัน Balance Config/flags ผ่าน REST
+
+เพิ่มภายหลังจาก #15: ตาราง `player_titles`, `player_badges`, `achievements` และคอลัมน์ `profiles.shown_title` ส่วนรางวัลจบ Season แจกด้วย RPC `open_season` (ตรวจเฉพาะคะแนนที่ยืนยันแล้ว)
