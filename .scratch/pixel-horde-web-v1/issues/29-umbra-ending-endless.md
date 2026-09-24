@@ -4,7 +4,7 @@
 
 **Blocked by:** 20 (King framework: phases, ultimates, dialogue, boss arrows); 27 (Ultimate rebalance and the Weapon system)
 
-**Status:** done (awaiting owner playtest; Umbra art in ticket 34+)
+**Status:** done (awaiting owner playtest; Umbra drawn at 40×40 — art review)
 
 - [x] Death in Endless ends the Run normally; main Score is unaffected
 - [x] Heart Crack tiers are Stage modifiers from Balance Config

@@ -43,7 +43,7 @@ export const ET: Record<EnemyId, EnemyType> = {
   stormDragon: { boss: true, sc: 2, ai: true },
   whelp: { trait: 'fast' },
   rival: { boss: true, sc: 1, ai: true },
-  umbra: { boss: true, sc: 3 },
+  umbra: { boss: true, sc: 1 },
   caster: { trait: 'ranged' },
   charger: { trait: 'charge' },
   splitter: {sc: 2, trait: 'split' },

@@ -4,7 +4,7 @@
 
 **Blocked by:** 34 (Hero art, prop-based scenes, and the Greenvale and Sunscar Realms)
 
-**Status:** done except the 32×32 Bone/Frost King redraw (ticket 34 work) — awaiting owner art review
+**Status:** done — awaiting owner art review
 
 - [x] Traits and resistances per wayfinder #09
 - [ ] Owner art review (Sprite Lab: `npm run lab`)
