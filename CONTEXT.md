@@ -6,8 +6,12 @@ A top-down pixel-art horde-survivor web game: the player survives timed stages w
 
 ### World and story
 
+**World**:
+A self-contained campaign with its own story, Realms, Kings, final boss and Endless Mode, sharing all core systems. Gold, Shop upgrades, Heroes and Titles are shared across Worlds; Weapons and leaderboards belong to one World, except one heirloom Weapon a player may carry into another World. Lumora is the first and currently only World.
+_Avoid_: map, game, season
+
 **Lumora**:
-The game world.
+The first World.
 
 **Heart of Lumora**:
 The crystal that sustains the world. Its shattering drives monsters into hordes; XP crystals are its fragments.
@@ -157,7 +161,7 @@ _Avoid_: dashboard, backend, CMS
 ### People and co-op
 
 **Player Account**:
-The identity that owns Meta Progression and scores. Starts anonymous behind a nickname; can later be linked to a Google login to move between devices.
+The identity that owns Meta Progression and scores. Starts anonymous behind a nickname; can later be linked to a Google login to move between devices. Only one place plays at a time: the most recent login wins and older tabs or devices are stopped.
 _Avoid_: user, profile
 
 **Host / Guest**:

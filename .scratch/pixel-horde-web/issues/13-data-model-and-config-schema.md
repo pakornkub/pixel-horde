@@ -54,3 +54,9 @@ Blocked by: 11, 12, 17
 9. ผู้เล่น**ไม่เปิด Realtime ค้างไว้** (เพดาน 200 connection จาก #17) เช็กเลขเวอร์ชัน Balance Config/flags ผ่าน REST
 
 เพิ่มภายหลังจาก #15: ตาราง `player_titles`, `player_badges`, `achievements` และคอลัมน์ `profiles.shown_title` ส่วนรางวัลจบ Season แจกด้วย RPC `open_season` (ตรวจเฉพาะคะแนนที่ยืนยันแล้ว)
+
+**เพิ่มเติม 2026-09-25 (ผู้ใช้เห็นชอบ)**
+
+*ล็อกอินได้ทีละที่*: Supabase มีตัวเลือก single session per user แต่เฉพาะแพ็ก Pro จึงทำเองในระดับแอป เพิ่มคอลัมน์ `profiles.active_session_id` และ RPC `claim_session()` (เรียกตอนล็อกอิน/เริ่มรอบ ตั้งค่าเป็น `session_id` จาก JWT) RPC ที่เกี่ยวกับการเล่นทุกตัว (`start_run`, `submit_run`, `buy_upgrade` ฯลฯ) ตรวจว่า session_id ตรงกับค่าล่าสุด ถ้าไม่ตรงคืน error `SESSION_REPLACED` = **เครื่องที่ล็อกอินล่าสุดชนะ** รอบที่ค้างในเครื่องเก่าส่งคะแนนไม่ได้
+
+*หลายโลกในอนาคต*: ทุกตารางที่เกี่ยวกับการเล่นมีคอลัมน์ `world` (ค่าเริ่ม `lumora`): `runs`, `leaderboard` (แยกกระดานตามโลก), `daily_challenges`, `stats_daily`, และ Balance Config แบ่งค่ากลาง + ค่าเฉพาะโลก ของถาวร: Gold, ร้านถาวร, ฮีโร่ และฉายาใช้ร่วมกันทุกโลก ส่วนอาวุธผูกกับโลก (`weapons` เก็บเป็น world:weapon) ยกเว้น **อาวุธคู่ใจ (heirloom)** 1 ช่อง `meta_progress.heirloom_weapon` เลือกจากโลกก่อนหน้าได้ 1 ชิ้น เปลี่ยนได้ตอนอยู่นอกรอบ
