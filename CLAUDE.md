@@ -4,6 +4,13 @@ Retro pixel-art, top-down (Game Boy Pokémon-style camera) survivor game: surviv
 while hordes swarm the player, skills auto-fire, level up to pick upgrades. Built originally as a
 single self-contained HTML file (`pixel-horde.html`, ~1,750 lines, vanilla JS + Canvas 2D, no deps).
 
+## Working with the owner
+- **Talk to the owner in Thai.** Keep code, identifiers, file names, commit messages and glossary terms in English.
+- Explain simply, with examples; interactive widgets/visuals are welcome for anything non-trivial.
+- The owner decides design questions; ask with a recommended option first.
+- Current plan: Blueprint `docs/blueprint/pixel-horde-blueprint.md` → spec `.scratch/pixel-horde-web-v1/spec.md`
+  → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/` (start with 01; follow each ticket's "Blocked by").
+
 ## Goals of the migration
 1. Split the single file into a typed, modular codebase (Vite + TypeScript, no framework).
 2. Move off Claude-artifact-only APIs so the game can be hosted anywhere (itch.io / GitHub Pages)
@@ -93,15 +100,14 @@ no exceptions, stage progression, hazards hitting, rewards granted, packet sizes
 Add debug flags (URL `?debug=dragon|rival|bloodmoon|god`) to force events.
 
 ## Backlog
-- PeerJS co-op with room codes + nickname; then Supabase leaderboard.
-- Balance pass using the in-game meter (press **I**: DPS, TTK, multipliers, director, mob count).
-- Possible: final boss at stage 8 with ending + Endless mode.
+Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").
+The in-game meter (press **I**: DPS, TTK, multipliers, director, mob count) stays useful for balance passes.
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues live as local markdown files under `.scratch/<feature>/` (no remote). See `docs/agents/issue-tracker.md`.
+Issues live as local markdown files under `.scratch/<feature>/` (committed to the repo; GitHub Issues are not used). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
