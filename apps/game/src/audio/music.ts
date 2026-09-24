@@ -1,5 +1,5 @@
 // A tiny ZzFXM-style tracker: songs are note patterns played with ZzFX instruments and
-// rendered once into a looping AudioBuffer. Realm themes are added by the Realm tickets.
+// rendered once into a looping AudioBuffer: the title, one theme per Realm, Kings and Umbra.
 import { SAMPLE_RATE, noteHz, zzfxSamples, type ZzfxParams } from './zzfx';
 
 export interface Track {
@@ -28,7 +28,9 @@ const I = {
 
 const rep = (s: string, n: number): string => Array(n).fill(s).join(' ');
 
-export const SONGS: Record<'title' | 'king' | 'umbra', Song> = {
+export type SongId = 'title' | 'king' | 'umbra' | 'greenvale' | 'sunscar' | 'deepdark' | 'frostpeak' | 'emberforge' | 'mirefen' | 'skyreach' | 'tidehollow' | 'gearspire' | 'duskhold' | 'crater';
+
+export const SONGS: Record<SongId, Song> = {
   // calm and hopeful, A minor → C major
   title: {
     bpm: 96,
@@ -58,6 +60,108 @@ export const SONGS: Record<'title' | 'king' | 'umbra', Song> = {
       { inst: I.bass, steps: 'D2 . . D2 . . D2 . G#1 . . G#1 . . G#1 . A#1 . . A#1 . . A#1 . A1 . . A1 . C#2 . A1 .' },
       { inst: I.pad, steps: 'D4 . . . . . . . G#3 . . . . . . . A#3 . . . . . . . A3 . . . . . . .' },
       { inst: I.lead, steps: '. . . . A5 . G#5 . . . . . F5 . E5 . . . . . D5 . C#5 . . . . . D5 . . .' },
+    ],
+  },
+  /* ---------- Realm themes (tickets 34–38): short loops, one mood each ---------- */
+  // bright and bouncy, C major
+  greenvale: {
+    bpm: 120,
+    tracks: [
+      { inst: I.hat, steps: rep('. . x . . . x . . . x . . . x .', 2) },
+      { inst: I.bass, steps: 'C3 . . C3 . . G2 . A2 . . A2 . . E2 . F2 . . F2 . . C3 . G2 . . G2 . . B2 .' },
+      { inst: I.pluck, steps: 'E5 . G5 . C6 . G5 . A5 . C6 . E5 . . . F5 . A5 . C6 . A5 . G5 . D5 . B4 . . .' },
+    ],
+  },
+  // dry and swaying, D Phrygian dominant
+  sunscar: {
+    bpm: 100,
+    tracks: [
+      { inst: I.kick, steps: rep('x . . . . . x . . . x . . . . .', 2) },
+      { inst: I.bass, steps: 'D2 . . D2 . . D2 . D#2 . . D#2 . . D2 . C2 . . C2 . . D#2 . D2 . . . . . . .' },
+      { inst: I.lead, steps: 'A4 . A#4 . C#5 . D5 . . . C#5 . A#4 . A4 . . . G4 . A4 . A#4 . A4 . . . . . . .' },
+    ],
+  },
+  // echoing and lonely, A minor with rests
+  deepdark: {
+    bpm: 84,
+    tracks: [
+      { inst: I.bass, steps: 'A1 . . . . . . . . . . . . . . . F1 . . . . . . . E1 . . . . . . .' },
+      { inst: I.pluck, steps: 'A4 . . . E5 . . . C5 . . . . . . . A4 . . . F5 . . . E5 . . . B4 . . .' },
+      { inst: I.pad, steps: 'E4 . . . . . . . . . . . . . . . C4 . . . . . . . B3 . . . . . . .' },
+    ],
+  },
+  // cold and glassy, E minor with high plucks
+  frostpeak: {
+    bpm: 92,
+    tracks: [
+      { inst: I.pad, steps: 'E4 . . . . . . . G4 . . . . . . . C4 . . . . . . . B3 . . . . . . .' },
+      { inst: I.pluck, steps: 'B5 . E6 . B5 . G5 . . . F#5 . G5 . . . E5 . G5 . C6 . G5 . F#5 . . . D#5 . . .' },
+      { inst: I.bass, steps: 'E2 . . . . . . . E2 . . . . . . . C2 . . . . . . . B1 . . . . . . .' },
+    ],
+  },
+  // hammering and fiery, C minor
+  emberforge: {
+    bpm: 132,
+    tracks: [
+      { inst: I.kick, steps: rep('x . . x x . . . x . . x x . . .', 2) },
+      { inst: I.snare, steps: rep('. . . . x . . . . . . . x . . .', 2) },
+      { inst: I.bass, steps: 'C2 C2 . C2 . . D#2 . C2 C2 . C2 . . G1 . G#1 G#1 . G#1 . . G1 . G1 G1 . G1 . . B1 .' },
+      { inst: I.lead, steps: 'C5 . . D#5 . . G5 . F5 . D#5 . D5 . C5 . G#4 . . C5 . . D#5 . D5 . B4 . G4 . . .' },
+    ],
+  },
+  // lazy and bubbling, swampy G minor shuffle
+  mirefen: {
+    bpm: 96,
+    tracks: [
+      { inst: I.bass, steps: 'G2 . . G2 . A#2 . . C3 . . C3 . A#2 . . G2 . . G2 . F2 . . D2 . . D2 . F2 . .' },
+      { inst: I.pluck, steps: '. . D5 . . . A#4 . . . C5 . . D5 . . . . F5 . . D5 . . . C5 . . A4 . . .' },
+      { inst: I.hat, steps: rep('x . . x . . x . x . . x . . x .', 2) },
+    ],
+  },
+  // soaring and airy, D major
+  skyreach: {
+    bpm: 128,
+    tracks: [
+      { inst: I.hat, steps: rep('x . x . x . x . x . x . x . x .', 2) },
+      { inst: I.bass, steps: 'D3 . . . A2 . . . B2 . . . F#2 . . . G2 . . . D2 . . . G2 . . . A2 . . .' },
+      { inst: I.lead, steps: 'F#5 . A5 . D6 . . . C#6 . A5 . F#5 . . . G5 . B5 . D6 . B5 . A5 . . . E5 . . .' },
+    ],
+  },
+  // flowing and songlike, F major waltz feel
+  tidehollow: {
+    bpm: 104,
+    tracks: [
+      { inst: I.bass, steps: 'F2 . . . . . C3 . . . . . A#2 . . . . . F2 . . . . . C2 . . . . . . .' },
+      { inst: I.pad, steps: 'A4 . . . . . . . . . . . D5 . . . . . . . . . . . C5 . . . . . . .' },
+      { inst: I.pluck, steps: 'C5 . F5 . A5 . G5 . F5 . . . D5 . F5 . A#5 . A5 . G5 . . . E5 . G5 . C5 . . .' },
+    ],
+  },
+  // mechanical and ticking, A minor 16ths
+  gearspire: {
+    bpm: 124,
+    tracks: [
+      { inst: I.hat, steps: rep('x x . x x x . x x x . x x x . x', 2) },
+      { inst: I.kick, steps: rep('x . . . x . . . x . . . x . . .', 2) },
+      { inst: I.bass, steps: 'A2 . A2 . A3 . A2 . G2 . G2 . G3 . G2 . F2 . F2 . F3 . F2 . E2 . E2 . E3 . G#2 .' },
+      { inst: I.lead, steps: 'E5 . . . E5 . D5 . C5 . . . . . . . D5 . . . D5 . C5 . B4 . . . . . . .' },
+    ],
+  },
+  // spooky and dramatic, D harmonic minor
+  duskhold: {
+    bpm: 88,
+    tracks: [
+      { inst: I.bass, steps: 'D2 . . . . . . . A#1 . . . . . . . G1 . . . . . . . A1 . . . . . . .' },
+      { inst: I.pad, steps: 'F4 . . . . . . . D4 . . . . . . . D4 . . . . . . . C#4 . . . . . . .' },
+      { inst: I.lead, steps: 'A5 . . F5 . . D5 . . . E5 . F5 . . . G5 . . E5 . . C#5 . . . D5 . . . . .' },
+    ],
+  },
+  // the Heart Crater: a slow heartbeat
+  crater: {
+    bpm: 70,
+    tracks: [
+      { inst: I.kick, steps: rep('x . x . . . . . . . . . . . . .', 2) },
+      { inst: I.pad, steps: 'D4 . . . . . . . . . . . . . . . C#4 . . . . . . . . . . . . . . .' },
+      { inst: I.pluck, steps: '. . . . . . . . A5 . . . . . . . . . . . . . . . G#5 . . . . . . .' },
     ],
   },
 };

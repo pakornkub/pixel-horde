@@ -1,5 +1,6 @@
 // Builds sprite canvases once at boot from the per-Realm sprite files (apps/game/src/sprites).
 // Recoloured variants (hit flash, elite, frozen, armored, shadow) are generated here.
+import { ENEMY_IDS } from '@pixel-horde/sim';
 import { SPRITES } from '../sprites/lumora';
 import { OUTLINE, TRANSPARENT, type SpriteDef } from '../sprites/types';
 
@@ -56,9 +57,8 @@ for (const k of ['mage', 'knight', 'ranger', 'alchemist']) {
   HERO_SPR[k] = { r, l: r.map(flip), w: recolor(r[0], '#ffffff', 1), dk, dkl: dk.map(flip) };
 }
 
-const ENEMY_IDS = ['slime', 'bat', 'ghost', 'mush', 'boss', 'sslime', 'scorp', 'mummy', 'skel', 'islime', 'ibat', 'snowman', 'bossD', 'bossC', 'bossS', 'dragon', 'frostDragon', 'stormDragon', 'whelp', 'rival', 'umbra', 'caster', 'charger', 'splitter'];
 export const ENEMY_SPR: Record<string, Sheet[]> = {};
-for (const id of ENEMY_IDS) ENEMY_SPR[id] = frames(SPRITES[id]).map(sheet);
+for (const id of ENEMY_IDS) if (SPRITES[id]) ENEMY_SPR[id] = frames(SPRITES[id]).map(sheet);
 ENEMY_SPR.mini = ENEMY_SPR.splitter;
 
 export const PET_R: C = frames(SPRITES.pet)[0];

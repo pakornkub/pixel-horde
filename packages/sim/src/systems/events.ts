@@ -133,9 +133,9 @@ export function stepHz(s: SimState, dt: number): void {
         h.done = true;
         if (!h.pts!.some(([x, y]) => hypot(P.x - x, P.y - y) < h.r!)) {
           hurtP(s, h.d!);
-          if (!P.down && !s.debug.god) P.chill = s.cfg.kings.throne.chill;
+          if (!P.down && !s.debug.god && h.c !== 3) P.chill = s.cfg.kings.throne.chill; // ice chills; the swamp (c 3) only poisons
         }
-        flash(s, 0.35, '#bfe6ff');
+        flash(s, 0.35, h.c === 3 ? '#b6f24a' : '#bfe6ff');
         shake(s, 5);
       }
     }

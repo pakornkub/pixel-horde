@@ -75,7 +75,8 @@ export interface SimOptions {
   world?: 'lumora';
   /** Resolved Balance Config; defaults to the built-in one. */
   config?: ResolvedConfig;
-  debug?: { event?: DebugEvent; god?: boolean };
+  /** `realm`: start Chapter 1 in this Realm (art review / playtests). */
+  debug?: { event?: DebugEvent; god?: boolean; realm?: RealmId };
   /** Event feature flags at Run start (default: all on). */
   events?: EventSwitches;
   /** Run mode; the daily challenge disables the bought revive. */
@@ -418,7 +419,7 @@ export interface SimState {
   coop: CoopState | null;
   /** The account's very first Run (easier Chapter 1). */
   firstRun: boolean;
-  debug: { event?: DebugEvent; god?: boolean };
+  debug: { event?: DebugEvent; god?: boolean; realm?: RealmId };
 
   /** Chapter number (difficulty follows it). */
   stage: number;

@@ -21,7 +21,7 @@ export const BAT2: string[] = [
   "KppK.KKKKK.KppK",
   "KKK.........KKK",
 ];
-const MUSH: string[] = [
+export const MUSH: string[] = [
   "....KKKKKK....",
   "..KKrrwwrrKK..",
   ".KrrrrwwrrrrK.",

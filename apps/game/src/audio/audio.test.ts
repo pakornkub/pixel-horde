@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_SKILL_IDS, COMBO_IDS } from '@pixel-horde/sim';
+import { ALL_SKILL_IDS, COMBO_IDS, WEAPONS } from '@pixel-horde/sim';
 import { SONGS, renderSong } from './music';
 import { CAST, COMBO, SFX, ULT } from './sounds';
 import { zzfxSamples } from './zzfx';
@@ -8,7 +8,7 @@ describe('audio (ZzFX / ZzFXM-style, no files)', () => {
   it('every Skill, Combo and Ultimate form has a sound', () => {
     for (const id of ALL_SKILL_IDS) expect(CAST[id], id).toBeDefined();
     for (const id of COMBO_IDS) expect(COMBO[id], id).toBeDefined();
-    for (const f of ['judgement', 'root', 'burn', 'reap', 'freeze']) expect(ULT[f], f).toBeDefined();
+    for (const w of Object.values(WEAPONS)) expect(ULT[w.form], w.form).toBeDefined();
   });
 
   it('sounds render to finite, bounded samples', () => {

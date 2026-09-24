@@ -110,7 +110,10 @@ export function createSim(opts: SimOptions): Sim {
   P.hp = P.maxHp;
   P.revives = U(s, 'revive');
   if (opts.resume) restoreInto(s, opts.resume);
-  else startStage(s, 1);
+  else {
+    if (s.debug.realm && REALMS[s.debug.realm]) { s.realm = s.debug.realm; s.visited = [s.realm]; }
+    startStage(s, 1);
+  }
   let cp = snapshotOf(s);
 
   const rec: Replay = { v: 1, opts: JSON.parse(JSON.stringify(opts)), ticks: 0, inputs: [], commands: [], hashes: [] };

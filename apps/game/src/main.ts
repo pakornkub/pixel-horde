@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
+import { REALM_IDS, createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, saveSettings, settings } from './settings';
@@ -31,11 +31,12 @@ import {
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
-/* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god (comma separated) ---------- */
+/* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|realm:<id> (comma separated) ---------- */
 const debugFlags = new Set((new URLSearchParams(location.search).get('debug') || '').split(',').filter(Boolean));
 const debug: SimOptions['debug'] = {
   god: debugFlags.has('god'),
   event: (['dragon', 'frostdragon', 'stormdragon', 'rival', 'bloodmoon'] as DebugEvent[]).find((k) => debugFlags.has(k)),
+  realm: REALM_IDS.find((r) => debugFlags.has('realm:' + r)),
 };
 
 /* ---------- run state ---------- */
@@ -471,8 +472,8 @@ function frame(now: number): void {
     telemetry.recordError(String((err as Error)?.message ?? err), (err as Error)?.stack ?? '');
   }
   const v = sim ? sim.view() : null;
-  // music: title theme outside Runs, King and Umbra themes during their fights (Realm themes come with Realm tickets)
-  playMusic(!v || v.phase === 'over' ? 'title' : v.boss?.type === 'umbra' ? 'umbra' : v.boss || v.boss2 || v.dragonE ? 'king' : null);
+  // music: title theme outside Runs, the Realm's theme while playing, King and Umbra themes during their fights
+  playMusic(!v || v.phase === 'over' ? 'title' : v.boss?.type === 'umbra' ? 'umbra' : v.boss || v.boss2 || v.dragonE ? 'king' : v.realm);
   renderWorld(v, v ? v.clock : rclock, !v || v.phase === 'over');
   if (v) { drawTexts(v.clock); drawHud(v, v.clock, v.runGold); }
   requestAnimationFrame(frame);

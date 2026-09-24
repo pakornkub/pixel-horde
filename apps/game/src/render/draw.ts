@@ -32,8 +32,9 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
     b.save();
     if (h.k === 'cone') {
       const on = h.t >= h.te!;
+      const cc = h.c ? HZ_COL[h.c] : null; // poison / water cones (Bog Queen, Tide Queen)
       b.globalAlpha = on ? 0.55 : 0.18 + 0.12 * Math.sin(clock * 20);
-      b.fillStyle = on ? '#ff8a3d' : '#ff2a3a';
+      b.fillStyle = on ? cc ?? '#ff8a3d' : cc ?? '#ff2a3a';
       b.beginPath(); b.moveTo(x, y); b.arc(x, y, h.r!, h.a! - h.sp!, h.a! + h.sp!); b.closePath(); b.fill();
       if (!on) { b.globalAlpha = 0.8; b.strokeStyle = '#ff2a3a'; b.lineWidth = 1; b.stroke(); }
     } else if (h.k === 'circ') {
@@ -69,7 +70,7 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
       const r = h.r! * Math.min(1, h.t / h.du!);
       b.globalAlpha = 1 - (h.t / h.du!) * 0.6;
       b.strokeStyle = '#3a1f66'; b.lineWidth = 5; b.beginPath(); b.ellipse(x, y, r, r * 0.85, 0, 0, TAU); b.stroke();
-      b.strokeStyle = h.c === 3 ? '#8fce6a' : '#b07cff'; b.lineWidth = 2; b.stroke();
+      b.strokeStyle = h.c === 3 ? '#8fce6a' : h.c === 0 ? '#ff8a3d' : h.c === 5 ? '#9fd8ff' : '#b07cff'; b.lineWidth = 2; b.stroke();
     } else if (h.k === 'beam') {
       const ex = x + Math.cos(h.a!) * h.r!, ey = y + Math.sin(h.a!) * h.r!;
       b.lineCap = 'round';
@@ -102,7 +103,7 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
     } else if (h.k === 'safe') {
       const { LW, LH } = screen;
       b.globalAlpha = h.t < h.te! ? 0.2 + 0.25 * (h.t / h.te!) : Math.max(0, 0.7 - (h.t - h.te!) * 2);
-      b.fillStyle = '#9fd8ff';
+      b.fillStyle = h.c === 3 ? '#6fb553' : '#9fd8ff'; // Gossip Swamp / Absolute Throne
       b.beginPath(); b.rect(0, 0, LW, LH);
       for (const [px, py] of h.pts!) { b.moveTo(px + ox + h.r!, py + oy); b.ellipse(px + ox, py + oy, h.r!, h.r! * 0.7, 0, 0, TAU, true); }
       b.fill('evenodd');
@@ -219,7 +220,8 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + 8, 10, 3, 0, 0, TAU); b.fill();
         continue;
       }
-      const frames = ENEMY_SPR[e.type], sp = frames[Math.floor(e.ph / 2) % frames.length];
+      // Kings with a wind-up frame (3 frames): idle on the first two, wind-up while a move plays out
+      const frames = ENEMY_SPR[e.type], sp = frames.length === 3 && e.kg ? frames[e.kg.lock > 0 ? 2 : Math.floor(e.ph / 2) % 2] : frames[Math.floor(e.ph / 2) % frames.length];
       const im = e.flash > 0 ? sp.w : e.frz > 0 ? sp.i : e.armor ? sp.a : e.elite ? sp.e : sp.n;
       const w = im.width * e.sc, h = im.height * e.sc, x = Math.round(e.x + ox - w / 2);
       const y = Math.round(e.y + oy - h / 2 + (e.type === 'bat' ? 0 : Math.sin(e.ph * 0.5) * (e.sc > 1 ? 1 : 0.5)));
@@ -439,6 +441,14 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         const k = f.t / f.dur;
         b.save(); b.globalAlpha = 0.35 * Math.sin(Math.PI * k); b.fillStyle = '#1e1b33';
         b.beginPath(); b.ellipse(-60 + (LW + 120) * k, LH * 0.4 + Math.sin(k * 6) * 10, 70, 26, -0.2, 0, TAU); b.fill(); b.restore();
+      } else if (f.type === 'gturret') {
+        // Gear Cannon turret
+        const x = Math.round(f.x + ox), y = Math.round(f.y + oy), fade = Math.min(1, (f.dur - f.t) / 0.4);
+        b.save(); b.globalAlpha = fade;
+        b.fillStyle = K; b.fillRect(x - 5, y - 2, 10, 8); b.fillRect(x - 2, y - 6, 4, 5);
+        b.fillStyle = '#8a94a8'; b.fillRect(x - 4, y - 1, 8, 6); b.fillStyle = '#c7ced9'; b.fillRect(x - 1, y - 5, 2, 4);
+        if (Math.floor(clock * 12) & 1) { b.fillStyle = '#ffd23f'; b.fillRect(x - 1, y - 7, 2, 1); }
+        b.restore();
       } else if (f.type === 'judge') {
         if (!f.fired) {
           b.save(); b.globalAlpha = 0.5; b.strokeStyle = f.col || '#fff35c'; b.lineWidth = 2;

@@ -35,7 +35,39 @@ export const THEME_VIS=[
     f2:x=>{x.fillStyle='#b07cff';x.fillRect(10,4,1,1);x.fillRect(12,9,1,1);x.fillStyle='#6a5a8a';x.fillRect(5,12,1,1);},
     deco:x=>{x.fillStyle=K;x.beginPath();x.moveTo(8,1);x.lineTo(13,15);x.lineTo(3,15);x.closePath();x.fill();
       x.fillStyle='#4a2d80';x.beginPath();x.moveTo(8,3);x.lineTo(11,14);x.lineTo(5,14);x.closePath();x.fill();
-      x.fillStyle='#b07cff';x.fillRect(7,6,2,5);x.fillStyle='#ffffff';x.fillRect(7,6,1,1);}}
+      x.fillStyle='#b07cff';x.fillRect(7,6,2,5);x.fillStyle='#ffffff';x.fillRect(7,6,1,1);}},
+  // tickets 36–38 (drafts for the owner's review)
+  {key:'ember',name:'EMBERFORGE',th:'ภูเขาไฟ',g:['#5a3a3a','#4a2e2e','#3a2424'],path:['#7a4a3a','#8a5a44'],
+    f1:x=>{x.fillStyle=K;x.fillRect(3,6,6,2);x.fillStyle='#ff6a2a';x.fillRect(4,6,4,1);x.fillStyle='#ffd23f';x.fillRect(5,6,1,1);},
+    f2:x=>{x.fillStyle='#8a5a44';x.fillRect(10,9,2,2);x.fillStyle='#ff8a3d';x.fillRect(12,4,1,1);},
+    deco:x=>{x.fillStyle=K;x.beginPath();x.moveTo(8,1);x.lineTo(15,15);x.lineTo(1,15);x.closePath();x.fill();
+      x.fillStyle='#6a4a3a';x.beginPath();x.moveTo(8,3);x.lineTo(13,14);x.lineTo(3,14);x.closePath();x.fill();
+      x.fillStyle='#ff6a2a';x.fillRect(7,3,2,3);x.fillStyle='#ffd23f';x.fillRect(7,3,1,1);x.fillStyle='#ff6a2a';x.fillRect(6,8,1,4);}},
+  {key:'swamp',name:'MIREFEN',th:'หนองน้ำ',g:['#4f6a3a','#43603a','#334a2a'],path:['#6a5a3a','#5a4a30'],
+    f1:x=>{x.fillStyle=K;x.fillRect(3,7,7,3);x.fillStyle='#3a7a6a';x.fillRect(4,7,5,2);x.fillStyle='#8fd8c8';x.fillRect(5,7,1,1);},
+    f2:x=>{x.fillStyle='#b6f24a';x.fillRect(10,4,1,1);x.fillRect(12,10,1,1);x.fillStyle='#b36bd8';x.fillRect(6,12,2,1);},
+    deco:x=>{x.fillStyle=K;x.fillRect(6,3,4,13);x.fillRect(3,6,10,3);
+      x.fillStyle='#6b4a2a';x.fillRect(7,4,2,12);x.fillStyle='#6fb553';x.fillRect(4,7,8,1);x.fillStyle='#b6f24a';x.fillRect(4,6,2,1);x.fillRect(10,6,2,1);}},
+  {key:'sky',name:'SKYREACH ISLES',th:'เกาะลอยฟ้า',g:['#a8d8a0','#93c98a','#6fae6a'],path:['#e6f0ff','#c8dcf0'],
+    f1:x=>{x.fillStyle='#ffffff';x.fillRect(3,5,5,2);x.fillRect(4,4,3,1);x.fillStyle='#c8dcf0';x.fillRect(3,7,5,1);},
+    f2:x=>{x.fillStyle='#fff35c';x.fillRect(10,9,1,3);x.fillRect(11,11,1,2);},
+    deco:x=>{x.fillStyle=K;x.fillRect(2,6,12,6);x.fillRect(4,4,8,2);x.fillStyle='#e6f0ff';x.fillRect(3,7,10,4);x.fillRect(5,5,6,2);
+      x.fillStyle='#ffffff';x.fillRect(5,5,3,1);x.fillRect(3,7,2,1);x.fillStyle='#8fdcff';x.fillRect(4,10,8,1);}},
+  {key:'sea',name:'TIDEHOLLOW',th:'เมืองใต้ทะเล',g:['#2f6f8f','#28617f','#1e4f6a'],path:['#c8b88a','#b8a878'],
+    f1:x=>{x.fillStyle=K;x.fillRect(4,5,2,7);x.fillStyle='#3fbf8f';x.fillRect(4,5,1,6);x.fillStyle='#6fe0b0';x.fillRect(5,6,1,4);},
+    f2:x=>{x.fillStyle='#bff0f0';x.fillRect(10,4,1,1);x.fillRect(11,7,1,1);x.fillRect(12,3,1,1);},
+    deco:x=>{x.fillStyle=K;x.fillRect(3,4,10,11);x.fillStyle='#8f8a7a';x.fillRect(4,5,8,9);x.fillStyle='#b8b3a0';x.fillRect(4,5,8,2);
+      x.fillStyle='#ff9ad8';x.fillRect(5,12,2,2);x.fillRect(9,11,2,3);x.fillStyle='#e8543c';x.fillRect(6,13,1,1);}},
+  {key:'gear',name:'GEARSPIRE',th:'เมืองจักรกล',g:['#6a7488','#5e6878','#4a5468'],path:['#8a94a8','#9aa4b8'],
+    f1:x=>{x.fillStyle=K;x.fillRect(3,5,6,6);x.fillStyle='#b8c0cc';x.fillRect(4,6,4,4);x.fillStyle=K;x.fillRect(5,7,2,2);},
+    f2:x=>{x.fillStyle='#ffd23f';x.fillRect(10,9,3,1);x.fillStyle='#4a5468';x.fillRect(11,4,1,3);},
+    deco:x=>{x.fillStyle=K;x.fillRect(2,2,12,13);x.fillStyle='#8a94a8';x.fillRect(3,3,10,11);x.fillStyle='#b8c0cc';x.fillRect(3,3,10,2);
+      x.fillStyle='#4a5468';x.fillRect(5,7,2,2);x.fillRect(9,7,2,2);x.fillStyle='#e8434f';x.fillRect(7,11,2,1);}},
+  {key:'dusk',name:'DUSKHOLD',th:'ปราสาทผีสิง',g:['#3a2a4a','#33253f','#261c30'],path:['#4a4a5a','#5a5a6a'],
+    f1:x=>{x.fillStyle=K;x.fillRect(4,6,3,6);x.fillStyle='#e9e0ff';x.fillRect(5,7,1,4);x.fillStyle='#ffd23f';x.fillRect(5,6,1,1);},
+    f2:x=>{x.fillStyle='#b07cff';x.fillRect(10,5,1,1);x.fillRect(12,11,1,1);x.fillStyle='#6a5a8a';x.fillRect(8,13,2,1);},
+    deco:x=>{x.fillStyle=K;x.fillRect(3,3,10,13);x.fillRect(4,1,2,2);x.fillRect(10,1,2,2);
+      x.fillStyle='#5a5a6a';x.fillRect(4,4,8,11);x.fillStyle='#3a2a4a';x.fillRect(6,8,4,7);x.fillStyle='#ffd23f';x.fillRect(7,10,1,1);x.fillStyle='#7a7a8a';x.fillRect(4,4,8,1);}}
 ];
 function tile(fn){const c=document.createElement('canvas');c.width=16;c.height=16;fn(c.getContext('2d'));return c;}
 function makeTiles(th){
