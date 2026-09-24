@@ -2,7 +2,7 @@ import './style.css';
 import { createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
-import { applyLang, settings } from './settings';
+import { applyLang, saveSettings, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
 import { initLeaderboard } from './ui/leaderboard';
@@ -14,10 +14,12 @@ import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
 import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
+import { createFpsWatch } from './fpswatch';
+import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
-import { MET, ambient, clearVfx, consume, setBanner, stepVfx } from './render/vfx';
+import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
   $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
@@ -44,6 +46,7 @@ let shownPhase = '';
 let acc = 0;
 let last = performance.now();
 let rclock = 0;
+const fpsWatch = createFpsWatch();
 
 const cmd = (c: Command): void => { queue.push(c); };
 
@@ -105,7 +108,7 @@ async function newRun(): Promise<void> {
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
     crack: Math.min(META.crack, META.crackMax),
     meta: simMeta(),
-    viewport: { w: screen.LW, h: screen.LH },
+    viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
     config: active.cfg,
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
@@ -196,7 +199,7 @@ async function continueRun(): Promise<void> {
     if (!config) { showMsg(t('save.noConfig')); return; }
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
-    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.LW, h: screen.LH },
+    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
       config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
     clearSave();
     usedHash = s.checkpoint().hash;
@@ -214,6 +217,7 @@ async function continueRun(): Promise<void> {
 function toTitle(): void {
   sim = null;
   queue = [];
+  $('fpsTip').hidden = true;
   ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
@@ -283,7 +287,7 @@ function frame(now: number): void {
   try {
     if (sim) {
       if (chestTick(rdt)) cmd({ type: 'chestStop' });
-      acc += rdt;
+      acc += vfx.slowmo > 0 ? rdt * sim.view().cfg.fx.slowmoScale : rdt; // King-death slow motion (presentation only)
       let steps = 0;
       while (acc >= DT && steps < 8) {
         const input = readInput();
@@ -309,8 +313,11 @@ function frame(now: number): void {
       if (steps >= 8) acc = 0;
       syncOverlays();
       const v = sim.view();
-      stepVfx(rdt, v.slowT > 0 ? rdt * 0.3 : rdt);
-      if (v.phase === 'play') telemetry.frame(rdt);
+      stepVfx(rdt, rdt * (v.slowT > 0 ? 0.3 : 1) * (vfx.slowmo > 0 ? v.cfg.fx.slowmoScale : 1));
+      if (v.phase === 'play') {
+        telemetry.frame(rdt);
+        if (settings.effects !== 'off' && fpsWatch.feed(rdt, v.cfg.fx.lowFps, v.cfg.fx.lowFpsSecs)) $('fpsTip').hidden = false;
+      }
     } else stepVfx(rdt, rdt);
   } catch (err) {
     console.error(err);
@@ -449,6 +456,12 @@ async function refreshLive(): Promise<void> {
   const f = live.flags();
   if (sim) cmd({ type: 'setEvents', events: { bloodMoon: f.bloodMoon, dragon: f.dragon, rival: f.rival } });
 }
+$('fpsLower').addEventListener('click', () => {
+  settings.effects = settings.effects === 'all' ? 'some' : 'off';
+  saveSettings();
+  $('fpsTip').hidden = true;
+});
+$('fpsKeep').addEventListener('click', () => { $('fpsTip').hidden = true; });
 $('maintBtn').addEventListener('click', () => { maintDismissed = true; hide('ovMaint'); });
 $('updateBtn').addEventListener('click', () => location.reload());
 

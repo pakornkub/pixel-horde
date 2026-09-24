@@ -107,6 +107,7 @@ export function stageClear(s: SimState, escaped = false): void {
     s.stageKills++;
     s.gems.push({ kind: 'xp', x: e.x, y: e.y, v: e.xp, mag: true });
   }
+  for (const g of s.gems) g.mag = true; // end-of-Stage vacuum: everything left flies to the player
   flash(s, 0.3, '#ffffff');
   shake(s, 6);
   s.events.push({ t: 'stageClear', stage: s.stage, escaped });

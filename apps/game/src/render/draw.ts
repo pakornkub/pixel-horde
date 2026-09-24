@@ -4,7 +4,7 @@ import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, PET_SPR } from './sprites';
 import { tileAtT } from './tiles';
-import { MET, TAU, fxRng, rnd, vfx } from './vfx';
+import { MET, TAU, fxRng, rnd, vfx, zoomK } from './vfx';
 import { lang, t } from '@pixel-horde/i18n';
 import { PASSIVE_ICON, SKILL_ICON, kingName, realmShort } from '../ui/text';
 
@@ -12,6 +12,11 @@ const K = INK;
 const R = fxRng.next;
 const clamp = (v: number, a: number, c: number): number => (v < a ? a : v > c ? c : v);
 let ox = 0, oy = 0;
+/** World (low-res buffer) → hi-res canvas, following the zoom moment around the screen centre. */
+function toScreen(x: number, y: number): [number, number] {
+  const { S } = screen, z = zoomK(), W = cv.width, H = cv.height;
+  return [W / 2 + ((x + ox) * S - W / 2) * z, H / 2 + ((y + oy) * S - H / 2) * z];
+}
 
 export function fmtT(s: number): string {
   s = Math.max(0, Math.ceil(s));
@@ -224,6 +229,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if ((e.shock || 0) > 0) mark(Math.floor(clock * 14) & 1 ? '#fff35c' : '#ffffff');
         if ((e.pois || 0) > 0) mark('#b6f24a');
         if ((e.gath || 0) > 0) mark('#d8f3e0');
+        if ((e.chill || 0) > 0 && e.frz <= 0) mark('#bfe6ff');
       }
       if (e.armor) {
         b.fillStyle = K; b.fillRect(Math.round(e.x + ox) - 3, y - 6, 6, 6);
@@ -450,13 +456,20 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       b.fillStyle = g; b.fillRect(0, 0, LW, LH);
     }
     // particles
+    for (const r of vfx.rings) {
+      const k = r.t / r.life;
+      b.globalAlpha = 1 - k; b.strokeStyle = r.col; b.lineWidth = 3 * (1 - k) + 1;
+      b.beginPath(); b.ellipse(r.x + ox, r.y + oy, r.r * k, r.r * k * 0.8, 0, 0, TAU); b.stroke();
+    }
     for (const p of vfx.fx) { b.globalAlpha = Math.max(0, 1 - p.t / p.life); b.fillStyle = p.col; b.fillRect(Math.round(p.x + ox), Math.round(p.y + oy), p.sz, p.sz); }
     b.globalAlpha = 1;
   }
   // blit
   ctx.imageSmoothingEnabled = false;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(buf, 0, 0, LW * S, LH * S);
+  const z = zoomK();
+  if (z > 1.001) { const sw = LW / z, sh2 = LH / z; ctx.drawImage(buf, (LW - sw) / 2, (LH - sh2) / 2, sw, sh2, 0, 0, LW * S, LH * S); }
+  else ctx.drawImage(buf, 0, 0, LW * S, LH * S);
   if (vfx.flash > 0) { ctx.globalAlpha = Math.min(0.75, vfx.flash * 1.8); ctx.fillStyle = vfx.flashCol; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; }
 }
 
@@ -502,14 +515,15 @@ function drawArrows(v: Readonly<SimState>, clock: number): void {
 
 /** King dialogue bubbles; they follow a living speaker and stay on screen. */
 function drawBubbles(v: Readonly<SimState>): void {
-  const { S, DPR: D } = screen, W = cv.width, H = cv.height;
+  const { DPR: D } = screen, W = cv.width, H = cv.height;
   for (const bb of vfx.bubbles) {
     const who = [v.boss, v.boss2, v.rivalE].find((k) => k && k.type === bb.who) ?? null;
     if (who) { bb.x = who.x; bb.y = who.y; }
     const px = 11 * D;
     ctx.font = lang() === 'en' ? `${Math.round(px * 0.75)}px "Press Start 2P", ui-monospace, monospace` : `700 ${Math.round(px)}px "Chakra Petch", Tahoma, sans-serif`;
     const tw = Math.min(ctx.measureText(bb.txt).width, W * 0.8), pad = 6 * D, bw = tw + pad * 2, bh = px + pad * 2;
-    let x = (bb.x + ox) * S - bw / 2, y = (bb.y + oy - 30) * S - bh;
+    const [bx, by] = toScreen(bb.x, bb.y - 30);
+    let x = bx - bw / 2, y = by - bh;
     x = Math.max(8 * D, Math.min(W - bw - 8 * D, x));
     y = Math.max(80 * D, Math.min(H - bh - 60 * D, y));
     const k = bb.t / bb.life;
@@ -523,7 +537,7 @@ function drawBubbles(v: Readonly<SimState>): void {
 }
 
 export function drawTexts(clock: number): void {
-  const { CS, DPR, S } = screen;
+  const { CS, DPR } = screen;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const base = CS * DPR;
@@ -534,7 +548,7 @@ export function drawTexts(clock: number): void {
     if (typeof t.v === 'number' && t.v >= 10000) px *= 1.15;
     px *= pop;
     ctx.globalAlpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
-    const x = (t.x + ox) * S, y = (t.y + oy) * S;
+    const [x, y] = toScreen(t.x, t.y);
     const txt = t.cr ? t.v + '!' : String(t.v);
     outlined(txt, x, y, px, t.cr && !t.hurt ? (Math.floor(clock * 16) & 1 ? '#ffd23f' : '#ff7a3d') : t.col);
   }
@@ -643,6 +657,31 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.globalAlpha = Math.min(1, k * 2.5);
     outlined(bn.txt, W / 2, cv.height * 0.34, px, bn.big ? '#fff35c' : '#ffffff', px * 0.3);
     if (bn.sub) thaiText(bn.sub, W / 2, cv.height * 0.34 + 26 * D, 13 * D, '#ffd23f', 4 * D);
+    ctx.globalAlpha = 1; ctx.textBaseline = 'top';
+  }
+  // King intro card: slides in from the left under the banner
+  const it = vfx.intro;
+  if (it) {
+    const k = it.t / it.life, slide = k < 0.15 ? 1 - k / 0.15 : k > 0.85 ? -(k - 0.85) / 0.15 : 0;
+    const ch = 54 * D, cw = Math.min(W * 0.8, 340 * D), cx = (W - cw) / 2 - slide * W, cy = cv.height * 0.56;
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = INK; ctx.fillRect(cx - 3 * D, cy - 3 * D, cw + 6 * D, ch + 6 * D);
+    ctx.fillStyle = '#3a1f66'; ctx.fillRect(cx, cy, cw, ch);
+    ctx.fillStyle = '#ffd23f'; ctx.fillRect(cx, cy + ch - 3 * D, cw * Math.min(1, it.t / 0.5), 3 * D);
+    ctx.globalAlpha = 1;
+    const im = ENEMY_SPR[it.king]?.[0]?.n;
+    if (im) { ctx.imageSmoothingEnabled = false; const is = 40 * D; ctx.drawImage(im, cx + 8 * D, cy + (ch - is) / 2, is, is); }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    outlined(kingName(it.realm), cx + 56 * D, cy + 18 * D, 12 * D, '#fff35c');
+    thaiText(t('intro.kingOf', { realm: t(`realm.${it.realm}.short`) }), cx + 56 * D, cy + 38 * D, 12 * D, '#ffffff', 3 * D);
+    ctx.textBaseline = 'top';
+  }
+  // Kill Streak popup
+  const st = vfx.streak;
+  if (st) {
+    const pop = 1 + 0.8 * Math.max(0, 1 - st.t / 0.15), a = st.t > 1.1 ? (1.4 - st.t) / 0.3 : 1;
+    ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    outlined('×' + st.n + ' KO!', right, top + 96 * D, 14 * D * pop, st.n >= 100 ? '#ff5cf4' : '#ffd23f');
     ctx.globalAlpha = 1; ctx.textBaseline = 'top';
   }
   // stats meter

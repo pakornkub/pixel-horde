@@ -80,6 +80,8 @@ export interface SimOptions {
   weapon?: WeaponId;
   /** Heart Crack difficulty tier 0–3 (unlocked by beating Umbra). */
   crack?: number;
+  /** Phone/tablet: lower monster caps (recorded in replays, so still deterministic). */
+  mobile?: boolean;
   /** Resume from a checkpoint (`Sim.checkpoint().data`); `config` must be its locked version. */
   resume?: string;
 }
@@ -310,7 +312,9 @@ export type SimEvent =
   | { t: 'flash'; v: number; col?: string; max?: boolean; ult?: boolean }
   | { t: 'banner'; key: BannerKey; dur: number; big?: boolean; args?: Record<string, string | number> }
   | { t: 'dmg'; d: number }
-  | { t: 'kill'; ttk: number }
+  | { t: 'kill'; ttk: number; x: number; y: number; type: EnemyId; boss: boolean; elite: boolean }
+  | { t: 'streak'; n: number }
+  | { t: 'kingIntro'; realm: RealmId; x: number; y: number }
   | { t: 'stageStart'; stage: number; special: boolean }
   | { t: 'stageClear'; stage: number; escaped: boolean }
   | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
@@ -345,6 +349,8 @@ export interface SimState {
   hero: HeroId;
   meta: Meta;
   viewport: { w: number; h: number };
+  /** Lower monster caps (phones/tablets). */
+  mobile: boolean;
   debug: { event?: DebugEvent; god?: boolean };
 
   /** Chapter number (difficulty follows it). */

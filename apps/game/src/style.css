@@ -170,3 +170,12 @@ html[lang="en"] .tabs button{font-size:9px}
 .coll .crow span{flex:1;opacity:.9}
 .coll .crow.locked{opacity:.45}
 .coll .crow img,.coll .crow .ph{width:32px;height:32px;image-rendering:pixelated;display:grid;place-items:center;font-weight:700}
+
+/* low-FPS suggestion (ticket 39) */
+#fpsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:4;
+  display:flex;gap:8px;align-items:center;max-width:calc(100% - 32px);background:var(--paper);color:var(--ink);border:3px solid var(--ink);
+  border-radius:4px;padding:8px 10px;font-family:var(--th);font-weight:500;font-size:14px}
+#fpsTip[hidden]{display:none}
+#fpsTip button{font-family:var(--th);font-weight:700;font-size:13px;border:0;border-radius:3px;padding:6px 10px;cursor:pointer;background:var(--ink);color:var(--paper);white-space:nowrap}
+#fpsTip #fpsKeep{background:transparent;color:var(--ink);border:2px solid var(--ink)}
+html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);font-size:9px;line-height:1.6}

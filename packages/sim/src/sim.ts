@@ -34,7 +34,7 @@ export interface Sim {
 /** A Stage-start snapshot. `hash` identifies it on the server (single use). */
 export interface Checkpoint { chapter: number; configVersion: number; hash: string; data: string }
 
-const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest']);
+const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile']); // mobile: the resuming device decides
 
 /** Serialize the state at a Stage start (no live monsters, effects or menus). */
 function snapshotOf(s: SimState): Checkpoint {
@@ -90,7 +90,7 @@ export function createSim(opts: SimOptions): Sim {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
     meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0), weapons: [...(opts.meta.weapons || [])] },
-    viewport: { w: opts.viewport.w, h: opts.viewport.h },
+    viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile,
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
     chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
@@ -211,6 +211,7 @@ export function createSim(opts: SimOptions): Sim {
         b.maxHp = b.hp;
         s.boss = b;
         initKing(s, b);
+        s.events.push({ t: 'kingIntro', realm: s.realm, x: b.x, y: b.y });
         if (s.doubleKing && s.skipped) {
           // the King of the Realm not taken joins; both at reduced HP, both pay out
           const [x2, y2] = edgePos(s);
@@ -219,6 +220,7 @@ export function createSim(opts: SimOptions): Sim {
           b.hp = b.maxHp = b.maxHp * s.cfg.events.doubleKingHp;
           s.boss2 = b2;
           initKing(s, b2);
+          s.events.push({ t: 'kingIntro', realm: s.skipped, x: b2.x, y: b2.y });
         }
         banner(s, 'bossIncoming', 2, false, { dir: directionOf(s, x, y) });
         shake(s, 5);

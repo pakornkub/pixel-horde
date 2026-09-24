@@ -659,5 +659,9 @@
  "coll.titleReward": "ฉายา: {title}",
  "coll.season": "Season {n}",
  "over.newAch": "ปลดล็อกความสำเร็จ: {list}",
- "coll.back": "กลับ"
+ "coll.back": "กลับ",
+ "intro.kingOf": "ผู้ปกครอง {realm}",
+ "fx.lowFps": "เกมเริ่มกระตุก ลดเอฟเฟกต์ลงเพื่อให้ลื่นขึ้นไหม?",
+ "fx.lower": "ลดเอฟเฟกต์",
+ "fx.keep": "ไม่ต้อง"
 }

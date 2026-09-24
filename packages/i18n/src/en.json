@@ -659,5 +659,9 @@
  "coll.titleReward": "Title: {title}",
  "coll.season": "Season {n}",
  "over.newAch": "Achievements unlocked: {list}",
- "coll.back": "Back"
+ "coll.back": "Back",
+ "intro.kingOf": "Ruler of {realm}",
+ "fx.lowFps": "The game is running slowly. Lower the effects to keep it smooth?",
+ "fx.lower": "LOWER EFFECTS",
+ "fx.keep": "KEEP"
 }

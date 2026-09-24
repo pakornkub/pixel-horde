@@ -105,7 +105,7 @@ export function spawnStep(s: SimState, dt: number): void {
   const pool = typePool(s);
   while (s.spawnAcc >= 1) {
     s.spawnAcc--;
-    if (s.enemies.length < C.cap) {
+    if (s.enemies.length < (s.mobile ? C.capMobile : C.cap)) {
       const [x, y] = edgePos(s);
       spawnEnemy(s, pool[R.int(pool.length)], x, y, R.next() < C.eliteChance * s.stage * s.dir.v);
     }
@@ -117,7 +117,7 @@ export function spawnStep(s: SimState, dt: number): void {
     const al = aliveTargets(s), c = al.length ? al[R.int(al.length)] : s.P;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU;
-      if (s.enemies.length < C.swarmCap) spawnEnemy(s, type, c.x + cos(a) * d, c.y + sin(a) * d, false);
+      if (s.enemies.length < (s.mobile ? C.swarmCapMobile : C.swarmCap)) spawnEnemy(s, type, c.x + cos(a) * d, c.y + sin(a) * d, false);
     }
     banner(s, 'swarm', 1.4);
   }

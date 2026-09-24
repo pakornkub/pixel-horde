@@ -80,7 +80,7 @@ function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | u
 
 export function killE(s: SimState, e: Enemy): void {
   const R = s.rng.loot, C = s.cfg, L = C.loot;
-  s.events.push({ t: 'kill', ttk: s.clock - e.born });
+  s.events.push({ t: 'kill', ttk: s.clock - e.born, x: e.x, y: e.y, type: e.type, boss: e.boss, elite: e.elite });
   if (e.type === 'splitter') {
     const sp = C.splitter;
     for (let i = 0; i < sp.minis; i++) {
@@ -106,6 +106,7 @@ export function killE(s: SimState, e: Enemy): void {
   s.streak++;
   s.streakT = C.streak.window;
   if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+  if (s.streak % C.streak.popupEvery === 0) s.events.push({ t: 'streak', n: s.streak });
   { // kills add charge only within the budget (at most killCap × the time rate)
     const add = Math.min(s.ultBudget, e.boss ? C.ult.perBoss : e.elite ? C.ult.perElite : C.ult.perKill);
     s.ultBudget -= add;

@@ -184,6 +184,7 @@ const shared = obj({
     eliteChance: frac(0.012, 'Elite chance per stage'),
     swarmFirst: sec(16, 'First swarm ring (s)'), swarmEvery: sec(18, 'Swarm ring interval (s)'), swarmEveryBloodMoon: sec(10, 'Swarm interval in Blood Moon (s)'),
     swarmBase: int(16, 0, 500, 'Enemies per swarm ring'), swarmPerStage: int(6, 0, 100, 'Extra ring enemies per stage'), swarmCap: int(340, 10, 2000, 'Enemy cap during swarm'),
+    capMobile: int(240, 10, 2000, 'Enemy cap on phones/tablets'), swarmCapMobile: int(260, 10, 2000, 'Enemy cap during swarm on phones/tablets'),
     edge: pos(14, 'Spawn distance beyond the view edge'), ringEdge: pos(10, 'Swarm ring distance beyond the view edge'), despawn: mul(0.95, 'Recycle distance (× view diagonal)'),
   }, 'Spawner'),
   scaling: obj({
@@ -218,7 +219,13 @@ const shared = obj({
     bossCap: frac(0.08, 'At most this × a King\'s or Guardian\'s max HP per Ultimate'), umbraCap: frac(0.05, 'At most this × Umbra\'s max HP per Ultimate'),
     slow: sec(0.55, 'Slow-motion time (s)'), delay: sec(0.3, 'Strike delay (s)'), kb: pos(120, 'Knockback'),
   }, 'Ultimate (Judgement)'),
-  streak: obj({ window: sec(2.2, 'Seconds between kills to keep the Kill Streak') }, 'Kill Streak'),
+  streak: obj({ window: sec(2.2, 'Seconds between kills to keep the Kill Streak'), popupEvery: int(25, 5, 1000, 'Show a "×N KO!" popup every N kills of a streak') }, 'Kill Streak'),
+  fx: obj({
+    particles: int(900, 50, 5000, 'Particle cap (desktop)'), particlesMobile: int(500, 50, 5000, 'Particle cap (phones/tablets)'),
+    lowFps: int(45, 10, 60, 'Suggest lowering effects when FPS stays under this'), lowFpsSecs: sec(8, 'Seconds of low FPS before the suggestion'),
+    kingSlowmo: sec(1.1, 'Slow-motion after a King dies (real seconds)'), slowmoScale: frac(0.35, 'Game speed during that slow motion'),
+    zoom: mul(1.3, 'Camera zoom for Evolution/Awakening/fusion'), zoomTime: sec(1, 'Zoom moment length (s)'), introTime: sec(2.4, 'King intro card length (s)'),
+  }, 'Presentation (client only; never changes the simulation)'),
   loot: obj({
     coinChance: frac(0.08, 'Coin drop chance'), coin: pos(1, 'Coin value'), eliteCoin: pos(5, 'Elite coin value'), bossCoin: pos(50, 'Boss coin value'),
     heartChance: frac(0.012, 'Heart drop chance'), heartSmall: frac(0.3, 'Small heart heal (× max HP)'), heartBig: frac(0.5, 'Boss heart heal (× max HP)'),
