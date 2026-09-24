@@ -63,11 +63,11 @@ Optional play after defeating Umbra: random Realms with ever-rising difficulty, 
 _Avoid_: survival mode, infinite mode
 
 **Weapon**:
-A permanent, unique collectible chosen before a Run that changes the form of the Ultimate. Earned by defeating Umbra (and rarely from Kings).
+A permanent, unique collectible (one per Realm) chosen before a Run that changes only the form of the Ultimate — never the player's stats. Earned by defeating Umbra or, rarely, from that Realm's King; a Weapon found mid-Run may be switched in at the next stage end.
 _Avoid_: item, gear, equipment
 
 **Ultimate**:
-The screen-affecting special attack fired from the charged gauge (currently Judgement); its form depends on the Weapon.
+The special attack fired from a gauge that charges mainly with time (about every 30–60 s); it clears ordinary mobs but is capped against bosses, ignores player damage bonuses, and its form depends on the Weapon (default: Judgement).
 _Avoid_: ult, special, bomb
 
 **Theme**:
