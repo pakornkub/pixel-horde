@@ -174,6 +174,25 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
   });
 }
 
+/** Co-op: when this player goes down, offer the bought revive (the room keeps playing). */
+let downShown = false;
+function coopDown(v: Readonly<SimState>): void {
+  const down = v.P.down && v.phase === 'play';
+  if (down && !downShown) {
+    downShown = true;
+    const can = v.mode !== 'daily' && v.revivesBought === 0 && v.runGold + Math.max(0, (v.meta.wallet || 0) - v.walletSpent) >= reviveCost(v as SimState);
+    showRevive(v, reviveCost(v as SimState));
+    $('reviveTxt').textContent = t('coop.downText') + (can ? ' ' + $('reviveTxt').textContent : '');
+    ($('reviveBtn') as HTMLButtonElement).hidden = !can;
+    $('giveUpBtn').textContent = t('coop.wait');
+  } else if (!down && downShown) {
+    downShown = false;
+    hide('ovRevive');
+    ($('reviveBtn') as HTMLButtonElement).hidden = false;
+    $('giveUpBtn').textContent = t('revive.giveUp');
+  }
+}
+
 /** The room closed during a Run: keep what was collected. */
 function coopClosed(reason: CloseReason): void {
   if (!sim || !coop) return;
@@ -314,12 +333,16 @@ async function continueRun(): Promise<void> {
 function toTitle(): void {
   if (coop) { coop = null; leaveRoom(); }
   guestMenu = false;
+  downShown = false;
+  ($('reviveBtn') as HTMLButtonElement).hidden = false;
+  $('giveUpBtn').textContent = t('revive.giveUp');
   sim = null;
   queue = [];
   $('fpsTip').hidden = true;
   tips.reset();
   showTip(null);
-  ['ovHero', 'ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
+  $('retryBtn').hidden = false;
+  ['ovCoop', 'ovHero', 'ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
   setPlayUI(false);
@@ -387,6 +410,7 @@ function syncOverlays(): void {
       const bb = getBest();
       if (!bb || v.stage > bb.stage || (v.stage === bb.stage && v.kills > bb.kills)) setBest({ stage: v.stage, kills: v.kills });
       showOver(v, v.runGold, newAch);
+      $('retryBtn').hidden = !!coop; // co-op: back to the title (and the lobby) instead
     }
   }
 }
@@ -429,6 +453,7 @@ function frame(now: number): void {
         consume(events, sim.view());
       }
       if (coop) {
+        coopDown(sim.view());
         hostTeam(rdt);
         if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostLost)) setTimeout(() => coopClosed('host-left'), 0);
       }
@@ -544,7 +569,7 @@ $('finishBtn').addEventListener('click', () => {
   cmd({ type: 'endless', go: false });
 });
 $('reviveBtn').addEventListener('click', () => { cmd({ type: 'revive' }); last = performance.now(); });
-$('giveUpBtn').addEventListener('click', () => { hide('ovRevive'); cmd({ type: 'giveUp' }); });
+$('giveUpBtn').addEventListener('click', () => { hide('ovRevive'); if (!coop) cmd({ type: 'giveUp' }); }); // co-op: just close it and wait for an ally
 $('nextBtn').addEventListener('click', () => {
   if (coop) { // co-op: ready; the host continues when everyone is (or after the wait)
     if (coop.role === 'host') team.setReady(coop.selfId); else coop.send({ k: 'ready', on: true });

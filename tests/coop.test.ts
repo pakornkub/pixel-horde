@@ -152,4 +152,17 @@ describe('co-op host / guest', () => {
     expect(r.hs().kills).toBeGreaterThan(50);
     for (let i = 0; i < 3; i++) expect(r.gs(i).kills).toBeGreaterThan(0);
   });
+
+  it('Endless: guests continue when the host does', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(60);
+    const h = r.hs();
+    h.phase = 'victory'; h.victory = true;
+    r.step(8, undefined, false);
+    expect(r.gs().phase).toBe('victory');
+    r.host.step({ mx: 0, my: 0 }, [{ type: 'endless', go: true }]);
+    r.step(8, undefined, false);
+    expect(r.gs().endless).toBe(true);
+    expect(['clear', 'route', 'play']).toContain(r.gs().phase);
+  });
 });

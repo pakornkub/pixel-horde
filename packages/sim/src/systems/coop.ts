@@ -200,6 +200,8 @@ export function applySnap(s: SimState, h: HostSnap): void {
   if (!isGuest(s) || !h || typeof h !== 'object') return;
   const c = s.coop!, L = c.last, P = s.P, E = s.cfg.economy;
   if (s.phase === 'over') return;
+  // the host continued into Endless: so does this guest (Endless Score from here)
+  if (s.phase === 'victory' && h.ph !== 'victory' && h.ph !== 'over') { s.endless = true; s.endlessFrom = { kills: s.kills, combos: s.combos, escapes: s.escapes }; s.phase = 'clear'; }
   // Stage change: the host started the next Chapter (or this is the first snapshot)
   if (h.st !== L.st || h.realm !== L.realm) {
     if (L.st && P.down === false) P.hp = Math.min(P.maxHp, P.hp + P.maxHp * s.cfg.stage.clearHeal);
