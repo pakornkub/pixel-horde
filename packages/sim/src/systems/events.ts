@@ -38,7 +38,14 @@ export function addHz(s: SimState, h: Omit<Hazard, 'id' | 't'>): Hazard {
   return hz;
 }
 
-const HZ_BURST_COL = (c: number | undefined): string => (c === 1 ? '#b07cff' : c === 2 ? '#fff35c' : '#ff8a3d');
+const HZ_BURST_COL = (c: number | undefined): string =>
+  c === 1 ? '#b07cff' : c === 2 ? '#fff35c' : c === 3 ? '#8fce6a' : c === 4 ? '#f4f0e0' : c === 5 ? '#bfe6ff' : '#ff8a3d';
+
+/** Distance from (px,py) to the segment starting at (x,y) with angle a and length len. */
+function segDist(px: number, py: number, x: number, y: number, a: number, len: number): number {
+  const ux = cos(a), uy = sin(a), t = Math.max(0, Math.min(len, (px - x) * ux + (py - y) * uy));
+  return hypot(px - (x + ux * t), py - (y + uy * t));
+}
 
 /** Telegraphed hazards; they damage the player only through hurtP(). */
 export function stepHz(s: SimState, dt: number): void {
@@ -58,6 +65,7 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'circ') {
       if (!h.done && h.t >= h.te!) {
         h.done = true;
+        if (h.spawn) { spawnEnemy(s, h.spawn, h.x, h.y, false); burst(s, h.x, h.y, HZ_BURST_COL(h.c), 8, 40, 0.4); continue; }
         if (hypot(P.x - h.x, P.y - h.y) < h.r! + 5) hurtP(s, h.d!);
         burst(s, h.x, h.y, HZ_BURST_COL(h.c), 14, 70, 0.45);
         sfx(s, 'boom');
@@ -67,7 +75,7 @@ export function stepHz(s: SimState, dt: number): void {
       if (h.fire && !h.fired && h.t >= h.te!) {
         h.fired = true;
         const sp = s.cfg.rival.lance.speed;
-        addHz(s, { k: 'proj', x: h.x, y: h.y, vx: cos(h.a!) * sp, vy: sin(h.a!) * sp, r: 4, d: h.d, life: 1.2, c: 1 });
+        addHz(s, { k: 'proj', x: h.x, y: h.y, vx: cos(h.a!) * sp, vy: sin(h.a!) * sp, r: 4, d: h.d, life: 1.2, c: h.c || 1 });
       }
     } else if (h.k === 'proj') {
       h.x += h.vx! * dt;
@@ -76,10 +84,37 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'ring') {
       const r = h.r! * Math.min(1, h.t / h.du!);
       if (!h.hitP && Math.abs(hypot(P.x - h.x, P.y - h.y) - r) < 7) { h.hitP = true; hurtP(s, h.d!); }
+    } else if (h.k === 'beam') {
+      if (!h.done && h.t >= h.te!) {
+        h.done = true;
+        if (segDist(P.x, P.y, h.x, h.y, h.a!, h.r!) < h.w! + 5) hurtP(s, h.d!);
+        shake(s, 3);
+        sfx(s, 'laser');
+      }
+    } else if (h.k === 'pull') {
+      if (h.t >= h.te! && h.t < h.te! + h.du!) {
+        const dx = h.x - P.x, dy = h.y - P.y, l = hypot(dx, dy);
+        if (l < h.r! && l > 1 && !P.down) { P.x += (dx / l) * h.sp! * dt; P.y += (dy / l) * h.sp! * dt; }
+        h.tk = (h.tk || 0) - dt;
+        if (h.tk <= 0) { h.tk = 0.4; if (l < h.w! + 5) hurtP(s, h.d!); }
+      }
+    } else if (h.k === 'ice') {
+      if (h.t >= h.te! && h.t < h.te! + h.du! && hypot(P.x - h.x, P.y - h.y) < h.r!) { P.slip = 0.15; P.slipGrip = h.sp!; }
+    } else if (h.k === 'safe') {
+      if (!h.done && h.t >= h.te!) {
+        h.done = true;
+        if (!h.pts!.some(([x, y]) => hypot(P.x - x, P.y - y) < h.r!)) {
+          hurtP(s, h.d!);
+          if (!P.down && !s.debug.god) P.chill = s.cfg.kings.throne.chill;
+        }
+        flash(s, 0.35, '#bfe6ff');
+        shake(s, 5);
+      }
     }
   }
   s.hz = s.hz.filter((h) =>
-    h.k === 'cone' ? h.t < h.te! + h.du! : h.k === 'circ' ? h.t < h.te! + 0.3 : h.k === 'line' ? h.t < h.te! + 0.05 : h.k === 'proj' ? h.t < (h.life || 1.5) : h.t < h.du!,
+    h.k === 'cone' || h.k === 'pull' || h.k === 'ice' ? h.t < h.te! + h.du! : h.k === 'circ' ? h.t < h.te! + 0.3 : h.k === 'line' ? h.t < h.te! + 0.05
+      : h.k === 'proj' ? h.t < (h.life || 1.5) : h.k === 'beam' || h.k === 'safe' ? h.t < h.te! + 0.3 : h.t < h.du!,
   );
 }
 

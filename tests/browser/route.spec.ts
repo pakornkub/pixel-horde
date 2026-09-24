@@ -6,7 +6,7 @@ test('clear screen → route screen with two Realms → next Stage starts', asyn
   await page.route('**/*.supabase.co/**', (r) => r.abort());
   const patch = Buffer.from(JSON.stringify({ shared: { stage: { durBase: 4, overtime: 2 } } })).toString('base64url');
   await page.addInitScript(() => localStorage.setItem('pixelhorde-named', '1'));
-  await page.goto('/#draftcfg=' + patch);
+  await page.goto('/?debug=god#draftcfg=' + patch); // god: the King must not end the Run
   await page.click('#startBtn');
   // Level-ups and chests interrupt; Chapter 1 replays Greenvale after an escape, so keep going
   // through clear screens until the route screen shows.

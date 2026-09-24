@@ -3,12 +3,13 @@ import { DEATH_COL } from '../data/enemies';
 import type { Enemy, SimState } from '../types';
 import { grantDragon, grantShadow } from './events';
 import { banner, burst, flash, sfx, shake, text } from './fx';
+import { say } from './kings';
 import { gameOver } from './progress';
 import { spawnEnemy } from './spawner';
 
 /** ALL damage to enemies goes through here. */
 export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: number): void {
-  if (e.dead) return;
+  if (e.dead || e.hide) return;
   const P = s.P, R = s.rng.combat, pl = s.cfg.player;
   let d = base * P.dmgMul * R.range(1 - pl.dmgVariance, 1 + pl.dmgVariance);
   const cr = R.next() < P.crit;
@@ -63,6 +64,7 @@ export function killE(s: SimState, e: Enemy): void {
   }
   if (e.boss) {
     if (e === s.boss) s.kingsKilled.push(s.stage);
+    if (e.kg) say(s, e, 'defeat');
     if (e.type === 'umbra') { s.victory = true; s.victoryTime = s.totalTime; }
     shake(s, 10); flash(s, 0.35, '#ffffff'); s.hitstop = 0.12; sfx(s, 'boom');
     for (let i = 0; i < L.bossGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.bossGems), mag: false });

@@ -1,6 +1,7 @@
 import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, type PassiveId, type SkillId } from '../data/skills';
 import type { LevelOption, SimState } from '../types';
 import { rollStage } from './events';
+import { say } from './kings';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { recompute, U, xpNeed } from './player';
 import { DEATH_COL } from '../data/enemies';
@@ -65,6 +66,8 @@ export function stageClear(s: SimState, escaped = false): void {
 export function kingEscapes(s: SimState): void {
   const k = s.boss;
   if (k) {
+    say(s, k, 'escape');
+    s.events.push({ t: 'say', who: 'umbra', beat: 'absorb', x: k.x, y: k.y });
     burst(s, k.x, k.y, '#3a1f66', 40, 120, 0.8);
     k.dead = true;
     s.boss = null;

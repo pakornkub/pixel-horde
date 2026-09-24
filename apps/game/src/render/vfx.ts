@@ -2,6 +2,7 @@
 // Uses its own fxRng so rendering never touches the sim's seeded streams.
 import { createRng, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
+import { t } from '@pixel-horde/i18n';
 import { bannerText } from '../ui/text';
 import { effectsScale, settings, shakeScale, vibrate } from '../settings';
 
@@ -13,6 +14,8 @@ export const TAU = Math.PI * 2;
 export interface Particle { x: number; y: number; vx: number; vy: number; t: number; life: number; col: string; sz: number }
 export interface FloatText { x: number; y: number; vx: number; vy: number; t: number; life: number; v: number | string; col: string; cr: boolean; hurt?: boolean }
 export interface Banner { txt: string; sub: string; t: number; big?: boolean }
+/** King dialogue: a small non-blocking bubble that follows its speaker while it lives. */
+export interface Bubble { txt: string; who: string; x: number; y: number; t: number; life: number }
 
 export const vfx = {
   fx: [] as Particle[],
@@ -21,6 +24,7 @@ export const vfx = {
   flash: 0,
   flashCol: '#fff',
   banner: null as Banner | null,
+  bubbles: [] as Bubble[],
 };
 
 /** Stats meter (press I): DPS over 5 s, average time-to-kill. */
@@ -41,7 +45,7 @@ export function setBanner(txt: string, sub: string, t: number, big?: boolean): v
 }
 
 export function clearVfx(): void {
-  vfx.fx = []; vfx.texts = []; vfx.banner = null; vfx.shake = 0; vfx.flash = 0;
+  vfx.fx = []; vfx.texts = []; vfx.bubbles = []; vfx.banner = null; vfx.shake = 0; vfx.flash = 0;
 }
 
 export function consume(events: readonly SimEvent[], v: Readonly<SimState>): void {
@@ -75,6 +79,12 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
         const tx = bannerText(e.key, e.args || {}, v.realm);
         setBanner(tx.txt, tx.sub, e.dur, e.big);
         if (e.key === 'bossDown' || e.key === 'dragonTamed') vibrate([60, 40, 60]);
+        break;
+      }
+      case 'say': {
+        const txt = t(`king.${e.who}.${e.beat}`);
+        vfx.bubbles = vfx.bubbles.filter((b) => b.who !== e.who);
+        vfx.bubbles.push({ txt, who: e.who, x: e.x, y: e.y, t: 0, life: 2.6 + txt.length * 0.03 });
         break;
       }
       case 'dmg': if (MET.on) { MET.dmg.push([v.clock, e.d]); if (MET.dmg.length > 4000) MET.dmg.splice(0, 1000); } break;
@@ -127,4 +137,6 @@ export function stepVfx(rdt: number, simDt: number): void {
   vfx.fx = vfx.fx.filter((p) => p.t < p.life);
   for (const t of vfx.texts) { t.t += rdt; t.x += t.vx * rdt; t.y += t.vy * rdt; t.vy += 120 * rdt; }
   vfx.texts = vfx.texts.filter((t) => t.t < t.life);
+  for (const b of vfx.bubbles) b.t += rdt;
+  vfx.bubbles = vfx.bubbles.filter((b) => b.t < b.life);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSim } from '@pixel-horde/sim';
+import { createSim, type SimState } from '@pixel-horde/sim';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
 import { botOptions, botStep, runBot } from './bot';
 
@@ -55,6 +55,8 @@ describe('headless bot runs', () => {
     const sim = createSim(botOptions(3, { debug: { god: true } }));
     let clearedAt = -1, sawOvertime = false;
     for (let t = 0; t < 2 * MIN; t++) {
+      const k = (sim.view() as SimState).boss;
+      if (k) k.hp = k.maxHp; // this King never dies
       botStep(sim, t);
       const v = sim.view();
       if (v.overtime && v.stage === 1) sawOvertime = true;

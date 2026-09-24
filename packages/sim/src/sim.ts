@@ -8,6 +8,7 @@ import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
 import { banner, shake } from './systems/fx';
+import { directionOf, initKing } from './systems/kings';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type SimOptions, type SimState } from './types';
 
 
@@ -115,9 +116,20 @@ export function createSim(opts: SimOptions): Sim {
     if (ml > 1) { mx /= ml; my /= ml; }
     if (s.phase !== 'play' || P.down) { mx = 0; my = 0; }
     P.moving = hypot(mx, my) > 0.05;
+    // Ice floor keeps momentum; a chill slows (King moves).
+    const spd = P.chill > 0 ? P.spd * s.cfg.kings.throne.chillSpd : P.spd;
+    const slipping = P.slip > 0;
+    if (slipping) {
+      const k = Math.min(1, dt * P.slipGrip);
+      P.vx += (mx * spd - P.vx) * k;
+      P.vy += (my * spd - P.vy) * k;
+      P.x += P.vx * dt;
+      P.y += P.vy * dt;
+      P.slip -= dt;
+    } else { P.vx = mx * spd; P.vy = my * spd; }
+    if (P.chill > 0) P.chill -= dt;
     if (P.moving) {
-      P.x += mx * P.spd * dt;
-      P.y += my * P.spd * dt;
+      if (!slipping) { P.x += mx * spd * dt; P.y += my * spd * dt; }
       P.anim += dt;
       if (Math.abs(mx) > 0.1) P.face = mx < 0 ? -1 : 1;
       P.dx = mx;
@@ -146,7 +158,8 @@ export function createSim(opts: SimOptions): Sim {
         if (b.type === 'umbra') b.hp *= 1 + s.cfg.stage.umbraEscapeHp * s.escapes;
         b.maxHp = b.hp;
         s.boss = b;
-        banner(s, 'bossIncoming', 2);
+        initKing(s, b);
+        banner(s, 'bossIncoming', 2, false, { dir: directionOf(s, x, y) });
         shake(s, 5);
       }
     }

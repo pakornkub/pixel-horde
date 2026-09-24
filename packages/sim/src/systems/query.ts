@@ -3,7 +3,7 @@ import type { Enemy, Player, SimState } from '../types';
 export function nearest(s: SimState, x: number, y: number, max: number, skip?: Set<Enemy>): Enemy | null {
   let best: Enemy | null = null, bd = max * max;
   for (const e of s.enemies) {
-    if (e.dead || (skip && skip.has(e))) continue;
+    if (e.dead || e.hide || (skip && skip.has(e))) continue;
     const dx = e.x - x, dy = e.y - y, d = dx * dx + dy * dy;
     if (d < bd) { bd = d; best = e; }
   }
@@ -13,7 +13,7 @@ export function nearest(s: SimState, x: number, y: number, max: number, skip?: S
 export function nearestN(s: SimState, n: number, max: number): Enemy[] {
   const P = s.P;
   return s.enemies
-    .filter((e) => !e.dead)
+    .filter((e) => !e.dead && !e.hide)
     .map((e) => [e, (e.x - P.x) * (e.x - P.x) + (e.y - P.y) * (e.y - P.y)] as [Enemy, number])
     .filter((a) => a[1] < max * max)
     .sort((a, c) => a[1] - c[1])
@@ -25,7 +25,7 @@ export function onScreen(s: SimState, e: { x: number; y: number }): boolean {
   return Math.abs(e.x - s.P.x) < s.viewport.w / 2 + 8 && Math.abs(e.y - s.P.y) < s.viewport.h / 2 + 8;
 }
 
-export const visibleEnemies = (s: SimState): Enemy[] => s.enemies.filter((e) => !e.dead && onScreen(s, e));
+export const visibleEnemies = (s: SimState): Enemy[] => s.enemies.filter((e) => !e.dead && !e.hide && onScreen(s, e));
 
 /** Players enemies can target (solo: the player unless downed). */
 export function aliveTargets(s: SimState): Player[] {

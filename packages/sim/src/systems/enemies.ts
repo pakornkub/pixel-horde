@@ -3,6 +3,7 @@ import type { Enemy, SimState } from '../types';
 import { hurtP } from './combat';
 import { dragonAI, rivalAI, addHz } from './events';
 import { burst } from './fx';
+import { kingAI } from './kings';
 import { edgePos } from './spawner';
 
 function casterAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number, damp: number): void {
@@ -68,6 +69,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
     else if (e.type === 'rival') rivalAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'caster') casterAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'charger') chargerAI(s, e, dt, tx, ty, damp);
+    else if (e.kg) kingAI(s, e, dt, tx, ty, damp);
     else {
       const a = atan2(dy, dx) + e.wob * (l > 40 ? 1 : 0.2);
       const sp = e.frz > 0 && !e.boss ? 0 : e.spd * (e.slowT > 0 ? slow : 1);
@@ -77,7 +79,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
     }
     if (e.dead) continue;
     e.flash -= dt; e.slowT -= dt; e.frz -= dt; e.oc -= dt; e.ph += dt * 8;
-    if (live && !P.down && lp < e.r + contact && P.inv <= 0) {
+    if (live && !P.down && !e.hide && lp < e.r + contact && P.inv <= 0) {
       hurtP(s, e.dmg * (e.dmgMul || 1));
       if (s.phase === 'over') return;
     }

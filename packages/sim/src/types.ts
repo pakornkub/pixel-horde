@@ -80,6 +80,11 @@ export interface Player {
   orbitA: number;
   pet: Pet | null;
   clone: Clone | null;
+  /** Slippery floor: movement keeps momentum while > 0. */
+  slip: number; slipGrip: number;
+  vx: number; vy: number;
+  /** Chilled: slower while > 0. */
+  chill: number;
   shards: number;
 }
 
@@ -104,7 +109,28 @@ export interface Enemy {
   ct?: number; ca?: number;
   lock?: number; dashT?: number; dashA?: number; pend?: 'dash' | null;
   sk?: RivalSkill[]; rlv?: number; cds?: Partial<Record<RivalSkill, number>>; life?: number; ang?: number;
+  /** King fight state (Kings and Umbra). */
+  kg?: KingState;
+  /** Burrowed/airborne: cannot be hit, deals no contact damage. */
+  hide?: boolean;
 }
+
+export type KingMove = 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne';
+
+export interface KingState {
+  phase: 1 | 2;
+  cd: number;
+  ultCd: number;
+  /** Standing still while a move plays out. */
+  lock: number;
+  /** Relocate here when lock ends (leap / burrow). */
+  land: [number, number] | null;
+  /** Deferred second part of a move. */
+  next: { k: KingMove; t: number } | null;
+}
+
+/** Dialogue beats (lines live in i18n: king.<enemy>.<beat>). */
+export type SayBeat = 'arrive' | 'half' | 'defeat' | 'escape' | 'absorb';
 
 export type RivalSkill = 'bolt' | 'lance' | 'nova' | 'meteor' | 'zap';
 
@@ -134,7 +160,12 @@ export interface Effect {
   pts?: [number, number][];
 }
 
-export type HazardKind = 'cone' | 'circ' | 'line' | 'proj' | 'ring';
+/**
+ * cone/circ/line/proj/ring as before; beam = line that damages at te (half width w);
+ * pull = drags the player toward its centre during [te, te+du], core radius w hurts;
+ * ice = slippery floor during [te, te+du]; safe = everything outside `pts` circles is hit at te.
+ */
+export type HazardKind = 'cone' | 'circ' | 'line' | 'proj' | 'ring' | 'beam' | 'pull' | 'ice' | 'safe';
 
 export interface Hazard {
   id: number;
@@ -149,6 +180,12 @@ export interface Hazard {
   life?: number;
   fire?: boolean; fired?: boolean;
   done?: boolean; hitP?: boolean; tk?: number;
+  /** Half width (beam) or core radius (pull). */
+  w?: number;
+  /** circ: spawn this enemy instead of dealing damage. */
+  spawn?: EnemyId;
+  /** safe: safe circles. */
+  pts?: [number, number][];
 }
 
 export interface Gem {
@@ -195,6 +232,7 @@ export type SimEvent =
   | { t: 'kill'; ttk: number }
   | { t: 'stageStart'; stage: number; special: boolean }
   | { t: 'stageClear'; stage: number; escaped: boolean }
+  | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
   | { t: 'victory' }
   | { t: 'gameOver' };
 
