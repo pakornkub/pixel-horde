@@ -24,23 +24,26 @@ The game must stay fully playable solo offline with the built-in default Balance
 Meta progression already uses `localStorage` key `pixelhorde-meta` → keep as local cache/offline save. Best score key: `pixelhorde-best`.
 Decisions and research: `.scratch/pixel-horde-web/map.md`, `docs/research/`.
 
-## Suggested structure
+## Structure (decided in ticket 11, `.scratch/pixel-horde-web/issues/11-*.md`)
+npm workspaces:
 ```
-src/
-  main.ts                 # boot, rAF loop (dt clamp 0..0.05), state machine
-  core/  state.ts input.ts audio.ts camera.ts rng.ts (seedable RNG!)
-  render/ renderer.ts hud.ts meter.ts text.ts (damage numbers)
-  data/  balance.ts skills.ts passives.ts evolutions.ts enemies.ts themes.ts characters.ts shop.ts
-  sprites/ sprites.ts tiles.ts          # string-row pixel sprites -> offscreen canvases
-  systems/ spawner.ts director.ts combat.ts(hit/kill) pickups.ts levelup.ts chest.ts
-           skills/{bolt,orbit,chain,nova,meteor,frost,lance,boomer,cyclone,toxic,laser,hole}.ts
-           hazards.ts (enemy attacks that hurt the player) dragon.ts rival.ts pet.ts clone.ts
-  net/   protocol.ts host.ts guest.ts transport.ts transport-ws.ts transport-peerjs.ts backend.ts
-  ui/    overlays.ts (title, char select, level-up, chest wheel, shop, pause, clear, game over)
-tests/   sim.test.ts  # headless simulation (see Testing)
+apps/game/       # browser client: main.ts (fixed-step 60 tick loop), platform/input, render/, audio/, ui/ (DOM), net/
+                 #   net/backend.ts (Supabase | offline adapters), net/transport.ts (PartyServer WS | PeerJS adapters), host.ts guest.ts
+apps/admin/      # Admin Console (Preact + uPlot), shares packages/config
+packages/sim/    # HEADLESS deterministic sim: createSim(...) -> step(inputFrame, commands) / view() / score() / hash()
+                 #   core/rng.ts (seeded, named streams) core/fmath.ts, data/, systems/ (spawner, director, combat hit()/killE(),
+                 #   skills/, combos, hazards, kings, guardians, rival), sprites stay in apps/game
+packages/config/ # Balance Config zod schema (defaults + ranges + descriptions) and feature-flag schema
+packages/i18n/   # th.json / en.json + t()
+workers/room/    # Cloudflare Worker + Durable Object co-op room (PartyServer)
+supabase/        # migrations, RLS, RPC (submit_run, run token), pg_cron jobs
+tests/           # Vitest headless sim + golden replay; Playwright cross-browser determinism
 ```
-Rule: every tunable number lives in `data/balance.ts`. All damage to enemies MUST go through
-`hit()`; all damage to the player MUST go through `hurtP()`.
+Rules: every tunable number lives in the Balance Config schema (`packages/config`). All damage to enemies MUST go
+through `hit()`; all damage to the player MUST go through `hurtP()`. `packages/sim` must never import DOM/Canvas/network,
+`Math.random`, `Math.sin/cos/atan2/hypot/pow/exp/log`, `Date.now` or `performance.now` (ESLint-enforced); rendering
+uses its own `fxRng`. Port order: move code with identical gameplay + determinism foundations → headless tests and
+golden replay → backend/admin/co-op → new features.
 
 ## State machine
 `title → play ⇄ (levelup | chest | pause) → clearing → clear → play(next stage) … → over`
