@@ -114,7 +114,7 @@ A temporary effect a Skill leaves on an enemy (Frozen, Gathered, Burning, Shocke
 _Avoid_: debuff, element
 
 **Bench**:
-The storage slots holding Skills that are owned but not firing; Skills move between Bench and attack slots only at stage end, for Gold.
+The storage slots holding Skills that are owned but not firing (1 slot, +1 after clearing Chapters 2 and 4); Skills move between Bench and attack slots only at stage end, for Gold, and do not level up while benched.
 _Avoid_: inventory, reserve, stash
 
 **Skill Point**:
