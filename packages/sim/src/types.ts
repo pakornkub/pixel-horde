@@ -80,6 +80,8 @@ export interface SimOptions {
   weapon?: WeaponId;
   /** Heart Crack difficulty tier 0–3 (unlocked by beating Umbra). */
   crack?: number;
+  /** Resume from a checkpoint (`Sim.checkpoint().data`); `config` must be its locked version. */
+  resume?: string;
 }
 
 export type GuardianKind = 'inferno' | 'frost' | 'storm';

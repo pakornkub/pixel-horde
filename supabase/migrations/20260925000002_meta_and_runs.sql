@@ -86,6 +86,16 @@ create table public.runs (
   endless_score bigint,
   victory boolean not null default false,
   crack int not null default 0 check (crack between 0 and 3),
+  -- suspend / resume (ticket 31): one Stage-start checkpoint per Run, single use
+  season_id int,
+  checkpoint text,
+  checkpoint_hash text,
+  checkpoint_chapter int,
+  checkpoint_config int,
+  checkpoint_at timestamptz,
+  suspended_at timestamptz,
+  suspended_ms bigint not null default 0,
+  resumed_hash text,
   status text not null default 'started'
     check (status in ('started', 'submitted', 'verified', 'rejected', 'hidden', 'suspended', 'offline')),
   reject_reason text,
@@ -157,8 +167,11 @@ begin
   if last is not null and now() - last < make_interval(secs => public.cfg_num(v, 'antiCheat', 'minSecondsBetweenStarts')) then
     raise exception 'RATE_LIMITED' using errcode = '53400';
   end if;
-  insert into public.runs (user_id, world, token, seed, mode, hero, weapon, config_version, config_versions)
-  values (uid, p_world, gen_random_uuid(), floor(random() * 4294967296)::bigint, p_mode, p_hero, coalesce(p_weapon, 'judgement'), v, array[v])
+  -- a new Run discards any saved one
+  update public.runs set checkpoint = null, checkpoint_hash = null where user_id = uid and checkpoint is not null;
+  insert into public.runs (user_id, world, token, seed, mode, hero, weapon, config_version, config_versions, season_id)
+  values (uid, p_world, gen_random_uuid(), floor(random() * 4294967296)::bigint, p_mode, p_hero, coalesce(p_weapon, 'judgement'), v, array[v],
+          public.active_season(p_world))
   returning * into r;
   return jsonb_build_object('runId', r.id, 'token', r.token, 'seed', r.seed, 'configVersion', v);
 end $$;

@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost } from '@pixel-horde/sim';
+import { createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
@@ -7,6 +7,8 @@ import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen'
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
 import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
+import { heroName } from './ui/text';
+import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
 import { DRAFT, announcementText, live } from './live';
@@ -14,7 +16,7 @@ import { installTelemetry, telemetry } from './telemetry';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
-import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
+import { MET, ambient, clearVfx, consume, setBanner, stepVfx } from './render/vfx';
 import {
   $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
@@ -50,7 +52,7 @@ function runResult(result: RunResult['result']): RunResult | null {
   const v = sim.view();
   const playMs = Math.round(v.totalTime * 1000);
   return {
-    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
+    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, resumedHash, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
     endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack,
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
@@ -75,6 +77,7 @@ function bank(final?: RunResult['result']): void {
   const r = runResult(final ?? 'quit');
   if (r) metaSync.recordRun(r, ticket, !final);
   if (final) {
+    clearSave();
     noteRunFinished();
     telemetry.queueSample(backend.account()?.id ?? '', ticket?.runId ?? null, r?.configVersion ?? 0);
     void metaSync.sync().then(() => telemetry.flush());
@@ -83,17 +86,18 @@ function bank(final?: RunResult['result']): void {
 
 async function newRun(): Promise<void> {
   if (starting) return;
+  const saved = readSave();
+  if (saved && !confirm(t('save.discard', { chapter: saved.chapter, hero: heroName(saved.hero) }))) return;
+  clearSave();
   starting = true;
   initAudio();
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
   ticket = await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
-  runWallStart = performance.now();
-  telemetry.startRun();
-  hide('ovTitle'); hide('ovOver');
-  clearVfx();
-  sim = createSim({
+  resumedHash = undefined;
+  usedHash = undefined;
+  beginRun(createSim({
     seed: ticket ? ticket.seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
@@ -103,17 +107,104 @@ async function newRun(): Promise<void> {
     config: active.cfg,
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
-  });
+  }));
+}
+
+/** Common start for new and resumed Runs. */
+function beginRun(s: Sim): void {
+  sim = s;
+  runWallStart = performance.now();
+  telemetry.startRun();
+  hide('ovTitle'); hide('ovOver');
+  clearVfx();
   queue = [];
-  runBanked = 0;
-  walletBanked = 0;
+  runBanked = s.view().runGold; // Gold up to a checkpoint was already shown in the wallet
+  walletBanked = s.view().walletSpent;
   shownLevelUp = null;
   shownPhase = '';
-  consume(sim.view().events, sim.view());
+  consume(s.view().events, s.view());
+  autoSave();
   checkSession();
   setPlayUI(true);
   last = performance.now();
   acc = 0;
+}
+
+/* ---------- suspend / resume (ticket 31) ---------- */
+function showMsg(txt: string): void { $('msgTxt').textContent = txt; hide('ovTitle'); show('ovMsg'); }
+let resumedHash: string | undefined;
+/** The checkpoint this session continued from: single use, never saved again (no Stage retries). */
+let usedHash: string | undefined;
+const canSave = (): boolean => !!sim && active.cfg.version !== -1 && sim.view().mode !== 'daily' && sim.checkpoint().hash !== usedHash;
+
+/** Every Stage start: keep the checkpoint locally and on the server. */
+function autoSave(quit = false): void {
+  if (!sim || !canSave()) return;
+  const v = sim.view(), cp = sim.checkpoint();
+  writeSave({ runId: ticket?.runId, token: ticket?.token, seed: v.seed, hero: v.hero, weapon: v.weapon, crack: v.crack, chapter: cp.chapter,
+    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId });
+  if (ticket) void backend.saveCheckpoint({ runId: ticket.runId, token: ticket.token, chapter: cp.chapter, hash: cp.hash, data: cp.data, configVersion: cp.configVersion, quit });
+}
+
+function saveAndQuit(): void {
+  if (!canSave()) return;
+  autoSave(true);
+  toTitle();
+}
+
+/** Title: "Continue from Chapter N" (local save, or the account's save from another device). */
+async function refreshContinue(): Promise<void> {
+  const local = readSave();
+  let chapter = local?.chapter, hero = local?.hero;
+  if (backend.status() === 'online') {
+    try {
+      const srv = await backend.getCheckpoint();
+      if (srv && (!local || Date.parse(srv.savedAt) >= local.savedAt) && isHero(srv.hero)) { chapter = srv.chapter; hero = srv.hero; }
+    } catch { /* offline: local only */ }
+  }
+  const bt = $('continueBtn');
+  bt.hidden = !chapter || !hero;
+  if (chapter && hero) bt.textContent = t('save.continue', { chapter, hero: heroName(hero) });
+}
+
+async function continueRun(): Promise<void> {
+  if (starting) return;
+  starting = true;
+  initAudio();
+  try {
+    const local = readSave();
+    let pick: LocalSave | null = local;
+    let seasonNote = false;
+    if (backend.status() === 'online') {
+      const srv = await backend.getCheckpoint().catch(() => null);
+      if (srv && isHero(srv.hero) && (!local || Date.parse(srv.savedAt) >= local.savedAt)) {
+        pick = { runId: srv.runId, token: srv.token, seed: Number(srv.seed), hero: srv.hero, weapon: isWeapon(srv.weapon) ? srv.weapon : 'judgement', crack: 0,
+          chapter: srv.chapter, configVersion: srv.configVersion, hash: srv.hash, data: srv.data, savedAt: Date.parse(srv.savedAt), clientRunId: local?.clientRunId ?? '' };
+      }
+      if (pick?.runId) {
+        const r = await backend.resumeRun(pick.runId, pick.hash).catch((e) => { throw e; });
+        seasonNote = r.seasonChanged;
+        resumedHash = undefined; // the server consumed this checkpoint
+      }
+    } else resumedHash = pick?.hash; // offline: the server checks it when the Run is submitted
+    if (!pick) return;
+    const config = await configFor(pick.configVersion);
+    if (!config) { showMsg(t('save.noConfig')); return; }
+    ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
+    clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
+    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.LW, h: screen.LH },
+      config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
+    clearSave();
+    usedHash = s.checkpoint().hash;
+    beginRun(s);
+    if (seasonNote) setBanner(t('save.seasonChanged'), '', 4);
+  } catch {
+    clearSave();
+    showMsg(t('save.stale'));
+    void refreshContinue();
+  } finally {
+    starting = false;
+  }
 }
 
 function toTitle(): void {
@@ -126,6 +217,7 @@ function toTitle(): void {
   renderChars();
   $('bestTxt').textContent = bestLine();
   show('ovTitle');
+  void refreshContinue();
 }
 
 let benchDirty = false;
@@ -204,7 +296,7 @@ function frame(now: number): void {
           renderClear(v, events.some((e) => e.t === 'swapDenied'));
         }
         if (events.some((e) => e.t === 'stageClear')) { bank(); telemetry.event({ k: 'clear', st: v.stage, t: Math.round(v.totalTime), hp: Math.round(v.P.hp), lv: v.P.lv }); }
-        if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); }
+        if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); autoSave(); }
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
         acc -= DT;
         steps++;
@@ -232,6 +324,7 @@ onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.LW, h: screen.LH });
 let leaveArmed = false;
 function pause(): void {
   if (!sim || sim.view().phase !== 'play') return;
+  ($('saveQuitBtn') as HTMLButtonElement).disabled = !canSave();
   cmd({ type: 'pause' });
   leaveArmed = false;
   showPause();
@@ -299,6 +392,8 @@ $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('o
 $('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
 $('setBack').addEventListener('click', closeSettings);
 $('startBtn').addEventListener('click', () => void newRun());
+$('continueBtn').addEventListener('click', () => void continueRun());
+$('saveQuitBtn').addEventListener('click', () => { hide('ovPause'); saveAndQuit(); });
 $('endlessBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: true }); last = performance.now(); });
 $('finishBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: false }); });
 $('reviveBtn').addEventListener('click', () => { cmd({ type: 'revive' }); last = performance.now(); });

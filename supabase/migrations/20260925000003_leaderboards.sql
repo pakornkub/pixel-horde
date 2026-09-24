@@ -95,8 +95,14 @@ begin
     raise exception 'RUN_ALREADY_SUBMITTED' using errcode = '23505';
   end if;
   perform public.check_submit_rate(uid, r.config_version);
-  secs := extract(epoch from (now() - r.started_at)) - greatest(coalesce((p ->> 'pausedMs')::numeric, 0), 0) / 1000;
+  -- time suspended between sessions never counts as play time
+  secs := extract(epoch from (now() - r.started_at)) - greatest(coalesce((p ->> 'pausedMs')::numeric, 0), 0) / 1000 - r.suspended_ms / 1000.0;
   problem := public.run_problem(r.config_version, (p ->> 'chapter')::int, (p ->> 'kills')::int, g, secs);
+  -- a Run continued from a checkpoint must name the one the server knows (copied or stale saves fail)
+  if problem is null and p ? 'resumedHash' and (p ->> 'resumedHash') is not null
+     and (p ->> 'resumedHash') is distinct from coalesce(r.resumed_hash, r.checkpoint_hash) then
+    problem := 'STALE_CHECKPOINT';
+  end if;
   update public.runs set
     ended_at = now(), paused_ms = greatest(coalesce((p ->> 'pausedMs')::bigint, 0), 0),
     result = coalesce(p ->> 'result', 'dead'), chapter = (p ->> 'chapter')::int, kills = (p ->> 'kills')::int,

@@ -545,5 +545,12 @@
  "fuse.title": "FUSION",
  "fuse.text": "You beat all three Guardians! Fuse your Companions into the Three-headed Dragon (level {lv}, Tri-Breath)?",
  "fuse.accept": "Fuse",
- "fuse.decline": "Not now"
+ "fuse.decline": "Not now",
+ "save.continue": "Continue: Chapter {chapter} ({hero})",
+ "save.discard": "Starting a new Run discards your saved Run (Chapter {chapter}, {hero}). Continue?",
+ "save.quit": "Save and quit",
+ "save.quitNote": "You continue from the start of this Chapter. EXP and Gold from the unfinished Stage are lost.",
+ "save.noConfig": "This save needs its game settings from the server. Please go online and try again.",
+ "save.stale": "This save can no longer be continued (it was used or replaced).",
+ "save.seasonChanged": "A new Season began while you were away: this Run finishes unranked"
 }

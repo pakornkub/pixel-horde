@@ -38,6 +38,12 @@ export interface ServerMeta {
   legacyImported: boolean;
 }
 
+export interface CheckpointSave { runId: string; token: string; chapter: number; hash: string; data: string; configVersion: number; quit?: boolean }
+export interface ServerCheckpoint {
+  runId: string; token: string; seed: number; hero: string; weapon: string | null; chapter: number;
+  configVersion: number; hash: string; data: string; savedAt: string; seasonChanged: boolean;
+}
+
 /** Issued by start_run: the server picks the seed. */
 export interface RunTicket { runId: string; token: string; seed: number; configVersion: number }
 
@@ -50,6 +56,8 @@ export interface RunResult {
   kills: number;
   level: number;
   gold: number;
+  /** Continued from this checkpoint while offline (the server checks it on submit). */
+  resumedHash?: string;
   /** Endless Score (after Umbra), victory and Heart Crack tier. */
   endlessScore?: number;
   victory?: boolean;
@@ -99,6 +107,10 @@ export interface Backend {
   startRun(hero: string, mode?: RunResult['mode'], weapon?: string): Promise<RunTicket | null>;
   submitRun(ticket: RunTicket, r: RunResult): Promise<SubmitOutcome>;
   submitOfflineRun(r: RunResult): Promise<SubmitOutcome>;
+  /** Suspend / resume (ticket 31). */
+  saveCheckpoint(p: CheckpointSave): Promise<boolean>;
+  getCheckpoint(): Promise<ServerCheckpoint | null>;
+  resumeRun(runId: string, hash: string): Promise<{ ok: boolean; seasonChanged: boolean }>;
   buyUpgrade(item: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;

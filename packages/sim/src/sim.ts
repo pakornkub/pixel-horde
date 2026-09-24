@@ -1,5 +1,5 @@
 import { DEFAULT_RESOLVED } from '@pixel-horde/config';
-import { createStreams } from './core/rng';
+import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
@@ -26,6 +26,35 @@ export interface Sim {
   hash(): number;
   /** Everything needed to reproduce this Run exactly (the recorder is always on). */
   replay(): Replay;
+  /** State at the start of the current Stage (taken automatically), for suspend/resume. */
+  checkpoint(): Checkpoint;
+}
+
+/** A Stage-start snapshot. `hash` identifies it on the server (single use). */
+export interface Checkpoint { chapter: number; configVersion: number; hash: string; data: string }
+
+const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest']);
+
+/** Serialize the state at a Stage start (no live monsters, effects or menus). */
+function snapshotOf(s: SimState): Checkpoint {
+  const state: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(s)) if (!SKIP.has(k)) state[k] = v;
+  const rng = Object.fromEntries(Object.entries(s.rng).map(([k, r]) => [k, r.state().map((x) => x >>> 0)]));
+  const data = JSON.stringify({ v: 1, state, rng, seen: [...s.seen] });
+  const h = (hashString(data) >>> 0).toString(16).padStart(8, '0') + (hashString(data, 0x9747b28c) >>> 0).toString(16).padStart(8, '0');
+  return { chapter: s.stage, configVersion: s.cfg.version, hash: h, data };
+}
+
+function restoreInto(s: SimState, data: string): void {
+  const d = JSON.parse(data) as { v: number; state: Partial<SimState>; rng: Record<string, [number, number, number, number]>; seen: string[] };
+  Object.assign(s, d.state);
+  s.seen = new Set(d.seen);
+  for (const k of Object.keys(s.rng) as (keyof SimState['rng'])[]) {
+    const st = d.rng[k];
+    if (st) s.rng[k] = createRng(st[0], st[1], st[2], st[3]);
+  }
+  s.events = [];
+  s.levelUp = null; s.chest = null; s.pending = {};
 }
 
 /** A recorded Run: options + input changes + commands, plus the hash every 60 ticks. */
@@ -78,7 +107,9 @@ export function createSim(opts: SimOptions): Sim {
   recompute(s);
   P.hp = P.maxHp;
   P.revives = U(s, 'revive');
-  startStage(s, 1);
+  if (opts.resume) restoreInto(s, opts.resume);
+  else startStage(s, 1);
+  let cp = snapshotOf(s);
 
   const rec: Replay = { v: 1, opts: JSON.parse(JSON.stringify(opts)), ticks: 0, inputs: [], commands: [], hashes: [] };
   let lastMx = NaN, lastMy = NaN;
@@ -243,6 +274,7 @@ export function createSim(opts: SimOptions): Sim {
       if (mx !== lastMx || my !== lastMy) { rec.inputs.push([i, mx, my]); lastMx = mx; lastMy = my; }
       s.events = [];
       for (const c of commands) { rec.commands.push([i, { ...c }]); apply(c); }
+      if (s.events.some((e) => e.t === 'stageStart')) cp = snapshotOf(s); // auto-save point
       s.tick++;
       s.clock += DT;
       update({ mx, my });
@@ -250,6 +282,7 @@ export function createSim(opts: SimOptions): Sim {
       return s.events;
     },
     replay: () => JSON.parse(JSON.stringify(rec)) as Replay,
+    checkpoint: () => cp,
     view: () => s,
     score: () => scoreOf(s),
     hash: () => hashState(s),

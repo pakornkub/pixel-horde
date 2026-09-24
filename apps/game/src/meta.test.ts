@@ -44,6 +44,9 @@ function fakeBackend(start: BackendStatus = 'offline') {
     report: async () => false,
     linkGoogle: async () => undefined,
     linkResult: () => null,
+    saveCheckpoint: async () => false,
+    getCheckpoint: async () => null,
+    resumeRun: async () => ({ ok: false, seasonChanged: false }),
   };
   return { b, status, server, calls };
 }

@@ -545,5 +545,12 @@
  "fuse.title": "รวมร่าง",
  "fuse.text": "ปราบผู้พิทักษ์ครบ 3 ตัวแล้ว! รวมร่างเป็นมังกร 3 หัว (เลเวล {lv}, Tri-Breath) ไหม?",
  "fuse.accept": "รวมร่าง",
- "fuse.decline": "ยังก่อน"
+ "fuse.decline": "ยังก่อน",
+ "save.continue": "เล่นต่อ: Chapter {chapter} ({hero})",
+ "save.discard": "เริ่มรอบใหม่จะทิ้งรอบที่เซฟไว้ (Chapter {chapter}, {hero}) ต่อไหม?",
+ "save.quit": "เซฟแล้วออก",
+ "save.quitNote": "กลับมาเล่นต่อที่ต้น Chapter นี้ EXP และ Gold ของด่านที่ยังไม่จบจะหายไป",
+ "save.noConfig": "เซฟนี้ต้องโหลดค่าเกมจาก server กรุณาต่อเน็ตแล้วลองใหม่",
+ "save.stale": "เซฟนี้เล่นต่อไม่ได้แล้ว (ถูกใช้ไปหรือมีเซฟใหม่กว่า)",
+ "save.seasonChanged": "Season ใหม่เริ่มระหว่างที่พักไว้: รอบนี้จะไม่ขึ้นตารางอันดับ"
 }

@@ -1,6 +1,6 @@
 // Supabase adapter. Loaded lazily so offline play never downloads supabase-js.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BackendError, StatusBox, toBackendError, type Account, type Backend, type BoardView, type LiveState, type RunTicket, type ServerMeta, type SubmitOutcome } from './backend';
+import { BackendError, StatusBox, toBackendError, type Account, type Backend, type BoardView, type LiveState, type RunTicket, type ServerCheckpoint, type ServerMeta, type SubmitOutcome } from './backend';
 import { SUPABASE_KEY, SUPABASE_URL, TURNSTILE_SITE_KEY } from './config';
 import { createOfflineBackend } from './offline';
 import { getCaptchaToken } from './turnstile';
@@ -116,9 +116,12 @@ export function createSupabaseBackend(): Backend {
     },
     async submitRun(ticket, r) {
       online();
-      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, weaponsFound: r.weaponsFound ?? [], endlessScore: r.endlessScore ?? 0, victory: !!r.victory, crack: r.crack ?? 0, score: r.score, pausedMs: r.pausedMs, summary: r.summary ?? {} } });
+      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, weaponsFound: r.weaponsFound ?? [], endlessScore: r.endlessScore ?? 0, victory: !!r.victory, crack: r.crack ?? 0, score: r.score, pausedMs: r.pausedMs, ...(r.resumedHash ? { resumedHash: r.resumedHash } : {}), summary: r.summary ?? {} } });
     },
     async submitOfflineRun(r) { online(); return rpc<SubmitOutcome>('submit_offline_run', { p: r }); },
+    async saveCheckpoint(p) { try { online(); await rpc('save_checkpoint', { p }); return true; } catch { return false; } },
+    async getCheckpoint() { online(); return rpc<ServerCheckpoint | null>('get_checkpoint'); },
+    async resumeRun(runId, hash) { online(); return rpc<{ ok: boolean; seasonChanged: boolean }>('resume_run', { p_run: runId, p_hash: hash }); },
     async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },
     async unlockHero(hero) { online(); return rpc<ServerMeta>('unlock_hero', { p_hero: hero }); },
     async importLegacy(save) { online(); return rpc<ServerMeta>('import_legacy_meta', { p: save }); },

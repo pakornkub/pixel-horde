@@ -126,6 +126,8 @@ begin
   if r.id is null or r.score is null or r.status not in ('submitted', 'verified') then return; end if;
   if exists (select 1 from public.profiles where id = r.user_id and banned_until > now()) then return; end if;
   season := public.active_season(r.world);
+  -- a Run that began in an earlier Season (e.g. suspended across the change) finishes unranked
+  if r.season_id is not null and r.season_id is distinct from season then return; end if;
   if r.mode = 'solo' then
     perform public.upsert_board(r.world, season, 'solo', r, true);
     perform public.upsert_board(r.world, 0, 'alltime', r, true);
