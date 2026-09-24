@@ -1,0 +1,105 @@
+# Pixel Horde — project guide for Claude Code
+
+Retro pixel-art, top-down (Game Boy Pokémon-style camera) survivor game: survive each stage's timer
+while hordes swarm the player, skills auto-fire, level up to pick upgrades. Built originally as a
+single self-contained HTML file (`pixel-horde.html`, ~1,750 lines, vanilla JS + Canvas 2D, no deps).
+
+## Goals of the migration
+1. Split the single file into a typed, modular codebase (Vite + TypeScript, no framework).
+2. Move off Claude-artifact-only APIs so the game can be hosted anywhere (itch.io / GitHub Pages)
+   and anyone with the link can play co-op.
+3. Keep gameplay identical first (port → then refactor → then new features).
+
+## Platform notes (important)
+The artifact version uses `window.claude.use('room' | 'db' | 'user')`. These do NOT exist outside
+Claude artifacts. Replace them:
+| Artifact API | Used for | Replacement |
+|---|---|---|
+| `room` presence + `emit('dmg')` | co-op sync | PeerJS (WebRTC) with host-authoritative sim; room code = host peer id (4–6 chars) |
+| `user.profiles()` | player names | nickname input stored in localStorage |
+| `db` collection `scores` | leaderboard | drop for v1; later Supabase table `scores(id, name, stage, kills, lv, ch, mode, score, t)` |
+Meta progression already uses `localStorage` key `pixelhorde-meta` → keep. Best score key: `pixelhorde-best`.
+
+## Suggested structure
+```
+src/
+  main.ts                 # boot, rAF loop (dt clamp 0..0.05), state machine
+  core/  state.ts input.ts audio.ts camera.ts rng.ts (seedable RNG!)
+  render/ renderer.ts hud.ts meter.ts text.ts (damage numbers)
+  data/  balance.ts skills.ts passives.ts evolutions.ts enemies.ts themes.ts characters.ts shop.ts
+  sprites/ sprites.ts tiles.ts          # string-row pixel sprites -> offscreen canvases
+  systems/ spawner.ts director.ts combat.ts(hit/kill) pickups.ts levelup.ts chest.ts
+           skills/{bolt,orbit,chain,nova,meteor,frost,lance,boomer,cyclone,toxic,laser,hole}.ts
+           hazards.ts (enemy attacks that hurt the player) dragon.ts rival.ts pet.ts clone.ts
+  net/   protocol.ts host.ts guest.ts transport-peerjs.ts
+  ui/    overlays.ts (title, char select, level-up, chest wheel, shop, pause, clear, game over)
+tests/   sim.test.ts  # headless simulation (see Testing)
+```
+Rule: every tunable number lives in `data/balance.ts`. All damage to enemies MUST go through
+`hit()`; all damage to the player MUST go through `hurtP()`.
+
+## State machine
+`title → play ⇄ (levelup | chest | pause) → clearing → clear → play(next stage) … → over`
+(+ `joining` for co-op guests). Level-up and chest ALWAYS pause the sim; in co-op the whole room
+waits while anyone is choosing (host phase `wait`).
+
+## Core rules & balance (current values)
+- Render: low-res buffer (≈190 px on short side, integer scale), world tiles 16×16, UI/HUD and
+  damage numbers drawn on the hi-res canvas with "Press Start 2P" (+ "Chakra Petch" for Thai).
+- Stage duration: `min(150, 60 + 20*(stage-1))` s. Boss at 55% of the stage.
+- Themes cycle every 4 stages: grass → desert → cave → snow (own tiles, 3 mobs, boss each).
+- Enemy HP: `base * 1.5^(stage-1) * (1 + 0.7*progress) * (1 + 0.08*(playerLv-1)) * (0.85 + 0.15*director)`.
+- Enemy dmg: `base * 1.18^(stage-1) * (1 + 0.5*progress) * (1 + 0.015*(playerLv-1))`, each hit ±15%.
+- Spawn rate/s: `(1.4 + 3.4*progress) * (1 + 0.35*(stage-1)) * (1 + 0.6*aliveMates) * (BloodMoon?2.3:1) * director`.
+  Swarm ring every 18 s (10 s in Blood Moon). Enemy cap ≈ 320.
+- Director: 0.7–2.4. Rises +0.06/s when HP>75% and not hurt for 6 s; −0.2/s when HP<40%.
+- Player bonuses are ADDITIVE with caps: dmg = 1 + 0.2·Might + 0.08·Power(shop) + Mage 0.15;
+  cooldown reduction cap 40% (Haste 8%/lv, Alchemist 10%); crit cap 50%, critMul 2.0 + 0.2/lv.
+- XP to next level: `5 + 4lv + 0.5lv² + 1.4·max(0, lv-8)²`.
+- 12 skills (6 attack slots max), 6 passives, 12 evolutions (max-level skill + paired passive).
+- Characters: Mage (bolt, +15% dmg), Knight (orbit, +50 HP, −8% speed), Ranger 150G (lance, +15% speed,
+  +30% pickup), Alchemist 300G (toxic, −10% CD, +5% crit).
+- Shop (permanent, localStorage): Power, Vigor, Agility, Greed, Wisdom, Second Wind (revive).
+- Counter enemies: Wild Boar (telegraphed charge, st≥2), Eye Caster (ranged, st≥3),
+  Armored variant (flat damage reduction `10*1.4^(st-1)*(1+0.05*(lv-1))`, st≥3), Split Slime (st≥4).
+- Special events (run-only rewards):
+  - Blood Moon stage: from stage 2, 10% + 6% per miss (pity). Spawns ×2.3, coins ×2, bonus chest.
+  - Inferno Dragon inside Blood Moon: stage ≥3, 25% + 15% per miss. Telegraphed breath cone / dash
+    line / fireball rain / summon whelps. Reward: pet fire dragon (breath + dive bomb), stacks levels.
+  - Shadow Rival: 25% on normal stages ≥2, 35 s to kill, uses 3 of 5 player-like skills (all
+    telegraphed). Reward: 35% Shadow Clone else a shard (3 shards = clone). Clone repeats
+    bolt/lance/boomer/chain/nova/meteor casts at 35–60% damage.
+- Chest wheel: 8 cells [1,2,1,3,1,2,1,2], result weights 1:50% 2:35% 3:15%.
+
+## Co-op protocol (host-authoritative)
+- Host simulates everything and broadcasts ~15 Hz: stage, time, phase (`play|wait|pause|clear|over`),
+  team XP + kill counters, boss/dragon/rival HP %, hazard list, and packed enemies:
+  11 chars each = id(3) type(1) flags(1: elite=1, armor=2) x(3) y(3) in base64 relative to host pos.
+- Guests: interpolate enemies, run their OWN skills locally, send aggregated damage `[id, dmg, …]`
+  every 150 ms; take contact/hazard damage locally; gain team XP/kills/gold from deltas.
+- Guest presence: position, hp, lv, down, facing, char, `sel` (choosing upgrade), pet.
+
+## Testing
+The original was verified with a headless Node harness (stubbed DOM/canvas, fake room hub for two
+clients). Recreate it with Vitest: seed the RNG, run N minutes of sim with a scripted bot, assert
+no exceptions, stage progression, hazards hitting, rewards granted, packet sizes < 4 KB.
+Add debug flags (URL `?debug=dragon|rival|bloodmoon|god`) to force events.
+
+## Backlog
+- PeerJS co-op with room codes + nickname; then Supabase leaderboard.
+- Balance pass using the in-game meter (press **I**: DPS, TTK, multipliers, director, mob count).
+- Possible: final boss at stage 8 with ending + Endless mode.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as local markdown files under `.scratch/<feature>/` (no remote). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily). See `docs/agents/domain.md`.
