@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixel Horde</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="probe"></div>
+<button id="ultBtn" aria-label="ใช้ท่าไม้ตาย"><div class="fill"></div><span>ULT</span></button>
+<button id="pauseBtn" aria-label="พักเกม">II</button>
+
+<div class="overlay on" id="ovTitle"><div class="box">
+  <h1>PIXEL HORDE</h1>
+  <p>มอนสเตอร์จะบุกมาเป็นฝูง เอาชีวิตรอดให้ครบเวลาของแต่ละด่าน เก็บคริสตัล EXP เพื่อเลเวลอัป แล้วเลือกสกิลใหม่ สกิลทั้งหมดยิงเองอัตโนมัติ ตัวคุณมีหน้าที่แค่เดินหลบ</p>
+  <div class="chars" id="chars"></div>
+  <p class="chdesc" id="chDesc"></p>
+  <div class="keys">
+    <b>WASD</b>/<b>ARROWS</b> เดิน<br>
+    <b>SPACE</b> ท่าไม้ตาย เมื่อเกจเต็ม<br>
+    <b>P</b> พักเกม &nbsp; <b>M</b> ปิดเสียง<br>
+    มือถือ: แตะค้างแล้วลากเพื่อเดิน
+  </div>
+  <button class="btn" id="startBtn">เริ่มเกม</button>
+  <button class="btn ghost" id="shopBtn1">ร้านอัปเกรดถาวร</button>
+  <div class="best" id="bestTxt"></div>
+  <div class="coop" id="coop" hidden>
+    <h3>CO-OP</h3>
+    <p id="roomInfo"></p>
+    <div id="roomList"></div>
+    <button class="btn ghost" id="hostBtn">สร้างห้องและเริ่มเป็นโฮสต์</button>
+  </div>
+  <div class="coop" id="lbBox" hidden>
+    <h3>LEADERBOARD</h3>
+    <ol class="lb" id="lbList"></ol>
+  </div>
+</div></div>
+
+<div class="overlay" id="ovLevel"><div class="box">
+  <h2 id="lvTitle">LEVEL UP!</h2>
+  <p class="slots" id="lvSlots"></p>
+  <div class="opts" id="opts"></div>
+</div></div>
+
+<div class="overlay" id="ovClear"><div class="box">
+  <h2 id="clearTitle">STAGE CLEAR</h2>
+  <p>ด่านต่อไปมอนจะถึกขึ้น ตีแรงขึ้น และมาเยอะขึ้น HP ของคุณจะฟื้น 40% ก่อนเริ่ม</p>
+  <div class="stats" id="clearStats"></div>
+  <button class="btn" id="nextBtn">ไปด่านต่อไป</button>
+</div></div>
+
+<div class="overlay" id="ovOver"><div class="box">
+  <h2>GAME OVER</h2>
+  <div class="stats" id="overStats"></div>
+  <button class="btn" id="retryBtn">เริ่มใหม่</button>
+  <button class="btn ghost" id="shopBtn2">ร้านอัปเกรดถาวร</button>
+  <button class="btn ghost" id="homeBtn">กลับหน้าแรก</button>
+  <div class="best" id="bestOver"></div>
+  <div class="coop" id="lbBox2" hidden>
+    <h3>LEADERBOARD</h3>
+    <ol class="lb" id="lbList2"></ol>
+  </div>
+</div></div>
+
+<div class="overlay" id="ovChest"><div class="box">
+  <h2>TREASURE CHEST</h2>
+  <div class="wheel" id="wheel"></div>
+  <p class="chestTxt" id="chestTxt"></p>
+</div></div>
+
+<div class="overlay" id="ovMsg"><div class="box">
+  <h2 id="msgTitle">ROOM</h2>
+  <p id="msgTxt"></p>
+  <button class="btn" id="msgBtn">กลับหน้าแรก</button>
+</div></div>
+
+<div class="overlay" id="ovShop"><div class="box">
+  <h2>SHOP</h2>
+  <p class="slots">อัปเกรดที่ซื้อที่นี่ติดตัวถาวรทุกรอบ เหรียญได้จากการฆ่ามอน เปิดหีบบอส และจะเข้ากระเป๋าตอนผ่านด่านหรือตอนแพ้</p>
+  <div class="goldline" id="shopGold"></div>
+  <div id="shopList"></div>
+  <button class="btn ghost" id="shopBack">กลับ</button>
+</div></div>
+
+<div class="overlay" id="ovPause"><div class="box">
+  <h2>PAUSED</h2>
+  <p id="pauseTxt">กด P หรือปุ่มด้านล่างเพื่อเล่นต่อ</p>
+  <button class="btn" id="resumeBtn">เล่นต่อ</button>
+  <button class="btn ghost" id="metBtn">ตัววัดค่า: ปิด</button>
+  <button class="btn ghost" id="leaveBtn">จบรอบนี้และกลับหน้าแรก</button>
+  <p class="slots" id="leaveNote" style="margin:10px 0 0">เหรียญที่เก็บได้ในรอบนี้จะเข้ากระเป๋า และคะแนนจะถูกบันทึก</p>
+</div></div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

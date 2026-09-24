@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress — code done; live deploy waits for the owner to add Cloudflare secrets (docs/deploy.md)
 
-- [ ] Workspace layout matches `CLAUDE.md` → Structure (game app, admin app, sim/config/i18n packages, room worker, supabase folder), even if some are empty stubs
-- [ ] `npm run dev` serves the game locally; `npm run build` produces a static bundle
+- [x] Workspace layout matches `CLAUDE.md` → Structure (game app, admin app, sim/config/i18n packages, room worker, supabase folder), even if some are empty stubs
+- [x] `npm run dev` serves the game locally; `npm run build` produces a static bundle
 - [ ] The build deploys to a Cloudflare Pages project with preview deploys per branch
-- [ ] Gameplay, sprites, sound, meta progression (localStorage) behave as in `pixel-horde.html`
-- [ ] No console errors when `window.claude` is absent
+- [x] Gameplay, sprites, sound, meta progression (localStorage) behave as in `pixel-horde.html`
+- [x] No console errors when `window.claude` is absent
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

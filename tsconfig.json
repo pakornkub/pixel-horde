@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/sim" },
+    { "path": "packages/config" },
+    { "path": "packages/i18n" },
+    { "path": "apps/game" },
+    { "path": "apps/admin" },
+    { "path": "workers/room" }
+  ]
+}
