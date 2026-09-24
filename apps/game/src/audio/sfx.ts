@@ -1,7 +1,10 @@
 // Tiny WebAudio synth (ported from the original). ZzFX replaces it in ticket 40.
 import type { SfxKey } from '@pixel-horde/sim';
+import { onSettingsChange, settings } from '../settings';
 
 let AC: AudioContext | null = null;
+/** Effects bus; its gain follows the effects-volume setting. Music gets its own bus in ticket 40. */
+let sfxBus: GainNode | null = null;
 let noiseBuf: AudioBuffer | null = null;
 let lastHit = 0, lastGem = 0;
 export const audio = { muted: false };
@@ -11,6 +14,9 @@ export function initAudio(): void {
   try {
     const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     AC = new Ctor();
+    sfxBus = AC.createGain();
+    sfxBus.gain.value = settings.sfx;
+    sfxBus.connect(AC.destination);
   } catch { AC = null; }
 }
 
@@ -23,7 +29,7 @@ function tone(f: number, d: number, type: OscillatorType, vol: number, slide?: n
   if (slide) o.frequency.linearRampToValueAtTime(Math.max(40, f + slide), t + d);
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-  o.connect(g); g.connect(ac.destination);
+  o.connect(g); g.connect(sfxBus!);
   o.start(t); o.stop(t + d + 0.02);
 }
 
@@ -42,12 +48,12 @@ function noise(d: number, vol: number): void {
   const t = ac.currentTime;
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-  s.connect(f); f.connect(g); g.connect(ac.destination);
+  s.connect(f); f.connect(g); g.connect(sfxBus!);
   s.start(t); s.stop(t + d);
 }
 
 export function sfx(k: SfxKey): void {
-  if (!AC || audio.muted || AC.state !== 'running') return;
+  if (!AC || audio.muted || AC.state !== 'running' || settings.sfx <= 0) return;
   const t = AC.currentTime, R = Math.random;
   try {
     if (k === 'hit') { if (t - lastHit < 0.05) return; lastHit = t; tone(700 + R() * 300, 0.04, 'square', 0.025, -300); }
@@ -66,3 +72,5 @@ export function sfx(k: SfxKey): void {
     else if (k === 'clear') [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, 'square', 0.05, 0, i * 0.1));
   } catch { /* audio is best-effort */ }
 }
+
+onSettingsChange(() => { if (sfxBus) sfxBus.gain.value = settings.sfx; });

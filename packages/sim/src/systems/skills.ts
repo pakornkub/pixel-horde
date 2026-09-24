@@ -20,7 +20,7 @@ export function useUlt(s: SimState): void {
   const dmg = (U.dmgBase + U.dmgPerLv * s.P.lv) * ipow(U.dmgGrowth, s.stage - 1);
   s.effects.push({ type: 'judge', t: 0, dur: 1.0, x: s.P.x, y: s.P.y, fired: false, targets: targets.map((e) => ({ e, x: e.x, y: e.y })), dmg });
   s.slowT = U.slow;
-  flash(s, 0.25, '#fff8c0');
+  flash(s, 0.25, '#fff8c0', false, true);
   shake(s, 6);
   sfx(s, 'ult');
   banner(s, 'judgement', 1.1, true);
@@ -297,7 +297,7 @@ export function updEffects(s: SimState, dt: number): void {
     } else if (f.type === 'judge') {
       if (!f.fired && f.t >= s.cfg.ult.delay) {
         f.fired = true;
-        flash(s, 0.45, '#ffffff'); shake(s, 11);
+        flash(s, 0.45, '#ffffff', false, true); shake(s, 11);
         s.hitstop = 0.08;
         for (const o of f.targets!) {
           if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; hit(s, o.e, f.dmg, '#fff35c', s.cfg.ult.kb); }

@@ -91,3 +91,15 @@ html[lang="en"] .opt .ds,html[lang="en"] .srow .ds,html[lang="en"] .chdesc,html[
 html[lang="en"] .stats{font-size:10px}
 html[lang="en"] .ch .cc{font-size:8px}
 html[lang="en"] .chestTxt{font-size:11px}
+
+/* settings (ticket 07) */
+.setlist{display:flex;flex-direction:column;gap:10px;margin:0 0 12px}
+.setrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:15px}
+.seg{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{font:inherit;font-size:13px;border:3px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:4px;padding:4px 8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:focus-visible,.setrow input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.setrow input[type=range]{width:140px;accent-color:#3a3363}
+.setmsg{font-size:13px;min-height:1.4em;margin:0}
+html[lang="en"] .setrow{font-size:10px}
+html[lang="en"] .seg button{font-size:9px}

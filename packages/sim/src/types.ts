@@ -180,7 +180,7 @@ export type SimEvent =
   | { t: 'text'; x: number; y: number; v: number | string; col: string; cr: boolean; hurt?: boolean; jitter?: boolean }
   | { t: 'burst'; x: number; y: number; col: string; n: number; sp: number; life: number; p?: number }
   | { t: 'shake'; v: number }
-  | { t: 'flash'; v: number; col?: string; max?: boolean }
+  | { t: 'flash'; v: number; col?: string; max?: boolean; ult?: boolean }
   | { t: 'banner'; key: BannerKey; dur: number; big?: boolean; args?: Record<string, string | number> }
   | { t: 'dmg'; d: number }
   | { t: 'kill'; ttk: number }

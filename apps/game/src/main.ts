@@ -3,6 +3,7 @@ import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type Si
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
+import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { active } from './config';
 import { META, getBest, saveMeta, setBest, simMeta } from './meta';
 import { keys, readInput, touch } from './platform/input';
@@ -164,6 +165,7 @@ addEventListener('keydown', (e) => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && playing()) e.preventDefault();
   keys.add(e.code);
   if (e.code === 'Space' && playing()) cmd({ type: 'ult' });
+  if (e.code === 'Escape' && settingsOpen()) { closeSettings(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
   if (e.code === 'KeyM') audio.muted = !audio.muted;
   if (e.code === 'KeyI') toggleMet();
@@ -200,6 +202,9 @@ $('msgBtn').addEventListener('click', toTitle);
 $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle'); });
 $('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
 $('shopBack').addEventListener('click', closeShop);
+$('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
+$('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
+$('setBack').addEventListener('click', closeSettings);
 $('startBtn').addEventListener('click', newRun);
 $('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });
 $('retryBtn').addEventListener('click', newRun);

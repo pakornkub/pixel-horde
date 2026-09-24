@@ -3,6 +3,7 @@
 import { createRng, themeIndex, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { bannerText } from '../ui/text';
+import { effectsScale, settings, shakeScale, vibrate } from '../settings';
 
 export const fxRng = createRng((Date.now() ^ (Math.random() * 4294967296)) >>> 0);
 const R = fxRng.next;
@@ -26,6 +27,8 @@ export const vfx = {
 export const MET = { on: false, dmg: [] as [number, number][], ttk: [] as number[] };
 
 export function particles(x: number, y: number, col: string, n: number, sp: number, life: number): void {
+  const k = effectsScale();
+  if (k < 1) n = k === 0 ? 0 : Math.ceil(n * k);
   for (let i = 0; i < n; i++) {
     const a = R() * TAU, s = rnd(sp * 0.3, sp);
     vfx.fx.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: rnd(life * 0.5, life), col, sz: R() < 0.3 ? 2 : 1 });
@@ -44,8 +47,14 @@ export function clearVfx(): void {
 export function consume(events: readonly SimEvent[], v: Readonly<SimState>): void {
   for (const e of events) {
     switch (e.t) {
-      case 'sfx': sfx(e.k); break;
+      case 'sfx':
+        sfx(e.k);
+        if (e.k === 'ult') vibrate(80);
+        break;
       case 'text': {
+        if (e.hurt) vibrate(35);
+        const isNumber = !e.hurt && typeof e.v === 'number';
+        if (isNumber && (settings.numbers === 'off' || (settings.numbers === 'some' && !e.cr))) break;
         if (e.hurt || e.v === '' || typeof e.v === 'string') {
           vfx.texts.push({ x: e.x, y: e.y, vx: 0, vy: e.hurt ? -40 : e.col === '#ffd23f' ? -35 : -40, t: 0, life: e.hurt ? 0.8 : e.col === '#ffd23f' ? 0.8 : 0.9, v: e.v, col: e.col, cr: e.cr, hurt: e.hurt });
         } else {
@@ -56,14 +65,16 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
         break;
       }
       case 'burst': if (e.p == null || R() < e.p) particles(e.x, e.y, e.col, e.n, e.sp, e.life); break;
-      case 'shake': vfx.shake = Math.max(vfx.shake, e.v); break;
+      case 'shake': vfx.shake = Math.max(vfx.shake, e.v * shakeScale()); break;
       case 'flash':
+        if (e.ult && !settings.ultFlash) break;
         vfx.flash = e.max ? Math.max(vfx.flash, e.v) : e.v;
         if (e.col) vfx.flashCol = e.col;
         break;
       case 'banner': {
         const tx = bannerText(e.key, e.args || {}, themeIndex(v.stage));
         setBanner(tx.txt, tx.sub, e.dur, e.big);
+        if (e.key === 'bossDown' || e.key === 'dragonTamed') vibrate([60, 40, 60]);
         break;
       }
       case 'dmg': if (MET.on) { MET.dmg.push([v.clock, e.d]); if (MET.dmg.length > 4000) MET.dmg.splice(0, 1000); } break;
@@ -75,6 +86,8 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
 
 /** Per-tick ambient particles that the original spawned inside its update loop. */
 export function ambient(v: Readonly<SimState>): void {
+  const k = effectsScale();
+  if (k === 0 || (k < 1 && R() > k)) return;
   const fx = vfx.fx;
   for (const bo of v.bolts) if (R() < 0.6) fx.push({ x: bo.x, y: bo.y, vx: 0, vy: 0, t: 0, life: 0.2, col: bo.col, sz: 1 });
   for (const f of v.effects) {

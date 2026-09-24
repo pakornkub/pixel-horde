@@ -14,8 +14,8 @@ export function text(s: SimState, x: number, y: number, v: number | string, col:
 export const shake = (s: SimState, v: number): void => { s.events.push({ t: 'shake', v }); };
 
 /** max=true: flash = max(flash, v); otherwise flash = v. */
-export function flash(s: SimState, v: number, col?: string, max = false): void {
-  s.events.push({ t: 'flash', v, col, max });
+export function flash(s: SimState, v: number, col?: string, max = false, ult = false): void {
+  s.events.push(ult ? { t: 'flash', v, col, max, ult } : { t: 'flash', v, col, max });
 }
 
 export function banner(s: SimState, key: BannerKey, dur: number, big?: boolean, args?: Record<string, string | number>): void {
