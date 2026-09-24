@@ -21,16 +21,15 @@ export interface Realm {
 export const REALMS: Record<RealmId, Realm> = {
   greenvale: { id: 'greenvale', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: null, traits: [], available: true },
   sunscar: { id: 'sunscar', theme: 1, pool: ['sslime', 'scorp', 'mummy'], king: 'bossD', element: null, traits: ['fast', 'armored'], available: true },
-  deepdark: { id: 'deepdark', theme: 2, pool: ['bat', 'ghost', 'skel'], king: 'bossC', element: 'dark', traits: ['ranged'], available: true },
+  deepdark: { id: 'deepdark', theme: 2, pool: ['bat', 'archer', 'ghost'], king: 'bossC', element: 'dark', traits: ['ranged'], available: true },
   frostpeak: { id: 'frostpeak', theme: 3, pool: ['islime', 'ibat', 'snowman'], king: 'bossS', element: 'ice', traits: ['armored'], available: true },
-  // Content for these arrives with tickets 35–38; until then they are never offered.
-  emberforge: { id: 'emberforge', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: 'fire', traits: ['fast', 'armored'], available: false },
-  mirefen: { id: 'mirefen', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: 'poison', traits: ['split', 'leech'], available: false },
-  skyreach: { id: 'skyreach', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: 'lightning', traits: ['fast', 'charge'], available: false },
-  tidehollow: { id: 'tidehollow', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: 'ice', traits: ['charge', 'armored'], available: false },
-  gearspire: { id: 'gearspire', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: 'lightning', traits: ['ranged', 'armored'], available: false },
-  duskhold: { id: 'duskhold', theme: 0, pool: ['slime', 'bat', 'mush'], king: 'boss', element: 'dark', traits: ['ranged', 'split'], available: false },
-  // Chapter 8: shadows of every Realm; placeholder Umbra until ticket 29.
+  emberforge: { id: 'emberforge', theme: 5, pool: ['fbat', 'sala', 'lavarock'], king: 'bossE', element: 'fire', traits: ['fast', 'armored'], available: true },
+  mirefen: { id: 'mirefen', theme: 6, pool: ['frog', 'spore', 'leech'], king: 'bossM', element: 'poison', traits: ['split', 'leech'], available: true },
+  skyreach: { id: 'skyreach', theme: 7, pool: ['cloud', 'sbird', 'griffin'], king: 'bossK', element: 'lightning', traits: ['fast', 'charge'], available: true },
+  tidehollow: { id: 'tidehollow', theme: 8, pool: ['jelly', 'sawfish', 'crab'], king: 'bossT', element: 'ice', traits: ['charge', 'armored'], available: true },
+  gearspire: { id: 'gearspire', theme: 9, pool: ['spider', 'turret', 'mech'], king: 'bossG', element: 'lightning', traits: ['ranged', 'armored'], available: true },
+  duskhold: { id: 'duskhold', theme: 10, pool: ['book', 'lantern', 'harmor'], king: 'bossL', element: 'dark', traits: ['ranged', 'split'], available: true },
+  // Chapter 8: shadows of every Realm.
   crater: { id: 'crater', theme: 4, pool: ['skel', 'ghost', 'scorp'], king: 'umbra', element: null, traits: ['ranged', 'fast'], available: true },
 };
 

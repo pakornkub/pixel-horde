@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSim, weaponKey, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { WEAPON_IDS, createSim, weaponKey, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { killE } from '../packages/sim/src/systems/combat';
 import { chapterMobHp, spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { botOptions } from './bot';
@@ -118,7 +118,7 @@ describe('Weapons', () => {
     const u = spawnEnemy(a.s, 'umbra', 10, 0, false);
     killE(a.s, u);
     expect(a.s.foundWeapons.length).toBe(1);
-    const all = ['thornwhip', 'sunblade', 'boneScythe', 'glacierLance'].map((w) => weaponKey(w as never));
+    const all = WEAPON_IDS.filter((w) => w !== 'judgement').map((w) => weaponKey(w));
     const b = fresh({ meta: { up: {}, weapons: all } });
     const gold = b.s.runGold;
     killE(b.s, spawnEnemy(b.s, 'umbra', 10, 0, false));

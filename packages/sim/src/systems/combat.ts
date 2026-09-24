@@ -1,5 +1,5 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
-import { DEATH_COL } from '../data/enemies';
+import { DEATH_COL, SPLITS } from '../data/enemies';
 import { linAt, type HitTag } from '../data/skills';
 import { WEAPONS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
 import { REALMS, type RealmId } from '../content/lumora/realms';
@@ -102,11 +102,12 @@ function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | u
 export function killE(s: SimState, e: Enemy): void {
   const R = s.rng.loot, C = s.cfg, L = C.loot;
   s.events.push({ t: 'kill', ttk: s.clock - e.born, x: e.x, y: e.y, type: e.type, boss: e.boss, elite: e.elite });
-  if (e.type === 'splitter') {
-    const sp = C.splitter;
-    for (let i = 0; i < sp.minis; i++) {
-      const a = (i / sp.minis) * TAU;
-      const m = spawnEnemy(s, 'mini', e.x + cos(a) * sp.spread, e.y + sin(a) * sp.spread, false);
+  const split = SPLITS[e.type];
+  if (split) {
+    const sp = C.splitter, n = split[1] ?? sp.minis;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU;
+      const m = spawnEnemy(s, split[0], e.x + cos(a) * sp.spread, e.y + sin(a) * sp.spread, false);
       m.kx = cos(a) * sp.push;
       m.ky = sin(a) * sp.push;
     }

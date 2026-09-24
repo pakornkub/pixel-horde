@@ -242,7 +242,9 @@ export interface Enemy {
 
 export interface BenchSkill { id: SkillId; lv: number; evo: boolean }
 
-export type KingMove = 'shadowBolts' | 'shadowMeteors' | 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne';
+export type KingMove = 'shadowBolts' | 'shadowMeteors' | 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne'
+  | 'quake' | 'lavaDrops' | 'eruption' | 'spit' | 'frogs' | 'gossip' | 'trail' | 'swoop' | 'grid'
+  | 'tideWave' | 'bubbles' | 'siren' | 'laser' | 'turrets' | 'purge' | 'soulSpiral' | 'swap' | 'requiem';
 
 export interface KingState {
   phase: 1 | 2 | 3;
@@ -272,7 +274,7 @@ export interface Bolt {
   tag?: HitTag;
 }
 
-export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask'
+export type EffectType = 'gturret' | 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask'
   | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir' | 'icewall';
 
 export interface Effect {

@@ -10,7 +10,7 @@ export interface Weapon {
   /** Realm whose King drops it (null: the default). */
   realm: RealmId | null;
   /** Ultimate form. */
-  form: 'judgement' | 'root' | 'burn' | 'reap' | 'freeze';
+  form: 'judgement' | 'root' | 'burn' | 'reap' | 'freeze' | 'crash' | 'plague' | 'shock' | 'push' | 'turret' | 'harvest';
   col: string;
   /** Playable now (its Realm's content exists). */
   available: boolean;
@@ -22,13 +22,12 @@ export const WEAPONS: Record<WeaponId, Weapon> = {
   sunblade: { id: 'sunblade', realm: 'sunscar', form: 'burn', col: '#ff8a3d', available: true },
   boneScythe: { id: 'boneScythe', realm: 'deepdark', form: 'reap', col: '#d8d0ff', available: true },
   glacierLance: { id: 'glacierLance', realm: 'frostpeak', form: 'freeze', col: '#9fd8ff', available: true },
-  // Weapons of the Realms that arrive with tickets 35–38
-  magmaMaul: { id: 'magmaMaul', realm: 'emberforge', form: 'burn', col: '#d8342c', available: false },
-  plagueCenser: { id: 'plagueCenser', realm: 'mirefen', form: 'burn', col: '#b6f24a', available: false },
-  stormBow: { id: 'stormBow', realm: 'skyreach', form: 'judgement', col: '#fff35c', available: false },
-  coralTrident: { id: 'coralTrident', realm: 'tidehollow', form: 'judgement', col: '#3f7fbf', available: false },
-  gearCannon: { id: 'gearCannon', realm: 'gearspire', form: 'judgement', col: '#8a94a8', available: false },
-  lichTome: { id: 'lichTome', realm: 'duskhold', form: 'judgement', col: '#b07cff', available: false },
+  magmaMaul: { id: 'magmaMaul', realm: 'emberforge', form: 'crash', col: '#d8342c', available: true },
+  plagueCenser: { id: 'plagueCenser', realm: 'mirefen', form: 'plague', col: '#b6f24a', available: true },
+  stormBow: { id: 'stormBow', realm: 'skyreach', form: 'shock', col: '#fff35c', available: true },
+  coralTrident: { id: 'coralTrident', realm: 'tidehollow', form: 'push', col: '#3fbfbf', available: true },
+  gearCannon: { id: 'gearCannon', realm: 'gearspire', form: 'turret', col: '#c7ced9', available: true },
+  lichTome: { id: 'lichTome', realm: 'duskhold', form: 'harvest', col: '#b07cff', available: true },
 };
 
 export const isWeapon = (k: unknown): k is WeaponId => typeof k === 'string' && (WEAPON_IDS as readonly string[]).includes(k);

@@ -15,11 +15,17 @@ export const KING_KITS: Partial<Record<EnemyId, KingKit>> = {
   bossD: { moves: ['sandLine', 'burrow'], ult: 'quicksand' },
   bossC: { moves: ['boneFan', 'raise'], ult: 'crypt' },
   bossS: { moves: ['iceSpears', 'iceFloor'], ult: 'throne' },
+  bossE: { moves: ['quake', 'lavaDrops'], ult: 'eruption' },
+  bossM: { moves: ['spit', 'frogs'], ult: 'gossip' },
+  bossK: { moves: ['trail', 'swoop'], ult: 'grid' },
+  bossT: { moves: ['tideWave', 'bubbles'], ult: 'siren' },
+  bossG: { moves: ['laser', 'turrets'], ult: 'purge' },
+  bossL: { moves: ['soulSpiral', 'swap'], ult: 'requiem' },
   // Umbra: shadow copies of the Hero's skills; stolen King ultimates from phase 2 (see umbraUlt).
   umbra: { moves: ['shadowBolts', 'shadowMeteors'], ult: 'splash' },
 };
 
-export const ULTS: KingMove[] = ['splash', 'quicksand', 'crypt', 'throne'];
+export const ULTS: KingMove[] = ['splash', 'quicksand', 'crypt', 'throne', 'eruption', 'gossip', 'grid', 'siren', 'purge', 'requiem'];
 
 export function say(s: SimState, e: Enemy, beat: SayBeat): void {
   s.events.push({ t: 'say', who: e.type, beat, x: e.x, y: e.y });
@@ -157,14 +163,160 @@ function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
       kg.lock = W;
       break;
     }
+    /* ---------- Magma King ---------- */
+    case 'quake': {
+      const c = K.quake;
+      addHz(s, { k: 'circ', x: e.x, y: e.y, r: 30, te: c.warn, d: 0, c: 0 });
+      kg.lock = c.warn; kg.next = { k: 'quake', t: c.warn };
+      break;
+    }
+    case 'lavaDrops': {
+      const c = K.lavaDrops, a0 = R.next() * TAU;
+      for (let i = 0; i < c.n; i++) {
+        const aa = a0 + (i / c.n) * TAU;
+        addHz(s, { k: 'circ', x: tx + cos(aa) * c.r, y: ty + sin(aa) * c.r, r: c.spot, te: c.warn + i * c.gap, d: D * c.dmg, c: 0 });
+      }
+      addHz(s, { k: 'circ', x: tx, y: ty, r: c.spot, te: c.warn + c.n * c.gap, d: D * c.dmg, c: 0 });
+      kg.lock = 0.5;
+      break;
+    }
+    case 'eruption': {
+      const c = K.eruption, vw = s.viewport.w / 2, vh = s.viewport.h / 2;
+      for (let w = 0; w < c.waves; w++) for (let i = 0; i < c.n; i++) {
+        addHz(s, { k: 'circ', x: tx + R.range(-vw, vw), y: ty + R.range(-vh, vh), r: c.spot, te: W + w * c.gap + R.range(0, 0.2), d: D * c.dmg, c: 0 });
+      }
+      kg.lock = W;
+      break;
+    }
+    /* ---------- Bog Queen ---------- */
+    case 'spit': {
+      const c = K.spit;
+      addHz(s, { k: 'cone', x: e.x, y: e.y, a, r: c.r, sp: c.spread, te: c.warn, du: c.dur, d: D * c.dmg, c: 3 });
+      kg.lock = c.warn + c.dur;
+      break;
+    }
+    case 'frogs': {
+      const c = K.frogs, a0 = R.next() * TAU;
+      for (let i = 0; i < c.n; i++) {
+        const aa = a0 + (i / c.n) * TAU;
+        addHz(s, { k: 'circ', x: tx + cos(aa) * c.r, y: ty + sin(aa) * c.r, r: 8, te: c.warn, d: 0, c: 3, spawn: 'frog' });
+      }
+      kg.lock = 0.4;
+      break;
+    }
+    case 'gossip': {
+      const c = K.gossip, aa = R.next() * TAU;
+      addHz(s, { k: 'safe', x: tx, y: ty, r: c.spotR, pts: [[tx + cos(aa) * 40, ty + sin(aa) * 40]], te: W + 0.6, d: D * c.dmg, c: 3 });
+      kg.lock = W;
+      break;
+    }
+    /* ---------- Storm King ---------- */
+    case 'trail': {
+      const c = K.trail;
+      for (let i = 0; i < c.n; i++) {
+        const ahead = c.lead * i * 0.5;
+        addHz(s, { k: 'circ', x: tx + P.vx * ahead, y: ty + P.vy * ahead, r: c.r, te: c.warn + i * c.gap, d: D * c.dmg, c: 2 });
+      }
+      kg.lock = 0.4;
+      break;
+    }
+    case 'swoop': {
+      const c = K.swoop, ex = e.x + cos(a) * c.len, ey = e.y + sin(a) * c.len;
+      addHz(s, { k: 'beam', x: e.x, y: e.y, a, r: c.len, w: c.w, te: c.warn, d: D * c.dmg, c: 2 });
+      kg.lock = c.warn; kg.land = [ex, ey]; e.hide = true;
+      break;
+    }
+    case 'grid': {
+      const c = K.grid, nx = Math.ceil(s.viewport.w / c.step / 2), ny = Math.ceil(s.viewport.h / c.step / 2);
+      for (let gx = -nx; gx <= nx; gx++) for (let gy = -ny; gy <= ny; gy++) {
+        const odd = ((gx + gy) & 1) !== 0;
+        addHz(s, { k: 'circ', x: tx + gx * c.step, y: ty + gy * c.step, r: c.r, te: W + (odd ? c.gap : 0), d: D * c.dmg, c: 2 });
+      }
+      kg.lock = W;
+      break;
+    }
+    /* ---------- Tide Queen ---------- */
+    case 'tideWave': {
+      const c = K.tideWave;
+      addHz(s, { k: 'cone', x: e.x, y: e.y, a, r: c.r, sp: c.spread, te: c.warn, du: c.dur, d: D * c.dmg, c: 5 });
+      kg.lock = c.warn + c.dur;
+      break;
+    }
+    case 'bubbles': {
+      const c = K.bubbles;
+      for (let i = 0; i < c.n; i++) addHz(s, { k: 'line', x: e.x, y: e.y, a: a + (i - (c.n - 1) / 2) * c.spread, r: 90, te: c.warn, d: D * c.dmg, c: 5, fire: true, sp: c.speed });
+      kg.lock = c.warn;
+      break;
+    }
+    case 'siren': {
+      const c = K.siren;
+      addHz(s, { k: 'pull', x: e.x, y: e.y, r: c.r, w: c.core, te: W, du: c.dur, sp: c.pull, d: D * c.dmg });
+      kg.lock = W + c.dur; kg.next = { k: 'siren', t: W + c.dur };
+      break;
+    }
+    /* ---------- Golem King ---------- */
+    case 'laser': {
+      const c = K.laser;
+      addHz(s, { k: 'beam', x: e.x, y: e.y, a, r: c.len, w: c.w, te: c.warn, d: D * c.dmg, c: 0 });
+      kg.lock = c.warn;
+      break;
+    }
+    case 'turrets': {
+      const c = K.turrets, a0 = R.next() * TAU;
+      for (let i = 0; i < c.n; i++) {
+        const aa = a0 + (i / c.n) * TAU;
+        addHz(s, { k: 'circ', x: e.x + cos(aa) * c.r, y: e.y + sin(aa) * c.r, r: 8, te: c.warn, d: 0, c: 2, spawn: 'turret' });
+      }
+      kg.lock = 0.5;
+      break;
+    }
+    case 'purge': {
+      const c = K.purge, a0 = a + (R.next() < 0.5 ? 1 : -1) * 0.8, dir = R.next() < 0.5 ? 1 : -1;
+      for (let i = 0; i < c.n; i++) addHz(s, { k: 'beam', x: e.x, y: e.y, a: a0 + dir * (i / c.n) * TAU, r: c.len, w: c.w, te: W + i * c.step, d: D * c.dmg, c: 0 });
+      kg.lock = W + c.n * c.step;
+      break;
+    }
+    /* ---------- Lich Queen ---------- */
+    case 'soulSpiral': {
+      const c = K.soulSpiral, a0 = R.next() * TAU;
+      for (let i = 0; i < c.n; i++) addHz(s, { k: 'line', x: e.x, y: e.y, a: a0 + (i / c.n) * TAU, r: 60, te: c.warn + i * c.gap, d: D * c.dmg, c: 1, fire: true, sp: c.speed });
+      kg.lock = c.warn;
+      break;
+    }
+    case 'swap': {
+      const c = K.swap, near = s.enemies.filter((m) => !m.dead && !m.boss && Math.abs(m.x - tx) < s.viewport.w / 2 && Math.abs(m.y - ty) < s.viewport.h / 2);
+      if (!near.length) { doMove(s, e, 'soulSpiral', mul); break; }
+      const m = near[R.int(near.length)];
+      addHz(s, { k: 'circ', x: m.x, y: m.y, r: c.r, te: c.warn, d: D * c.dmg, c: 1 });
+      kg.land = [m.x, m.y]; m.x = e.x; m.y = e.y; e.hide = true;
+      burst(s, e.x, e.y, '#b07cff', 14, 60, 0.5);
+      kg.lock = c.warn;
+      break;
+    }
+    case 'requiem': {
+      const c = K.requiem, a0 = R.next() * TAU;
+      for (let i = 0; i < c.n; i++) {
+        const aa = a0 + (i / c.n) * TAU, bx = tx + cos(aa) * c.r, by = ty + sin(aa) * c.r;
+        addHz(s, { k: 'line', x: bx, y: by, a: aa + Math.PI, r: c.r, te: W + i * c.gap, d: D * c.dmg, c: 1, fire: true, sp: c.speed });
+      }
+      kg.lock = W;
+      break;
+    }
   }
 }
 
 /** Second half of a two-part move (Royal Splash: the slime wave after the landing). */
 function doNext(s: SimState, e: Enemy, k: KingMove): void {
+  const K = s.cfg.kings;
   if (k === 'splash') {
-    const c = s.cfg.kings.splash;
-    addHz(s, { k: 'ring', x: e.x, y: e.y, r: c.r, du: c.dur, d: e.dmg * c.dmg, c: 3 });
+    addHz(s, { k: 'ring', x: e.x, y: e.y, r: K.splash.r, du: K.splash.dur, d: e.dmg * K.splash.dmg, c: 3 });
+    shake(s, 6);
+  } else if (k === 'quake') {
+    addHz(s, { k: 'ring', x: e.x, y: e.y, r: K.quake.r, du: K.quake.dur, d: e.dmg * K.quake.dmg, c: 0 });
+    shake(s, 7);
+    sfx(s, 'boom');
+  } else if (k === 'siren') {
+    addHz(s, { k: 'ring', x: e.x, y: e.y, r: K.siren.wave, du: K.siren.waveDur, d: e.dmg * K.siren.waveDmg, c: 5 });
     shake(s, 6);
   }
 }

@@ -46,13 +46,20 @@ export function useUlt(s: SimState): void {
 }
 
 /** One Ultimate strike in the form of the equipped Weapon. */
-function ultStrike(s: SimState, e: Enemy, dmg: number): void {
-  const w = WEAPONS[s.weapon], W = s.cfg.weapons;
+function ultStrike(s: SimState, e: Enemy, dmg: number, heal: { left: number }): void {
+  const w = WEAPONS[s.weapon], W = s.cfg.weapons, S = s.cfg.status, P = s.P;
   if (w.form === 'reap' && !e.boss && e.hp < e.maxHp * W.execute) dmg = e.hp; // reaped outright
-  hit(s, e, dmg, w.col, s.cfg.ult.kb, w.form === 'burn' ? ULT_BURN : ULT_TAG);
+  const kb = s.cfg.ult.kb * (w.form === 'crash' ? W.crashKb : 1);
+  hit(s, e, dmg, w.col, kb, w.form === 'burn' || w.form === 'crash' ? ULT_BURN : ULT_TAG);
+  if (w.form === 'harvest' && heal.left > 0) { const h = Math.min(heal.left, P.maxHp * W.harvestHeal); heal.left -= h; P.hp = Math.min(P.maxHp, P.hp + h); }
   if (e.dead) return;
+  const dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1;
   if (w.form === 'root') { if (e.boss) e.slowT = Math.max(e.slowT, W.root); else e.stun = W.root; }
-  if (w.form === 'freeze') { if (e.boss) e.slowT = Math.max(e.slowT, W.freeze); else e.frz = W.freeze; }
+  else if (w.form === 'freeze') { if (e.boss) e.slowT = Math.max(e.slowT, W.freeze); else e.frz = W.freeze; }
+  else if (w.form === 'plague') { e.pois = S.poisoned * P.statusMul; e.poisDps = dmg * W.plagueDps; }
+  else if (w.form === 'shock') e.shock = S.shocked * P.statusMul;
+  else if (w.form === 'push' && !e.boss) { e.kx += (dx / l) * W.push; e.ky += (dy / l) * W.push; }
+  else if (w.form === 'harvest' && !e.boss) { e.kx -= (dx / l) * W.harvestPull; e.ky -= (dy / l) * W.harvestPull; }
 }
 const ULT_TAG: HitTag = { raw: true };
 const ULT_BURN: HitTag = { raw: true, applies: 'burning' };
@@ -529,13 +536,26 @@ export function updEffects(s: SimState, dt: number): void {
       }
     } else if (f.type === 'icewall') {
       stepIceWall(s, f);
+    } else if (f.type === 'gturret') {
+      // Gear Cannon: a turret keeps shooting the nearest monster for a few seconds
+      f.tick! -= dt;
+      if (f.tick! <= 0) {
+        f.tick = s.cfg.weapons.turretEvery;
+        const e = nearest(s, f.x, f.y, 200);
+        if (e) {
+          hit(s, e, f.dmg, WEAPONS.gearCannon.col, 40, ULT_TAG);
+          burst(s, e.x, e.y, '#c7ced9', 3, 40, 0.2);
+        }
+      }
     } else if (f.type === 'judge') {
       if (!f.fired && f.t >= s.cfg.ult.delay) {
         f.fired = true;
         flash(s, 0.45, '#ffffff', false, true); shake(s, 11);
         s.hitstop = 0.08;
+        const heal = { left: s.P.maxHp * s.cfg.weapons.harvestHealMax };
+        if (WEAPONS[s.weapon].form === 'turret') s.effects.push({ type: 'gturret', x: s.P.x, y: s.P.y - 6, t: 0, dur: s.cfg.weapons.turretDur, dmg: f.dmg * s.cfg.weapons.turretDmg, tick: 0 });
         for (const o of f.targets!) {
-          if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; ultStrike(s, o.e, f.dmg); }
+          if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; ultStrike(s, o.e, f.dmg, heal); }
           burst(s, o.x, o.y, '#fff8c0', 8, 80, 0.6);
         }
         sfx(s, 'boom');
