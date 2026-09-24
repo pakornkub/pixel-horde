@@ -4,6 +4,8 @@ Label: wayfinder:map
 
 ## Destination
 
+**ถึงปลายทางแล้ว 2026-09-25 → `docs/blueprint/pixel-horde-blueprint.md`**
+
 เอกสาร **Game Design + Tech Blueprint** ของ Pixel Horde เวอร์ชันเว็บที่ตัดสินใจครบแล้ว ครอบคลุม story/chapter, ระบบและเนื้อหาที่จะเพิ่ม, แนวกราฟิก, tech stack, hosting/database/co-op ที่ใช้ได้ฟรี, data model, Admin Console, leaderboard และสถิติ ต้องไม่มีอะไรค้างให้ตัดสินใจอีก พร้อมส่งต่อให้ `/to-spec` และ `/to-tickets` แตกเป็นงานลงมือทำ
 
 ## Notes
