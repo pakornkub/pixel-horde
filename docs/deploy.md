@@ -52,3 +52,18 @@ Sign in to the Admin with Google (same account you linked in the game) or with a
 link. Try it without any backend at `…/?demo` (in-memory sample data).
 
 Local: `npm run dev -w @pixel-horde/admin` → http://localhost:5174/?demo
+
+## Co-op room worker (tickets 41–42)
+
+Co-op rooms run on a Cloudflare Worker with one Durable Object per room (`workers/room`).
+
+1. With the two Cloudflare secrets in place, every push to `main` deploys it (`deploy-pages.yml` → "Deploy co-op room worker").
+   The first deploy prints its URL, e.g. `https://pixel-horde-room.<your-subdomain>.workers.dev`.
+2. Add a GitHub **repository variable** (Settings → Secrets and variables → Actions → Variables) named `ROOM_URL`
+   with that URL written as `wss://pixel-horde-room.<your-subdomain>.workers.dev`. The next build turns the Co-op
+   button on, and the workflow smoke-tests the live room (`scripts/room-smoke.mjs`).
+3. Free plan: about 6–12 hours of 4-player co-op per day; when the daily allowance is used up the game says
+   "co-op full" until 07:00 Thai time.
+
+Local test: `cd workers/room && npx wrangler dev --port 8787`, then open the game with `?room=ws://127.0.0.1:8787`
+in two browser windows (host: Co-op → Create room; guest: the invite link).
