@@ -37,12 +37,44 @@ A stat upgrade picked on level-up, never fires on its own.
 **Evolution**:
 The upgraded form a Skill takes when it is max level and its paired Passive is owned.
 
+**Signature Skill**:
+A Skill that belongs to one character only, occupies a locked attack slot, and can Evolve and later Awaken. Other characters can never obtain it.
+_Avoid_: starting skill, unique skill, ultimate
+
+**Skill Line**:
+The group of shared Skills that count as Links for one character's Signature Skill, and the set of new Skills that character unlocks after Awakening. Every character may still pick any shared Skill.
+_Avoid_: tree, class, branch
+
+**Link**:
+A shared Skill from the character's own Skill Line, at max level and equipped in an attack slot, that counts toward Awakening.
+_Avoid_: synergy, bond
+
+**Awakening**:
+The optional, one-time transformation of an evolved Signature Skill that consumes its Links and unlocks the character's Skill Line skills. Declining it forfeits it for the rest of the Run.
+_Avoid_: ultimate evolution, second evolution, ascension
+
+**Combo**:
+The automatic reaction when a Skill hits an enemy carrying a Status left by a different element (e.g. Shatter = Frozen + heavy hit).
+_Avoid_: synergy, chain (Chain Lightning is a Skill)
+
+**Status**:
+A temporary effect a Skill leaves on an enemy (Frozen, Gathered, Burning, Shocked, Poisoned) that Combos consume.
+_Avoid_: debuff, element
+
+**Bench**:
+The storage slots holding Skills that are owned but not firing; Skills move between Bench and attack slots only at stage end, for Gold.
+_Avoid_: inventory, reserve, stash
+
+**Skill Point**:
+A boss reward spent on Skills during a Run (exact use to be decided).
+_Avoid_: points (ambiguous with score)
+
 **Meta Progression**:
 Permanent power bought with Gold between runs (Shop upgrades, character unlocks).
 _Avoid_: upgrades (ambiguous with level-up picks)
 
 **Gold**:
-The only currency that survives a run; banked on stage clear or defeat.
+The only currency that survives a run; banked on stage clear or defeat. Also spent inside a Run (Bench swaps, a purchased revive), competing with permanent Shop upgrades.
 _Avoid_: coins, money
 
 **Director**:

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Horde · Skill System</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--text-primary:#1e1b33;--text-secondary:#4a4470;--text-muted:#7a749c;--text-success:#3B6D11;--text-danger:#c2361f;
+ --surface-0:#f4f7e4;--surface-1:#e6edcc;--surface-2:#ffffff;--border:rgba(30,27,51,.14);--border-strong:rgba(30,27,51,.32);--border-accent:#c2361f;
+ --radius:8px;--font-sans:"Chakra Petch",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root{--text-primary:#f4f7e4;--text-secondary:#c9c4e6;--text-muted:#9a94bd;--text-success:#97C459;--text-danger:#ff6b73;
+ --surface-0:#1e1b33;--surface-1:#2a2645;--surface-2:#332e52;--border:rgba(244,247,228,.14);--border-strong:rgba(244,247,228,.32);--border-accent:#ff6b73}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary);font-family:var(--font-sans);font-size:15px;line-height:1.65}
+main{max-width:760px;margin:0 auto;padding:32px 16px 48px}
+.eyebrow{font-family:"Press Start 2P",monospace;font-size:9px;letter-spacing:.08em;color:var(--text-secondary)}
+h1{font-size:26px;font-weight:600;margin:10px 0 6px;line-height:1.3}
+h2{font-size:19px;font-weight:600;margin:40px 0 6px}
+.sub{color:var(--text-secondary);margin:0 0 8px}
+p.note{font-size:13px;color:var(--text-secondary)}
+button{font:inherit;font-size:13px;background:transparent;color:var(--text-primary);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:6px 10px;cursor:pointer}
+button:hover{background:var(--surface-1)}
+input[type=range]{accent-color:var(--border-accent)}
+ul.why{padding-left:20px;margin:6px 0}
+ul.why li{margin:4px 0}
+footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted)}
+code{font-size:13px;background:var(--surface-1);padding:1px 5px;border-radius:4px}
+/* explorer */
+.sk{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;margin:0 0 1rem}
+.sk button{font-size:12px;padding:6px 4px;text-align:left;line-height:1.3}
+.sk button.on{border:2px solid var(--border-accent);padding:5px 3px}
+.sk b{display:block;font-weight:600;font-size:12px}
+.row{display:flex;align-items:center;gap:10px;margin:0 0 1rem;font-size:14px;flex-wrap:wrap}
+.st{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:0 0 1rem}
+.m{background:var(--surface-1);border-radius:var(--radius);padding:8px 10px}
+.m span{display:block;font-size:12px;color:var(--text-secondary)}
+.m b{font-size:18px;font-weight:600}
+.m i{font-style:normal;font-size:12px;color:var(--text-success);margin-left:4px}
+.ev{border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.6;background:var(--surface-2)}
+.tg{font-size:11px;padding:2px 8px;border-radius:var(--radius);background:#FAEEDA;color:#633806;margin-right:6px}
+/* map */
+.slots{display:grid;grid-template-columns:4fr 3fr 3fr;gap:8px;margin:0 0 12px}
+.sl{border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:12px;color:var(--text-secondary);background:var(--surface-2)}
+.sl b{display:block;font-size:14px;font-weight:600;color:var(--text-primary)}
+.cells{display:flex;gap:4px;margin-top:6px}
+.cells i{flex:1;height:14px;border-radius:3px;background:var(--surface-1);border:0.5px solid var(--border)}
+.cells i.sig{background:#FAEEDA;border-color:#EF9F27}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.tabs button.on{border:2px solid var(--border-accent);padding:5px 9px}
+svg text{font-family:var(--font-sans)}
+.nd{cursor:pointer}
+.dim{opacity:.18}
+#det{background:var(--surface-1);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.7;min-height:90px}
+.lg{font-size:12px;color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 10px}
+.lg span::before{content:'';display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px;background:var(--c)}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;margin:0 0 12px}
+.flow span{padding:4px 8px;border-radius:var(--radius);background:var(--surface-1)}
+.flow span.k{background:#FAEEDA;color:#633806}
+@media (max-width:560px){.slots{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">PIXEL HORDE · SKILL SYSTEM</div>
+<h1>ระบบสกิล: ของเดิม และร่างระบบ v2</h1>
+<p class="sub">ส่วนแรกคือสกิล 12 แบบในเกมตอนนี้ (สูตรจาก <code>pixel-horde.html</code>) ส่วนที่สองคือร่างระบบสกิล v2 ที่ตกลงทิศทางกันแล้ว 2026-09-24 รายละเอียดจะตัดสินใน ticket ⑱</p>
+
+<h2>1. สกิลในเกมตอนนี้</h2>
+<p class="note">เลือกสกิล ลากเลเวล แล้วติ๊ก Evolution เพื่อดูค่าที่เปลี่ยนไป</p>
+<div class="sk" id="sk"></div>
+<div class="row"><span style="color:var(--text-secondary)">เลเวล</span><input type="range" id="lv" min="1" max="8" step="1" value="1" style="flex:1;min-width:140px"><b id="lvv" style="min-width:48px">1 / 8</b>
+<label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="evo">Evolution</label></div>
+<div id="desc" style="font-size:14px;margin:0 0 10px"></div>
+<div class="st" id="st"></div>
+<div class="ev" id="ev"></div>
+<p class="note">ดาเมจที่แสดงคือค่าพื้นฐาน ของจริงคูณด้วยโบนัสผู้เล่น: 1 + 0.2×Might + 0.08×Power (ร้าน) + 0.15 ถ้าเป็น Mage, สุ่ม ±12%, คริติคอลสูงสุด 50% ×(2 + 0.2×Keen Eye) และคูลดาวน์ลดได้สูงสุด 40% ตอนนี้ถือสกิลโจมตีได้ 6 ช่อง และเก็บพาสซีฟได้ครบทั้ง 6 แบบ</p>
+
+<h2>2. ร่างระบบสกิล v2</h2>
+<p class="note">กดสลับชั้นข้อมูล แล้วคลิกกล่องใดก็ได้เพื่อดูความสัมพันธ์ ชื่อสกิลประจำตัวและสกิลสายเป็นชื่อชั่วคราว รอ ⑦ story และ ⑲ ออกแบบตัวละคร</p>
+<div class="slots">
+ <div class="sl"><b>ช่องโจมตี 4</b>สกิลประจำตัว (ล็อก) + สกิลทั่วไป 3<div class="cells"><i class="sig"></i><i></i><i></i><i></i></div></div>
+ <div class="sl"><b>ช่องพาสซีฟ 3</b>จำกัด Evolution ได้สูงสุด 3 ครั้ง<div class="cells"><i></i><i></i><i></i></div></div>
+ <div class="sl"><b>ช่องเก็บ 3</b>สลับตอนจบด่าน จ่าย Gold ถาวร<div class="cells"><i></i><i></i><i></i></div></div>
+</div>
+<div class="flow"><span>อัปสกิล</span>→<span>เลเวลเต็ม + พาสซีฟคู่</span>→<span>Evolution</span>→<span>สกิลประจำตัว Evo แล้ว + Link 2 ใน 3 เต็ม + ถึงเลเวลผู้เล่น</span>→<span class="k">ตื่นพลัง (Awakening)</span>→<span>ปลดล็อกสกิลสาย 3 ตัว</span></div>
+<div class="tabs" id="tabs"></div>
+<div class="lg" id="lg"></div>
+<svg id="g" viewBox="0 0 680 420" width="100%" role="img" aria-labelledby="gT gD"><title id="gT">ความสัมพันธ์ของสกิลในระบบ v2</title><desc id="gD">สกิลประจำตัวของ 4 ตัวละคร เชื่อมกับสกิลทั่วไปในสายของตัวเอง, สกิลทั่วไปจับคู่กับพาสซีฟเพื่อ Evolution, คู่สกิลที่ติดคอมโบ และสกิลที่ได้เปรียบศัตรูแต่ละแบบ</desc><g id="edges"></g><g id="nodes"></g></svg>
+<div id="det"></div>
+
+<h2>3. ทำไมแบบนี้ถึงสมดุล</h2>
+<ul class="why">
+<li><b>ลดพลังดิบ แต่คงความอลังการ</b>: ช่องโจมตีจาก 6 เหลือ 4 (สกิลยิงพร้อมกันลดลงราว 1/3) แล้วย้ายความสะใจไปที่คอมโบ</li>
+<li><b>พาสซีฟ 3 ช่อง = Evolution สูงสุด 3 ครั้งต่อรอบ</b>: เดิมเก็บพาสซีฟได้ครบ 6 แบบ จึง Evo ได้แทบทุกสกิล การเลือกพาสซีฟจึงเท่ากับเลือกว่าจะ Evo สกิลไหน</li>
+<li><b>สกิลทั่วไปแบ่ง 4 สาย สายละ 3</b>: ทุกตัวละครหยิบได้ทุกสกิล แต่นับเป็น Link ได้เฉพาะสายตัวเอง ต้องเลือกระหว่างเดินสายตัวเองเพื่อไปตื่นพลัง กับผสมสายเพื่อเอาคอมโบ</li>
+<li><b>Link ใช้ 2 ใน 3</b>: สกิลประจำตัว + Link 2 + ว่าง 1 ช่องไว้สำหรับคอมโบหรือแก้ทาง และต้องติดอยู่ในช่องโจมตี (ช่องเก็บไม่นับ)</li>
+<li><b>ตื่นพลังเป็นการแลก</b>: เสียสกิลเต็มเลเวล 2 ตัว ได้สกิลประจำตัวร่างใหม่ + สกิลสาย 3 ตัวที่เริ่มจาก Lv1 พลังจะตกก่อนแล้วค่อยสูงกว่าเดิม ปฏิเสธได้ แต่หมดโอกาสในรอบนั้น</li>
+<li><b>คอมโบเกิดเองอัตโนมัติ</b>: สกิลทิ้งสถานะไว้บนมอน (แข็ง, รวมกลุ่ม, ไหม้, ช็อต, พิษ) แล้วสกิลอีกธาตุมากระตุ้น คอมโบส่วนใหญ่ข้ามสาย Alchemist เป็นตัวละครสายคอมโบ</li>
+<li><b>แพ้ทาง-ชนะทาง + ช่องเก็บ</b>: จบด่านแล้วเกมบอกว่าด่านต่อไปเจออะไร สลับสกิลจากช่องเก็บด้วย Gold ถาวร</li>
+<li><b>ทุกตัวเลขปรับได้ใน Balance Config</b>: จำนวนช่อง, ตัวคูณคอมโบ, เลเวลขั้นต่ำของการตื่นพลัง และค่าสลับ</li>
+</ul>
+
+<h2>4. ยังต้องตัดสินใจ</h2>
+<ul class="why">
+<li>ชื่อและรูปแบบสกิลประจำตัวและสกิลสาย (⑲ หลัง ⑦ story)</li>
+<li>การจับคู่สกิลทั่วไปเข้าสายของแต่ละตัวละคร (⑱)</li>
+<li>เลเวลขั้นต่ำของการตื่นพลัง ต้องตั้งตามความยาวรอบใน ⑧ (สูตร EXP ตอนนี้ เลเวล 20 ใช้ ~2,800 EXP แต่เลเวล 50 ใช้ ~58,700)</li>
+<li>แต้มสกิลจากรางวัลบอส ใช้ทำอะไรได้บ้าง (⑱ / ⑳)</li>
+</ul>
+
+<footer>Pixel Horde · docs/blueprint/skill-system.html · 2026-09-24 · ร่างสำหรับ ticket ⑱ ใน .scratch/pixel-horde-web</footer>
+</main>
+
+<script>
+(()=>{
+const SK={bolt:['Arcane Bolt','ยิงลูกเวทใส่ตัวที่ใกล้ที่สุด',8,'haste','Arcane Barrage','ลูก +2, คูลดาวน์ ×0.7, ทะลุ +1, ดาเมจ ×1.2'],
+orbit:['Blade Orbit','ดาบหมุนรอบตัว ฟันทุกตัวที่เข้าใกล้',6,'swift','Storm Blades','ดาบ 8 เล่ม, รัศมี ×1.3, ดาเมจ ×1.4, หมุนเร็ว ×1.2'],
+chain:['Chain Lightning','สายฟ้ากระโดดต่อหลายเป้า',7,'crit','Thunder God','กระโดด ×1.6, ดาเมจ ×1.5'],
+nova:['Fire Nova','วงไฟระเบิดจากตัว ผลักมอนกระเด็น',7,'might','Inferno','ดาเมจ ×1.6, รัศมี ×1.35, คูลดาวน์ ×0.75'],
+meteor:['Meteor Storm','อุกกาบาตถล่มเป็นวงกว้าง',7,'vital','Armageddon','ลูก ×1.6, รัศมี ×1.35, ดาเมจ ×1.3'],
+frost:['Frost Aura','ออร่าน้ำแข็งรอบตัว ทำให้มอนช้า',6,'magnet','Absolute Zero','ดาเมจ ×1.6, รัศมี ×1.3, แช่แข็งจนขยับไม่ได้'],
+lance:['Holy Lance','หอกแสงทะลุทุกตัวตามทิศที่เดิน',7,'crit','Divine Spear','หอก +2, ดาเมจ ×1.5'],
+boomer:['Spirit Disc','จานพุ่งออกแล้ววกกลับ',7,'magnet','Twin Moons','จาน ×2, ดาเมจ ×1.35'],
+cyclone:['Cyclone','พายุเคลื่อนไปทั่ว ดูดมอนเข้าไปปั่น',6,'haste','Hurricane','รัศมี ×1.4, ลูก +1, ดาเมจ ×1.3'],
+toxic:['Toxic Pool','บ่อพิษใต้มอน กัดเลือดและทำให้ช้า',6,'vital','Plague','รัศมี ×1.35, ดาเมจ ×1.6'],
+laser:['Prism Laser','ลำแสงกวาด 360 องศา',6,'swift','Prism Burst','เลเซอร์ 2 ลำหมุนสวนกัน, ดาเมจ ×1.35'],
+hole:['Black Hole','ดูดมอนมากองแล้วระเบิด',5,'might','Singularity','ระเบิด ×2, รัศมี ×1.2']};
+const PN={haste:'Haste',swift:'Swift Boots',crit:'Keen Eye',might:'Might',vital:'Vitality',magnet:'Magnet'};
+function base(id,lv){switch(id){
+case'bolt':return{'ดาเมจ':16+lv*7,'คูลดาวน์ (วิ)':Math.max(.25,.85-lv*.07),'จำนวนลูก':1+Math.floor((lv-1)/2),'ทะลุ':Math.floor(lv/3)};
+case'orbit':return{'ดาเมจ':10+lv*6,'จำนวนดาบ':Math.min(6,lv+1),'รัศมี':30+lv*2,'ความเร็วหมุน':3+lv*.35};
+case'chain':return{'ดาเมจ':28+lv*14,'คูลดาวน์ (วิ)':Math.max(.9,2.4-lv*.18),'กระโดด (เป้า)':3+lv*2};
+case'nova':return{'ดาเมจ':30+lv*16,'คูลดาวน์ (วิ)':Math.max(1.2,3.4-lv*.25),'รัศมี':55+lv*10};
+case'meteor':return{'ดาเมจ':80+lv*40,'คูลดาวน์ (วิ)':Math.max(1.6,4.2-lv*.3),'จำนวนลูก':2+lv,'รัศมี':20+lv*2};
+case'frost':return{'ดาเมจ ทุก 0.4 วิ':6+lv*5,'รัศมี':32+lv*6};
+case'lance':return{'ดาเมจ':40+lv*18,'คูลดาวน์ (วิ)':Math.max(.6,1.7-lv*.13),'จำนวนหอก':1+Math.floor(lv/3)};
+case'boomer':return{'ดาเมจ':22+lv*10,'คูลดาวน์ (วิ)':Math.max(.8,2-lv*.15),'จำนวนจาน':1+Math.floor((lv-1)/2),'ระยะ':80+lv*6};
+case'cyclone':return{'ดาเมจ ทุก 0.25 วิ':12+lv*6,'คูลดาวน์ (วิ)':Math.max(2.2,5-lv*.35),'จำนวนพายุ':1+Math.floor(lv/2),'รัศมี':16+lv*2,'อยู่นาน (วิ)':2.4+lv*.3};
+case'toxic':return{'ดาเมจ ทุก 0.3 วิ':8+lv*5,'คูลดาวน์ (วิ)':Math.max(1.5,3.6-lv*.3),'จำนวนบ่อ':1+Math.floor(lv/2),'รัศมี':16+lv*2,'อยู่นาน (วิ)':3+lv*.4};
+case'laser':return{'ดาเมจ':45+lv*20,'คูลดาวน์ (วิ)':Math.max(2.6,6-lv*.5),'ความยาว':100+lv*12};
+case'hole':return{'ดาเมจดูด':6+lv*3,'ระเบิด':140+lv*70,'คูลดาวน์ (วิ)':Math.max(4.5,9-lv*.8),'รัศมี':45+lv*6};}}
+function evo(id,s){const k=Object.keys(s),d=k.find(x=>x.startsWith('ดาเมจ')),c='คูลดาวน์ (วิ)';switch(id){
+case'bolt':s['จำนวนลูก']+=2;s[c]*=.7;s['ทะลุ']+=1;s[d]*=1.2;break;
+case'orbit':s['จำนวนดาบ']=8;s['รัศมี']*=1.3;s[d]*=1.4;s['ความเร็วหมุน']*=1.2;break;
+case'chain':s['กระโดด (เป้า)']=Math.round(s['กระโดด (เป้า)']*1.6);s[d]*=1.5;break;
+case'nova':s[d]*=1.6;s['รัศมี']*=1.35;s[c]*=.75;break;
+case'meteor':s['จำนวนลูก']=Math.round(s['จำนวนลูก']*1.6);s['รัศมี']*=1.35;s[d]*=1.3;break;
+case'frost':s[d]*=1.6;s['รัศมี']*=1.3;break;
+case'lance':s['จำนวนหอก']+=2;s[d]*=1.5;break;
+case'boomer':s['จำนวนจาน']*=2;s[d]*=1.35;break;
+case'cyclone':s['รัศมี']*=1.4;s['จำนวนพายุ']+=1;s[d]*=1.3;break;
+case'toxic':s['รัศมี']*=1.35;s[d]*=1.6;break;
+case'laser':s[d]*=1.35;break;
+case'hole':s['ระเบิด']*=2;s['รัศมี']*=1.2;break;}return s;}
+const fmt=v=>Number.isInteger(v)?v:(Math.round(v*100)/100);
+let cur='bolt';const $=i=>document.getElementById(i);
+$('sk').innerHTML=Object.entries(SK).map(([k,v])=>`<button data-k="${k}"><b>${v[0]}</b>สูงสุด Lv ${v[2]}</button>`).join('');
+function draw(){const S=SK[cur];$('lv').max=S[2];const lv=Math.min(+$('lv').value,S[2]);$('lv').value=lv;$('lvv').textContent=lv+' / '+S[2];
+ document.querySelectorAll('#sk button').forEach(b=>b.classList.toggle('on',b.dataset.k===cur));
+ const b1=base(cur,1),s=base(cur,lv),e=$('evo').checked&&lv===S[2];if(e)evo(cur,s);
+ $('desc').textContent=S[1];
+ $('st').innerHTML=Object.keys(s).map(k=>{const v=s[k],d=v-b1[k];return`<div class="m"><span>${k}</span><b>${fmt(v)}</b>${lv>1||e?`<i>${d>=0?'+':''}${fmt(d)} จาก Lv1</i>`:''}</div>`}).join('');
+ $('ev').innerHTML=`<span class="tg">Evolution</span><b style="font-weight:600">${S[4]}</b> = ${S[0]} Lv ${S[2]} + ${PN[S[3]]}<div style="color:var(--text-secondary);margin-top:4px">${S[5]}</div>${$('evo').checked&&lv<S[2]?'<div style="color:var(--text-danger);margin-top:4px">ต้องอัปให้ถึง Lv '+S[2]+' ก่อนจึงจะ Evolution ได้</div>':''}`;}
+$('sk').onclick=ev=>{const b=ev.target.closest('button');if(b){cur=b.dataset.k;draw();}};
+$('lv').oninput=draw;$('evo').onchange=draw;draw();
+})();
+
+(()=>{
+const CH=[
+{id:'mage',n:'Mage',sig:'Arcane Sigil',st:'วงเวทใต้เท้า สกิลเวทที่ยิงผ่านวงแรงขึ้น',pas:'might',awk:'Archmage',line:['Mana Nova','Time Warp','Starfall'],link:['bolt','chain','hole']},
+{id:'knight',n:'Knight',sig:'Holy Shield',st:'โล่หมุนรอบตัว กันกระสุนและกระแทกมอน',pas:'vital',awk:'Paladin',line:['Sacred Blades','Judgement Pillar','Aegis Dome'],link:['orbit','lance','nova']},
+{id:'ranger',n:'Ranger',sig:'Hawk Companion',st:'เหยี่ยวบินจิกมอนตัวที่อยู่ไกลสุด',pas:'swift',awk:'Stormhunter',line:['Arrow Rain','Gale Step','Thunder Hawk'],link:['boomer','cyclone','meteor']},
+{id:'alch',n:'Alchemist',sig:'Volatile Flask',st:'ขว้างขวดยาสุ่มธาตุ ไฟ/น้ำแข็ง/พิษ = เครื่องจักรคอมโบ',pas:'haste',awk:'Grand Alchemist',line:['Cauldron','Transmute','Elixir Rain'],link:['toxic','frost','laser']}];
+const SK={bolt:['Arcane Bolt','เวท','#7F77DD','haste','ใช้สถานะใดก็ได้บนมอน +50% (Catalyst)'],chain:['Chain Lightning','สายฟ้า','#BA7517','crit','ทิ้งสถานะ "ช็อต"'],hole:['Black Hole','ความว่าง','#534AB7','might','ทิ้งสถานะ "รวมกลุ่ม"'],
+orbit:['Blade Orbit','ใบมีด','#888780','swift','ตัวกวาด (เข้าคอมโบกับ "รวมกลุ่ม")'],lance:['Holy Lance','แสง','#BA7517','crit','ตัวตีแรง (เข้าคอมโบกับ "แข็ง")'],nova:['Fire Nova','ไฟ','#D85A30','might','ทิ้ง "ไหม้" + ตัวจุดไฟ'],
+boomer:['Spirit Disc','ลม','#1D9E75','magnet','ตัวกวาด'],cyclone:['Cyclone','ลม','#1D9E75','haste','ทิ้งสถานะ "รวมกลุ่ม"'],meteor:['Meteor Storm','ไฟ','#D85A30','vital','ทิ้ง "ไหม้" + ตีแรง + จุดไฟ'],
+toxic:['Toxic Pool','พิษ','#639922','vital','ทิ้งสถานะ "พิษ"'],frost:['Frost Aura','น้ำแข็ง','#378ADD','magnet','ทิ้งสถานะ "แข็ง"'],laser:['Prism Laser','แสง','#378ADD','swift','ตัวกวาด + ตีแรง']};
+const PS={might:'Might',haste:'Haste',swift:'Swift Boots',vital:'Vitality',magnet:'Magnet',crit:'Keen Eye'};
+const CB=[
+['Shatter','แข็ง + ตีแรง → ดาเมจ ×2.5 แตกเป็นเศษน้ำแข็ง','#378ADD',[['frost','meteor'],['frost','lance']]],
+['Firestorm','รวมกลุ่ม + ไฟ → ไฟลามทั้งกอง','#D85A30',[['cyclone','nova'],['hole','meteor']]],
+['Overload','ช็อต + ไฟ → ระเบิดวงกว้าง','#BA7517',[['chain','nova']]],
+['Superconduct','แข็ง + สายฟ้า → ลบเกราะมอน (แก้มอนเกราะ)','#7F77DD',[['frost','chain']]],
+['Toxic Burst','พิษ + ไฟ → บ่อพิษระเบิด','#639922',[['toxic','nova']]],
+['Grinder','รวมกลุ่ม + ตัวกวาด → โดนหลายครั้งต่อรอบ','#888780',[['cyclone','orbit'],['hole','laser'],['cyclone','boomer']]]];
+const TH=[['armor','มอนเกราะ',['lance','meteor','laser'],['frost','toxic','orbit'],'ตีเบาถี่ๆ โดนหักเกราะจนแทบไม่เข้า ใช้ Superconduct ลบเกราะได้'],
+['swarm','ฝูงเร็ว',['nova','cyclone','orbit','chain'],['lance','bolt'],'มอนเยอะเร็ว สกิลวงกว้างได้เปรียบ'],
+['ranged','ตาเวทยิงไกล',['lance','bolt','chain','meteor'],['orbit','frost','nova'],'ยืนไกล สกิลรอบตัวแตะไม่ถึง'],
+['boss','บอส',['lance','laser','bolt'],['cyclone','hole'],'ตัวเดียว HP สูง ดูดไม่ได้ ต้องตีแรงเป้าเดียว'],
+['split','สไลม์แตกตัว',['nova','toxic','frost'],['lance'],'ตายแล้วแตก 3 ตัว สกิลพื้นที่ต่อเนื่องได้เปรียบ']];
+const L=[['link','Link สายตัวละคร'],['evo','Evolution เดิม'],['combo','Combo ธาตุ'],['counter','แพ้ทาง-ชนะทาง']];
+let layer='link',sel=null;
+const P={};CH.forEach((c,g)=>{const gx=12+g*166;P[c.id]=[gx+80,50];c.link.forEach((s,i)=>P[s]=[gx+27+i*53,200]);});
+Object.keys(PS).forEach((k,i)=>P['p_'+k]=[60+i*112,360]);TH.forEach((t,i)=>P['t_'+t[0]]=[68+i*136,360]);
+const NS='http://www.w3.org/2000/svg';
+function el(t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;}
+function box(id,w,h,label,sub,stroke,fill,dark){const[x,y]=P[id];const g=el('g',{class:'nd','data-id':id,tabindex:0});
+ g.appendChild(el('rect',{x:x-w/2,y:y-h/2,width:w,height:h,rx:6,fill:fill||'var(--surface-2)',stroke:stroke||'var(--border-strong)','stroke-width':stroke?1.5:0.5}));
+ g.appendChild(el('text',{x,y:sub?y-2:y+4,'text-anchor':'middle','font-size':11,'font-weight':600,fill:dark||'var(--text-primary)'},label));
+ if(sub)g.appendChild(el('text',{x,y:y+12,'text-anchor':'middle','font-size':10,fill:dark||'var(--text-secondary)'},sub));return g;}
+function line(a,b,c,w,curve){const[x1,y1]=P[a],[x2,y2]=P[b];let d;
+ if(curve){const my=Math.max(y1,y2)+22+Math.abs(x2-x1)*0.28;d=`M${x1} ${y1+20} Q${(x1+x2)/2} ${my} ${x2} ${y2+20}`;}
+ else d=`M${x1} ${y1+(y2>y1?22:-22)} L${x2} ${y2+(y2>y1?-20:20)}`;
+ return el('path',{d,fill:'none',stroke:c,'stroke-width':w||1.5,'data-a':a,'data-b':b});}
+function edges(){const E=[];
+ if(layer==='link')CH.forEach(c=>c.link.forEach(s=>E.push(line(c.id,s,'#EF9F27',2))));
+ if(layer==='evo')Object.keys(SK).forEach(s=>E.push(line(s,'p_'+SK[s][3],SK[s][2],1.5)));
+ if(layer==='combo')CB.forEach(cb=>cb[3].forEach(([a,b])=>E.push(line(a,b,cb[2],2.5,true))));
+ if(layer==='counter')TH.forEach(t=>t[2].forEach(s=>E.push(line(s,'t_'+t[0],'#639922',1.2))));
+ return E;}
+function draw(){const eg=document.getElementById('edges'),ng=document.getElementById('nodes');eg.innerHTML='';ng.innerHTML='';
+ edges().forEach(e=>eg.appendChild(e));
+ CH.forEach(c=>ng.appendChild(box(c.id,150,44,c.n+' · '+c.sig,'สาย '+c.awk,'#EF9F27','#FAEEDA','#633806')));
+ Object.keys(SK).forEach(s=>ng.appendChild(box(s,50,40,SK[s][0].split(' ').pop(),SK[s][1],SK[s][2])));
+ if(layer==='evo')Object.keys(PS).forEach(k=>ng.appendChild(box('p_'+k,96,32,PS[k],null,null,'var(--surface-1)')));
+ if(layer==='counter')TH.forEach(t=>ng.appendChild(box('t_'+t[0],112,32,t[1],null,'#E24B4A','var(--surface-1)')));
+ if(layer==='combo')ng.appendChild(el('text',{x:340,y:372,'text-anchor':'middle','font-size':11,fill:'var(--text-secondary)'},'เส้นโค้ง = คู่ที่ติดคอมโบ · Arcane Bolt ใช้สถานะใดก็ได้ (Catalyst)'));
+ if(layer==='link')ng.appendChild(el('text',{x:340,y:290,'text-anchor':'middle','font-size':11,fill:'var(--text-secondary)'},'ทุกตัวละครหยิบสกิลทั่วไปได้ทุกตัว แต่นับเป็น Link ได้เฉพาะสายตัวเอง'));
+ document.getElementById('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.l===layer));
+ const lg=document.getElementById('lg');
+ lg.innerHTML=layer==='combo'?CB.map(c=>`<span style="--c:${c[2]}">${c[0]}: ${c[1]}</span>`).join(''):layer==='link'?'<span style="--c:#EF9F27">Link: สกิลประจำตัว ↔ สกิลทั่วไปในสาย (ต้องเต็มเลเวล 2 ใน 3 เพื่อตื่นพลัง)</span>':layer==='evo'?'<span style="--c:#888780">สีเส้น = ธาตุของสกิล · สกิลประจำตัวก็ Evo กับพาสซีฟได้ (ดูในรายละเอียดตัวละคร)</span>':'<span style="--c:#639922">เส้น = ได้เปรียบ · คลิกศัตรูเพื่อดูสกิลที่เสียเปรียบ</span>';
+ hl();}
+function rel(id){const R=new Set([id]);document.querySelectorAll('#edges path').forEach(p=>{if(p.dataset.a===id)R.add(p.dataset.b);if(p.dataset.b===id)R.add(p.dataset.a);});return R;}
+function hl(){const R=sel?rel(sel):null;document.querySelectorAll('#nodes .nd').forEach(n=>n.classList.toggle('dim',!!R&&!R.has(n.dataset.id)));
+ document.querySelectorAll('#edges path').forEach(p=>p.classList.toggle('dim',!!R&&p.dataset.a!==sel&&p.dataset.b!==sel));detail();}
+const nm=s=>SK[s][0];
+function detail(){const d=document.getElementById('det');const id=sel;
+ if(!id){d.innerHTML='<b style="font-weight:600">คลิกกล่องใดก็ได้</b> เพื่อดูความสัมพันธ์ · ชั้นที่แสดงอยู่: <b style="font-weight:600">'+L.find(l=>l[0]===layer)[1]+'</b>';return;}
+ const c=CH.find(x=>x.id===id);
+ if(c){d.innerHTML=`<b style="font-weight:600">${c.n} · สกิลประจำตัว ${c.sig}</b> (ชื่อชั่วคราว รอ ⑲)<br>${c.st}<br>Evolution: ${c.sig} เต็ม + ${PS[c.pas]}<br>Link: ${c.link.map(nm).join(', ')} (ต้องเต็ม 2 ใน 3 และติดอยู่ในช่องโจมตี)<br><b style="font-weight:600">ตื่นพลัง → ${c.awk}</b>: กิน Link 2 ตัว, ร่างสกิลเปลี่ยน, ปลดล็อกสกิลสาย: ${c.line.join(', ')}`;return;}
+ if(SK[id]){const s=SK[id],own=CH.find(x=>x.link.includes(id)),cbs=CB.filter(cb=>cb[3].some(e=>e.includes(id))).map(cb=>cb[0]);
+  const st=TH.filter(t=>t[2].includes(id)).map(t=>t[1]),wk=TH.filter(t=>t[3].includes(id)).map(t=>t[1]);
+  d.innerHTML=`<b style="font-weight:600">${s[0]}</b> · ธาตุ${s[1]} · ${s[4]}<br>อยู่สาย: ${own.n} (Link ของ ${own.sig})<br>Evolution เดิม: + ${PS[s[3]]}<br>คอมโบ: ${cbs.length?cbs.join(', '):'Catalyst (ใช้สถานะใดก็ได้)'}<br>ได้เปรียบ: ${st.join(', ')||'-'} · เสียเปรียบ: ${wk.join(', ')||'-'}`;return;}
+ if(id.startsWith('p_')){const k=id.slice(2),ss=Object.keys(SK).filter(s=>SK[s][3]===k).map(nm),cs=CH.filter(c=>c.pas===k).map(c=>c.sig);
+  d.innerHTML=`<b style="font-weight:600">${PS[k]}</b> (พาสซีฟ)<br>ทำให้ Evolution ได้: ${ss.join(', ')}${cs.length?' และสกิลประจำตัว '+cs.join(', '):''}<br>มีช่องพาสซีฟแค่ 3 → เลือกพาสซีฟ = เลือกว่าจะ Evo สกิลไหน`;return;}
+ if(id.startsWith('t_')){const t=TH.find(x=>'t_'+x[0]===id);d.innerHTML=`<b style="font-weight:600">${t[1]}</b> · ${t[4]}<br>ได้เปรียบ: ${t[2].map(nm).join(', ')}<br>เสียเปรียบ: ${t[3].map(nm).join(', ')}<br>หน้าจบด่านจะบอกล่วงหน้าว่าด่านต่อไปเจอแบบไหน ให้สลับจากช่องเก็บ`;}}
+document.getElementById('tabs').innerHTML=L.map(l=>`<button data-l="${l[0]}">${l[1]}</button>`).join('');
+document.getElementById('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;layer=b.dataset.l;
+ if(sel&&(sel.startsWith('p_')&&layer!=='evo'||sel.startsWith('t_')&&layer!=='counter'))sel=null;draw();};
+document.getElementById('g').addEventListener('click',e=>{const n=e.target.closest('.nd');sel=n&&n.dataset.id!==sel?n.dataset.id:null;hl();});
+draw();
+})();
+</script>
+</body>
+</html>
