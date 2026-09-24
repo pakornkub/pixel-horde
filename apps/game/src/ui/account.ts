@@ -4,6 +4,7 @@ import { backend, BackendError, type Account } from '../net';
 import { nicknameProblem } from '../net/nickname';
 import { guardTab, takeOver } from '../platform/tabs';
 import { $, hide, show } from './overlays';
+import { metaSync } from '../meta';
 
 const NAMED = 'pixelhorde-named';
 const named = (): boolean => { try { return localStorage.getItem(NAMED) === '1'; } catch { return true; } };
@@ -12,6 +13,8 @@ const markNamed = (): void => { try { localStorage.setItem(NAMED, '1'); } catch 
 export interface AccountHooks {
   /** Stop gameplay (pause the Run) while a blocking screen is up. */
   pauseGame(): void;
+  /** Server numbers arrived: re-render wallet, heroes, shop. */
+  onMetaChanged(): void;
 }
 
 let hooks: AccountHooks;
@@ -59,12 +62,19 @@ async function startAccount(): Promise<void> {
       markNamed();
       await backend.start({ nickname: nick ?? undefined });
       started = true;
+      await afterStart();
     });
     return;
   }
   await backend.start({});
   started = true;
   renderAccountLine();
+  await afterStart();
+}
+
+/** Upload the legacy save / offline queue and take the server's Gold. */
+async function afterStart(): Promise<void> {
+  if (await metaSync.sync()) hooks.onMetaChanged();
 }
 
 export function initAccount(h: AccountHooks): void {

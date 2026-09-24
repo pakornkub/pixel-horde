@@ -6,7 +6,8 @@ import { applyLang, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { checkSession, initAccount, renderAccountLine } from './ui/account';
 import { active } from './config';
-import { META, getBest, saveMeta, setBest, simMeta } from './meta';
+import { META, getBest, metaSync, setBest, simMeta } from './meta';
+import { backend, type RunResult, type RunTicket } from './net';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
@@ -27,6 +28,10 @@ const debug: SimOptions['debug'] = {
 let sim: Sim | null = null;
 let queue: Command[] = [];
 let runBanked = 0;
+let ticket: RunTicket | null = null;
+let clientRunId = '';
+let runWallStart = 0;
+let starting = false;
 let shownLevelUp: object | null = null;
 let shownPhase = '';
 let acc = 0;
@@ -35,18 +40,41 @@ let rclock = 0;
 
 const cmd = (c: Command): void => { queue.push(c); };
 
-function bank(): void {
-  if (!sim) return;
-  const add = sim.view().runGold - runBanked;
-  if (add > 0) { META.gold += add; runBanked += add; saveMeta(); }
+/** What the server needs to check and credit this Run. */
+function runResult(result: RunResult['result']): RunResult | null {
+  if (!sim) return null;
+  const v = sim.view();
+  const playMs = Math.round(v.totalTime * 1000);
+  return {
+    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold,
+    score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
+    configVersion: ticket?.configVersion ?? active.cfg.version,
+  };
 }
 
-function newRun(): void {
+/** Stage clear / Run end: show the Gold in the wallet now; the server credits it on submit. */
+function bank(final?: RunResult['result']): void {
+  if (!sim) return;
+  const add = sim.view().runGold - runBanked;
+  if (add > 0) { metaSync.bankLocal(add); runBanked += add; }
+  const r = runResult(final ?? 'quit');
+  if (r) metaSync.recordRun(r, ticket, !final);
+  if (final) void metaSync.sync();
+}
+
+async function newRun(): Promise<void> {
+  if (starting) return;
+  starting = true;
   initAudio();
+  // The server picks the seed when online; give it a moment, then fall back to a local seed.
+  ticket = await Promise.race([backend.startRun(META.ch).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  starting = false;
+  clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
+  runWallStart = performance.now();
   hide('ovTitle'); hide('ovOver');
   clearVfx();
   sim = createSim({
-    seed: (Math.random() * 4294967296) >>> 0,
+    seed: ticket ? ticket.seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH },
@@ -93,7 +121,7 @@ function syncOverlays(): void {
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
     if (v.phase === 'clear') showClear(v, v.runGold);
     if (v.phase === 'over') {
-      bank();
+      bank('dead');
       const bb = getBest();
       if (!bb || v.stage > bb.stage || (v.stage === bb.stage && v.kills > bb.kills)) setBest({ stage: v.stage, kills: v.kills });
       showOver(v, v.runGold);
@@ -198,7 +226,7 @@ $('homeBtn').addEventListener('click', toTitle);
 $('leaveBtn').addEventListener('click', () => {
   if (!leaveArmed) { leaveArmed = true; $('leaveBtn').textContent = t('pause.confirm'); return; }
   leaveArmed = false;
-  bank();
+  bank('quit');
   toTitle();
 });
 $('msgBtn').addEventListener('click', toTitle);
@@ -208,9 +236,9 @@ $('shopBack').addEventListener('click', closeShop);
 $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
 $('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
 $('setBack').addEventListener('click', closeSettings);
-$('startBtn').addEventListener('click', newRun);
+$('startBtn').addEventListener('click', () => void newRun());
 $('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });
-$('retryBtn').addEventListener('click', newRun);
+$('retryBtn').addEventListener('click', () => void newRun());
 
 /** Export the always-on recording (seed, options, inputs, commands, hashes) as JSON. */
 function downloadReplay(): void {
@@ -238,5 +266,5 @@ onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
-initAccount({ pauseGame: pause });
+initAccount({ pauseGame: pause, onMetaChanged: refreshText });
 requestAnimationFrame(frame);

@@ -1,7 +1,7 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
 import { EVO_PASSIVE, HERO_IDS, HEROES, SHOP_IDS, WHEEL, shopCost, shopMax, skillStats, type LevelOption, type SimState } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
-import { META, U, getBest, ownsHero, saveMeta } from '../meta';
+import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
 import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
@@ -48,16 +48,17 @@ export function renderChars(): void {
     const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : t('hero.unlock', { cost: c.cost });
     bt.append(im, cn, cc);
     bt.addEventListener('click', () => {
-      if (!owned) {
-        if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
-        META.gold -= c.cost;
-        META.owned.push(k);
-        sfx('lv');
-      }
-      META.ch = k;
-      saveMeta();
-      renderChars();
-      $('bestTxt').textContent = bestLine();
+      void (async () => {
+        if (!owned) {
+          if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
+          const err = await metaSync.unlockHero(k);
+          if (err) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
+          sfx('lv');
+        }
+        metaSync.selectHero(k);
+        renderChars();
+        $('bestTxt').textContent = bestLine();
+      })();
     });
     box.appendChild(bt);
   }
@@ -80,13 +81,10 @@ function renderShop(): void {
     bt.className = 'buy';
     bt.textContent = maxed ? t('shop.maxed') : t('shop.buy', { cost: c });
     bt.disabled = maxed || META.gold < c;
-    bt.addEventListener('click', () => {
-      const cost = shopCost(active.cfg, id, U(id));
-      if (U(id) >= max || META.gold < cost) return;
-      META.gold -= cost;
-      META.up[id] = U(id) + 1;
-      saveMeta();
-      sfx('lv');
+    bt.addEventListener('click', async () => {
+      bt.disabled = true;
+      const err = await metaSync.buy(id);
+      if (!err) sfx('lv');
       renderShop();
     });
     row.appendChild(bt);

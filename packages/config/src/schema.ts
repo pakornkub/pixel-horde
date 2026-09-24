@@ -232,6 +232,16 @@ const shared = obj({
     perPetLv: mul(0.4, 'Damage + per pet level'),
   }, 'Pet dragon'),
   clone: obj({ dmg: frac(0.35, 'Clone damage fraction'), dmgPerLv: frac(0.08, 'Clone damage + per clone level'), dmgMax: frac(0.6, 'Clone damage fraction cap') }, 'Shadow Clone'),
+  antiCheat: obj({
+    minTimeFactor: frac(0.9, 'Real play time needed ≥ this × the length of the Stages cleared'),
+    goldBase: pos(1500, 'Gold ceiling for Chapter 1 (per Run)'),
+    goldGrowth: n(1.35, 1, 5, 'Gold ceiling × per extra Chapter'),
+    killsPerSecond: pos(15, 'Kill ceiling per second of real play'),
+    killsPerChapter: pos(500, 'Extra kills allowed per Chapter reached'),
+    maxSubmitsPerHour: int(30, 1, 1000, 'Run submissions per player per hour'),
+    minSecondsBetweenStarts: sec(5, 'Minimum seconds between two start_run calls'),
+    legacyGoldCap: pos(50000, 'Most Gold a one-time legacy save upload may bring'),
+  }, 'Anti-cheat tier 0 (server checks)'),
   skills,
   passives,
 });

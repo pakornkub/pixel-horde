@@ -11,6 +11,8 @@ export const browserStore: KeyValue = {
   set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } },
 };
 
+const offlineErr = async (): Promise<never> => { throw new BackendError('OFFLINE'); };
+
 export function createOfflineBackend(store: KeyValue = browserStore): Backend {
   const status = new StatusBox();
   let acc: Account | null = null;
@@ -39,5 +41,12 @@ export function createOfflineBackend(store: KeyValue = browserStore): Backend {
     },
     checkSession: async () => true,
     reclaim: async () => undefined,
+    getMeta: offlineErr,
+    startRun: async () => null,
+    submitRun: offlineErr,
+    submitOfflineRun: offlineErr,
+    buyUpgrade: offlineErr,
+    unlockHero: offlineErr,
+    importLegacy: offlineErr,
   };
 }

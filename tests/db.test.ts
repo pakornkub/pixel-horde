@@ -44,3 +44,21 @@ describe('nickname rules agree between client and server', () => {
     }
   });
 });
+
+describe('server copy of the Balance Config', () => {
+  it('version 0 in the migrations equals the built-in defaults', async () => {
+    const { DEFAULT_CONFIG } = await import('@pixel-horde/config');
+    const db = await freshDb();
+    const r = await db.query<{ data: unknown }>('select data from public.balance_configs where version = 0');
+    expect(r.rows[0].data).toEqual(JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
+  });
+
+  it('shop prices match the client', async () => {
+    const { shopCost, SHOP_IDS, DEFAULT_RESOLVED } = await import('@pixel-horde/sim');
+    const db = await freshDb();
+    for (const id of SHOP_IDS) for (let lv = 0; lv < DEFAULT_RESOLVED.shop[id].max; lv++) {
+      const r = await db.query<{ c: string }>('select public.shop_cost(0, $1, $2)::text as c', [id, lv]);
+      expect(Number(r.rows[0].c), `${id} ${lv}`).toBe(shopCost(DEFAULT_RESOLVED, id, lv));
+    }
+  });
+});

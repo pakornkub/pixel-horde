@@ -1,6 +1,6 @@
 // Supabase adapter. Loaded lazily so offline play never downloads supabase-js.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BackendError, StatusBox, toBackendError, type Account, type Backend } from './backend';
+import { BackendError, StatusBox, toBackendError, type Account, type Backend, type RunTicket, type ServerMeta, type SubmitOutcome } from './backend';
 import { SUPABASE_KEY, SUPABASE_URL, TURNSTILE_SITE_KEY } from './config';
 import { createOfflineBackend } from './offline';
 import { getCaptchaToken } from './turnstile';
@@ -31,6 +31,8 @@ export function createSupabaseBackend(): Backend {
     }
     return data as T;
   }
+
+  const online = (): void => { if (status.get() !== 'online') throw new BackendError(status.get() === 'replaced' ? 'SESSION_REPLACED' : 'OFFLINE'); };
 
   return {
     kind: 'supabase',
@@ -81,5 +83,24 @@ export function createSupabaseBackend(): Backend {
       acc = toAccount(row, acc?.anonymous ?? true);
       status.set('online');
     },
+    async getMeta() { online(); return rpc<ServerMeta>('get_meta'); },
+    async startRun(hero, mode = 'solo') {
+      if (status.get() !== 'online') return null;
+      try {
+        const t = await rpc<{ runId: string; token: string; seed: number; configVersion: number }>('start_run', { p_hero: hero, p_mode: mode });
+        return { runId: t.runId, token: t.token, seed: Number(t.seed) >>> 0, configVersion: t.configVersion } satisfies RunTicket;
+      } catch (e) {
+        if (e instanceof BackendError && e.code === 'SESSION_REPLACED') throw e;
+        return null; // rate limit / network: play now, submit as an offline Run later
+      }
+    },
+    async submitRun(ticket, r) {
+      online();
+      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, score: r.score, pausedMs: r.pausedMs, summary: r.summary ?? {} } });
+    },
+    async submitOfflineRun(r) { online(); return rpc<SubmitOutcome>('submit_offline_run', { p: r }); },
+    async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },
+    async unlockHero(hero) { online(); return rpc<ServerMeta>('unlock_hero', { p_hero: hero }); },
+    async importLegacy(save) { online(); return rpc<ServerMeta>('import_legacy_meta', { p: save }); },
   };
 }
