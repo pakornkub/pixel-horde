@@ -111,3 +111,20 @@ html[lang="en"] .seg button{font-size:9px}
 .acct{margin-top:4px}
 .link{font:inherit;background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer}
 #ovTab,#ovReplaced{z-index:8}
+
+/* leaderboard (ticket 10) */
+.box.wide{width:min(560px,100%)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
+.tabs button{font:inherit;font-size:13px;border:3px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:4px;padding:4px 8px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.lb{list-style:none;padding:0}
+.lb li{display:grid;grid-template-columns:2.6em 1fr auto auto;gap:8px;align-items:baseline;padding:4px 6px;border-bottom:1px dashed rgba(30,27,51,.2)}
+.lb li.me{background:#fff3b8;font-weight:700}
+.lb .rk{font-family:var(--pix);font-size:10px}
+.lb .sc{font-family:var(--pix);font-size:11px;text-align:right}
+.lb .meta{font-size:12px;opacity:.75}
+.lb .ttl{font-size:11px;opacity:.7;margin-left:4px}
+.lb .unv{font-size:11px;color:#9a6a00;margin-left:4px}
+#boardMine:empty{display:none}
+#boardMine{border-top:3px solid var(--ink);margin-top:6px}
+html[lang="en"] .tabs button{font-size:9px}

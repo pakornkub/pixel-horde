@@ -38,6 +38,7 @@ function fakeBackend(start: BackendStatus = 'offline') {
       if (!server.legacyImported) { server.gold += Math.min(Number((s as { gold: number }).gold) || 0, 50000); server.legacyImported = true; }
       return clone();
     },
+    getLeaderboard: async () => { throw new BackendError('OFFLINE'); },
   };
   return { b, status, server, calls };
 }

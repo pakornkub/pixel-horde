@@ -254,5 +254,19 @@
  "tab.useHere": "ใช้แท็บนี้แทน",
  "replaced.title": "เปิดบัญชีนี้ที่อื่นแล้ว",
  "replaced.text": "บัญชีนี้ถูกเปิดเล่นบนเครื่องอื่นล่าสุด เครื่องที่เข้าล่าสุดเท่านั้นที่บันทึกความคืบหน้าได้",
- "replaced.playHere": "เล่นที่เครื่องนี้"
+ "replaced.playHere": "เล่นที่เครื่องนี้",
+ "board.open": "อันดับ",
+ "board.title": "LEADERBOARD",
+ "board.solo": "Season เดี่ยว",
+ "board.coop": "Season co-op",
+ "board.endless": "Endless",
+ "board.alltime": "ตลอดกาล",
+ "board.allHeroes": "ทุกฮีโร่",
+ "board.loading": "กำลังโหลด...",
+ "board.offline": "ต้องออนไลน์ถึงจะดูอันดับได้",
+ "board.empty": "ยังไม่มีคะแนนในกระดานนี้",
+ "board.unverified": "ยังไม่ยืนยัน",
+ "board.chapter": "Ch {n}",
+ "board.you": "คุณ",
+ "board.season": "Season {n}"
 }

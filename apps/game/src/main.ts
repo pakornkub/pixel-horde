@@ -5,6 +5,7 @@ import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { checkSession, initAccount, renderAccountLine } from './ui/account';
+import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type RunResult, type RunTicket } from './net';
@@ -267,4 +268,5 @@ $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 
 applyLang(settings.lang);
 refreshText();
 initAccount({ pauseGame: pause, onMetaChanged: refreshText });
+initLeaderboard();
 requestAnimationFrame(frame);

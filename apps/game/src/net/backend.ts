@@ -60,6 +60,13 @@ export interface RunResult {
 
 export interface SubmitOutcome { status: 'submitted' | 'offline' | 'rejected' | 'duplicate'; reason?: string | null; meta: ServerMeta }
 
+export type BoardId = 'solo' | 'coop' | 'endless' | 'alltime';
+export interface BoardRow {
+  rank: number; userId: string; name: string; title: string | null; score: number; chapter: number;
+  hero: string; weapon: string | null; verified: boolean; at: string; me: boolean;
+}
+export interface BoardView { board: BoardId; season: number; top: BoardRow[]; me: BoardRow | null; around: BoardRow[]; total: number }
+
 export interface Backend {
   readonly kind: 'supabase' | 'offline';
   status(): BackendStatus;
@@ -82,6 +89,7 @@ export interface Backend {
   buyUpgrade(item: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;
+  getLeaderboard(board: BoardId, hero?: string | null): Promise<BoardView>;
 }
 
 /** Small helper both adapters use for status listeners. */

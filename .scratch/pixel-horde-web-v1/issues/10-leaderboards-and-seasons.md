@@ -4,11 +4,13 @@
 
 **Blocked by:** 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** ready-for-agent
+**Status:** in-progress — code + tests done; waiting for the owner to apply migrations to the live project
 
-- [ ] `leaderboard` and `seasons` tables; ties ordered by earliest achievement
-- [ ] Leaderboard screen with board tabs, my-rank row and Hero filter
-- [ ] Co-op entries are marked "unverified"
-- [ ] pgTAP tests cover best-per-board updates
+- [x] `leaderboard` and `seasons` tables; ties ordered by earliest achievement
+- [x] Leaderboard screen with board tabs, my-rank row and Hero filter
+- [x] Co-op entries are marked "unverified"
+- [x] pgTAP tests cover best-per-board updates
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`
+
+**Notes (implementation):** migration `20260925000003_leaderboards.sql` (Season 1 seeded; board rows `solo`/`coop`/`endless` per Season, `alltime` with season 0; the table is read only through `get_leaderboard`). `submit_run` now records the best per board; offline and rejected Runs never rank; banned players are skipped. Screen: `apps/game/src/ui/leaderboard.ts`. Daily boards (`daily:YYYY-MM-DD`) are allowed by the schema for a later release. `tests/browser/online.spec.ts` drives the online flows against a mocked Supabase API. The Score itself is still the old `stage×1e6+kills` until ticket 19.

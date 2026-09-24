@@ -48,5 +48,6 @@ export function createOfflineBackend(store: KeyValue = browserStore): Backend {
     buyUpgrade: offlineErr,
     unlockHero: offlineErr,
     importLegacy: offlineErr,
+    getLeaderboard: offlineErr,
   };
 }
