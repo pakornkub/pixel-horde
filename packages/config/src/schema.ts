@@ -220,6 +220,27 @@ const shared = obj({
     whelps: int(4, 0, 20, 'Whelps per summon'), whelpCap: int(6, 0, 50, 'Summon only below this many whelps'),
     gold: pos(100, 'Gold for taming'),
   }, 'Inferno Dragon'),
+  status: obj({
+    frostStacks: int(3, 1, 20, 'Frost Aura ticks needed to freeze a monster'),
+    frozen: sec(1.5, 'Frozen (s); bosses are only slowed'),
+    gatherLinger: sec(1, 'Gathered lasts this long after the pull ends (s)'),
+    burning: sec(3, 'Burning (s)'), shocked: sec(2, 'Shocked (s)'), poisoned: sec(4, 'Poisoned (s)'),
+  }, 'Statuses left by Skills'),
+  combos: obj({
+    cooldown: sec(1, 'The same Combo can hit the same monster again after (s)'),
+    shatter: mul(2.5, 'Shatter: Frozen + heavy hit, damage ×'), shatterShards: frac(0.3, 'Shatter: ice shards hit nearby for × the hit'), shatterR: pos(28, 'Shatter shard radius'),
+    firestormR: pos(40, 'Firestorm: fire spreads this far through a Gathered pack'), firestorm: frac(0.5, 'Firestorm: spread damage × the hit'),
+    overload: mul(1.5, 'Overload: Shocked + fire, explosion × the hit'), overloadR: pos(30, 'Overload radius'),
+    superconduct: sec(5, 'Superconduct: Frozen + lightning, armour removed for (s)'),
+    toxicBurst: mul(2, 'Toxic Burst: Poisoned + fire, remaining poison damage ×'), toxicBurstR: pos(35, 'Toxic Burst radius'),
+    grinder: mul(1.5, 'Grinder: Gathered + sweeper, damage ×'),
+    catalyst: mul(1.5, 'Catalyst: Arcane Bolt on any Status, damage ×'),
+  }, 'Combos'),
+  realms: obj({
+    resist: frac(0.5, 'Damage × from the element a Realm resists'),
+    armorMul: mul(2, 'Armoured Realms: armour chance ×'), armorFrom: int(2, 1, 20, 'Armoured Realms: armour from this Chapter'),
+    fastSpd: mul(1.1, 'Fast Realms: fast monsters speed ×'),
+  }, 'Realm traits and resistances'),
   kings: obj({
     firstCd: sec(1.6, 'First move after a King arrives (s)'),
     cdMin: sec(2.4, 'Shortest pause between King moves (s)'), cdMax: sec(3.4, 'Longest pause between King moves (s)'),

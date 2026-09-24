@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { EVO_PASSIVE, HERO_IDS, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { EVO_PASSIVE, HERO_IDS, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -128,6 +128,8 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       name = skillName(o.id);
       tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t(o.toBench ? 'level.bench' : 'level.new')}</i>`;
       desc = (lv ? '' : skillDesc(o.id) + ' ') + '(' + skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false)) + ')';
+      const partners = (Object.keys(P.skills) as SkillId[]).filter((k) => k !== o.id && combosBetween(o.id, k).length);
+      if (partners.length) desc += t('level.combos', { list: partners.slice(0, 2).map((k) => `${skillName(k)} (${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join('/')})`).join(', ') });
       if (o.id === signatureOf(P.ch)) desc += t('level.signature');
       else if (SKILL_LINES[P.ch].includes(o.id)) desc += t('level.link');
       if (lv + 1 === v.cfg.skills[o.id].max) desc += t('level.final', { passive: passiveName(EVO_PASSIVE[o.id]) });

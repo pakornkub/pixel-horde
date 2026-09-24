@@ -1,5 +1,5 @@
 import { TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
-import type { SkillId, SkillStats } from '../data/skills';
+import { PET_DIVE, SKILL_TAGS, type SkillId, type SkillStats } from '../data/skills';
 import type { Enemy, Hazard, RivalSkill, SimState } from '../types';
 import { hit, hurtP } from './combat';
 import { banner, burst, flash, sfx, shake } from './fx';
@@ -294,7 +294,7 @@ export function petStep(s: SimState, dt: number): void {
     if (vis.length) {
       pt.dive = Math.max(Q.diveMin, Q.dive - Q.divePerLv * pt.lv);
       const e = vis[R.int(vis.length)];
-      s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: 0.45, r: Q.diveR, dmg: (Q.diveDmg + Q.diveDmgPerLv * P.lv) * (1 + Q.perPetLv * (pt.lv - 1)), boomed: false, bt: 0 });
+      s.effects.push({ type: 'meteor', tag: PET_DIVE, x: e.x, y: e.y, t: 0, dur: 0, delay: 0.45, r: Q.diveR, dmg: (Q.diveDmg + Q.diveDmgPerLv * P.lv) * (1 + Q.perPetLv * (pt.lv - 1)), boomed: false, bt: 0 });
     } else pt.dive = 0.5;
   }
 }
@@ -318,19 +318,19 @@ export function cloneCast(s: SimState, id: SkillId, t: SkillStats): void {
     if (!tg) return;
     for (let i = 0; i < t.n; i++) {
       const a = atan2(tg.y - c.y, tg.x - c.x) + R.range(-0.25, 0.25);
-      s.bolts.push({ kind: 'bolt', x: c.x, y: c.y - 3, vx: cos(a) * 200, vy: sin(a) * 200, life: 1.1, dmg: t.dmg * f, pierce: t.pierce, hit: new Set(), col: '#b58cff', rad: 3, kb: 25 });
+      s.bolts.push({ kind: 'bolt', x: c.x, y: c.y - 3, vx: cos(a) * 200, vy: sin(a) * 200, life: 1.1, dmg: t.dmg * f, pierce: t.pierce, hit: new Set(), col: '#b58cff', rad: 3, kb: 25, tag: SKILL_TAGS.bolt });
     }
   } else if (id === 'lance') {
     const a0 = atan2(P.dy, P.dx);
     for (let i = 0; i < t.n; i++) {
       const a = a0 + (i - (t.n - 1) / 2) * 0.22;
-      s.bolts.push({ kind: 'lance', x: c.x, y: c.y - 3, vx: cos(a) * 280, vy: sin(a) * 280, a, life: 0.9, dmg: t.dmg * f, pierce: Infinity, hit: new Set(), col: '#b58cff', rad: 4, kb: 15 });
+      s.bolts.push({ kind: 'lance', x: c.x, y: c.y - 3, vx: cos(a) * 280, vy: sin(a) * 280, a, life: 0.9, dmg: t.dmg * f, pierce: Infinity, hit: new Set(), col: '#b58cff', rad: 4, kb: 15, tag: SKILL_TAGS.lance });
     }
   } else if (id === 'boomer') {
     const tg = nearest(s, c.x, c.y, 180);
     if (!tg) return;
     const a = atan2(tg.y - c.y, tg.x - c.x);
-    s.bolts.push({ kind: 'boom', x: c.x, y: c.y - 3, vx: cos(a) * 170, vy: sin(a) * 170, spd: 170, d: 0, range: t.range, ret: false, life: 3, dmg: t.dmg * f, pierce: Infinity, hit: new Set(), col: '#b58cff', rad: 5, kb: 25, spin: 0 });
+    s.bolts.push({ kind: 'boom', x: c.x, y: c.y - 3, vx: cos(a) * 170, vy: sin(a) * 170, spd: 170, d: 0, range: t.range, ret: false, life: 3, dmg: t.dmg * f, pierce: Infinity, hit: new Set(), col: '#b58cff', rad: 5, kb: 25, spin: 0, tag: SKILL_TAGS.boomer });
   } else if (id === 'chain') {
     const first = nearest(s, c.x, c.y, 150);
     if (!first) return;
@@ -341,7 +341,7 @@ export function cloneCast(s: SimState, id: SkillId, t: SkillStats): void {
       if (!n) break;
       set.add(n); pts.push([n.x, n.y]); cur = n;
     }
-    for (const e of set) hit(s, e, t.dmg * f, '#d9b8ff', 20);
+    for (const e of set) hit(s, e, t.dmg * f, '#d9b8ff', 20, SKILL_TAGS.chain);
     s.effects.push({ type: 'chain', pts, t: 0, dur: 0.2, x: c.x, y: c.y, dmg: 0 });
   } else if (id === 'nova') {
     s.effects.push({ type: 'nova', x: c.x, y: c.y, R: t.r * 0.8, t: 0, dur: 0.38, hit: new Set(), dmg: t.dmg * f });

@@ -12,7 +12,9 @@ export const rnd = (a: number, c: number): number => a + R() * (c - a);
 export const TAU = Math.PI * 2;
 
 export interface Particle { x: number; y: number; vx: number; vy: number; t: number; life: number; col: string; sz: number }
-export interface FloatText { x: number; y: number; vx: number; vy: number; t: number; life: number; v: number | string; col: string; cr: boolean; hurt?: boolean }
+export interface FloatText { x: number; y: number; vx: number; vy: number; t: number; life: number; v: number | string; col: string; cr: boolean; hurt?: boolean; big?: boolean }
+
+const COMBO_COL: Record<string, string> = { shatter: '#bfe6ff', firestorm: '#ff8a3d', overload: '#fff35c', superconduct: '#7df9ff', toxicBurst: '#b6f24a', grinder: '#d8f3e0', catalyst: '#ff5cf4' };
 export interface Banner { txt: string; sub: string; t: number; big?: boolean }
 /** King dialogue: a small non-blocking bubble that follows its speaker while it lives. */
 export interface Bubble { txt: string; who: string; x: number; y: number; t: number; life: number }
@@ -87,6 +89,11 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
         vfx.bubbles.push({ txt, who: e.who, x: e.x, y: e.y, t: 0, life: 2.6 + txt.length * 0.03 });
         break;
       }
+      case 'combo': {
+        vfx.texts.push({ x: e.x, y: e.y - 18, vx: 0, vy: -26, t: 0, life: 1.1, v: t(`combo.${e.id}`), col: COMBO_COL[e.id], cr: false, big: true });
+        sfx('crit');
+        break;
+      }
       case 'dmg': if (MET.on) { MET.dmg.push([v.clock, e.d]); if (MET.dmg.length > 4000) MET.dmg.splice(0, 1000); } break;
       case 'kill': if (MET.on) { MET.ttk.push(e.ttk); if (MET.ttk.length > 60) MET.ttk.shift(); } break;
       default: break;
@@ -135,7 +142,7 @@ export function stepVfx(rdt: number, simDt: number): void {
   const damp = Math.pow(0.05, simDt);
   for (const p of vfx.fx) { p.t += simDt; p.x += p.vx * simDt; p.y += p.vy * simDt; p.vx *= damp; p.vy *= damp; }
   vfx.fx = vfx.fx.filter((p) => p.t < p.life);
-  for (const t of vfx.texts) { t.t += rdt; t.x += t.vx * rdt; t.y += t.vy * rdt; t.vy += 120 * rdt; }
+  for (const t of vfx.texts) { t.t += rdt; t.x += t.vx * rdt; t.y += t.vy * rdt; if (!t.big) t.vy += 120 * rdt; else t.vy *= 0.92; }
   vfx.texts = vfx.texts.filter((t) => t.t < t.life);
   for (const b of vfx.bubbles) b.t += rdt;
   vfx.bubbles = vfx.bubbles.filter((b) => b.t < b.life);

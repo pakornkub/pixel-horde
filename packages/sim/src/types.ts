@@ -2,6 +2,7 @@ import type { ResolvedConfig } from '@pixel-horde/config';
 import type { Streams } from './core/rng';
 import type { RealmId } from './content/lumora/realms';
 import type { EnemyId } from './data/enemies';
+import type { ComboId, HitTag } from './data/skills';
 import type { HeroId } from './data/heroes';
 import type { PassiveId, SkillId } from './data/skills';
 import type { ShopId } from './data/shop';
@@ -118,6 +119,16 @@ export interface Enemy {
   kg?: KingState;
   /** Burrowed/airborne: cannot be hit, deals no contact damage. */
   hide?: boolean;
+  // Statuses (seconds left); frz is Frozen.
+  burn?: number; shock?: number; pois?: number; gath?: number;
+  /** Frost Aura stacks toward Frozen. */
+  chill?: number;
+  /** Poison damage per second (Toxic Burst). */
+  poisDps?: number;
+  /** Superconduct: armour ignored while > 0. */
+  armorOff?: number;
+  /** Combo → clock time when it may hit this monster again. */
+  ccd?: Partial<Record<ComboId, number>>;
 }
 
 export interface BenchSkill { id: SkillId; lv: number; evo: boolean }
@@ -149,6 +160,7 @@ export interface Bolt {
   col: string; rad: number; kb: number;
   a?: number;
   spd?: number; d?: number; range?: number; ret?: boolean; spin?: number;
+  tag?: HitTag;
 }
 
 export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass';
@@ -165,6 +177,8 @@ export interface Effect {
   vx?: number; vy?: number; tick?: number; boom?: number;
   fired?: boolean; targets?: { e: Enemy; x: number; y: number }[];
   pts?: [number, number][];
+  /** Overrides the Skill tag of this effect type (pet dive, …). */
+  tag?: HitTag;
 }
 
 /**
@@ -240,6 +254,7 @@ export type SimEvent =
   | { t: 'stageStart'; stage: number; special: boolean }
   | { t: 'stageClear'; stage: number; escaped: boolean }
   | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
+  | { t: 'combo'; id: ComboId; x: number; y: number }
   | { t: 'swapDenied' }
   | { t: 'victory' }
   | { t: 'gameOver' };

@@ -392,5 +392,13 @@
  "bench.empty": "ว่าง",
  "bench.cost": "สลับครั้งถัดไป: {cost}G (จากรอบนี้ {run}G + กระเป๋า {wallet}G)",
  "bench.short": "Gold ไม่พอสำหรับการสลับครั้งนี้",
- "bench.locked": "Signature: ติดตัวตลอด"
+ "bench.locked": "Signature: ติดตัวตลอด",
+ "combo.shatter": "SHATTER!",
+ "combo.firestorm": "FIRESTORM!",
+ "combo.overload": "OVERLOAD!",
+ "combo.superconduct": "SUPERCONDUCT!",
+ "combo.toxicBurst": "TOXIC BURST!",
+ "combo.grinder": "GRINDER!",
+ "combo.catalyst": "CATALYST!",
+ "level.combos": " · คอมโบกับ {list}"
 }

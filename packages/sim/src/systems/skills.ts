@@ -1,5 +1,6 @@
 import { PI, TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
-import { skillStats, type SkillId, type SkillStats } from '../data/skills';
+import { HOLE_BOOM, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
+import { chillTick } from './combos';
 import type { Enemy, SimState } from '../types';
 import { hit } from './combat';
 import { cloneCast } from './events';
@@ -39,7 +40,7 @@ export function updSkills(s: SimState, dt: number): void {
       for (let i = 0; i < t.n; i++) {
         const e = list[i % list.length];
         const a = atan2(e.y - P.y, e.x - P.x) + (i >= list.length ? R.range(-0.3, 0.3) : 0);
-        s.bolts.push({ kind: 'bolt', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, life: c.life, dmg: t.dmg, pierce: t.pierce, hit: new Set(), col: '#ff5cf4', rad: 3, kb: c.kb });
+        s.bolts.push({ kind: 'bolt', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, life: c.life, dmg: t.dmg, pierce: t.pierce, hit: new Set(), col: '#ff5cf4', rad: 3, kb: c.kb, tag: T.bolt });
       }
       cloneCast(s, id, t);
       P.cds[id] = t.cd * P.cdMul;
@@ -53,7 +54,7 @@ export function updSkills(s: SimState, dt: number): void {
         if (!n) break;
         set.add(n); pts.push([n.x, n.y]); cur = n;
       }
-      for (const e of set) hit(s, e, t.dmg, '#fff35c', c.kb);
+      for (const e of set) hit(s, e, t.dmg, '#fff35c', c.kb, T.chain);
       s.effects.push({ type: 'chain', pts, t: 0, dur: 0.2, x: P.x, y: P.y, dmg: 0 });
       flash(s, 0.05, '#fff9c4', true);
       sfx(s, 'zap');
@@ -81,7 +82,7 @@ export function updSkills(s: SimState, dt: number): void {
       const a0 = atan2(P.dy, P.dx);
       for (let i = 0; i < t.n; i++) {
         const a = a0 + (i - (t.n - 1) / 2) * c.spread;
-        s.bolts.push({ kind: 'lance', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, a, life: c.life, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: '#ffe9a8', rad: 4, kb: c.kb });
+        s.bolts.push({ kind: 'lance', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, a, life: c.life, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: '#ffe9a8', rad: 4, kb: c.kb, tag: T.lance });
       }
       sfx(s, 'lance');
       cloneCast(s, id, t);
@@ -92,7 +93,7 @@ export function updSkills(s: SimState, dt: number): void {
       for (let i = 0; i < t.n; i++) {
         const e = list[i % list.length];
         const a = atan2(e.y - P.y, e.x - P.x) + (i >= list.length ? R.range(-0.5, 0.5) : 0);
-        s.bolts.push({ kind: 'boom', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, spd: c.speed, d: 0, range: t.range, ret: false, life: 3, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: '#7dffb0', rad: 5, kb: c.kb, spin: 0 });
+        s.bolts.push({ kind: 'boom', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, spd: c.speed, d: 0, range: t.range, ret: false, life: 3, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: '#7dffb0', rad: 5, kb: c.kb, spin: 0, tag: T.boomer });
       }
       cloneCast(s, id, t);
       P.cds[id] = t.cd * P.cdMul;
@@ -140,7 +141,7 @@ export function updSkills(s: SimState, dt: number): void {
         const dx = e.x - bx, dy = e.y - by, rr = e.r + 5;
         if (dx * dx + dy * dy < rr * rr) {
           e.oc = K.orbit.hitCd;
-          hit(s, e, t.dmg, '#7df9ff', K.orbit.kb);
+          hit(s, e, t.dmg, '#7df9ff', K.orbit.kb, T.orbit);
           burst(s, bx, by, '#c8fdff', 3, 40, 0.25, 0.4);
         }
       }
@@ -152,14 +153,14 @@ export function updSkills(s: SimState, dt: number): void {
     for (const e of s.enemies) {
       if (e.dead) continue;
       const dx = e.x - P.x, dy = e.y - P.y;
-      if (dx * dx + dy * dy < t.r * t.r) { e.slowT = K.frost.tick; if (t.freeze) e.frz = K.frost.tick; }
+      if (dx * dx + dy * dy < t.r * t.r) { e.slowT = K.frost.tick; if (t.freeze && !e.boss) e.frz = K.frost.tick; } // bosses are slowed, never frozen
     }
     if (s.frostT <= 0) {
       s.frostT = K.frost.tick;
       for (const e of s.enemies) {
         if (e.dead) continue;
         const dx = e.x - P.x, dy = e.y - P.y;
-        if (dx * dx + dy * dy < t.r * t.r) hit(s, e, t.dmg, '#9fd8ff', K.frost.kb);
+        if (dx * dx + dy * dy < t.r * t.r) { hit(s, e, t.dmg, '#9fd8ff', K.frost.kb, T.frost); if (!e.dead) chillTick(s, e); }
       }
     }
   }
@@ -187,7 +188,7 @@ export function stepBolts(s: SimState, dt: number): void {
       const dx = e.x - bo.x, dy = e.y - bo.y, rr = e.r + bo.rad;
       if (dx * dx + dy * dy < rr * rr) {
         bo.hit.add(e);
-        hit(s, e, bo.dmg, bo.col, bo.kb);
+        hit(s, e, bo.dmg, bo.col, bo.kb, bo.tag);
         burst(s, bo.x, bo.y, bo.col, 4, 50, 0.25);
         bo.pierce--;
         if (bo.pierce < 0) { bo.life = 0; break; }
@@ -198,7 +199,7 @@ export function stepBolts(s: SimState, dt: number): void {
 }
 
 export function updEffects(s: SimState, dt: number): void {
-  const P = s.P, K = s.cfg.skills;
+  const P = s.P, K = s.cfg.skills, gl = s.cfg.status.gatherLinger;
   for (const f of s.effects) {
     f.t += dt;
     if (f.type === 'nova') {
@@ -206,7 +207,7 @@ export function updEffects(s: SimState, dt: number): void {
       for (const e of s.enemies) {
         if (e.dead || f.hit!.has(e)) continue;
         const d = hypot(e.x - f.x, e.y - f.y);
-        if (d < r + e.r) { f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', K.nova.kb); }
+        if (d < r + e.r) { f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', K.nova.kb, f.tag ?? T.nova); }
       }
     } else if (f.type === 'meteor') {
       if (!f.boomed && f.t >= f.delay!) {
@@ -214,7 +215,7 @@ export function updEffects(s: SimState, dt: number): void {
         f.bt = 0;
         for (const e of s.enemies) {
           if (e.dead) continue;
-          if (hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) hit(s, e, f.dmg, '#ff4b3a', K.meteor.kb);
+          if (hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) hit(s, e, f.dmg, '#ff4b3a', K.meteor.kb, f.tag ?? T.meteor);
         }
         burst(s, f.x, f.y, '#ff8a3d', 22, 90, 0.55);
         burst(s, f.x, f.y, '#ffd23f', 12, 60, 0.4);
@@ -231,7 +232,7 @@ export function updEffects(s: SimState, dt: number): void {
         const dx = e.x - f.x, dy = e.y - f.y, d = hypot(dx, dy);
         if (d > f.r! + e.r) continue;
         const da = wrapAngle(atan2(dy, dx) - f.a!);
-        if (Math.abs(da) < f.sp! + e.r / Math.max(d, 1)) { f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', 30); }
+        if (Math.abs(da) < f.sp! + e.r / Math.max(d, 1)) { f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', 30, PET_FIRE); }
       }
     } else if (f.type === 'cyclone') {
       f.x += f.vx! * dt;
@@ -245,8 +246,8 @@ export function updEffects(s: SimState, dt: number): void {
       for (const e of s.enemies) {
         if (e.dead) continue;
         const dx = f.x - e.x, dy = f.y - e.y, d = hypot(dx, dy) || 1;
-        if (d < f.r! * 2.2 && !e.boss) { const k = Math.min(d, K.cyclone.pull * dt); e.x += (dx / d) * k; e.y += (dy / d) * k; }
-        if (doHit && d < f.r! + e.r) hit(s, e, f.dmg, '#d8f3e0', 0);
+        if (d < f.r! * 2.2 && !e.boss) { const k = Math.min(d, K.cyclone.pull * dt); e.x += (dx / d) * k; e.y += (dy / d) * k; e.gath = gl; }
+        if (doHit && d < f.r! + e.r) hit(s, e, f.dmg, '#d8f3e0', 0, T.cyclone);
       }
     } else if (f.type === 'toxic') {
       f.tick! -= dt;
@@ -255,7 +256,7 @@ export function updEffects(s: SimState, dt: number): void {
       for (const e of s.enemies) {
         if (e.dead) continue;
         const dx = f.x - e.x, dy = (f.y - e.y) * 1.4;
-        if (dx * dx + dy * dy < (f.r! + e.r) * (f.r! + e.r)) { e.slowT = 0.3; if (doHit) hit(s, e, f.dmg, '#b6f24a', 0); }
+        if (dx * dx + dy * dy < (f.r! + e.r) * (f.r! + e.r)) { e.slowT = 0.3; if (doHit) hit(s, e, f.dmg, '#b6f24a', 0, T.toxic); }
       }
     } else if (f.type === 'laser') {
       f.a = f.a0! + TAU * Math.min(1, f.t / f.dur);
@@ -266,7 +267,7 @@ export function updEffects(s: SimState, dt: number): void {
           const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy) || 1;
           if (d > f.len! + e.r) continue;
           const da = wrapAngle(atan2(dy, dx) - ba);
-          if (Math.abs(da) < K.laser.width + (e.r + 3) / d) { hs.add(e); hit(s, e, f.dmg, '#5cf4ff', K.laser.kb); burst(s, e.x, e.y, '#bff9ff', 3, 50, 0.3); }
+          if (Math.abs(da) < K.laser.width + (e.r + 3) / d) { hs.add(e); hit(s, e, f.dmg, '#5cf4ff', K.laser.kb, T.laser); burst(s, e.x, e.y, '#bff9ff', 3, 50, 0.3); }
         }
       }
       shake(s, 1.5);
@@ -278,14 +279,14 @@ export function updEffects(s: SimState, dt: number): void {
         for (const e of s.enemies) {
           if (e.dead) continue;
           const dx = f.x - e.x, dy = f.y - e.y, d = hypot(dx, dy) || 1;
-          if (d < f.r! * 1.5 && !e.boss) { const k = Math.min(d * 0.9, K.hole.pull * dt); e.x += (dx / d) * k; e.y += (dy / d) * k; }
-          if (doHit && d < f.r!) hit(s, e, f.dmg, '#b07cff', 0);
+          if (d < f.r! * 1.5 && !e.boss) { const k = Math.min(d * 0.9, K.hole.pull * dt); e.x += (dx / d) * k; e.y += (dy / d) * k; e.gath = gl; }
+          if (doHit && d < f.r!) hit(s, e, f.dmg, '#b07cff', 0, T.hole);
         }
         if (f.t >= f.dur - 0.3) {
           f.boomed = true;
           for (const e of s.enemies) {
             if (e.dead) continue;
-            if (hypot(e.x - f.x, e.y - f.y) < f.r! * 1.1 + e.r) hit(s, e, f.boom!, '#d9b8ff', K.hole.kb);
+            if (hypot(e.x - f.x, e.y - f.y) < f.r! * 1.1 + e.r) hit(s, e, f.boom!, '#d9b8ff', K.hole.kb, HOLE_BOOM);
           }
           burst(s, f.x, f.y, '#b07cff', 40, 130, 0.6);
           burst(s, f.x, f.y, '#ffffff', 16, 90, 0.4);

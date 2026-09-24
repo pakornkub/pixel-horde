@@ -16,6 +16,12 @@ export function typePool(s: SimState): EnemyId[] {
   if (st >= 6) a.push('charger', 'caster');
   if (st >= 3) a.push(p[1]);
   if (st >= 5) a.push(p[2], p[1]);
+  // Realm traits bring more of the matching monsters
+  const tr = realm(s).traits;
+  if (tr.includes('fast')) for (const m of p) if (ET[m].trait === 'fast') a.push(m);
+  if (tr.includes('ranged') && st >= 2) a.push('caster');
+  if (tr.includes('split') && st >= 2) a.push('splitter');
+  if (tr.includes('charge')) a.push('charger');
   return a;
 }
 
@@ -45,7 +51,10 @@ export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, eli
     elite, boss: !!t.boss, dmgMul: 1,
     kx: 0, ky: 0, flash: 0, slowT: 0, frz: 0, oc: 0, wob: R.range(-c.wobble, c.wobble), ph: R.next() * TAU, dead: false, armor: 0, born: s.clock,
   };
-  if (s.stage >= c.armorFrom && !t.boss && type !== 'mini' && R.next() < (c.armorChance + c.armorChancePerStage * s.stage) * s.dir.v) e.armor = armorVal(s);
+  const armored = realm(s).traits.includes('armored'), RT = s.cfg.realms;
+  if (s.stage >= (armored ? Math.min(c.armorFrom, RT.armorFrom) : c.armorFrom) && !t.boss && type !== 'mini'
+    && R.next() < (c.armorChance + c.armorChancePerStage * s.stage) * s.dir.v * (armored ? RT.armorMul : 1)) e.armor = armorVal(s);
+  if (t.trait === 'fast' && realm(s).traits.includes('fast')) e.spd *= RT.fastSpd;
   e.maxHp = e.hp;
   s.enemies.push(e);
   introType(s, type, e.armor > 0);

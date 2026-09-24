@@ -188,6 +188,16 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       b.drawImage(im, x, y, w, h);
       b.globalAlpha = 1;
       if (e.slowT > 0) { b.fillStyle = 'rgba(159,216,255,.45)'; b.fillRect(x, y + h - 3, w, 3); }
+      // Statuses: small marks above the head (Frozen already tints the sprite)
+      {
+        let mx = Math.round(e.x + ox) - 5;
+        const my = y - (e.elite ? 8 : 4);
+        const mark = (c: string): void => { b.fillStyle = K; b.fillRect(mx - 1, my - 1, 4, 4); b.fillStyle = c; b.fillRect(mx, my, 2, 2); mx += 4; };
+        if ((e.burn || 0) > 0) mark(Math.floor(clock * 10) & 1 ? '#ff8a3d' : '#ffd23f');
+        if ((e.shock || 0) > 0) mark(Math.floor(clock * 14) & 1 ? '#fff35c' : '#ffffff');
+        if ((e.pois || 0) > 0) mark('#b6f24a');
+        if ((e.gath || 0) > 0) mark('#d8f3e0');
+      }
       if (e.armor) {
         b.fillStyle = K; b.fillRect(Math.round(e.x + ox) - 3, y - 6, 6, 6);
         b.fillStyle = '#c7ced9'; b.fillRect(Math.round(e.x + ox) - 2, y - 5, 4, 3); b.fillRect(Math.round(e.x + ox) - 1, y - 2, 2, 1);
@@ -395,8 +405,8 @@ export function drawTexts(clock: number): void {
   ctx.textBaseline = 'middle';
   const base = CS * DPR;
   for (const t of vfx.texts) {
-    const k = t.t / t.life, pop = 1 + (t.cr ? 1.1 : 0.6) * Math.max(0, 1 - t.t / 0.12);
-    let px = (t.cr ? 4.4 : 2.9) * base;
+    const k = t.t / t.life, pop = 1 + (t.cr || t.big ? 1.1 : 0.6) * Math.max(0, 1 - t.t / 0.12);
+    let px = (t.big ? 3.6 : t.cr ? 4.4 : 2.9) * base;
     if (typeof t.v === 'number' && t.v >= 1000) px *= 1.2;
     if (typeof t.v === 'number' && t.v >= 10000) px *= 1.15;
     px *= pop;

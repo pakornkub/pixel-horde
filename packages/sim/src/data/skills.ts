@@ -64,3 +64,61 @@ export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: bo
   if (evo) s.dmg = Math.round(s.dmg);
   return s;
 }
+
+/** Element of a hit (Realm resistances; Combo triggers). 'arcane' = Arcane Bolt (Catalyst). */
+export type HitElement = 'fire' | 'ice' | 'lightning' | 'poison' | 'dark' | 'arcane';
+export type StatusId = 'frozen' | 'gathered' | 'burning' | 'shocked' | 'poisoned';
+export type ComboId = 'shatter' | 'firestorm' | 'overload' | 'superconduct' | 'toxicBurst' | 'grinder' | 'catalyst';
+export const COMBO_IDS: ComboId[] = ['shatter', 'firestorm', 'overload', 'superconduct', 'toxicBurst', 'grinder', 'catalyst'];
+
+/** What a hit carries: element, heavy (Shatter), sweeper (Grinder), Status it leaves. */
+export interface HitTag { el?: HitElement; heavy?: boolean; sweep?: boolean; applies?: 'burning' | 'shocked' | 'poisoned'; combo?: boolean }
+
+export const SKILL_TAGS: Record<SkillId, HitTag> = {
+  bolt: { el: 'arcane' },
+  orbit: { sweep: true },
+  chain: { el: 'lightning', applies: 'shocked' },
+  nova: { el: 'fire', applies: 'burning' },
+  meteor: { el: 'fire', heavy: true, applies: 'burning' },
+  frost: { el: 'ice' },
+  lance: { heavy: true },
+  boomer: { sweep: true },
+  cyclone: { sweep: true },
+  toxic: { el: 'poison', applies: 'poisoned' },
+  laser: { el: 'lightning', applies: 'shocked' },
+  hole: { el: 'dark' },
+};
+/** Black Hole's collapse is a heavy hit. */
+export const HOLE_BOOM: HitTag = { el: 'dark', heavy: true };
+/** Pet fire dragon: fire that leaves Burning (counts as the owner's Skill). */
+export const PET_FIRE: HitTag = { el: 'fire', applies: 'burning' };
+export const PET_DIVE: HitTag = { el: 'fire', heavy: true, applies: 'burning' };
+/** Damage dealt by a Combo itself never starts another Combo. */
+export const COMBO_HIT: HitTag = { combo: true };
+
+/** Status each Skill leaves on monsters (Frost Aura freezes by stacking; pulls gather). */
+export const SKILL_STATUS: Partial<Record<SkillId, StatusId>> = {
+  frost: 'frozen', cyclone: 'gathered', hole: 'gathered', nova: 'burning', meteor: 'burning', chain: 'shocked', laser: 'shocked', toxic: 'poisoned',
+};
+
+/** The Combo a hit with `tag` starts on a monster carrying `status`, if any (catalyst: any Status). */
+export function comboOf(status: StatusId, tag: HitTag): ComboId | null {
+  if (tag.heavy && status === 'frozen') return 'shatter';
+  if (tag.el === 'lightning' && status === 'frozen') return 'superconduct';
+  if (tag.el === 'fire' && status === 'gathered') return 'firestorm';
+  if (tag.el === 'fire' && status === 'shocked') return 'overload';
+  if (tag.el === 'fire' && status === 'poisoned') return 'toxicBurst';
+  if (tag.sweep && status === 'gathered') return 'grinder';
+  if (tag.el === 'arcane') return 'catalyst';
+  return null;
+}
+
+/** Combos two Skills make together (either one leaving the Status, the other triggering). */
+export function combosBetween(a: SkillId, b: SkillId): ComboId[] {
+  const out: ComboId[] = [];
+  const sa = SKILL_STATUS[a], sb = SKILL_STATUS[b];
+  const tb = b === 'hole' ? HOLE_BOOM : SKILL_TAGS[b], ta = a === 'hole' ? HOLE_BOOM : SKILL_TAGS[a];
+  if (sa) { const c = comboOf(sa, tb); if (c) out.push(c); }
+  if (sb) { const c = comboOf(sb, ta); if (c && !out.includes(c)) out.push(c); }
+  return out;
+}

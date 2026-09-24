@@ -1,5 +1,8 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL } from '../data/enemies';
+import type { HitTag } from '../data/skills';
+import { REALMS } from '../content/lumora/realms';
+import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
 import { grantDragon, grantShadow } from './events';
 import { banner, burst, flash, sfx, shake, text } from './fx';
@@ -8,14 +11,22 @@ import { gameOver } from './progress';
 import { spawnEnemy } from './spawner';
 
 /** ALL damage to enemies goes through here. */
-export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: number): void {
+export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: number, tag?: HitTag): void {
   if (e.dead || e.hide) return;
   const P = s.P, R = s.rng.combat, pl = s.cfg.player;
+  let after: (() => void)[] | null = null;
+  if (tag && !tag.combo) {
+    const c = combosFor(s, e, base, tag);
+    if (c.after.length) after = c.after;
+    base *= c.mul;
+    // Realm mobs and Kings resist their Realm's element (event bosses do not)
+    if (tag.el && tag.el === REALMS[s.realm].element && !NO_RESIST.has(e.type)) base *= s.cfg.realms.resist;
+  }
   let d = base * P.dmgMul * R.range(1 - pl.dmgVariance, 1 + pl.dmgVariance);
   const cr = R.next() < P.crit;
   if (cr) d *= P.critMul;
   d = Math.max(1, Math.round(d));
-  if (e.armor) {
+  if (e.armor && !((e.armorOff || 0) > 0)) {
     const raw = d;
     d = Math.max(1, d - e.armor);
     if (d < raw * 0.5) col = '#9aa4b8';
@@ -29,8 +40,17 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
   e.ky += (dy / l) * k;
   text(s, e.x, e.y - e.r * 1.2, d, col, cr, { jitter: true });
   sfx(s, cr ? 'crit' : 'hit');
+  if (tag?.applies && e.hp > 0) {
+    const S = s.cfg.status;
+    if (tag.applies === 'burning') e.burn = S.burning;
+    else if (tag.applies === 'shocked') e.shock = S.shocked;
+    else { e.pois = S.poisoned; e.poisDps = d / s.cfg.skills.toxic.tick; }
+  }
   if (e.hp <= 0) killE(s, e);
+  if (after) for (const f of after) f();
 }
+
+const NO_RESIST = new Set(['dragon', 'whelp', 'rival']);
 
 export function killE(s: SimState, e: Enemy): void {
   const R = s.rng.loot, C = s.cfg, L = C.loot;

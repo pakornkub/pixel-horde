@@ -1,3 +1,5 @@
+import type { Trait } from '../content/lumora/realms';
+
 /** Static traits; HP/speed/damage/XP/radius come from the Balance Config (worlds.lumora.enemies). */
 export interface EnemyType {
   boss?: boolean;
@@ -5,6 +7,8 @@ export interface EnemyType {
   sc?: number;
   /** Has its own AI routine. */
   ai?: boolean;
+  /** Counter-play trait (route screen advice; Realm traits boost matching mobs). */
+  trait?: Trait;
 }
 
 export const ENEMY_IDS = ['slime', 'bat', 'ghost', 'mush', 'boss', 'sslime', 'scorp', 'mummy', 'skel', 'islime', 'ibat', 'snowman', 'bossD', 'bossC', 'bossS', 'dragon', 'whelp', 'rival', 'umbra', 'caster', 'charger', 'splitter', 'mini'] as const;
@@ -12,28 +16,28 @@ export type EnemyId = (typeof ENEMY_IDS)[number];
 
 export const ET: Record<EnemyId, EnemyType> = {
   slime: {},
-  bat: {},
+  bat: { trait: 'fast' },
   ghost: {},
   mush: {},
   boss: { boss: true },
   sslime: {},
-  scorp: {},
-  mummy: {},
+  scorp: { trait: 'fast' },
+  mummy: { trait: 'armored' },
   skel: {},
   islime: {},
-  ibat: {},
-  snowman: {},
+  ibat: { trait: 'fast' },
+  snowman: { trait: 'armored' },
   bossD: { boss: true },
   bossC: { boss: true },
   bossS: { boss: true },
   dragon: { boss: true, sc: 2, ai: true },
-  whelp: {},
+  whelp: { trait: 'fast' },
   rival: { boss: true, sc: 1, ai: true },
   umbra: { boss: true, sc: 3 },
-  caster: {},
-  charger: {},
-  splitter: { sc: 2 },
-  mini: {},
+  caster: { trait: 'ranged' },
+  charger: { trait: 'charge' },
+  splitter: {sc: 2, trait: 'split' },
+  mini: { trait: 'split' },
 };
 
 /** Particle colour when an enemy dies (sent with kill events). */

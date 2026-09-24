@@ -392,5 +392,13 @@
  "bench.empty": "empty",
  "bench.cost": "Next swap: {cost}G ({run}G this Run + {wallet}G wallet)",
  "bench.short": "Not enough Gold for this swap",
- "bench.locked": "Signature: always equipped"
+ "bench.locked": "Signature: always equipped",
+ "combo.shatter": "SHATTER!",
+ "combo.firestorm": "FIRESTORM!",
+ "combo.overload": "OVERLOAD!",
+ "combo.superconduct": "SUPERCONDUCT!",
+ "combo.toxicBurst": "TOXIC BURST!",
+ "combo.grinder": "GRINDER!",
+ "combo.catalyst": "CATALYST!",
+ "level.combos": " · combos with {list}"
 }
