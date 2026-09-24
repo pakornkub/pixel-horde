@@ -98,6 +98,7 @@
   <div class="sptools" id="weaponBox" hidden></div>
   <div class="sptools" id="spBox" hidden></div>
   <div class="bench" id="benchBox" hidden></div>
+  <p class="note" id="clearTeam" hidden></p>
   <button class="btn" id="nextBtn" data-i18n="clear.next"></button>
 </div></div>
 
@@ -105,6 +106,7 @@
   <h2 id="routeTitle">CHAPTER</h2>
   <p id="routeNote"></p>
   <div class="opts" id="routeOpts"></div>
+  <p class="note" id="routeTeam" hidden></p>
 </div></div>
 
 <div class="overlay" id="ovOver"><div class="box">
@@ -181,6 +183,23 @@
   <h2 data-i18n="update.title"></h2>
   <p data-i18n="update.text"></p>
   <button class="btn" id="updateBtn" data-i18n="update.reload"></button>
+</div></div>
+
+<div class="overlay" id="ovCoop"><div class="box">
+  <h2 data-i18n="coop.title"></h2>
+  <div id="coopEntry">
+    <p data-i18n="coop.intro"></p>
+    <button class="btn" id="coopCreate" data-i18n="coop.create"></button>
+    <div class="coopjoin"><input id="coopCode" class="field" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" data-i18n-placeholder="coop.codePh"><button class="btn" id="coopJoin" data-i18n="coop.join"></button></div>
+  </div>
+  <div id="coopRoom" hidden>
+    <p class="coopcode"><span data-i18n="coop.code"></span> <b id="coopCodeTxt"></b> <button class="link" id="coopCopy" data-i18n="coop.copy"></button></p>
+    <ul class="cooplist" id="coopList"></ul>
+    <button class="btn ghost" id="coopHero" data-i18n="title.hero"></button>
+    <button class="btn" id="coopGo"></button>
+  </div>
+  <p class="note" id="coopMsg" role="status"></p>
+  <button class="btn ghost" id="coopBack" data-i18n="coop.leave"></button>
 </div></div>
 
 <div class="overlay" id="ovName"><div class="box">

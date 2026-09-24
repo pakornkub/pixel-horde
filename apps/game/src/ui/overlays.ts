@@ -24,7 +24,7 @@ export function statRows(rows: [string, string | number][]): string {
 
 /* ---------- hero select ---------- */
 const CHIMG: Record<string, string> = {};
-function charImg(k: string): string {
+export function charImg(k: string): string {
   if (CHIMG[k]) return CHIMG[k];
   const c = document.createElement('canvas');
   c.width = 48; c.height = 48;

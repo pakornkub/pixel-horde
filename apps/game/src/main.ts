@@ -17,6 +17,10 @@ import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
 import { createTips, type TipId } from './tips';
+import { initLobby, leaveRoom, openLobby } from './ui/lobby';
+import { createTeam } from './coop/team';
+import type { Session } from './coop/session';
+import type { CloseReason } from '@pixel-horde/coop';
 import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
@@ -67,7 +71,7 @@ function runResult(result: RunResult['result']): RunResult | null {
   const v = sim.view();
   const playMs = Math.round(v.totalTime * 1000);
   return {
-    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, resumedHash, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
+    clientRunId, hero: v.hero, mode: coop ? 'coop' : 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, resumedHash, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
     endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack, facts: { ...runFacts(v) },
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
@@ -128,6 +132,86 @@ async function newRun(): Promise<void> {
   }));
 }
 
+/* ---------- co-op (tickets 41/42) ---------- */
+let coop: Session | null = null;
+const team = createTeam(active.cfg.coop.clearWait, active.cfg.coop.voteTime);
+let teamT = 0, teamPhase = '';
+const isGuest = (): boolean => coop?.role === 'guest';
+
+function playerPid(): string {
+  const a = backend.account();
+  if (a) return a.id;
+  try {
+    const p = localStorage.getItem('pixelhorde-pid') || String(Math.random()).slice(2, 14);
+    localStorage.setItem('pixelhorde-pid', p);
+    return p;
+  } catch { return String(Math.random()).slice(2, 14); }
+}
+
+async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<void> {
+  if (sim) return;
+  coop = s;
+  initAudio();
+  clearSave();
+  const config = s.role === 'guest' ? (await configFor(cfgVersion)) ?? active.cfg : active.cfg; // guests use the host's Balance Config
+  ticket = await Promise.race([backend.startRun(META.ch, 'coop', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
+  resumedHash = undefined; usedHash = undefined;
+  teamPhase = '';
+  beginRun(createSim({
+    seed: s.role === 'host' ? seed : (Math.random() * 4294967296) >>> 0,
+    hero: isHero(META.ch) ? META.ch : 'mage',
+    weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
+    meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(), config,
+    events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
+    coop: { role: s.role, self: s.selfId },
+  }));
+  s.on((e) => {
+    if (coop !== s) return;
+    if (e.t === 'ready') team.setReady(e.id, e.on);
+    else if (e.t === 'vote') team.vote(e.id, e.i);
+    else if (e.t === 'team') renderTeam(e.ready, e.votes, e.left);
+  });
+}
+
+/** The room closed during a Run: keep what was collected. */
+function coopClosed(reason: CloseReason): void {
+  if (!sim || !coop) return;
+  const v = sim.view();
+  if (v.phase !== 'over') bank(v.victory ? 'victory' : 'quit');
+  coop = null;
+  toTitle();
+  if (reason !== 'left') showMsg(t(`coop.err.${reason}`));
+}
+
+/** Host: run the team's Stage-end decisions and tell the guests. */
+function hostTeam(rdt: number): void {
+  if (!sim || !coop || coop.role !== 'host') return;
+  const v = sim.view(), ph = v.phase === 'clear' ? 'clear' : v.phase === 'route' ? 'route' : 'other';
+  if (ph !== teamPhase) { teamPhase = ph; team.enter(ph, coop.selfId, v.cfg.coop); }
+  const ids = [coop.selfId, ...(v.coop?.mates.map((m) => m.id) ?? [])];
+  const act = team.tick(rdt, ids, v.route?.choices.length ?? 2);
+  if (act?.k === 'next') { hide('ovClear'); cmd({ type: 'next' }); }
+  if (act?.k === 'route') { hide('ovRoute'); cmd({ type: 'route', index: act.index }); }
+  teamT -= rdt;
+  if (team.mode !== 'none' && teamT <= 0) {
+    teamT = 0.5;
+    const st = team.status();
+    coop.send({ k: 'team', ...st });
+    renderTeam(st.ready, st.votes, st.left);
+  }
+}
+
+function renderTeam(ready: string[], votes: Record<string, number>, left: number): void {
+  if (!coop) return;
+  const names = coop.names();
+  const who = (ids: string[]): string => ids.map((i) => names[i] ?? '?').join(', ');
+  const note = $('clearTeam'), rnote = $('routeTeam');
+  note.hidden = rnote.hidden = false;
+  note.textContent = t('coop.teamReady', { who: who(ready) || '-', left });
+  rnote.textContent = t('coop.teamVotes', { who: who(Object.keys(votes)) || '-', left });
+}
+
 /** Common start for new and resumed Runs. */
 function beginRun(s: Sim): void {
   sim = s;
@@ -155,7 +239,7 @@ let resumedHash: string | undefined;
 let newAch: string[] = [];
 /** The checkpoint this session continued from: single use, never saved again (no Stage retries). */
 let usedHash: string | undefined;
-const canSave = (): boolean => !!sim && active.cfg.version !== -1 && sim.view().mode !== 'daily' && sim.checkpoint().hash !== usedHash;
+const canSave = (): boolean => !!sim && !coop && active.cfg.version !== -1 && sim.view().mode !== 'daily' && sim.checkpoint().hash !== usedHash;
 
 /** Every Stage start: keep the checkpoint locally and on the server. */
 function autoSave(quit = false): void {
@@ -228,6 +312,8 @@ async function continueRun(): Promise<void> {
 }
 
 function toTitle(): void {
+  if (coop) { coop = null; leaveRoom(); }
+  guestMenu = false;
   sim = null;
   queue = [];
   $('fpsTip').hidden = true;
@@ -276,15 +362,24 @@ function syncOverlays(): void {
     const prev = shownPhase;
     shownPhase = v.phase;
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
+    if (prev === 'clear' && v.phase !== 'clear') hide('ovClear');
+    if (prev === 'route' && v.phase !== 'route') hide('ovRoute');
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
-    if (v.phase === 'clear') renderClear(v);
+    if (v.phase === 'clear') { renderClear(v); $('clearTeam').hidden = !coop; $('clearTeam').textContent = ''; ($('nextBtn') as HTMLButtonElement).disabled = false; }
     if (v.phase === 'revive') showRevive(v, reviveCost(v as SimState));
     if (v.phase === 'victory') { metaSync.unlockCrack(v.crack); show('ovEnding'); }
     if (prev === 'victory' && v.phase !== 'victory') hide('ovEnding');
     if (prev === 'revive' && v.phase !== 'revive') hide('ovRevive');
     if (v.phase === 'route' && v.route) {
+      $('routeTeam').hidden = !coop; $('routeTeam').textContent = '';
       renderRoute(v, (i) => {
-        if (sim && sim.view().phase === 'route') { hide('ovRoute'); cmd({ type: 'route', index: i }); last = performance.now(); }
+        if (!sim || sim.view().phase !== 'route') return;
+        if (coop) { // co-op: a vote
+          if (coop.role === 'host') team.vote(coop.selfId, i); else coop.send({ k: 'vote', i });
+          $('routeTeam').hidden = false; $('routeTeam').textContent = t('coop.voteWait');
+          return;
+        }
+        hide('ovRoute'); cmd({ type: 'route', index: i }); last = performance.now();
       });
     }
     if (v.phase === 'over') {
@@ -307,6 +402,7 @@ function frame(now: number): void {
       let steps = 0;
       while (acc >= DT && steps < 8) {
         const input = readInput();
+        if (coop) queue.push(...coop.commands());
         const events = sim.step(input, queue);
         queue = [];
         const v = sim.view();
@@ -328,6 +424,14 @@ function frame(now: number): void {
         if (v.phase !== 'play' && v.phase !== 'clearing') { acc = 0; break; }
       }
       if (steps >= 8) acc = 0;
+      if (coop && steps === 0 && sim.view().phase !== 'play') { // menus: keep applying snapshots / presence
+        const events = sim.step({ mx: 0, my: 0 }, [...queue.splice(0), ...coop.commands()]);
+        consume(events, sim.view());
+      }
+      if (coop) {
+        hostTeam(rdt);
+        if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostLost)) setTimeout(() => coopClosed('host-left'), 0);
+      }
       syncOverlays();
       const v = sim.view();
       showTip(tips.tick(rdt));
@@ -353,14 +457,17 @@ onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.LW, h: screen.LH });
 
 /* ---------- input ---------- */
 let leaveArmed = false;
+let guestMenu = false; // a guest's pause menu never stops the room
 function pause(): void {
   if (!sim || sim.view().phase !== 'play') return;
+  if (isGuest()) { if (!guestMenu) { guestMenu = true; ($('saveQuitBtn') as HTMLButtonElement).disabled = true; leaveArmed = false; showPause(); } return; }
   ($('saveQuitBtn') as HTMLButtonElement).disabled = !canSave();
   cmd({ type: 'pause' });
   leaveArmed = false;
   showPause();
 }
 function resume(): void {
+  if (guestMenu) { guestMenu = false; hide('ovPause'); return; }
   if (!sim || sim.view().phase !== 'pause') return;
   hide('ovPause');
   cmd({ type: 'resume' });
@@ -382,7 +489,7 @@ addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code === 'Space' && playing()) cmd({ type: 'ult' });
   if (e.code === 'Escape' && settingsOpen()) { closeSettings(); return; }
-  if (e.code === 'KeyP' || e.code === 'Escape') { if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
+  if (e.code === 'KeyP' || e.code === 'Escape') { if (guestMenu) resume(); else if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
   if (e.code === 'KeyM') setMuted(!audio.muted);
   if (e.code === 'KeyI') toggleMet();
   const choosing = sim?.view().phase === 'levelup' ? 'opts' : sim?.view().phase === 'route' ? 'routeOpts' : '';
@@ -405,7 +512,7 @@ cv.addEventListener('pointerup', endJoy);
 cv.addEventListener('pointercancel', endJoy);
 
 $('ultBtn').addEventListener('click', () => cmd({ type: 'ult' }));
-$('pauseBtn').addEventListener('click', () => (sim && sim.view().phase === 'pause' ? resume() : pause()));
+$('pauseBtn').addEventListener('click', () => (guestMenu || (sim && sim.view().phase === 'pause') ? resume() : pause()));
 $('resumeBtn').addEventListener('click', resume);
 $('metBtn').addEventListener('click', toggleMet);
 $('homeBtn').addEventListener('click', toTitle);
@@ -420,6 +527,8 @@ $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle')
 $('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
 initCollection();
 initTitle();
+initLobby({ name: () => backend.account()?.nickname ?? 'Hero', pid: playerPid, onStart: (s, seed, cfg) => void startCoop(s, seed, cfg), onClosed: coopClosed });
+{ const j = new URLSearchParams(location.search).get('join'); if (j) setTimeout(() => openLobby(j), 300); } // invite link
 $('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
 $('shopBack').addEventListener('click', closeShop);
 $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
@@ -429,10 +538,22 @@ $('startBtn').addEventListener('click', () => void newRun());
 $('continueBtn').addEventListener('click', () => void continueRun());
 $('saveQuitBtn').addEventListener('click', () => { hide('ovPause'); saveAndQuit(); });
 $('endlessBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: true }); last = performance.now(); });
-$('finishBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: false }); });
+$('finishBtn').addEventListener('click', () => {
+  hide('ovEnding');
+  if (isGuest()) { bank('victory'); coop = null; toTitle(); return; } // a guest who stops keeps their rewards
+  cmd({ type: 'endless', go: false });
+});
 $('reviveBtn').addEventListener('click', () => { cmd({ type: 'revive' }); last = performance.now(); });
 $('giveUpBtn').addEventListener('click', () => { hide('ovRevive'); cmd({ type: 'giveUp' }); });
-$('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });
+$('nextBtn').addEventListener('click', () => {
+  if (coop) { // co-op: ready; the host continues when everyone is (or after the wait)
+    if (coop.role === 'host') team.setReady(coop.selfId); else coop.send({ k: 'ready', on: true });
+    ($('nextBtn') as HTMLButtonElement).disabled = true;
+    $('clearTeam').hidden = false; $('clearTeam').textContent = t('coop.readyNext');
+    return;
+  }
+  hide('ovClear'); cmd({ type: 'next' }); last = performance.now();
+});
 $('retryBtn').addEventListener('click', () => void newRun());
 
 /** Export the always-on recording (seed, options, inputs, commands, hashes) as JSON. */

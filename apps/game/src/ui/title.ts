@@ -42,11 +42,18 @@ function drawHero(now: number): void {
   requestAnimationFrame(drawHero);
 }
 
+let heroFrom = 'ovTitle';
+let heroDone: (() => void) | null = null;
+/** Hero & Weapon panel, opened from the title or the co-op lobby. */
+export function openHero(from: string, onDone?: () => void): void {
+  heroFrom = from; heroDone = onDone ?? null;
+  renderChars(); hide(from); show('ovHero');
+}
+
 export function initTitle(): void {
-  const open = (): void => { renderChars(); hide('ovTitle'); show('ovHero'); };
-  $('heroBtn').addEventListener('click', open);
-  $('heroBtn2').addEventListener('click', open);
-  $('heroDone').addEventListener('click', () => { hide('ovHero'); renderTitleSel(); show('ovTitle'); });
+  $('heroBtn').addEventListener('click', () => openHero('ovTitle'));
+  $('heroBtn2').addEventListener('click', () => openHero('ovTitle'));
+  $('heroDone').addEventListener('click', () => { hide('ovHero'); renderTitleSel(); show(heroFrom); heroDone?.(); });
   addEventListener('resize', applyBackground);
   applyBackground();
   renderTitleSel();

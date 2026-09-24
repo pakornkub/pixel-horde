@@ -177,6 +177,15 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       }
     }
     drawHz(v, clock);
+    // co-op mates (under the entities; they never block)
+    for (const m of v.coop?.mates ?? []) {
+      const CS3 = HERO_SPR[m.hero] || HERO_SPR.mage, fr = m.mv ? Math.floor(clock * 8) & 1 : 0;
+      const mx = Math.round(m.rx + ox), my = Math.round(m.ry + oy);
+      b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(mx, my + 7, 5, 2, 0, 0, TAU); b.fill();
+      b.globalAlpha = m.dn ? 0.4 : 1;
+      b.drawImage(m.fc < 0 ? CS3.l[fr] : CS3.r[fr], mx - 8, my - 9);
+      b.globalAlpha = 1;
+    }
     // entities sorted by y
     const ents: (Enemy | null)[] = v.enemies.slice();
     ents.push(null); // null = the player
@@ -546,6 +555,32 @@ function drawBubbles(v: Readonly<SimState>): void {
   }
 }
 
+/** Co-op: names and HP over teammates, arrows to downed allies off screen. */
+function drawMates(v: Readonly<SimState>, clock: number): void {
+  const mates = v.coop?.mates;
+  if (!mates?.length) return;
+  const { DPR: D, LW, LH } = screen, W = cv.width, H = cv.height;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  for (const m of mates) {
+    const [x, y] = toScreen(m.rx, m.ry - 12);
+    const on = m.rx + ox > 0 && m.rx + ox < LW && m.ry + oy > 0 && m.ry + oy < LH;
+    if (on) {
+      outlined((m.name || 'P') + (m.dn ? ' · ' + t('coop.down') : ''), x, y - 6 * D, 7 * D, m.dn ? '#ff8a8a' : '#8fdcff');
+      const bw = 26 * D;
+      ctx.fillStyle = INK; ctx.fillRect(x - bw / 2 - D, y - 4 * D, bw + 2 * D, 4 * D);
+      ctx.fillStyle = '#e8434f'; ctx.fillRect(x - bw / 2, y - 3 * D, bw * clamp(m.hp / (m.mh || 1), 0, 1), 2 * D);
+    } else if (m.dn && Math.floor(clock * 3) & 1) {
+      const cx = W / 2, cy = H / 2, dx = x - cx, dy = y - cy, mg = 30 * D;
+      const k = Math.min((W / 2 - mg) / Math.max(1e-6, Math.abs(dx)), (H / 2 - mg) / Math.max(1e-6, Math.abs(dy)));
+      const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx), sz = 9 * D;
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(sz * 1.6, 0); ctx.lineTo(sz * 0.4, -sz); ctx.lineTo(sz * 0.4, sz); ctx.closePath();
+      ctx.fillStyle = '#8fdcff'; ctx.strokeStyle = INK; ctx.lineWidth = 2 * D; ctx.stroke(); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
 export function drawTexts(clock: number): void {
   const { CS, DPR } = screen;
   ctx.textAlign = 'center';
@@ -620,7 +655,17 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     }
   }
   drawArrows(v, clock);
+  drawMates(v, clock);
   drawBubbles(v);
+  if (v.coop) {
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    outlined(t('coop.hud', { n: v.coop.mates.length + 1 }), left, top + 66 * D, 8 * D, '#8fdcff');
+    const choosing = v.coop.mates.find((m) => m.sel);
+    const msg = v.coop.role === 'guest' && v.coop.hostPhase === 'pause' ? t('coop.hostPaused')
+      : choosing && v.phase === 'play' ? t('coop.waitFor', { name: choosing.name || 'P' }) : '';
+    if (msg) { ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; outlined(msg, W / 2, cv.height * 0.45, 12 * D, '#ffffff'); }
+    ctx.textBaseline = 'top';
+  }
   // skills row
   const ids: string[] = [...Object.keys(P.skills), ...Object.keys(P.pas)];
   if (P.pet) ids.push('_pet');
