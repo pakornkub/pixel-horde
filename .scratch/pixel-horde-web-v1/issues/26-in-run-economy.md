@@ -4,11 +4,19 @@
 
 **Blocked by:** 21 (Skill slots v2, Bench and Stage-end swaps); 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** ready-for-agent
+**Status:** done (awaiting owner playtest)
 
-- [ ] All prices from Balance Config
-- [ ] `submit_run` accounts for in-Run Gold spending
-- [ ] Bought revive disabled where the spec says (daily challenge flag reserved)
-- [ ] Sim tests for Skill Point actions and revive Score penalty
+- [x] All prices from Balance Config
+- [x] `submit_run` accounts for in-Run Gold spending
+- [x] Bought revive disabled where the spec says (daily challenge flag reserved)
+- [x] Sim tests for Skill Point actions and revive Score penalty
+
+## Notes (implementation)
+
+- King kill: 50 × Chapter Gold (coin), +1 Skill Point, 1 chest wheel (`economy.kingSkillPoints`, `economy.kingChest`). Rewards now open before the Stage clear, so a King killed in overtime still pays out its chest.
+- Skill Points: reroll 1 and banish 1 on level-up (✕ on a card; owned Skills/passives cannot be banished), +1 level for 2 (clear screen; the sim also allows it during a level-up). Clear screen: buy 1 SP for 30 × Chapter Gold. All paid from this Run's Gold first, then the wallet (`walletSpent`, charged by `submit_run`).
+- Bought revive: when down without Second Wind, the sim waits in phase `revive` (75 × Chapter, once per Run, −15% final Score via `revivesBought`); not offered in `mode: 'daily'` (reserved for the daily challenge) or when Gold is short. Second Wind (Shop) still triggers first.
+- The permanent Shop stays reachable only from the title and Run-end screens.
+- Tests: `tests/economy.test.ts`.
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

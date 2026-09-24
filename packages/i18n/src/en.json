@@ -473,5 +473,16 @@
  "form.grandAlchemist": "Grand Alchemist",
  "banner.awakened.txt": "AWAKENED!",
  "banner.awakened.sub": "New Skill Line skills unlocked",
- "level.line": " · Skill Line"
+ "level.line": " · Skill Line",
+ "sp.count": "Skill Points: {n}",
+ "sp.reroll": "Reroll ({n} SP)",
+ "sp.banish": "Banish ({n} SP)",
+ "sp.buy": "Buy 1 SP ({cost}G)",
+ "sp.upgrade": "+1 level ({n} SP)",
+ "sp.title": "Skill Points (from Kings; reroll / banish on level-up)",
+ "revive.title": "DOWN!",
+ "revive.text": "Buy a revive for {cost}G ({run}G this Run + {wallet}G wallet)? Once per Run; the final Score is cut by 15%.",
+ "revive.buy": "Revive",
+ "revive.giveUp": "Give up",
+ "hud.sp": "{n} SP"
 }

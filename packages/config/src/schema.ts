@@ -277,6 +277,17 @@ const shared = obj({
     armorMul: mul(2, 'Armoured Realms: armour chance ×'), armorFrom: int(2, 1, 20, 'Armoured Realms: armour from this Chapter'),
     fastSpd: mul(1.1, 'Fast Realms: fast monsters speed ×'),
   }, 'Realm traits and resistances'),
+  economy: obj({
+    kingSkillPoints: int(1, 0, 10, 'Skill Points per King killed'),
+    kingChest: int(1, 0, 5, 'Chest wheels per King killed'),
+    spCost: pos(30, 'Buy 1 Skill Point at Stage end: Gold × Chapter'),
+    reroll: int(1, 0, 10, 'Skill Points: reroll the level-up offers'),
+    banish: int(1, 0, 10, 'Skill Points: banish a Skill/passive from this Run'),
+    upgrade: int(2, 0, 10, 'Skill Points: +1 level to a chosen attack Skill'),
+    revive: pos(75, 'Bought revive: Gold × Chapter (once per Run, −15% Score)'),
+    reviveHp: frac(0.5, 'HP after a bought revive'),
+    reviveInv: sec(2.5, 'Invulnerable after a bought revive (s)'),
+  }, 'In-Run economy'),
   awaken: obj({
     links: int(2, 1, 3, 'Max-level Links needed (and consumed)'),
     stages: int(1, 1, 5, 'Full Stages the Links must have been max level and equipped'),

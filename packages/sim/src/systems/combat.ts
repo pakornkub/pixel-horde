@@ -7,7 +7,7 @@ import type { Enemy, SimState } from '../types';
 import { grantDragon, grantShadow } from './events';
 import { banner, burst, flash, sfx, shake, text } from './fx';
 import { say } from './kings';
-import { gameOver } from './progress';
+import { gameOver, offerRevive } from './progress';
 import { spawnEnemy } from './spawner';
 
 /** ALL damage to enemies goes through here. */
@@ -92,7 +92,12 @@ export function killE(s: SimState, e: Enemy): void {
     return;
   }
   if (e.boss) {
-    if (e === s.boss) s.kingsKilled.push(s.stage);
+    if (e === s.boss) {
+      s.kingsKilled.push(s.stage);
+      // King reward: Skill Point(s) and the chest wheel (Gold drops below)
+      s.sp += C.economy.kingSkillPoints;
+      s.chestQueue += C.economy.kingChest;
+    }
     if (e.kg) say(s, e, 'defeat');
     if (e.type === 'umbra') { s.victory = true; s.victoryTime = s.totalTime; }
     shake(s, 10); flash(s, 0.35, '#ffffff'); s.hitstop = 0.12; sfx(s, 'boom');
@@ -141,6 +146,7 @@ export function handleDown(s: SimState): boolean {
     return false;
   }
   P.hp = 0;
+  if (offerRevive(s)) return true;
   gameOver(s);
   return true;
 }

@@ -3,7 +3,7 @@ import { createStreams } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, answerAwaken, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
+import { afterStage, answerAwaken, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
@@ -60,7 +60,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, swaps: 0, walletSpent: 0, awakenOffer: false, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -95,6 +95,12 @@ export function createSim(opts: SimOptions): Sim {
       case 'route': chooseRoute(s, c.index); break;
       case 'swap': swapBench(s, c.bench, c.slot); break;
       case 'awaken': answerAwaken(s, c.accept); break;
+      case 'reroll': reroll(s); break;
+      case 'banish': banish(s, c.index); break;
+      case 'spUpgrade': spUpgrade(s, c.id); break;
+      case 'buySp': buySp(s); break;
+      case 'revive': buyRevive(s); break;
+      case 'giveUp': if (s.phase === 'revive') gameOver(s); break;
       case 'ult': useUlt(s); break;
       case 'viewport':
         if (c.w > 0 && c.h > 0) { s.viewport.w = c.w; s.viewport.h = c.h; }
@@ -177,6 +183,9 @@ export function createSim(opts: SimOptions): Sim {
     stepGems(s, dt);
 
     if (s.phase === 'play') {
+      // rewards first (a King killed in overtime still pays out its chest before the clear)
+      if (s.chestQueue > 0) { s.chestQueue--; openChest(s); return; }
+      if (s.pendingLv > 0 || s.pendingChest > 0) { openLevelUp(s); return; }
       // King must die: the Stage clears at the timer only if the King is dead; otherwise overtime,
       // and a King that survives overtime escapes (Umbra never does).
       if (s.stageTime >= s.stageDur) {
@@ -192,8 +201,6 @@ export function createSim(opts: SimOptions): Sim {
           return;
         }
       }
-      if (s.chestQueue > 0) { s.chestQueue--; openChest(s); return; }
-      if (s.pendingLv > 0 || s.pendingChest > 0) { openLevelUp(s); return; }
     } else if (s.phase === 'clearing') {
       s.clearT -= DT;
       if (s.clearT <= 0) {
@@ -258,7 +265,7 @@ export function scoreOf(s: Readonly<SimState>): number {
   return scoreBreakdown(s).total;
 }
 
-const PHASES: Phase[] = ['play', 'levelup', 'chest', 'pause', 'clearing', 'clear', 'over', 'route'];
+const PHASES: Phase[] = ['play', 'levelup', 'chest', 'pause', 'clearing', 'clear', 'over', 'route', 'revive'];
 
 /** FNV-1a over the bytes of the gameplay-relevant numbers. */
 export function hashState(s: Readonly<SimState>): number {

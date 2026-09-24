@@ -473,5 +473,16 @@
  "form.grandAlchemist": "Grand Alchemist",
  "banner.awakened.txt": "ตื่นพลัง!",
  "banner.awakened.sub": "ปลดล็อกสกิลสายใหม่แล้ว",
- "level.line": " · สกิลสาย"
+ "level.line": " · สกิลสาย",
+ "sp.count": "แต้มสกิล: {n}",
+ "sp.reroll": "สุ่มใหม่ ({n} แต้ม)",
+ "sp.banish": "ตัดทิ้ง ({n} แต้ม)",
+ "sp.buy": "ซื้อ 1 แต้ม ({cost}G)",
+ "sp.upgrade": "+1 เลเวล ({n} แต้ม)",
+ "sp.title": "แต้มสกิล (ได้จากราชา ใช้สุ่มใหม่/ตัดทิ้งตอนเลเวลอัป)",
+ "revive.title": "ล้มแล้ว!",
+ "revive.text": "ซื้อใบเกิด {cost}G (จากรอบนี้ {run}G + กระเป๋า {wallet}G)? ได้ครั้งเดียวต่อรอบ คะแนนสุดท้ายลด 15%",
+ "revive.buy": "ฟื้นคืนชีพ",
+ "revive.giveUp": "ยอมแพ้",
+ "hud.sp": "{n} SP"
 }

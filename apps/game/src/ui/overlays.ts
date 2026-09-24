@@ -107,7 +107,8 @@ export function closeShop(): void {
 }
 
 /* ---------- level up ---------- */
-export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void): void {
+export interface LevelTools { reroll: () => void; banish: (i: number) => void }
+export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void, tools?: LevelTools): void {
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
   box.innerHTML = '';
@@ -149,8 +150,24 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
     bt.innerHTML = `<span class="cur">▶</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span><span class="nm">${name} ${tag}</span><span class="ds">${desc}</span></span>`;
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
+    const E = v.cfg.economy;
+    const ownedAlready = (o.kind === 'skill' && P.skills[o.id]) || (o.kind === 'pas' && P.pas[o.id]);
+    if (tools && (o.kind === 'skill' || o.kind === 'pas') && !ownedAlready && v.sp >= E.banish) {
+      const x = document.createElement('span'); x.className = 'ban'; x.textContent = '✕'; x.title = t('sp.banish', { n: E.banish });
+      x.addEventListener('click', (ev) => { ev.stopPropagation(); tools.banish(idx); });
+      bt.appendChild(x);
+    }
     box.appendChild(bt);
   });
+  const tb = $('lvTools');
+  tb.innerHTML = '';
+  if (tools && v.sp > 0) {
+    tb.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
+    const rr = document.createElement('button'); rr.textContent = t('sp.reroll', { n: v.cfg.economy.reroll });
+    rr.disabled = v.sp < v.cfg.economy.reroll;
+    rr.addEventListener('click', () => tools.reroll());
+    tb.appendChild(rr);
+  }
   show('ovLevel');
   setTimeout(() => { const f = box.querySelector<HTMLElement>('.opt'); if (f) f.focus({ preventScroll: true }); }, 30);
 }
@@ -231,6 +248,31 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
+}
+
+/* ---------- Skill Points (clear screen) ---------- */
+export function renderSp(v: Readonly<SimState>, onBuy: () => void, onUp: (id: SkillId) => void): void {
+  const box = $('spBox'), E = v.cfg.economy, P = v.P;
+  box.hidden = false;
+  box.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
+  const buy = document.createElement('button'); buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
+  buy.addEventListener('click', onBuy);
+  box.appendChild(buy);
+  for (const id of Object.keys(P.skills) as SkillId[]) {
+    if (P.skills[id]! >= v.cfg.skills[id].max) continue;
+    const bt = document.createElement('button');
+    bt.textContent = `${skillName(id)} ${t('sp.upgrade', { n: E.upgrade })}`;
+    bt.disabled = v.sp < E.upgrade;
+    bt.addEventListener('click', () => onUp(id));
+    box.appendChild(bt);
+  }
+}
+
+export function showRevive(v: Readonly<SimState>, cost: number): void {
+  const wallet = Math.max(0, (v.meta.wallet || 0) - v.walletSpent), run = Math.min(v.runGold, cost);
+  $('reviveTxt').textContent = t('revive.text', { cost, run, wallet: Math.min(wallet, cost - run) });
+  show('ovRevive');
+  focusSoon('reviveBtn');
 }
 
 /* ---------- Awakening prompt (clear screen) ---------- */

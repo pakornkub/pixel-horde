@@ -200,7 +200,7 @@ export function buildOptions(s: SimState): LevelOption[] {
   const slotFree = owned < s.cfg.maxAttackSlots, benchFree = P.bench.length < benchSize(s);
   for (const id of [...SKILL_IDS, sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
-    if (lv >= K[id].max) continue;
+    if (lv >= K[id].max || s.banished.includes(id)) continue;
     if (!lv) {
       if (P.bench.some((b) => b.id === id)) continue;
       if (!slotFree && !benchFree) continue;
@@ -210,7 +210,7 @@ export function buildOptions(s: SimState): LevelOption[] {
   const pasOwned = Object.keys(P.pas).length;
   for (const id of PASSIVE_IDS) {
     const lv = P.pas[id] || 0;
-    if (lv >= s.cfg.passives.max[id]) continue;
+    if (lv >= s.cfg.passives.max[id] || s.banished.includes(id)) continue;
     if (!lv && pasOwned >= s.cfg.passiveSlots) continue;
     c.push({ o: { kind: 'pas', id }, w: L.wPassive });
   }
@@ -333,4 +333,69 @@ export function stepGems(s: SimState, dt: number): void {
   }
   s.gems = s.gems.filter((g) => !g.got);
   levelCheck(s);
+}
+
+/* ---------- Skill Points and the bought revive (ticket 26) ---------- */
+function spend(s: SimState, n: number, what: 'reroll' | 'banish' | 'upgrade'): boolean {
+  if (s.sp < n) return false;
+  s.sp -= n;
+  s.events.push({ t: 'spent', what });
+  return true;
+}
+
+/** Level-up: fresh offers for Skill Points. */
+export function reroll(s: SimState): void {
+  if (s.phase !== 'levelup' || !s.levelUp || !spend(s, s.cfg.economy.reroll, 'reroll')) return;
+  s.levelUp = { ...s.levelUp, options: buildOptions(s) };
+}
+
+/** Level-up: this offer's Skill/passive never comes back this Run; the offers are redrawn. */
+export function banish(s: SimState, index: number): void {
+  const o = s.levelUp?.options[index];
+  if (s.phase !== 'levelup' || !o || (o.kind !== 'skill' && o.kind !== 'pas')) return;
+  if (o.kind === 'skill' && s.P.skills[o.id]) return; // owned Skills cannot be banished
+  if (o.kind === 'pas' && s.P.pas[o.id]) return;
+  if (!spend(s, s.cfg.economy.banish, 'banish')) return;
+  s.banished.push(o.id);
+  s.levelUp = { ...s.levelUp!, options: buildOptions(s) };
+}
+
+/** +1 level to an equipped attack Skill (level-up or clear screen). */
+export function spUpgrade(s: SimState, id: SkillId): void {
+  const P = s.P, lv = P.skills[id];
+  if ((s.phase !== 'levelup' && s.phase !== 'clear') || !lv || lv >= s.cfg.skills[id].max) return;
+  if (!spend(s, s.cfg.economy.upgrade, 'upgrade')) return;
+  P.skills[id] = lv + 1;
+}
+
+/** Clear screen: Gold (this Run's first, then the wallet) → 1 Skill Point. */
+export function buySp(s: SimState): void {
+  if (s.phase !== 'clear') return;
+  if (!spendGold(s, Math.round(s.cfg.economy.spCost * s.stage))) { s.events.push({ t: 'swapDenied' }); return; }
+  s.sp++;
+  s.events.push({ t: 'spent', what: 'buySp' });
+}
+
+export const reviveCost = (s: SimState): number => Math.round(s.cfg.economy.revive * s.stage);
+
+/** Down without Second Wind: offer the bought revive when it is allowed and affordable. */
+export function offerRevive(s: SimState): boolean {
+  if (s.mode === 'daily' || s.revivesBought > 0) return false;
+  const wallet = Math.max(0, (s.meta.wallet || 0) - s.walletSpent);
+  if (s.runGold + wallet < reviveCost(s)) return false;
+  s.phase = 'revive';
+  return true;
+}
+
+export function buyRevive(s: SimState): void {
+  const P = s.P, E = s.cfg.economy;
+  if (s.phase !== 'revive' || !spendGold(s, reviveCost(s))) return;
+  s.revivesBought++;
+  P.hp = Math.round(P.maxHp * E.reviveHp);
+  P.inv = E.reviveInv;
+  s.phase = 'play';
+  banner(s, 'secondWind', 1.6, true);
+  flash(s, 0.4, '#fff35c');
+  sfx(s, 'ult');
+  s.events.push({ t: 'spent', what: 'revive' });
 }

@@ -11,7 +11,8 @@ import type { ShopId } from './data/shop';
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
 
-export type Phase = 'play' | 'levelup' | 'chest' | 'pause' | 'clearing' | 'clear' | 'route' | 'over';
+/** 'revive' = down, offered the bought revive (the sim waits). */
+export type Phase = 'play' | 'levelup' | 'chest' | 'pause' | 'clearing' | 'clear' | 'route' | 'revive' | 'over';
 
 /** Player input for one tick. mx/my in [-1, 1]; magnitude <= 1. */
 export interface InputFrame {
@@ -26,6 +27,12 @@ export type Command =
   | { type: 'resume' }
   | { type: 'next' } // continue from the clear screen (to the route choice or the next Chapter)
   | { type: 'route'; index: number } // pick one of the offered Realms
+  | { type: 'reroll' } // level-up: new offers for Skill Points
+  | { type: 'banish'; index: number } // level-up: remove that offer's Skill/passive from this Run
+  | { type: 'spUpgrade'; id: SkillId } // level-up / clear screen: +1 level for Skill Points
+  | { type: 'buySp' } // clear screen: Gold → 1 Skill Point
+  | { type: 'revive' } // down: buy the revive
+  | { type: 'giveUp' } // down: end the Run
   | { type: 'awaken'; accept: boolean } // clear screen: answer the Awakening prompt
   | { type: 'swap'; bench: number; slot: SkillId | null } // clear screen: Bench skill ↔ attack slot (null = empty slot)
   | { type: 'ult' }
@@ -57,6 +64,8 @@ export interface SimOptions {
   debug?: { event?: DebugEvent; god?: boolean };
   /** Event feature flags at Run start (default: all on). */
   events?: EventSwitches;
+  /** Run mode; the daily challenge disables the bought revive. */
+  mode?: 'solo' | 'daily' | 'endless';
 }
 
 export interface Pet { lv: number; cd: number; dive: number; x: number; y: number }
@@ -279,6 +288,7 @@ export type SimEvent =
   | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
   | { t: 'combo'; id: ComboId; x: number; y: number }
   | { t: 'swapDenied' }
+  | { t: 'spent'; what: 'reroll' | 'banish' | 'upgrade' | 'buySp' | 'revive' }
   | { t: 'victory' }
   | { t: 'gameOver' };
 
@@ -328,6 +338,11 @@ export interface SimState {
   revivesBought: number;
   victory: boolean;
   victoryTime: number;
+  mode: 'solo' | 'daily' | 'endless';
+  /** Skill Points (King rewards, bought with Gold). */
+  sp: number;
+  /** Skills/passives banished for this Run. */
+  banished: string[];
   /** The clear screen offers Awakening. */
   awakenOffer: boolean;
   /** Swaps made at this Stage end (cost doubles each time). */

@@ -540,6 +540,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   ctx.textAlign = 'right';
   outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
   outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');
+  if (v.sp > 0) outlined(t('hud.sp', { n: v.sp }), right - 90 * D, top + 36 * D, 10 * D, '#c9a8ff');
   if (v.streak >= 10) {
     const pulse = 1 + 0.25 * Math.max(0, 1 - (2.2 - v.streakT) / 0.15);
     const c = v.streak >= 200 ? '#ff5cf4' : v.streak >= 100 ? '#ff7a3d' : v.streak >= 50 ? '#ffd23f' : '#ffffff';

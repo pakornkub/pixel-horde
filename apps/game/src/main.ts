@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SkillId } from '@pixel-horde/sim';
+import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, reviveCost } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
@@ -16,7 +16,7 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderChars, renderLevelUp, renderRoute,
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderSp, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -116,7 +116,7 @@ async function newRun(): Promise<void> {
 function toTitle(): void {
   sim = null;
   queue = [];
-  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovMsg'].forEach(hide);
+  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
   setPlayUI(false);
@@ -128,6 +128,12 @@ function toTitle(): void {
 let benchDirty = false;
 function onSwap(bench: number, slot: SkillId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
 function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benchDirty = true; }
+function renderClear(v: Readonly<SimState>, denied = false): void {
+  showClear(v, v.runGold);
+  renderAwaken(v, onAwaken);
+  renderSp(v, () => { cmd({ type: 'buySp' }); benchDirty = true; }, (id) => { cmd({ type: 'spUpgrade', id }); benchDirty = true; });
+  renderBench(v, onSwap, denied);
+}
 
 /** Open/close overlays when the sim's phase changes. */
 function syncOverlays(): void {
@@ -142,14 +148,16 @@ function syncOverlays(): void {
         hide('ovLevel');
         cmd({ type: 'pick', index: i });
       }
-    });
+    }, { reroll: () => cmd({ type: 'reroll' }), banish: (i) => cmd({ type: 'banish', index: i }) });
   }
   if (v.phase !== shownPhase) {
     const prev = shownPhase;
     shownPhase = v.phase;
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
-    if (v.phase === 'clear') { showClear(v, v.runGold); renderAwaken(v, onAwaken); renderBench(v, onSwap); }
+    if (v.phase === 'clear') renderClear(v);
+    if (v.phase === 'revive') showRevive(v, reviveCost(v as SimState));
+    if (prev === 'revive' && v.phase !== 'revive') hide('ovRevive');
     if (v.phase === 'route' && v.route) {
       renderRoute(v, (i) => {
         if (sim && sim.view().phase === 'route') { hide('ovRoute'); cmd({ type: 'route', index: i }); last = performance.now(); }
@@ -179,11 +187,11 @@ function frame(now: number): void {
         queue = [];
         const v = sim.view();
         consume(events, v);
+        if (events.some((e) => e.t === 'spent')) syncWallet();
         if (benchDirty && v.phase === 'clear') {
           benchDirty = false;
           syncWallet();
-          showClear(v, v.runGold);
-          renderBench(v, onSwap, events.some((e) => e.t === 'swapDenied'));
+          renderClear(v, events.some((e) => e.t === 'swapDenied'));
         }
         if (events.some((e) => e.t === 'stageClear')) { bank(); telemetry.event({ k: 'clear', st: v.stage, t: Math.round(v.totalTime), hp: Math.round(v.P.hp), lv: v.P.lv }); }
         if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); }
@@ -281,6 +289,8 @@ $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('o
 $('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
 $('setBack').addEventListener('click', closeSettings);
 $('startBtn').addEventListener('click', () => void newRun());
+$('reviveBtn').addEventListener('click', () => { cmd({ type: 'revive' }); last = performance.now(); });
+$('giveUpBtn').addEventListener('click', () => { hide('ovRevive'); cmd({ type: 'giveUp' }); });
 $('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });
 $('retryBtn').addEventListener('click', () => void newRun());
 
