@@ -1,3 +1,4 @@
+import type { ResolvedConfig } from '@pixel-horde/config';
 import type { Streams } from './core/rng';
 import type { EnemyId } from './data/enemies';
 import type { HeroId } from './data/heroes';
@@ -39,6 +40,8 @@ export interface SimOptions {
   /** Low-res viewport in world pixels (the renderer's buffer size). */
   viewport: { w: number; h: number };
   world?: 'lumora';
+  /** Resolved Balance Config; defaults to the built-in one. */
+  config?: ResolvedConfig;
   debug?: { event?: DebugEvent; god?: boolean };
 }
 
@@ -198,6 +201,7 @@ export interface SimState {
   tick: number;
   clock: number;
   seed: number;
+  cfg: ResolvedConfig;
   phase: Phase;
   hero: HeroId;
   meta: Meta;
@@ -245,4 +249,3 @@ export interface SimState {
   events: SimEvent[];
 }
 
-export const ULT_MAX = 80;

@@ -1,4 +1,4 @@
-import { EVO_PASSIVE, PASSIVE_IDS, PASSIVE_MAX, SKILL_IDS, SKILL_MAX, type PassiveId, type SkillId } from '../data/skills';
+import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, type PassiveId, type SkillId } from '../data/skills';
 import type { LevelOption, SimState } from '../types';
 import { rollStage } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
@@ -6,13 +6,13 @@ import { recompute, U, xpNeed } from './player';
 import { DEATH_COL } from '../data/enemies';
 
 export function startStage(s: SimState, n: number): void {
-  const P = s.P;
+  const P = s.P, G = s.cfg.stage;
   if (s.specialStage) s.chestQueue++;
   rollStage(s, n);
-  if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * 0.5); P.inv = 2; }
+  if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * G.reviveHp); P.inv = 2; }
   s.stage = n;
-  s.stageDur = Math.min(150, 60 + 20 * (n - 1));
-  s.stageTime = 0; s.spawnAcc = 0; s.waveT = 16; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
+  s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
+  s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
   s.enemies = []; s.bolts = []; s.effects = [];
   for (const g of s.gems) if (g.kind === 'xp') P.xp += g.v;
   s.gems = [];
@@ -26,7 +26,7 @@ export function startStage(s: SimState, n: number): void {
 
 export function stageClear(s: SimState): void {
   s.phase = 'clearing';
-  s.clearT = 1.5;
+  s.clearT = s.cfg.stage.clearDelay;
   sfx(s, 'clear');
   if (s.rivalE && !s.rivalE.dead) banner(s, 'stageClearRivalFled', 2, true);
   else if (s.dragonE && !s.dragonE.dead) banner(s, 'stageClearDragonFled', 2, true);
@@ -54,28 +54,28 @@ export function gameOver(s: SimState): void {
 
 export function levelCheck(s: SimState): void {
   const P = s.P;
-  while (P.xp >= P.need) { P.xp -= P.need; P.lv++; P.need = xpNeed(P.lv); s.pendingLv++; }
+  while (P.xp >= P.need) { P.xp -= P.need; P.lv++; P.need = xpNeed(s.cfg, P.lv); s.pendingLv++; }
 }
 
 export function buildOptions(s: SimState): LevelOption[] {
-  const P = s.P, R = s.rng.levelup, out: LevelOption[] = [];
+  const P = s.P, R = s.rng.levelup, L = s.cfg.levelup, K = s.cfg.skills, out: LevelOption[] = [];
   for (const id of Object.keys(P.skills) as SkillId[]) {
-    if (P.skills[id]! >= SKILL_MAX[id] && !P.evo[id] && (P.pas[EVO_PASSIVE[id]] || 0) >= 1 && out.length < 3) out.push({ kind: 'evo', id });
+    if (P.skills[id]! >= K[id].max && !P.evo[id] && (P.pas[EVO_PASSIVE[id]] || 0) >= 1 && out.length < L.offers) out.push({ kind: 'evo', id });
   }
   const c: { o: LevelOption; w: number }[] = [];
   const owned = Object.keys(P.skills).length;
   for (const id of SKILL_IDS) {
     const lv = P.skills[id] || 0;
-    if (lv >= SKILL_MAX[id]) continue;
-    if (!lv && owned >= 6) continue;
-    c.push({ o: { kind: 'skill', id }, w: lv ? 1.3 : 1.1 });
+    if (lv >= K[id].max) continue;
+    if (!lv && owned >= s.cfg.maxAttackSlots) continue;
+    c.push({ o: { kind: 'skill', id }, w: lv ? L.wUpgrade : L.wNew });
   }
   for (const id of PASSIVE_IDS) {
     const lv = P.pas[id] || 0;
-    if (lv >= PASSIVE_MAX[id]) continue;
-    c.push({ o: { kind: 'pas', id }, w: 0.8 });
+    if (lv >= s.cfg.passives.max[id]) continue;
+    c.push({ o: { kind: 'pas', id }, w: L.wPassive });
   }
-  while (out.length < 3 && c.length) {
+  while (out.length < L.offers && c.length) {
     const tot = c.reduce((a, o) => a + o.w, 0);
     let r = R.next() * tot, i = 0;
     for (; i < c.length - 1; i++) { r -= c[i].w; if (r <= 0) break; }
@@ -101,7 +101,7 @@ export function choose(s: SimState, index: number): void {
   else if (o.kind === 'pas') {
     P.pas[o.id as PassiveId] = (P.pas[o.id] || 0) + 1;
     recompute(s);
-    if (o.id === 'vital') P.hp = Math.min(P.maxHp, P.hp + 30);
+    if (o.id === 'vital') P.hp = Math.min(P.maxHp, P.hp + s.cfg.passives.vitalHeal);
   } else P.hp = P.maxHp;
   if (s.pendingChest > 0) s.pendingChest--;
   else s.pendingLv--;
@@ -113,7 +113,7 @@ export function choose(s: SimState, index: number): void {
 export function openChest(s: SimState): void {
   const R = s.rng.loot;
   s.phase = 'chest';
-  const r = R.next(), res = r < 0.5 ? 1 : r < 0.85 ? 2 : 3;
+  const W = s.cfg.chest, r = R.next(), res = r < W.p1 ? 1 : r < W.p1 + W.p2 ? 2 : 3;
   const cells: number[] = [];
   [1, 2, 1, 3, 1, 2, 1, 2].forEach((v, i) => { if (v === res) cells.push(i); });
   const target = cells[R.int(cells.length)];
@@ -130,24 +130,24 @@ export function chestStop(s: SimState): void {
 }
 
 export function stepGems(s: SimState, dt: number): void {
-  const P = s.P;
+  const P = s.P, L = s.cfg.loot, sh = s.cfg.shop;
   for (const g of s.gems) {
     const dx = P.x - g.x, dy = P.y - g.y, l = Math.sqrt(dx * dx + dy * dy) || 1;
     if (l < P.pick) g.mag = true;
     if (g.mag) {
-      const sp = Math.min(320, (g.sp = (g.sp || 60) + 400 * dt));
+      const sp = Math.min(L.magnetMax, (g.sp = (g.sp || 60) + L.magnetAccel * dt));
       g.x += (dx / l) * sp * dt;
       g.y += (dy / l) * sp * dt;
     }
     if (l < 7) {
       g.got = true;
-      if (g.kind === 'xp') { P.xp += g.v * (1 + 0.1 * U(s, 'wisdom')); sfx(s, 'gem'); }
+      if (g.kind === 'xp') { P.xp += g.v * (1 + sh.wisdom.per * U(s, 'wisdom')); sfx(s, 'gem'); }
       else if (g.kind === 'coin') {
-        const c = Math.max(1, Math.round(g.v * (1 + 0.15 * U(s, 'greed'))));
+        const c = Math.max(1, Math.round(g.v * (1 + sh.greed.per * U(s, 'greed'))));
         s.runGold += c;
         sfx(s, 'coin');
         if (g.v >= 5) s.events.push({ t: 'text', x: g.x, y: g.y - 8, v: '+' + c + 'G', col: '#ffd23f', cr: false });
-      } else if (g.kind === 'chest') { s.chestQueue++; s.runGold += 20; }
+      } else if (g.kind === 'chest') { s.chestQueue++; s.runGold += L.chestGold; }
       else {
         const h = Math.round(P.maxHp * g.v);
         P.hp = Math.min(P.maxHp, P.hp + h);

@@ -20,7 +20,7 @@ export function typePool(s: SimState): EnemyId[] {
 }
 
 /** Flat damage reduction of armored enemies. */
-export const armorVal = (s: SimState): number => Math.round(10 * ipow(1.4, s.stage - 1) * (1 + 0.05 * (s.P.lv - 1)));
+export const armorVal = (s: SimState): number => { const c = s.cfg.scaling; return Math.round(c.armorBase * ipow(c.armorGrowth, s.stage - 1) * (1 + c.armorPerLv * (s.P.lv - 1))); };
 
 const INTRO_TYPES = new Set(['caster', 'charger', 'splitter', 'armor']);
 
@@ -32,20 +32,20 @@ function introType(s: SimState, type: EnemyId, armored: boolean): void {
 }
 
 export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, elite: boolean): Enemy {
-  const t = ET[type], P = s.P, R = s.rng.spawn;
-  const lvS = 1 + 0.08 * (P.lv - 1);
-  const hm = ipow(1.5, s.stage - 1) * (1 + 0.7 * prog(s)) * lvS * (0.85 + 0.15 * s.dir.v);
-  const dm = ipow(1.18, s.stage - 1) * (1 + 0.5 * prog(s)) * (1 + 0.015 * (P.lv - 1));
+  const t = ET[type], b = s.cfg.enemies[type], c = s.cfg.scaling, P = s.P, R = s.rng.spawn;
+  const lvS = 1 + c.hpPerLv * (P.lv - 1);
+  const hm = ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * lvS * (c.hpDirBase + c.hpDirK * s.dir.v);
+  const dm = ipow(c.dmgGrowth, s.stage - 1) * (1 + c.dmgProg * prog(s)) * (1 + c.dmgPerLv * (P.lv - 1));
   const e: Enemy = {
     id: s.eid++ & 262143, type, x, y,
-    hp: t.hp * hm * (elite ? 7 : 1), maxHp: 0,
-    spd: t.spd * (1 + 0.04 * (s.stage - 1)) * (elite ? 0.85 : 1) * R.range(0.9, 1.1),
-    dmg: t.dmg * dm * (elite ? 1.6 : 1),
-    xp: t.xp * (elite ? 6 : 1), r: t.r * (elite ? 2 : 1), sc: t.sc || (t.boss ? 3 : elite ? 2 : 1),
+    hp: b.hp * hm * (elite ? c.eliteHp : 1), maxHp: 0,
+    spd: b.spd * (1 + c.spdPerStage * (s.stage - 1)) * (elite ? c.eliteSpd : 1) * R.range(1 - c.spdJitter, 1 + c.spdJitter),
+    dmg: b.dmg * dm * (elite ? c.eliteDmg : 1),
+    xp: b.xp * (elite ? c.eliteXp : 1), r: b.r * (elite ? c.eliteR : 1), sc: t.sc || (t.boss ? 3 : elite ? 2 : 1),
     elite, boss: !!t.boss, dmgMul: 1,
-    kx: 0, ky: 0, flash: 0, slowT: 0, frz: 0, oc: 0, wob: R.range(-0.5, 0.5), ph: R.next() * TAU, dead: false, armor: 0, born: s.clock,
+    kx: 0, ky: 0, flash: 0, slowT: 0, frz: 0, oc: 0, wob: R.range(-c.wobble, c.wobble), ph: R.next() * TAU, dead: false, armor: 0, born: s.clock,
   };
-  if (s.stage >= 3 && !t.boss && type !== 'mini' && R.next() < (0.03 + 0.015 * s.stage) * s.dir.v) e.armor = armorVal(s);
+  if (s.stage >= c.armorFrom && !t.boss && type !== 'mini' && R.next() < (c.armorChance + c.armorChancePerStage * s.stage) * s.dir.v) e.armor = armorVal(s);
   e.maxHp = e.hp;
   s.enemies.push(e);
   introType(s, type, e.armor > 0);
@@ -58,40 +58,40 @@ export function edgePos(s: SimState): [number, number] {
   let cx = s.P.x, cy = s.P.y;
   const al = aliveTargets(s);
   if (al.length) { const t = al[R.int(al.length)]; cx = t.x; cy = t.y; }
-  const a = R.next() * TAU, d = hypot(s.viewport.w, s.viewport.h) / 2 + 14;
+  const a = R.next() * TAU, d = hypot(s.viewport.w, s.viewport.h) / 2 + s.cfg.spawn.edge;
   return [cx + cos(a) * d, cy + sin(a) * d];
 }
 
 /** Director: watches how easily the player is winning and pushes back (0.7–2.4). */
 export function directorStep(s: SimState, dt: number): void {
-  const P = s.P, hpf = P.hp / P.maxHp, calm = s.clock - s.dir.lastHurt;
-  if (hpf > 0.75 && calm > 6) s.dir.v += dt * 0.06;
-  else if (hpf < 0.4) s.dir.v -= dt * 0.2;
-  else if (calm < 2) s.dir.v -= dt * 0.03;
-  s.dir.v = clamp(s.dir.v, 0.7, 2.4);
+  const P = s.P, D = s.cfg.director, hpf = P.hp / P.maxHp, calm = s.clock - s.dir.lastHurt;
+  if (hpf > D.riseHp && calm > D.riseCalm) s.dir.v += dt * D.rise;
+  else if (hpf < D.dropHp) s.dir.v -= dt * D.drop;
+  else if (calm < D.hurtWindow) s.dir.v -= dt * D.hurtDrop;
+  s.dir.v = clamp(s.dir.v, D.min, D.max);
 }
 
 export function spawnStep(s: SimState, dt: number): void {
-  const R = s.rng.spawn, mates = 0;
+  const R = s.rng.spawn, C = s.cfg.spawn, mates = 0;
   directorStep(s, dt);
-  const rate = (1.4 + 3.4 * prog(s)) * (1 + 0.35 * (s.stage - 1)) * (1 + 0.6 * mates) * (s.specialStage ? 2.3 : 1) * s.dir.v;
+  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * s.dir.v;
   s.spawnAcc += rate * dt;
   const pool = typePool(s);
   while (s.spawnAcc >= 1) {
     s.spawnAcc--;
-    if (s.enemies.length < 320) {
+    if (s.enemies.length < C.cap) {
       const [x, y] = edgePos(s);
-      spawnEnemy(s, pool[R.int(pool.length)], x, y, R.next() < 0.012 * s.stage * s.dir.v);
+      spawnEnemy(s, pool[R.int(pool.length)], x, y, R.next() < C.eliteChance * s.stage * s.dir.v);
     }
   }
   s.waveT -= dt;
   if (s.waveT <= 0) {
-    s.waveT = s.specialStage ? 10 : 18;
-    const n = 16 + s.stage * 6, type = pool[R.int(pool.length)], d = hypot(s.viewport.w, s.viewport.h) / 2 + 10;
+    s.waveT = s.specialStage ? C.swarmEveryBloodMoon : C.swarmEvery;
+    const n = C.swarmBase + s.stage * C.swarmPerStage, type = pool[R.int(pool.length)], d = hypot(s.viewport.w, s.viewport.h) / 2 + C.ringEdge;
     const al = aliveTargets(s), c = al.length ? al[R.int(al.length)] : s.P;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU;
-      if (s.enemies.length < 340) spawnEnemy(s, type, c.x + cos(a) * d, c.y + sin(a) * d, false);
+      if (s.enemies.length < C.swarmCap) spawnEnemy(s, type, c.x + cos(a) * d, c.y + sin(a) * d, false);
     }
     banner(s, 'swarm', 1.4);
   }

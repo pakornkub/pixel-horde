@@ -16,16 +16,17 @@ export function rollStage(s: SimState, n: number): void {
   if (force === 'bloodmoon') { s.specialStage = true; return; }
   if (force === 'dragon') { s.specialStage = true; s.dragonStage = true; return; }
   if (force === 'rival') { s.rivalStage = true; return; }
-  if (n < 2) return;
+  const E = s.cfg.events;
+  if (n < E.bloodMoonFrom) return;
   const R = s.rng.events, run = s.run;
-  if (R.next() < 0.1 + 0.06 * run.spPity) {
+  if (R.next() < E.bloodMoonChance + E.bloodMoonPity * run.spPity) {
     s.specialStage = true;
     run.spPity = 0;
-    if (n >= 3 && R.next() < 0.25 + 0.15 * run.drPity) { s.dragonStage = true; run.drPity = 0; }
-    else if (n >= 3) run.drPity++;
+    if (n >= E.dragonFrom && R.next() < E.dragonChance + E.dragonPity * run.drPity) { s.dragonStage = true; run.drPity = 0; }
+    else if (n >= E.dragonFrom) run.drPity++;
   } else {
     run.spPity++;
-    if (R.next() < 0.25) s.rivalStage = true;
+    if (R.next() < E.rivalChance) s.rivalStage = true;
   }
 }
 
@@ -63,7 +64,8 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'line') {
       if (h.fire && !h.fired && h.t >= h.te!) {
         h.fired = true;
-        addHz(s, { k: 'proj', x: h.x, y: h.y, vx: cos(h.a!) * 260, vy: sin(h.a!) * 260, r: 4, d: h.d, life: 1.2, c: 1 });
+        const sp = s.cfg.rival.lance.speed;
+        addHz(s, { k: 'proj', x: h.x, y: h.y, vx: cos(h.a!) * sp, vy: sin(h.a!) * sp, r: 4, d: h.d, life: 1.2, c: 1 });
       }
     } else if (h.k === 'proj') {
       h.x += h.vx! * dt;
@@ -82,29 +84,29 @@ export function stepHz(s: SimState, dt: number): void {
 /* ---------- Inferno Dragon ---------- */
 export function spawnDragon(s: SimState): void {
   const [x, y] = edgePos(s);
-  const e = spawnEnemy(s, 'dragon', x, y, false);
-  e.hp = e.maxHp = 6000 * ipow(1.5, s.stage - 1);
-  e.cd = 2; e.lock = 0; e.dashT = 0;
+  const e = spawnEnemy(s, 'dragon', x, y, false), D = s.cfg.dragon;
+  e.hp = e.maxHp = D.hp * ipow(D.hpGrowth, s.stage - 1);
+  e.cd = D.firstCd; e.lock = 0; e.dashT = 0;
   s.dragonE = e;
   banner(s, 'dragonAppears', 2.4, true);
   shake(s, 8); flash(s, 0.3, '#ff4b3a'); sfx(s, 'ult');
 }
 
 export function dragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number, damp: number): void {
-  const R = s.rng.ai;
+  const R = s.rng.ai, D = s.cfg.dragon;
   const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1;
   if (e.dashT! > 0) {
     e.dashT! -= dt;
-    e.x += cos(e.dashA!) * 320 * dt;
-    e.y += sin(e.dashA!) * 320 * dt;
-    e.dmgMul = 1.6;
+    e.x += cos(e.dashA!) * D.dashSpeed * dt;
+    e.y += sin(e.dashA!) * D.dashSpeed * dt;
+    e.dmgMul = D.dashDmg;
     burst(s, e.x, e.y, '#ff8a3d', 2, 40, 0.3, 0.8);
     return;
   }
   e.dmgMul = 1;
   if (e.lock! > 0) {
     e.lock! -= dt;
-    if (e.lock! <= 0 && e.pend === 'dash') { e.dashT = 0.5; e.pend = null; }
+    if (e.lock! <= 0 && e.pend === 'dash') { e.dashT = D.dashTime; e.pend = null; }
     return;
   }
   const sp = e.spd * (e.slowT > 0 ? 0.6 : 1);
@@ -115,15 +117,15 @@ export function dragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numb
   if (e.cd! > 0) return;
   const whelps = s.enemies.filter((o) => !o.dead && o.type === 'whelp').length;
   const opts = ['breath', 'breath', 'dash', 'rain'];
-  if (whelps < 6) opts.push('summon');
+  if (whelps < D.whelpCap) opts.push('summon');
   const pick = opts[R.int(opts.length)], a = atan2(dy, dx);
-  e.cd = R.range(1.8, 2.6);
-  if (pick === 'breath') { addHz(s, { k: 'cone', x: e.x, y: e.y, a, r: 100, sp: 0.5, te: 0.75, du: 0.7, d: e.dmg * 0.45 }); e.lock = 1.45; }
-  else if (pick === 'dash') { addHz(s, { k: 'line', x: e.x, y: e.y, a, r: 190, te: 0.65, c: 0 }); e.lock = 0.65; e.pend = 'dash'; e.dashA = a; }
+  e.cd = R.range(D.cdMin, D.cdMax);
+  if (pick === 'breath') { addHz(s, { k: 'cone', x: e.x, y: e.y, a, r: D.breathR, sp: D.breathArc, te: D.breathWarn, du: D.breathDur, d: e.dmg * D.breathDmg }); e.lock = D.breathWarn + D.breathDur; }
+  else if (pick === 'dash') { addHz(s, { k: 'line', x: e.x, y: e.y, a, r: D.dashLen, te: D.dashWarn, c: 0 }); e.lock = D.dashWarn; e.pend = 'dash'; e.dashA = a; }
   else if (pick === 'rain') {
-    for (let i = 0; i < 6; i++) addHz(s, { k: 'circ', x: tx + (i ? R.range(-40, 40) : 0), y: ty + (i ? R.range(-30, 30) : 0), r: 18, te: 0.9 + i * 0.08, d: e.dmg * 1.1, c: 0 });
+    for (let i = 0; i < D.rainCount; i++) addHz(s, { k: 'circ', x: tx + (i ? R.range(-40, 40) : 0), y: ty + (i ? R.range(-30, 30) : 0), r: D.rainR, te: D.rainWarn + i * 0.08, d: e.dmg * D.rainDmg, c: 0 });
   } else {
-    for (let i = 0; i < 4; i++) spawnEnemy(s, 'whelp', e.x + R.range(-20, 20), e.y + R.range(-20, 20), false);
+    for (let i = 0; i < D.whelps; i++) spawnEnemy(s, 'whelp', e.x + R.range(-20, 20), e.y + R.range(-20, 20), false);
     banner(s, 'dragonSummons', 1);
   }
 }
@@ -132,17 +134,17 @@ export function dragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numb
 const RIVAL_SK: RivalSkill[] = ['bolt', 'lance', 'nova', 'meteor', 'zap'];
 
 export function spawnRival(s: SimState): void {
-  const R = s.rng.events;
+  const R = s.rng.events, V = s.cfg.rival;
   const [x, y] = edgePos(s);
   const e = spawnEnemy(s, 'rival', x, y, false);
-  e.hp = e.maxHp = 1400 * ipow(1.5, s.stage - 1);
+  e.hp = e.maxHp = V.hp * ipow(V.hpGrowth, s.stage - 1);
   const pool = RIVAL_SK.slice();
   e.sk = [];
-  while (e.sk.length < 3) e.sk.push(pool.splice(R.int(pool.length), 1)[0]);
-  e.rlv = 1 + Math.floor((s.stage - 1) / 2);
+  while (e.sk.length < V.skills) e.sk.push(pool.splice(R.int(pool.length), 1)[0]);
+  e.rlv = 1 + Math.floor((s.stage - 1) / V.lvEvery);
   e.cds = {};
   e.sk.forEach((k, i) => { e.cds![k] = 1 + i * 0.7; });
-  e.life = 35;
+  e.life = V.life;
   e.ang = R.next() * TAU;
   s.rivalE = e;
   banner(s, 'rivalAppears', 2.6, true);
@@ -150,7 +152,7 @@ export function spawnRival(s: SimState): void {
 }
 
 export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number, damp: number): void {
-  const R = s.rng.ai;
+  const R = s.rng.ai, V = s.cfg.rival;
   e.life! -= dt;
   if (e.life! <= 0) {
     burst(s, e.x, e.y, '#8a5ad6', 30, 90, 0.7);
@@ -162,11 +164,11 @@ export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numbe
   const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1;
   e.ang! += dt * 0.9;
   let mx = 0, my = 0;
-  if (l > 90) { mx = dx / l; my = dy / l; } else if (l < 60) { mx = -dx / l; my = -dy / l; }
+  if (l > V.keepFar) { mx = dx / l; my = dy / l; } else if (l < V.keepNear) { mx = -dx / l; my = -dy / l; }
   mx += (-dy / l) * sin(e.ang!) * 0.8;
   my += (dx / l) * sin(e.ang!) * 0.8;
   const m = hypot(mx, my) || 1;
-  const sp = e.spd * (e.slowT > 0 ? 0.6 : 1) * (e.frz > 0 ? 0.3 : 1);
+  const sp = e.spd * (e.slowT > 0 ? V.slow : 1) * (e.frz > 0 ? V.frozen : 1);
   e.x += (mx / m) * sp * dt + e.kx * dt;
   e.y += (my / m) * sp * dt + e.ky * dt;
   e.kx *= damp; e.ky *= damp;
@@ -175,25 +177,29 @@ export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numbe
     e.cds![k]! -= dt;
     if (e.cds![k]! > 0) continue;
     if (k === 'bolt') {
-      const n = 1 + Math.floor(L / 2);
+      const c = V.bolt, n = 1 + Math.floor(L / 2);
       for (let i = 0; i < n; i++) {
-        const aa = a + (i - (n - 1) / 2) * 0.25;
-        addHz(s, { k: 'proj', x: e.x, y: e.y, vx: cos(aa) * 110, vy: sin(aa) * 110, r: 3, d: e.dmg * 0.6, life: 2, c: 1 });
+        const aa = a + (i - (n - 1) / 2) * c.spread;
+        addHz(s, { k: 'proj', x: e.x, y: e.y, vx: cos(aa) * c.speed, vy: sin(aa) * c.speed, r: 3, d: e.dmg * c.dmg, life: 2, c: 1 });
       }
-      e.cds![k] = Math.max(0.9, 1.9 - 0.1 * L);
+      e.cds![k] = Math.max(c.cdMin, c.cd - c.cdPerLv * L);
     } else if (k === 'lance') {
-      addHz(s, { k: 'line', x: e.x, y: e.y, a, r: 220, te: 0.5, d: e.dmg, c: 1, fire: true });
-      e.cds![k] = Math.max(1.6, 3.2 - 0.15 * L);
+      const c = V.lance;
+      addHz(s, { k: 'line', x: e.x, y: e.y, a, r: c.len, te: c.warn, d: e.dmg * c.dmg, c: 1, fire: true });
+      e.cds![k] = Math.max(c.cdMin, c.cd - c.cdPerLv * L);
     } else if (k === 'nova') {
-      if (l > 110) { e.cds![k] = 0.3; continue; }
-      addHz(s, { k: 'ring', x: e.x, y: e.y, r: 80 + 8 * L, du: 0.7, d: e.dmg });
-      e.cds![k] = Math.max(2, 4 - 0.2 * L);
+      const c = V.nova;
+      if (l > c.range) { e.cds![k] = 0.3; continue; }
+      addHz(s, { k: 'ring', x: e.x, y: e.y, r: c.r + c.rPerLv * L, du: c.dur, d: e.dmg });
+      e.cds![k] = Math.max(c.cdMin, c.cd - c.cdPerLv * L);
     } else if (k === 'meteor') {
-      for (let i = 0; i < 2 + L; i++) addHz(s, { k: 'circ', x: tx + (i ? R.range(-35, 35) : 0), y: ty + (i ? R.range(-25, 25) : 0), r: 16, te: 1 + i * 0.1, d: e.dmg * 1.2, c: 1 });
-      e.cds![k] = Math.max(2.6, 4.6 - 0.2 * L);
+      const c = V.meteor;
+      for (let i = 0; i < 2 + L; i++) addHz(s, { k: 'circ', x: tx + (i ? R.range(-35, 35) : 0), y: ty + (i ? R.range(-25, 25) : 0), r: c.r, te: c.warn + i * 0.1, d: e.dmg * c.dmg, c: 1 });
+      e.cds![k] = Math.max(c.cdMin, c.cd - c.cdPerLv * L);
     } else {
-      addHz(s, { k: 'circ', x: tx, y: ty, r: 10, te: 0.5, d: e.dmg * 0.9, c: 2 });
-      e.cds![k] = Math.max(1.4, 3 - 0.15 * L);
+      const c = V.zap;
+      addHz(s, { k: 'circ', x: tx, y: ty, r: c.r, te: c.warn, d: e.dmg * c.dmg, c: 2 });
+      e.cds![k] = Math.max(c.cdMin, c.cd - c.cdPerLv * L);
     }
   }
 }
@@ -210,7 +216,7 @@ export function grantDragon(s: SimState): void {
   }
   flash(s, 0.35, '#ffd23f');
   sfx(s, 'clear');
-  s.runGold += 100;
+  s.runGold += s.cfg.dragon.gold;
 }
 
 export function grantShadow(s: SimState): void {
@@ -219,19 +225,19 @@ export function grantShadow(s: SimState): void {
   if (P.clone) {
     P.clone.lv++;
     banner(s, 'clonePowerUp', 2, false, { lv: P.clone.lv });
-  } else if (s.rng.loot.next() < 0.35 || P.shards >= 3) {
+  } else if (s.rng.loot.next() < s.cfg.rival.cloneChance || P.shards >= s.cfg.rival.shards) {
     P.clone = { lv: 1, x: P.x, y: P.y };
     P.shards = 0;
     banner(s, 'shadowClone', 2.6, true);
     flash(s, 0.35, '#b07cff');
   } else banner(s, 'shadowShard', 2.4, false, { n: P.shards });
   sfx(s, 'clear');
-  s.runGold += 40;
+  s.runGold += s.cfg.rival.gold;
 }
 
 /* ---------- pet dragon ---------- */
 export function petStep(s: SimState, dt: number): void {
-  const P = s.P, pt = P.pet, R = s.rng.skills;
+  const P = s.P, pt = P.pet, R = s.rng.skills, Q = s.cfg.pet;
   if (!pt || P.down) return;
   const tx = P.x + cos(s.clock * 1.3) * 22, ty = P.y - 14 + sin(s.clock * 2.6) * 4;
   pt.x += (tx - pt.x) * Math.min(1, dt * 6);
@@ -239,19 +245,19 @@ export function petStep(s: SimState, dt: number): void {
   pt.cd -= dt;
   pt.dive -= dt;
   if (pt.cd <= 0) {
-    const t = nearest(s, pt.x, pt.y, 100);
+    const t = nearest(s, pt.x, pt.y, Q.breathRange);
     if (t) {
-      pt.cd = Math.max(0.6, 1.3 - 0.1 * pt.lv);
+      pt.cd = Math.max(Q.breathCdMin, Q.breathCd - Q.breathCdPerLv * pt.lv);
       const a = atan2(t.y - pt.y, t.x - pt.x);
-      s.effects.push({ type: 'pbreath', x: pt.x, y: pt.y, a, r: 70 + 6 * pt.lv, sp: 0.45, t: 0, dur: 0.4, hit: new Set(), dmg: (25 + 8 * P.lv) * (1 + 0.4 * (pt.lv - 1)) });
+      s.effects.push({ type: 'pbreath', x: pt.x, y: pt.y, a, r: Q.breathR + Q.breathRPerLv * pt.lv, sp: 0.45, t: 0, dur: 0.4, hit: new Set(), dmg: (Q.breathDmg + Q.breathDmgPerLv * P.lv) * (1 + Q.perPetLv * (pt.lv - 1)) });
     } else pt.cd = 0.2;
   }
   if (pt.dive <= 0) {
     const vis = visibleEnemies(s);
     if (vis.length) {
-      pt.dive = Math.max(2.5, 5 - 0.4 * pt.lv);
+      pt.dive = Math.max(Q.diveMin, Q.dive - Q.divePerLv * pt.lv);
       const e = vis[R.int(vis.length)];
-      s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: 0.45, r: 26, dmg: (120 + 25 * P.lv) * (1 + 0.4 * (pt.lv - 1)), boomed: false, bt: 0 });
+      s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: 0.45, r: Q.diveR, dmg: (Q.diveDmg + Q.diveDmgPerLv * P.lv) * (1 + Q.perPetLv * (pt.lv - 1)), boomed: false, bt: 0 });
     } else pt.dive = 0.5;
   }
 }
@@ -269,7 +275,7 @@ export function cloneStep(s: SimState, dt: number): void {
 export function cloneCast(s: SimState, id: SkillId, t: SkillStats): void {
   const P = s.P, c = P.clone, R = s.rng.skills;
   if (!c || P.down) return;
-  const f = Math.min(0.6, 0.35 + 0.08 * (c.lv - 1));
+  const CL = s.cfg.clone, f = Math.min(CL.dmgMax, CL.dmg + CL.dmgPerLv * (c.lv - 1));
   if (id === 'bolt') {
     const tg = nearest(s, c.x, c.y, 200);
     if (!tg) return;

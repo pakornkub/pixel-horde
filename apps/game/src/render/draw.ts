@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { skillStats, themeIndex, ULT_MAX, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
+import { skillStats, themeIndex, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, PET_R, PET_LEFT } from './sprites';
@@ -79,7 +79,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
   if (v && P) {
     // frost aura
     if (P.skills.frost) {
-      const s = skillStats('frost', P.skills.frost, !!P.evo.frost);
+      const s = skillStats(v.cfg, 'frost', P.skills.frost, !!P.evo.frost);
       b.save(); b.globalAlpha = 0.18 + 0.05 * Math.sin(clock * 4); b.fillStyle = '#bfe6ff';
       b.beginPath(); b.ellipse(P.x + ox, P.y + oy, s.r, s.r * 0.85, 0, 0, TAU); b.fill();
       b.globalAlpha = 0.6; b.strokeStyle = '#e6f6ff'; b.lineWidth = 1; b.setLineDash([2, 3]); b.lineDashOffset = clock * 10; b.stroke(); b.restore();
@@ -157,7 +157,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     }
     // orbit blades
     if (P.skills.orbit && v.phase !== 'over') {
-      const s = skillStats('orbit', P.skills.orbit, !!P.evo.orbit);
+      const s = skillStats(v.cfg, 'orbit', P.skills.orbit, !!P.evo.orbit);
       for (let i = 0; i < s.n; i++) {
         const a = P.orbitA + (i * TAU) / s.n, x = P.x + ox + Math.cos(a) * s.r, y = P.y + oy + Math.sin(a) * s.r * 0.8;
         b.save(); b.translate(Math.round(x), Math.round(y)); b.rotate(a + Math.PI / 2 + clock * 6);
@@ -383,7 +383,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.fillStyle = m.col; ctx.fillRect(x, by, sz, sz);
     const cdv = P.cds[id as SkillId];
     if (sk && cdv! > 0 && id !== 'orbit' && id !== 'frost') {
-      const s = skillStats(id as SkillId, lv, !!P.evo[id as SkillId]);
+      const s = skillStats(v.cfg, id as SkillId, lv, !!P.evo[id as SkillId]);
       ctx.fillStyle = 'rgba(30,27,51,.45)'; ctx.fillRect(x, by, sz, sz * clamp(cdv! / (s.cd * P.cdMul), 0, 1));
     }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.font = font(10 * D); ctx.fillText(m.g, x + sz / 2, by + sz / 2);
@@ -424,6 +424,6 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.beginPath(); ctx.arc((joy.ox + dx * m) * D, (joy.oy + dy * m) * D, 18 * D, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
   }
   const ub = document.getElementById('ultBtn')!;
-  ub.style.setProperty('--p', (v.ult / ULT_MAX) * 100 + '%');
-  ub.classList.toggle('ready', v.ult >= ULT_MAX);
+  ub.style.setProperty('--p', (v.ult / v.cfg.ult.max) * 100 + '%');
+  ub.classList.toggle('ready', v.ult >= v.cfg.ult.max);
 }

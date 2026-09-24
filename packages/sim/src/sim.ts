@@ -1,3 +1,4 @@
+import { DEFAULT_RESOLVED } from '@pixel-horde/config';
 import { createStreams } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { theme, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
@@ -9,7 +10,6 @@ import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/e
 import { banner, shake } from './systems/fx';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type SimOptions, type SimState } from './types';
 
-const LN_KNOCKBACK = log(0.02);
 
 export interface Sim {
   /** Advance one fixed tick (1/60 s). Commands apply before the tick. Returns this tick's events. */
@@ -42,18 +42,20 @@ export const HASH_EVERY = 60;
 const NO_COMMANDS: readonly Command[] = [];
 
 export function createSim(opts: SimOptions): Sim {
-  const P = newPlayer(opts.hero);
+  const cfg = opts.config ?? DEFAULT_RESOLVED;
+  const P = newPlayer(cfg, opts.hero);
+  const LN_KNOCKBACK = log(cfg.player.kbDecay);
   const s: SimState = {
-    tick: 0, clock: 0, seed: opts.seed >>> 0, phase: 'play', hero: opts.hero,
+    tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, phase: 'play', hero: opts.hero,
     meta: { up: { ...opts.meta.up } },
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
-    stage: 1, stageTime: 0, stageDur: 60, spawnAcc: 0, waveT: 16, bossSpawned: false, boss: null, eid: 1,
+    stage: 1, stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
     totalTime: 0, clearT: 0, slowT: 0, hitstop: 0, frostT: 0, runGold: 0,
     P, enemies: [], bolts: [], gems: [], effects: [], hz: [], hzId: 1,
-    dir: { v: 1, lastHurt: 0 }, run: { spPity: 0, drPity: 0 },
+    dir: { v: cfg.director.start, lastHurt: 0 }, run: { spPity: 0, drPity: 0 },
     specialStage: false, dragonStage: false, rivalStage: false, dragonWarned: false, dragonSpawned: false, rivalSpawned: false,
     dragonE: null, rivalE: null, seen: new Set(),
     rng: createStreams(opts.seed >>> 0),
@@ -75,7 +77,7 @@ export function createSim(opts: SimOptions): Sim {
       case 'resume': if (s.phase === 'pause') s.phase = 'play'; break;
       case 'next':
         if (s.phase === 'clear') {
-          s.P.hp = Math.min(s.P.maxHp, s.P.hp + s.P.maxHp * 0.4);
+          s.P.hp = Math.min(s.P.maxHp, s.P.hp + s.P.maxHp * cfg.stage.clearHeal);
           startStage(s, s.stage + 1);
         }
         break;
@@ -114,19 +116,19 @@ export function createSim(opts: SimOptions): Sim {
       s.stageTime += dt;
       s.totalTime += dt;
       spawnStep(s, dt);
-      if (s.rivalStage && !s.rivalSpawned && prog(s) >= 0.25) { s.rivalSpawned = true; spawnRival(s); }
-      if (s.dragonStage && !s.dragonWarned && prog(s) >= 0.33) {
+      if (s.rivalStage && !s.rivalSpawned && prog(s) >= cfg.events.rivalAt) { s.rivalSpawned = true; spawnRival(s); }
+      if (s.dragonStage && !s.dragonWarned && prog(s) >= cfg.events.dragonWarnAt) {
         s.dragonWarned = true;
         banner(s, 'dragonOmen', 2.2);
         s.effects.push({ type: 'shadowpass', t: 0, dur: 1.6, x: 0, y: 0, dmg: 0 });
         shake(s, 3);
       }
-      if (s.dragonStage && !s.dragonSpawned && prog(s) >= 0.42) { s.dragonSpawned = true; spawnDragon(s); s.bossSpawned = true; }
-      if (!s.bossSpawned && prog(s) >= 0.55) {
+      if (s.dragonStage && !s.dragonSpawned && prog(s) >= cfg.events.dragonAt) { s.dragonSpawned = true; spawnDragon(s); s.bossSpawned = true; }
+      if (!s.bossSpawned && prog(s) >= cfg.stage.bossAt) {
         s.bossSpawned = true;
         const [x, y] = edgePos(s);
         const b = spawnEnemy(s, theme(s).boss, x, y, false);
-        b.hp *= ipow(1.25, s.stage - 1);
+        b.hp *= ipow(cfg.stage.bossHpGrowth, s.stage - 1);
         b.maxHp = b.hp;
         s.boss = b;
         banner(s, 'bossIncoming', 2);

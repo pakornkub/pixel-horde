@@ -1,6 +1,7 @@
 import './style.css';
 import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions } from '@pixel-horde/sim';
 import { initAudio, audio } from './audio/sfx';
+import { active } from './config';
 import { META, getBest, saveMeta, setBest, simMeta } from './meta';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
@@ -45,6 +46,7 @@ function newRun(): void {
     hero: isHero(META.ch) ? META.ch : 'mage',
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH },
+    config: active.cfg,
     debug,
   });
   queue = [];

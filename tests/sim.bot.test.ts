@@ -60,3 +60,15 @@ describe('headless bot runs', () => {
     expect(sim.view().stageDur).toBe(80);
   });
 });
+
+describe('Balance Config drives the sim', () => {
+  it('a shorter stage length clears earlier', async () => {
+    const { parseBalanceConfig, resolveConfig } = await import('@pixel-horde/config');
+    const config = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 20 } } }));
+    const sim = createSim(botOptions(3, { debug: { god: true }, config }));
+    expect(sim.view().stageDur).toBe(20);
+    let cleared = false;
+    for (let t = 0; t < 30 * 60 && !cleared; t++) { botStep(sim, t); cleared = sim.view().phase === 'clearing'; }
+    expect(cleared).toBe(true);
+  });
+});

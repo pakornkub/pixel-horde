@@ -1,7 +1,8 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { EVO_PASSIVE, HERO_IDS, HEROES, SHOP, SHOP_IDS, SKILL_MAX, WHEEL, shopCost, skillStats, type LevelOption, type SimState } from '@pixel-horde/sim';
+import { EVO_PASSIVE, HERO_IDS, HEROES, SHOP_IDS, WHEEL, shopCost, shopMax, skillStats, type LevelOption, type SimState } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, ownsHero, saveMeta } from '../meta';
+import { active } from '../config';
 import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
 import { EVO_TEXT, HERO_TEXT, PASSIVE_TEXT, SHOP_TEXT, SKILL_TEXT, skillDetail } from './text';
@@ -38,7 +39,7 @@ export function renderChars(): void {
   const box = $('chars');
   box.innerHTML = '';
   for (const k of HERO_IDS) {
-    const c = HEROES[k], t = HERO_TEXT[k], owned = ownsHero(k);
+    const c = active.cfg.heroes[k], t = HERO_TEXT[k], owned = ownsHero(k);
     const bt = document.createElement('button');
     bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked');
     const im = document.createElement('img'); im.alt = ''; im.src = charImg(k);
@@ -70,7 +71,7 @@ function renderShop(): void {
   const list = $('shopList');
   list.innerHTML = '';
   for (const id of SHOP_IDS) {
-    const m = SHOP_TEXT[id], lv = U(id), max = SHOP[id].max, maxed = lv >= max, c = shopCost(id, lv);
+    const m = SHOP_TEXT[id], lv = U(id), max = shopMax(active.cfg, id), maxed = lv >= max, c = shopCost(active.cfg, id, lv);
     const row = document.createElement('div');
     row.className = 'srow';
     row.innerHTML = `<span class="ico" style="background:${m.col}">${m.g}</span><span><span class="nm">${m.name} ${lv}/${max}</span><span class="ds">${m.th}</span></span>`;
@@ -79,7 +80,7 @@ function renderShop(): void {
     bt.textContent = maxed ? 'เต็มแล้ว' : `ซื้อ ${c}G`;
     bt.disabled = maxed || META.gold < c;
     bt.addEventListener('click', () => {
-      const cost = shopCost(id, U(id));
+      const cost = shopCost(active.cfg, id, U(id));
       if (U(id) >= max || META.gold < cost) return;
       META.gold -= cost;
       META.up[id] = U(id) + 1;
@@ -128,8 +129,8 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       const lv = P.skills[o.id] || 0;
       name = SKILL_TEXT[o.id].name;
       tag = lv ? `LV ${lv}→${lv + 1}` : '<i>NEW!</i>';
-      desc = (lv ? '' : SKILL_TEXT[o.id].th + ' ') + '(' + skillDetail(o.id, skillStats(o.id, lv + 1, false)) + ')';
-      if (lv + 1 === SKILL_MAX[o.id]) desc += ` ขั้นสุดท้าย วิวัฒน์ได้ถ้ามี ${PASSIVE_TEXT[EVO_PASSIVE[o.id]].name}`;
+      desc = (lv ? '' : SKILL_TEXT[o.id].th + ' ') + '(' + skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false)) + ')';
+      if (lv + 1 === v.cfg.skills[o.id].max) desc += ` ขั้นสุดท้าย วิวัฒน์ได้ถ้ามี ${PASSIVE_TEXT[EVO_PASSIVE[o.id]].name}`;
     } else if (o.kind === 'pas') {
       meta = PASSIVE_TEXT[o.id];
       const lv = P.pas[o.id] || 0;

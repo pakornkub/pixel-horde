@@ -1,5 +1,6 @@
+import { active } from './config';
 // Meta progression, kept in localStorage (`pixelhorde-meta`, `pixelhorde-best`) as the offline save.
-import { HEROES, isHero, SHOP_IDS, type HeroId, type Meta, type ShopId } from '@pixel-horde/sim';
+import { isHero, SHOP_IDS, type HeroId, type Meta, type ShopId } from '@pixel-horde/sim';
 
 export interface MetaSave {
   gold: number;
@@ -29,7 +30,7 @@ export function saveMeta(): void {
 }
 
 export const U = (id: ShopId): number => META.up[id] || 0;
-export const ownsHero = (k: HeroId): boolean => HEROES[k].cost === 0 || META.owned.includes(k);
+export const ownsHero = (k: HeroId): boolean => active.cfg.heroes[k].cost === 0 || META.owned.includes(k);
 export const simMeta = (): Meta => ({ up: { ...META.up } });
 
 export interface Best { stage: number; kills: number }
