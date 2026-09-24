@@ -227,6 +227,21 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.fillStyle = '#ffffff'; b.fillRect(-1, -5, 1, 4); b.fillStyle = '#ffd23f'; b.fillRect(-2, 3, 4, 1); b.restore();
       }
     }
+    // line-skill auras and the awakened glow
+    if (P.skills.timeWarp && !P.down) {
+      const r = skillStats(v.cfg, 'timeWarp', P.skills.timeWarp, false).r;
+      b.save(); b.globalAlpha = 0.12; b.fillStyle = '#8fdcff'; b.beginPath(); b.ellipse(P.x + ox, P.y + oy, r, r * 0.85, 0, 0, TAU); b.fill();
+      b.globalAlpha = 0.5; b.strokeStyle = '#c9a8ff'; b.setLineDash([3, 4]); b.lineDashOffset = -clock * 8; b.stroke(); b.restore();
+    }
+    if (P.skills.transmute && !P.down) {
+      const r = skillStats(v.cfg, 'transmute', P.skills.transmute, false).r;
+      b.save(); b.globalAlpha = 0.5; b.strokeStyle = '#ff5cf4'; b.setLineDash([2, 5]); b.lineDashOffset = clock * 6;
+      b.beginPath(); b.ellipse(P.x + ox, P.y + oy, r, r * 0.85, 0, 0, TAU); b.stroke(); b.restore();
+    }
+    if (P.awakened && !P.down) {
+      b.save(); b.globalAlpha = 0.35 + 0.15 * Math.sin(clock * 5); b.fillStyle = '#ffd23f';
+      b.beginPath(); b.ellipse(P.x + ox, P.y + oy + 8, 9, 3, 0, 0, TAU); b.fill(); b.restore();
+    }
     // holy shields
     if (P.skills.shield && v.phase !== 'over' && !P.down) {
       const sh = skillStats(v.cfg, 'shield', P.skills.shield, !!P.evo.shield);
@@ -282,8 +297,8 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       if (f.type === 'nova') {
         const k = Math.min(1, f.t / f.dur), r = f.R! * k;
         b.save(); b.globalAlpha = 1 - k * 0.7;
-        b.strokeStyle = '#ff4b3a'; b.lineWidth = 6; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, r, r * 0.85, 0, 0, TAU); b.stroke();
-        b.strokeStyle = '#ffd23f'; b.lineWidth = 3; b.stroke(); b.strokeStyle = '#fff'; b.lineWidth = 1; b.stroke(); b.restore();
+        b.strokeStyle = f.col ? '#5a3f8a' : '#ff4b3a'; b.lineWidth = 6; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, r, r * 0.85, 0, 0, TAU); b.stroke();
+        b.strokeStyle = f.col || '#ffd23f'; b.lineWidth = 3; b.stroke(); b.strokeStyle = '#fff'; b.lineWidth = 1; b.stroke(); b.restore();
         if (R() < 0.8) { const a = R() * TAU; vfx.fx.push({ x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r * 0.85, vx: Math.cos(a) * 30, vy: Math.sin(a) * 30 - 10, t: 0, life: 0.3, col: R() < 0.5 ? '#ffd23f' : '#ff8a3d', sz: 1 }); }
       } else if (f.type === 'chain') {
         b.save(); b.globalAlpha = 1 - f.t / f.dur;
@@ -296,18 +311,50 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         }
         b.strokeStyle = '#ffd23f'; b.lineWidth = 3; b.stroke(); b.strokeStyle = '#ffffff'; b.lineWidth = 1; b.stroke(); b.restore();
       } else if (f.type === 'meteor') {
-        if (!f.boomed) {
+        if (!f.boomed && f.col === '#fff8c0') {
+          // Judgement Pillar: a beam of light narrowing onto the target
+          const k = f.t / f.delay!;
+          b.save(); b.globalAlpha = 0.3 + 0.5 * k; b.fillStyle = '#fff8c0';
+          b.fillRect(Math.round(f.x + ox - f.r! * (1.4 - k)), 0, Math.round(f.r! * 2 * (1.4 - k)), Math.round(f.y + oy)); b.restore();
+        } else if (!f.boomed) {
           const k = f.t / f.delay!, x = f.x + ox + 60 * (1 - k), y = f.y + oy - 150 * (1 - k);
           b.fillStyle = 'rgba(255,138,61,.5)';
           for (let i = 1; i < 5; i++) b.fillRect(Math.round(x + i * 4 - 2), Math.round(y - i * 10 - 2), 4 - (i > 2 ? 1 : 0), 4);
-          b.fillStyle = K; b.beginPath(); b.arc(x, y, 5, 0, TAU); b.fill(); b.fillStyle = '#ff4b3a'; b.beginPath(); b.arc(x, y, 4, 0, TAU); b.fill();
+          b.fillStyle = K; b.beginPath(); b.arc(x, y, 5, 0, TAU); b.fill(); b.fillStyle = f.col || '#ff4b3a'; b.beginPath(); b.arc(x, y, 4, 0, TAU); b.fill();
           b.fillStyle = '#ffd23f'; b.beginPath(); b.arc(x - 1, y - 1, 2, 0, TAU); b.fill();
         } else {
           const k = f.bt! / 0.3;
           b.save(); b.globalAlpha = Math.max(0, 1 - k); b.fillStyle = '#fff3c4';
           b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r! * (0.6 + k * 0.6), f.r! * (0.5 + k * 0.5), 0, 0, TAU); b.fill();
-          b.strokeStyle = '#ff4b3a'; b.lineWidth = 3; b.stroke(); b.restore();
+          b.strokeStyle = f.col || '#ff4b3a'; b.lineWidth = 3; b.stroke(); b.restore();
         }
+      } else if (f.type === 'slash') {
+        const k = f.t / f.dur, x = f.x + ox, y = f.y + oy;
+        b.save(); b.globalAlpha = 1 - k; b.fillStyle = '#fff8c0';
+        b.beginPath(); b.moveTo(x, y); b.arc(x, y, f.r!, f.a! - f.sp! + k * 0.4, f.a! + f.sp! * (0.2 + k)); b.closePath(); b.fill();
+        b.strokeStyle = '#ffd23f'; b.lineWidth = 2; b.beginPath(); b.arc(x, y, f.r!, f.a! - f.sp!, f.a! + f.sp!); b.stroke(); b.restore();
+      } else if (f.type === 'dome') {
+        const k = f.t / f.dur;
+        b.save(); b.globalAlpha = 0.35 * (1 - k * 0.5) + 0.1 * Math.sin(clock * 12); b.fillStyle = '#ffe9a8';
+        b.beginPath(); b.ellipse(P.x + ox, P.y + oy - 2, f.r!, f.r! * 0.9, 0, 0, TAU); b.fill();
+        b.globalAlpha = 0.9; b.strokeStyle = '#ffd23f'; b.lineWidth = 2; b.stroke(); b.restore();
+      } else if (f.type === 'rain') {
+        b.save(); b.globalAlpha = 0.25; b.fillStyle = '#c48a55'; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r!, f.r! * 0.8, 0, 0, TAU); b.fill(); b.restore();
+        b.fillStyle = '#ffe9a8';
+        for (let i = 0; i < 6; i++) { const a = R() * TAU, d = R() * f.r!; b.fillRect(Math.round(f.x + ox + Math.cos(a) * d), Math.round(f.y + oy + Math.sin(a) * d * 0.8 - 6), 1, 5); }
+      } else if (f.type === 'gale') {
+        const k = f.t / f.dur;
+        b.save(); b.globalAlpha = 1 - k; b.translate(Math.round(f.x + ox), Math.round(f.y + oy)); b.rotate(clock * 14);
+        b.fillStyle = '#d8f3e0'; b.fillRect(-f.r!, -1, f.r! * 2, 2); b.fillRect(-1, -f.r!, 2, f.r! * 2); b.restore();
+      } else if (f.type === 'cauldron') {
+        const x = Math.round(f.x + ox), y = Math.round(f.y + oy);
+        b.save(); b.globalAlpha = 0.2; b.fillStyle = ['#ff8a3d', '#9fd8ff', '#b6f24a'][(f.n || 0) % 3]; b.beginPath(); b.ellipse(x, y, f.r!, f.r! * 0.8, 0, 0, TAU); b.fill(); b.restore();
+        b.fillStyle = K; b.fillRect(x - 6, y - 5, 12, 9); b.fillStyle = '#3a3363'; b.fillRect(x - 5, y - 4, 10, 7);
+        b.fillStyle = ['#ff8a3d', '#9fd8ff', '#b6f24a'][(f.n || 0) % 3]; b.fillRect(x - 5, y - 4, 10, 2);
+      } else if (f.type === 'elixir') {
+        const k = f.t / f.dur;
+        b.fillStyle = '#6fe36a';
+        for (let i = 0; i < 5; i++) b.fillRect(Math.round(P.x + ox + (i - 2) * 6), Math.round(P.y + oy - 30 + k * 30 + (i % 2) * 6), 2, 3);
       } else if (f.type === 'cyclone') {
         const fade = Math.min(1, (f.dur - f.t) * 3);
         b.save(); b.globalAlpha = 0.85 * Math.max(0, fade);

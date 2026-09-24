@@ -10,6 +10,10 @@ export const SKILL_ICON: Record<SkillId, Icon> = {
   meteor: { col: '#ff4b3a', g: 'M' }, frost: { col: '#9fd8ff', g: 'F' }, lance: { col: '#ffe9a8', g: 'I' }, boomer: { col: '#7dffb0', g: 'R' },
   cyclone: { col: '#d8f3e0', g: 'T' }, toxic: { col: '#b6f24a', g: 'X' }, laser: { col: '#5cf4ff', g: 'Z' }, hole: { col: '#b07cff', g: 'Q' },
   sigil: { col: '#e08cff', g: '*' }, shield: { col: '#fff8c0', g: '=' }, hawk: { col: '#c48a55', g: '^' }, flask: { col: '#ff9f5c', g: '%' },
+  manaNova: { col: '#c9a8ff', g: 'M' }, timeWarp: { col: '#8fdcff', g: 'W' }, starfall: { col: '#fff35c', g: '+' },
+  sacredBlades: { col: '#fff8c0', g: '/' }, judgePillar: { col: '#ffd23f', g: '|' }, aegisDome: { col: '#ffe9a8', g: 'D' },
+  arrowRain: { col: '#c48a55', g: 'A' }, galeStep: { col: '#d8f3e0', g: '~' }, thunderHawk: { col: '#fff35c', g: 'V' },
+  cauldron: { col: '#ff9f5c', g: 'U' }, transmute: { col: '#ff5cf4', g: '$' }, elixirRain: { col: '#6fe36a', g: '!' },
 };
 export const PASSIVE_ICON: Record<PassiveId, Icon> = {
   might: { col: '#ff7a7a', g: '+' }, haste: { col: '#c9a8ff', g: 'H' }, swift: { col: '#a9e38a', g: 'S' },
@@ -46,7 +50,7 @@ export function bannerText(key: BannerKey, a: Record<string, string | number>, r
 }
 
 export function skillDetail(id: SkillId, s: SkillStats): string {
-  const args = { dmg: s.dmg, n: s.n, jumps: s.jumps, r: s.r, len: s.len, boom: s.boom };
+  const args = { dmg: Math.round(s.dmg), n: s.n, jumps: s.jumps, r: Math.round(s.r), len: s.len, boom: s.boom, cd: Math.round(s.cd * 10) / 10 };
   let out = t(`skill.${id}.detail`, args);
   if (id === 'bolt' && s.pierce) out += t('skill.bolt.pierce', { n: s.pierce });
   return out;

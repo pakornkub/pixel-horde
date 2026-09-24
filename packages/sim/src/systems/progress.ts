@@ -1,5 +1,5 @@
 import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, type PassiveId, type SkillId } from '../data/skills';
-import { signatureOf } from '../data/heroes';
+import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
 import { ipow } from '../core/fmath';
 import type { LevelOption, SimState } from '../types';
 import { rollStage } from './events';
@@ -24,6 +24,8 @@ export function startStage(s: SimState, n: number): void {
   if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * G.reviveHp); P.inv = 2; }
   s.stage = n;
   s.swaps = 0;
+  s.awakenOffer = false;
+  P.linkStart = maxLinks(s);
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
   s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
   s.enemies = []; s.bolts = []; s.effects = [];
@@ -40,8 +42,49 @@ export function startStage(s: SimState, n: number): void {
   s.phase = 'play';
 }
 
+/** Links (the Hero's Skill Line general skills) that are equipped and at max level. */
+function maxLinks(s: SimState): SkillId[] {
+  const P = s.P, K = s.cfg.skills;
+  return SKILL_LINES[P.ch].filter((id) => (P.skills[id] || 0) >= K[id].max);
+}
+
+/** Links that have been max level and equipped for the required number of full Stages. */
+export function qualifiedLinks(s: SimState): SkillId[] {
+  const P = s.P, now = maxLinks(s);
+  return SKILL_LINES[P.ch].filter((id) => now.includes(id) && (P.linkStages[id] || 0) >= s.cfg.awaken.stages);
+}
+
+export function awakenEligible(s: SimState): boolean {
+  const P = s.P;
+  return !P.awakened && !P.awakenDeclined && !!P.evo[signatureOf(P.ch)] && qualifiedLinks(s).length >= s.cfg.awaken.links;
+}
+
+/** Stage end: count full Stages each Link spent maxed and equipped, then maybe offer Awakening. */
+function updateLinks(s: SimState): void {
+  const P = s.P, now = maxLinks(s);
+  for (const id of SKILL_LINES[P.ch]) {
+    if (now.includes(id) && P.linkStart.includes(id)) P.linkStages[id] = (P.linkStages[id] || 0) + 1;
+    else if (!now.includes(id)) P.linkStages[id] = 0;
+  }
+  s.awakenOffer = awakenEligible(s);
+}
+
+/** Clear screen answer: accept consumes two Links and transforms the Signature; decline forfeits for this Run. */
+export function answerAwaken(s: SimState, accept: boolean): void {
+  const P = s.P;
+  if (s.phase !== 'clear' || !s.awakenOffer) return;
+  s.awakenOffer = false;
+  if (!accept) { P.awakenDeclined = true; return; }
+  for (const id of qualifiedLinks(s).slice(0, s.cfg.awaken.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
+  P.awakened = true;
+  banner(s, 'awakened', 2.6, true);
+  flash(s, 0.4, '#ffd23f');
+  sfx(s, 'ult');
+}
+
 export function stageClear(s: SimState, escaped = false): void {
   s.phase = 'clearing';
+  updateLinks(s);
   s.clearT = s.cfg.stage.clearDelay;
   s.lastEnd = escaped ? 'escape' : 'clear';
   if (!escaped) s.chaptersCleared.push(s.stage);
@@ -149,12 +192,13 @@ export function benchSize(s: SimState): number {
 export function buildOptions(s: SimState): LevelOption[] {
   const P = s.P, R = s.rng.levelup, L = s.cfg.levelup, K = s.cfg.skills, out: LevelOption[] = [];
   for (const id of Object.keys(P.skills) as SkillId[]) {
-    if (P.skills[id]! >= K[id].max && !P.evo[id] && (P.pas[EVO_PASSIVE[id]] || 0) >= 1 && out.length < L.offers) out.push({ kind: 'evo', id });
+    const pas = EVO_PASSIVE[id];
+    if (pas && P.skills[id]! >= K[id].max && !P.evo[id] && (P.pas[pas] || 0) >= 1 && out.length < L.offers) out.push({ kind: 'evo', id });
   }
   const c: { o: LevelOption; w: number }[] = [];
   const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
   const slotFree = owned < s.cfg.maxAttackSlots, benchFree = P.bench.length < benchSize(s);
-  for (const id of [...SKILL_IDS, sig]) {
+  for (const id of [...SKILL_IDS, sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max) continue;
     if (!lv) {

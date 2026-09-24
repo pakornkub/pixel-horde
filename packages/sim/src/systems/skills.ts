@@ -1,6 +1,7 @@
 import { PI, TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
-import { FLASK_TAGS, HOLE_BOOM, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
+import { FLASK_TAGS, HOLE_BOOM, linAt, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
 import { chillTick } from './combos';
+import { signatureOf } from '../data/heroes';
 import { shieldPoints } from './shield';
 
 const FLASKS = ['fire', 'ice', 'poison'] as const;
@@ -17,7 +18,11 @@ import { cloneCast } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, nearestN, visibleEnemies } from './query';
 
-export const st = (s: SimState, id: SkillId, lv: number): SkillStats => skillStats(s.cfg, id, lv, !!s.P.evo[id]);
+export function st(s: SimState, id: SkillId, lv: number): SkillStats {
+  const t = skillStats(s.cfg, id, lv, !!s.P.evo[id]);
+  if (s.P.awakened && id === signatureOf(s.P.ch)) t.dmg *= s.cfg.awaken.sigDmg; // awakened form
+  return t;
+}
 
 function wrapAngle(a: number): number {
   return atan2(sin(a), cos(a));
@@ -41,7 +46,7 @@ export function updSkills(s: SimState, dt: number): void {
   const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills;
   for (const id of Object.keys(sk) as SkillId[]) {
     const lv = sk[id]!, t = st(s, id, lv);
-    if (id === 'orbit' || id === 'frost' || id === 'shield') continue;
+    if (id === 'orbit' || id === 'frost' || id === 'shield' || id === 'timeWarp' || id === 'galeStep' || id === 'transmute') continue;
     P.cds[id] = (P.cds[id] || 0) - dt;
     if (P.cds[id]! > 0) continue;
     if (id === 'bolt') {
@@ -153,6 +158,80 @@ export function updSkills(s: SimState, dt: number): void {
         s.effects.push({ type: 'flask', x: e.x, y: e.y, pts: [[P.x, P.y - 6]], t: 0, dur: K.flask.flight, r: t.r, dmg: t.dmg, el, fired: false });
       }
       P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'manaNova') {
+      if (!nearest(s, P.x, P.y, t.r + 10)) { P.cds[id] = 0.2; continue; }
+      s.effects.push({ type: 'nova', x: P.x, y: P.y, R: t.r, t: 0, dur: t.dur, hit: new Set(), dmg: t.dmg, tag: T.manaNova, col: '#e08cff' });
+      sfx(s, 'nova');
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'starfall') {
+      const vis = visibleEnemies(s);
+      if (!vis.length) { P.cds[id] = 0.2; continue; }
+      for (let i = 0; i < t.n; i++) {
+        const e = vis[R.int(vis.length)];
+        s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: K.starfall.delay + i * K.starfall.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: T.starfall, col: '#e08cff' });
+      }
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'sacredBlades') {
+      if (!nearest(s, P.x, P.y, t.r)) { P.cds[id] = 0.1; continue; }
+      const a = atan2(P.dy, P.dx), arc = K.sacredBlades.arc;
+      for (const e of s.enemies) {
+        if (e.dead) continue;
+        const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy);
+        if (d < t.r + e.r && Math.abs(wrapAngle(atan2(dy, dx) - a)) < arc + e.r / Math.max(d, 1)) hit(s, e, t.dmg, '#fff8c0', K.sacredBlades.kb, T.sacredBlades);
+      }
+      s.effects.push({ type: 'slash', x: P.x, y: P.y, a, r: t.r, sp: arc, t: 0, dur: t.dur, dmg: 0 });
+      sfx(s, 'lance');
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'judgePillar') {
+      const vis = visibleEnemies(s);
+      if (!vis.length) { P.cds[id] = 0.2; continue; }
+      const e = vis.reduce((b, o) => ((o.boss || o.elite) && !(b.boss || b.elite)) || ((o.boss || o.elite) === (b.boss || b.elite) && o.hp > b.hp) ? o : b);
+      s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: K.judgePillar.delay, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: T.judgePillar, col: '#fff8c0' });
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'aegisDome') {
+      if (!nearest(s, P.x, P.y, 60) && !s.hz.length) { P.cds[id] = 0.3; continue; }
+      P.inv = Math.max(P.inv, t.dur);
+      for (const e of s.enemies) {
+        if (e.dead) continue;
+        const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy) || 1;
+        if (d < t.r + e.r) { const k = K.aegisDome.kb * (e.boss ? 0.2 : 1); e.kx += (dx / d) * k; e.ky += (dy / d) * k; }
+      }
+      s.effects.push({ type: 'dome', x: P.x, y: P.y, r: t.r, t: 0, dur: t.dur, dmg: 0 });
+      flash(s, 0.15, '#fff8c0');
+      sfx(s, 'ult');
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'arrowRain') {
+      const vis = visibleEnemies(s).filter((e) => hypot(e.x - P.x, e.y - P.y) < t.range);
+      if (!vis.length) { P.cds[id] = 0.2; continue; }
+      const e = vis[R.int(vis.length)];
+      s.effects.push({ type: 'rain', x: e.x, y: e.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0 });
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'thunderHawk') {
+      const c = K.thunderHawk, first = nearest(s, P.x, P.y, t.range);
+      if (!first) { P.cds[id] = 0.15; continue; }
+      const set = new Set<Enemy>([first]), pts: [number, number][] = [[P.x, P.y - 10], [first.x, first.y]];
+      let cur = first;
+      for (let j = 0; j < t.jumps; j++) {
+        const n = nearest(s, cur.x, cur.y, c.jumpRange, set);
+        if (!n) break;
+        set.add(n); pts.push([n.x, n.y]); cur = n;
+      }
+      for (const e of set) hit(s, e, t.dmg, '#fff35c', c.kb, T.thunderHawk);
+      s.effects.push({ type: 'chain', pts, t: 0, dur: 0.25, x: P.x, y: P.y, dmg: 0 });
+      sfx(s, 'zap');
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'cauldron') {
+      if (!nearest(s, P.x, P.y, t.r + 60)) { P.cds[id] = 0.3; continue; }
+      s.effects.push({ type: 'cauldron', x: P.x, y: P.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, n: 0 });
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'elixirRain') {
+      if (P.hp >= P.maxHp && !Object.values(P.cds).some((v) => (v || 0) > 1)) { P.cds[id] = 0.5; continue; }
+      const c = K.elixirRain, heal = Math.round(P.maxHp * linAt(c.heal, lv)), cut = linAt(c.cdCut, lv);
+      P.hp = Math.min(P.maxHp, P.hp + heal);
+      for (const k of Object.keys(P.cds) as SkillId[]) if (k !== id) P.cds[k] = Math.max(0, (P.cds[k] || 0) - cut);
+      s.events.push({ t: 'text', x: P.x, y: P.y - 14, v: '+' + heal, col: '#6fe36a', cr: false });
+      s.effects.push({ type: 'elixir', x: P.x, y: P.y, t: 0, dur: 0.8, dmg: 0 });
+      P.cds[id] = t.cd * P.cdMul;
     } else if (id === 'hole') {
       const vis = visibleEnemies(s);
       if (vis.length < K.hole.minTargets) { P.cds[id] = 0.3; continue; }
@@ -181,6 +260,25 @@ export function updSkills(s: SimState, dt: number): void {
           burst(s, bx, by, '#c8fdff', 3, 40, 0.25, 0.4);
         }
       }
+    }
+  }
+  if (sk.timeWarp) {
+    const t = st(s, 'timeWarp', sk.timeWarp);
+    P.cds.timeWarp = (P.cds.timeWarp || 0) - dt;
+    const tick = P.cds.timeWarp <= 0;
+    if (tick) P.cds.timeWarp = K.timeWarp.tick;
+    for (const e of s.enemies) {
+      if (e.dead) continue;
+      const dx = e.x - P.x, dy = e.y - P.y;
+      if (dx * dx + dy * dy < t.r * t.r) { e.slowT = Math.max(e.slowT, 0.15); if (tick) hit(s, e, t.dmg, '#e08cff', 0, T.timeWarp); }
+    }
+  }
+  if (sk.galeStep) {
+    const t = st(s, 'galeStep', sk.galeStep);
+    P.cds.galeStep = (P.cds.galeStep || 0) - dt;
+    if (P.moving && P.cds.galeStep <= 0) {
+      P.cds.galeStep = K.galeStep.every;
+      s.effects.push({ type: 'gale', x: P.x, y: P.y + 4, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, hit: new Set() });
     }
   }
   if (sk.shield) {
@@ -380,6 +478,29 @@ export function updEffects(s: SimState, dt: number): void {
         }
         burst(s, f.x, f.y, FLASK_COL[f.el!], 16, 70, 0.45);
         sfx(s, 'boom');
+      }
+    } else if (f.type === 'rain') {
+      f.tick! -= dt;
+      if (f.tick! <= 0) {
+        f.tick = K.arrowRain.tick;
+        for (const e of s.enemies) if (!e.dead && hypot(e.x - f.x, (e.y - f.y) * 1.25) < f.r! + e.r) hit(s, e, f.dmg, '#ffe9a8', 10, T.arrowRain);
+      }
+    } else if (f.type === 'gale') {
+      for (const e of s.enemies) {
+        if (e.dead || f.hit!.has(e)) continue;
+        if (hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) { f.hit!.add(e); hit(s, e, f.dmg, '#d8f3e0', 30, T.galeStep); }
+      }
+    } else if (f.type === 'cauldron') {
+      f.tick! -= dt;
+      if (f.tick! <= 0) {
+        f.tick = K.cauldron.tick;
+        const el = FLASKS[f.n! % 3];
+        f.n = f.n! + 1;
+        for (const e of s.enemies) {
+          if (e.dead || hypot(e.x - f.x, (e.y - f.y) * 1.25) > f.r! + e.r) continue;
+          hit(s, e, f.dmg, FLASK_COL[el], 0, FLASK_TAGS[el]);
+          if (el === 'ice' && !e.dead) chillTick(s, e);
+        }
       }
     } else if (f.type === 'judge') {
       if (!f.fired && f.t >= s.cfg.ult.delay) {

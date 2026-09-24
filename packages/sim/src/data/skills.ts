@@ -6,14 +6,18 @@ export const SKILL_IDS = ['bolt', 'orbit', 'chain', 'nova', 'meteor', 'frost', '
 /** Signature Skills: one per Hero, in the locked slot, never offered to other Heroes. */
 export const SIGNATURE_IDS = ['sigil', 'shield', 'hawk', 'flask'] as const;
 export type SignatureId = (typeof SIGNATURE_IDS)[number];
-export type SkillId = (typeof SKILL_IDS)[number] | SignatureId;
-export const ALL_SKILL_IDS: SkillId[] = [...SKILL_IDS, ...SIGNATURE_IDS];
+/** Skill Line skills: unlocked by the Hero's Awakening; no Evolution. */
+export const LINE_IDS = ['manaNova', 'timeWarp', 'starfall', 'sacredBlades', 'judgePillar', 'aegisDome', 'arrowRain', 'galeStep', 'thunderHawk', 'cauldron', 'transmute', 'elixirRain'] as const;
+export type LineId = (typeof LINE_IDS)[number];
+export type SkillId = (typeof SKILL_IDS)[number] | SignatureId | LineId;
+export const ALL_SKILL_IDS: SkillId[] = [...SKILL_IDS, ...SIGNATURE_IDS, ...LINE_IDS];
+export const isLine = (id: SkillId): id is LineId => (LINE_IDS as readonly string[]).includes(id);
 export const isSignature = (id: SkillId): id is SignatureId => (SIGNATURE_IDS as readonly string[]).includes(id);
 export const PASSIVE_IDS = ['might', 'haste', 'swift', 'vital', 'magnet', 'crit'] as const;
 export type PassiveId = (typeof PASSIVE_IDS)[number];
 
-/** Max-level skill + this passive (level >= 1) unlocks the skill's evolution. */
-export const EVO_PASSIVE: Record<SkillId, PassiveId> = {
+/** Max-level skill + this passive (level >= 1) unlocks the skill's evolution. Line skills have none. */
+export const EVO_PASSIVE: Partial<Record<SkillId, PassiveId>> = {
   bolt: 'haste', orbit: 'swift', chain: 'crit', nova: 'might', meteor: 'vital', frost: 'magnet',
   lance: 'crit', boomer: 'magnet', cyclone: 'haste', toxic: 'vital', laser: 'swift', hole: 'might',
   sigil: 'might', shield: 'vital', hawk: 'swift', flask: 'haste',
@@ -49,6 +53,8 @@ function lin(c: Lin, lv: number): number {
   if (c.max !== undefined) v = Math.min(c.max, v);
   return v;
 }
+/** A level formula from the Balance Config at a level. */
+export const linAt = (c: Lin, lv: number): number => lin(c, lv);
 const step = (c: Step, lv: number): number => c.base + Math.floor((lv - c.offset) / c.every);
 
 export const skillMax = (cfg: ResolvedConfig, id: SkillId): number => cfg.skills[id].max;
@@ -76,6 +82,18 @@ export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: bo
     case 'shield': { const c = K.shield; s.dmg = lin(c.dmg, lv); s.n = Math.floor(lin(c.n, lv)); s.r = lin(c.r, lv); s.spd = lin(c.spd, lv); if (evo) { s.n = c.evo.n; s.absorb = true; } break; }
     case 'hawk': { const c = K.hawk; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = 1; s.range = c.range; if (evo) { s.n = c.evo.n; s.stun = true; } break; }
     case 'flask': { const c = K.flask; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.n = 1; s.range = c.range; if (evo) { s.n = c.evo.n; s.dmg *= c.evo.dmgMul; s.smart = true; } break; }
+    case 'manaNova': { const c = K.manaNova; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = c.dur; break; }
+    case 'timeWarp': { const c = K.timeWarp; s.dmg = lin(c.dmg, lv); s.r = lin(c.r, lv); break; }
+    case 'starfall': { const c = K.starfall; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = Math.floor(lin(c.n, lv)); s.r = lin(c.r, lv); break; }
+    case 'sacredBlades': { const c = K.sacredBlades; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = c.dur; break; }
+    case 'judgePillar': { const c = K.judgePillar; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = c.r; break; }
+    case 'aegisDome': { const c = K.aegisDome; s.cd = lin(c.cd, lv); s.dur = lin(c.dur, lv); s.r = c.r; break; }
+    case 'arrowRain': { const c = K.arrowRain; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); s.range = c.range; break; }
+    case 'galeStep': { const c = K.galeStep; s.dmg = lin(c.dmg, lv); s.dur = lin(c.dur, lv); s.r = c.r; break; }
+    case 'thunderHawk': { const c = K.thunderHawk; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.jumps = Math.floor(lin(c.jumps, lv)); s.range = c.range; break; }
+    case 'cauldron': { const c = K.cauldron; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); break; }
+    case 'transmute': { const c = K.transmute; s.r = lin(c.r, lv); break; }
+    case 'elixirRain': { const c = K.elixirRain; s.cd = lin(c.cd, lv); break; }
     case 'hole': { const c = K.hole; s.dmg = lin(c.dmg, lv); s.boom = lin(c.boom, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); if (evo) { s.boom *= c.evo.boomMul; s.r *= c.evo.rMul; } break; }
   }
   if (evo) s.dmg = Math.round(s.dmg);
@@ -108,6 +126,18 @@ export const SKILL_TAGS: Record<SkillId, HitTag> = {
   shield: { sweep: true },
   hawk: { heavy: true },
   flask: {},
+  manaNova: {},
+  timeWarp: {},
+  starfall: { heavy: true },
+  sacredBlades: { heavy: true, sweep: true },
+  judgePillar: { heavy: true },
+  aegisDome: {},
+  arrowRain: {},
+  galeStep: { sweep: true },
+  thunderHawk: { el: 'lightning', applies: 'shocked' },
+  cauldron: {},
+  transmute: {},
+  elixirRain: {},
 };
 /** Volatile Flask: the element of each flask decides its tag. */
 export const FLASK_TAGS: Record<'fire' | 'ice' | 'poison', HitTag> = {

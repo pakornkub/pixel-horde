@@ -126,6 +126,19 @@ const skills = obj({
     dmg: lin(22, 11, 'Splash damage'), cd: lin(2.6, -0.16, 'Cooldown (s)', 1.1), r: lin(22, 2, 'Splash radius'), flight: sec(0.45, 'Throw time (s)'), range: pos(190, 'Throw range'),
     evo: evo({ n: int(2, 1, 4, 'Flasks per throw'), dmgMul: mul(1.2, 'Damage multiplier') }),
   }, 'Vex: Volatile Flask'),
+  // Skill Line skills (tickets 24–25): unlocked by Awakening, no Evolution, stronger than general Skills
+  manaNova: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(26, 13, 'Damage'), cd: lin(1.6, -0.08, 'Cooldown (s)', 0.8), r: lin(60, 6, 'Wave radius'), dur: sec(0.5, 'Wave time (s)'), kb: pos(50, 'Knockback') }, 'Lyra line: Mana Nova'),
+  timeWarp: obj({ max: int(8, 1, 20, 'Max level'), r: lin(70, 8, 'Radius (monsters inside are slowed like Frost Aura)'), dmg: lin(4, 3, 'Damage per tick'), tick: sec(0.5, 'Damage interval (s)') }, 'Lyra line (survival): Time Warp'),
+  starfall: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(90, 42, 'Damage per star'), cd: lin(3.6, -0.22, 'Cooldown (s)', 1.4), n: lin(3, 1, 'Stars'), r: lin(22, 2, 'Radius'), delay: sec(0.6, 'Fall time (s)'), stagger: sec(0.08, 'Between stars (s)'), kb: pos(60, 'Knockback') }, 'Lyra line: Starfall'),
+  sacredBlades: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(60, 26, 'Damage'), cd: lin(1.4, -0.07, 'Cooldown (s)', 0.7), r: lin(70, 6, 'Reach'), arc: n(0.9, 0.1, 3.2, 'Half arc (rad)'), dur: sec(0.25, 'Swing time (s)'), kb: pos(90, 'Knockback') }, 'Bram line: Sacred Blades'),
+  judgePillar: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(220, 110, 'Damage'), cd: lin(4, -0.25, 'Cooldown (s)', 1.8), r: pos(18, 'Radius'), delay: sec(0.5, 'Warning (s)'), kb: pos(40, 'Knockback') }, 'Bram line: Judgement Pillar'),
+  aegisDome: obj({ max: int(8, 1, 20, 'Max level'), cd: lin(20, -1, 'Cooldown (s)', 12), dur: lin(2, 0.15, 'Invulnerable (s)'), r: pos(40, 'Dome radius'), kb: pos(160, 'Push-out knockback') }, 'Bram line (survival): Aegis Dome'),
+  arrowRain: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(12, 6, 'Damage per volley'), cd: lin(3.2, -0.2, 'Cooldown (s)', 1.5), r: lin(40, 4, 'Radius'), dur: lin(2, 0.15, 'Lasts (s)'), tick: sec(0.2, 'Volley interval (s)'), range: pos(200, 'Range') }, 'Kit line: Arrow Rain'),
+  galeStep: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(14, 7, 'Damage'), every: n(0.3, 0.05, 2, 'Blade every (s) while walking'), dur: lin(1.4, 0.1, 'Blade lasts (s)'), r: pos(10, 'Blade radius') }, 'Kit line (survival): Gale Step'),
+  thunderHawk: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(40, 18, 'Damage'), cd: lin(2.4, -0.14, 'Cooldown (s)', 1.1), jumps: lin(4, 1, 'Chain jumps'), range: pos(200, 'Range'), jumpRange: pos(80, 'Jump range'), kb: pos(20, 'Knockback') }, 'Kit line: Thunder Hawk'),
+  cauldron: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(10, 6, 'Damage per puff'), cd: lin(7, -0.4, 'Cooldown (s)', 4), r: lin(40, 4, 'Radius'), dur: lin(4, 0.3, 'Lasts (s)'), tick: sec(0.5, 'Puff interval (s)') }, 'Vex line: Cauldron'),
+  transmute: obj({ max: int(8, 1, 20, 'Max level'), r: lin(60, 6, 'Radius'), chance: lin(0.12, 0.03, 'Chance a monster dying inside becomes a big EXP crystal', 0, 0.6), xp: lin(8, 3, 'EXP of that crystal') }, 'Vex line: Transmute (EXP, never Gold)'),
+  elixirRain: obj({ max: int(8, 1, 20, 'Max level'), cd: lin(14, -0.8, 'Cooldown (s)', 7), heal: lin(0.08, 0.015, 'Heal × max HP'), cdCut: lin(0.6, 0.1, 'Seconds taken off every Skill cooldown') }, 'Vex line (survival): Elixir Rain'),
 }, 'Attack skills: level formulas and evolutions');
 
 const passives = obj({
@@ -264,6 +277,11 @@ const shared = obj({
     armorMul: mul(2, 'Armoured Realms: armour chance ×'), armorFrom: int(2, 1, 20, 'Armoured Realms: armour from this Chapter'),
     fastSpd: mul(1.1, 'Fast Realms: fast monsters speed ×'),
   }, 'Realm traits and resistances'),
+  awaken: obj({
+    links: int(2, 1, 3, 'Max-level Links needed (and consumed)'),
+    stages: int(1, 1, 5, 'Full Stages the Links must have been max level and equipped'),
+    sigDmg: mul(1.3, 'Awakened Signature Skill damage ×'),
+  }, 'Awakening'),
   kings: obj({
     firstCd: sec(1.6, 'First move after a King arrives (s)'),
     cdMin: sec(2.4, 'Shortest pause between King moves (s)'), cdMax: sec(3.4, 'Longest pause between King moves (s)'),

@@ -149,3 +149,7 @@ html[lang="en"] .tabs button{font-size:9px}
 .bench button.sk:disabled{opacity:.55;cursor:default}
 .bench .cost{margin-top:6px;opacity:.85}
 .bench .warn{color:#e8434f;font-weight:700}
+.awaken{border:3px solid var(--gold);border-radius:6px;padding:10px 12px;margin:0 0 14px;background:#fff8d8}
+.awaken h3{margin:0 0 6px;font-family:var(--pix);font-size:13px}
+.awaken p{margin:0 0 10px;font-size:14px}
+.awaken .btn{margin:4px 0}

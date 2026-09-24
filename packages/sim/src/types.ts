@@ -26,6 +26,7 @@ export type Command =
   | { type: 'resume' }
   | { type: 'next' } // continue from the clear screen (to the route choice or the next Chapter)
   | { type: 'route'; index: number } // pick one of the offered Realms
+  | { type: 'awaken'; accept: boolean } // clear screen: answer the Awakening prompt
   | { type: 'swap'; bench: number; slot: SkillId | null } // clear screen: Bench skill ↔ attack slot (null = empty slot)
   | { type: 'ult' }
   | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
@@ -84,6 +85,11 @@ export interface Player {
   orbitA: number;
   pet: Pet | null;
   clone: Clone | null;
+  /** Awakening: done / declined for this Run; Links maxed at Stage start; full Stages each Link spent maxed. */
+  awakened: boolean;
+  awakenDeclined: boolean;
+  linkStart: SkillId[];
+  linkStages: Partial<Record<SkillId, number>>;
   /** Statuses this player leaves last × this (Vex). */
   statusMul: number;
   /** Holy Shield rotation. */
@@ -171,7 +177,8 @@ export interface Bolt {
   tag?: HitTag;
 }
 
-export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask';
+export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask'
+  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir';
 
 export interface Effect {
   type: EffectType;
@@ -187,6 +194,10 @@ export interface Effect {
   pts?: [number, number][];
   /** Overrides the Skill tag of this effect type (pet dive, …). */
   tag?: HitTag;
+  /** Counter (Cauldron puffs). */
+  n?: number;
+  /** Colour override (Mana Nova, Starfall, Judgement Pillar). */
+  col?: string;
   /** Volatile Flask element. */
   el?: 'fire' | 'ice' | 'poison';
   /** Twin Hawks stun. */
@@ -275,7 +286,7 @@ export type SimEvent =
 export type BannerKey =
   | 'stage' | 'bloodMoon' | 'intro.caster' | 'intro.charger' | 'intro.splitter' | 'intro.armor'
   | 'bossDown' | 'judgement' | 'swarm' | 'bossIncoming' | 'dragonOmen' | 'stageClear' | 'stageClearDragonFled'
-  | 'stageClearRivalFled' | 'overtime' | 'kingEscaped' | 'umbraDown' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
+  | 'stageClearRivalFled' | 'awakened' | 'overtime' | 'kingEscaped' | 'umbraDown' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
   | 'rivalEscaped' | 'dragonTamed' | 'dragonPowerUp' | 'clonePowerUp' | 'shadowClone' | 'shadowShard';
 
 export type SfxKey = 'hit' | 'crit' | 'boom' | 'zap' | 'nova' | 'lance' | 'laser' | 'lv' | 'hurt' | 'ult' | 'coin' | 'tick' | 'gem' | 'clear';
@@ -317,6 +328,8 @@ export interface SimState {
   revivesBought: number;
   victory: boolean;
   victoryTime: number;
+  /** The clear screen offers Awakening. */
+  awakenOffer: boolean;
   /** Swaps made at this Stage end (cost doubles each time). */
   swaps: number;
   /** Gold taken from the wallet this Run (reported with the Run result). */

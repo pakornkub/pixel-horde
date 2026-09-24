@@ -16,7 +16,7 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderBench, renderChars, renderLevelUp, renderRoute,
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -127,6 +127,7 @@ function toTitle(): void {
 
 let benchDirty = false;
 function onSwap(bench: number, slot: SkillId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
+function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benchDirty = true; }
 
 /** Open/close overlays when the sim's phase changes. */
 function syncOverlays(): void {
@@ -148,7 +149,7 @@ function syncOverlays(): void {
     shownPhase = v.phase;
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
-    if (v.phase === 'clear') { showClear(v, v.runGold); renderBench(v, onSwap); }
+    if (v.phase === 'clear') { showClear(v, v.runGold); renderAwaken(v, onAwaken); renderBench(v, onSwap); }
     if (v.phase === 'route' && v.route) {
       renderRoute(v, (i) => {
         if (sim && sim.view().phase === 'route') { hide('ovRoute'); cmd({ type: 'route', index: i }); last = performance.now(); }

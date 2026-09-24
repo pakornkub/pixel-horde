@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { EVO_PASSIVE, HERO_IDS, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, HERO_IDS, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -120,7 +120,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
     if (o.kind === 'evo') {
       meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g };
       name = evoName(o.id); tag = `<i>${t('level.evolve')}</i>`;
-      desc = `${evoDesc(o.id)} (${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id])})`;
+      desc = `${evoDesc(o.id)} (${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id]!)})`;
       bt.classList.add('evo');
     } else if (o.kind === 'skill') {
       meta = SKILL_ICON[o.id];
@@ -132,7 +132,9 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       if (partners.length) desc += t('level.combos', { list: partners.slice(0, 2).map((k) => `${skillName(k)} (${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join('/')})`).join(', ') });
       if (o.id === signatureOf(P.ch)) desc += t('level.signature');
       else if (SKILL_LINES[P.ch].includes(o.id)) desc += t('level.link');
-      if (lv + 1 === v.cfg.skills[o.id].max) desc += t('level.final', { passive: passiveName(EVO_PASSIVE[o.id]) });
+      else if (AWAKENING[P.ch].line.includes(o.id as never)) desc += t('level.line');
+      const evoPas = EVO_PASSIVE[o.id];
+      if (evoPas && lv + 1 === v.cfg.skills[o.id].max) desc += t('level.final', { passive: passiveName(evoPas) });
     } else if (o.kind === 'pas') {
       meta = PASSIVE_ICON[o.id];
       const lv = P.pas[o.id] || 0;
@@ -229,6 +231,24 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
+}
+
+/* ---------- Awakening prompt (clear screen) ---------- */
+export function renderAwaken(v: Readonly<SimState>, onAnswer: (accept: boolean) => void): void {
+  const box = $('awakenBox');
+  box.hidden = !v.awakenOffer;
+  if (!v.awakenOffer) return;
+  const P = v.P, links = qualifiedLinks(v as SimState).slice(0, v.cfg.awaken.links);
+  box.innerHTML = `<h3>${t('awaken.title')}</h3><p>${t('awaken.text', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form), links: links.map(skillName).join(' + ') })}</p>`;
+  const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = t('awaken.accept');
+  const no = document.createElement('button'); no.className = 'btn ghost'; no.textContent = t('awaken.decline');
+  let armed = false;
+  yes.addEventListener('click', () => { box.hidden = true; onAnswer(true); });
+  no.addEventListener('click', () => {
+    if (!armed) { armed = true; no.textContent = t('awaken.confirm'); return; } // decline needs a second click
+    box.hidden = true; onAnswer(false);
+  });
+  box.append(yes, no);
 }
 
 /* ---------- Bench ↔ attack slots (clear screen) ---------- */

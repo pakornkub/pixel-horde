@@ -1,6 +1,6 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL } from '../data/enemies';
-import type { HitTag } from '../data/skills';
+import { linAt, type HitTag } from '../data/skills';
 import { REALMS } from '../content/lumora/realms';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
@@ -65,6 +65,15 @@ export function killE(s: SimState, e: Enemy): void {
     }
   }
   e.dead = true;
+  // Transmute (Vex line): monsters dying in the circle may become a big EXP crystal — never Gold
+  const tm = s.P.skills.transmute;
+  if (tm && !e.boss) {
+    const c = C.skills.transmute;
+    if (hypot(e.x - s.P.x, e.y - s.P.y) < linAt(c.r, tm) && R.next() < linAt(c.chance, tm)) {
+      s.gems.push({ kind: 'xp', x: e.x, y: e.y, v: Math.round(linAt(c.xp, tm) * s.stage), mag: false });
+      burst(s, e.x, e.y, '#ff5cf4', 10, 50, 0.4);
+    }
+  }
   s.kills++;
   s.stageKills++;
   s.streak++;

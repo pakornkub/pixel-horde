@@ -1,4 +1,4 @@
-import type { SkillId } from './skills';
+import type { LineId, SkillId } from './skills';
 
 export const HERO_IDS = ['mage', 'knight', 'ranger', 'alchemist'] as const;
 export type HeroId = (typeof HERO_IDS)[number];
@@ -23,3 +23,11 @@ export const SKILL_LINES: Record<HeroId, [SkillId, SkillId, SkillId]> = {
 
 /** The Signature Skill. Never leaves its slot. */
 export const signatureOf = (h: HeroId): SkillId => HEROES[h].start;
+
+/** Awakened form and its three Skill Line skills (the first one listed last is the survival skill). */
+export const AWAKENING: Record<HeroId, { form: string; line: [LineId, LineId, LineId] }> = {
+  mage: { form: 'archmage', line: ['manaNova', 'timeWarp', 'starfall'] },
+  knight: { form: 'paladin', line: ['sacredBlades', 'judgePillar', 'aegisDome'] },
+  ranger: { form: 'stormhunter', line: ['arrowRain', 'galeStep', 'thunderHawk'] },
+  alchemist: { form: 'grandAlchemist', line: ['cauldron', 'transmute', 'elixirRain'] },
+};
