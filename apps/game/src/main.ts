@@ -197,6 +197,20 @@ $('startBtn').addEventListener('click', newRun);
 $('nextBtn').addEventListener('click', () => { hide('ovClear'); cmd({ type: 'next' }); last = performance.now(); });
 $('retryBtn').addEventListener('click', newRun);
 
+/** Export the always-on recording (seed, options, inputs, commands, hashes) as JSON. */
+function downloadReplay(): void {
+  if (!sim) return;
+  const r = sim.replay();
+  const blob = new Blob([JSON.stringify(r)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pixel-horde-replay-${r.opts.seed}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('replayBtn').addEventListener('click', downloadReplay);
+$('replayBtn2').addEventListener('click', downloadReplay);
+
 $('bestTxt').textContent = bestLine();
 renderChars();
 requestAnimationFrame(frame);

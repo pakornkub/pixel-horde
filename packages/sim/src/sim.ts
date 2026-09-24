@@ -20,7 +20,24 @@ export interface Sim {
   score(): number;
   /** 32-bit hash of the gameplay state (determinism checks). */
   hash(): number;
+  /** Everything needed to reproduce this Run exactly (the recorder is always on). */
+  replay(): Replay;
 }
+
+/** A recorded Run: options + input changes + commands, plus the hash every 60 ticks. */
+export interface Replay {
+  v: 1;
+  opts: SimOptions;
+  ticks: number;
+  /** [stepIndex, mx, my] recorded only when the input changes. */
+  inputs: [number, number, number][];
+  /** [stepIndex, command] */
+  commands: [number, Command][];
+  /** hash() after every 60th tick. */
+  hashes: number[];
+}
+
+export const HASH_EVERY = 60;
 
 const NO_COMMANDS: readonly Command[] = [];
 
@@ -46,6 +63,9 @@ export function createSim(opts: SimOptions): Sim {
   P.hp = P.maxHp;
   P.revives = U(s, 'revive');
   startStage(s, 1);
+
+  const rec: Replay = { v: 1, opts: JSON.parse(JSON.stringify(opts)), ticks: 0, inputs: [], commands: [], hashes: [] };
+  let lastMx = NaN, lastMy = NaN;
 
   function apply(c: Command): void {
     switch (c.type) {
@@ -136,13 +156,18 @@ export function createSim(opts: SimOptions): Sim {
 
   return {
     step(input, commands = NO_COMMANDS) {
+      const i = rec.ticks++;
+      const mx = input.mx || 0, my = input.my || 0;
+      if (mx !== lastMx || my !== lastMy) { rec.inputs.push([i, mx, my]); lastMx = mx; lastMy = my; }
       s.events = [];
-      for (const c of commands) apply(c);
+      for (const c of commands) { rec.commands.push([i, { ...c }]); apply(c); }
       s.tick++;
       s.clock += DT;
-      update(input);
+      update({ mx, my });
+      if (s.tick % HASH_EVERY === 0) rec.hashes.push(hashState(s));
       return s.events;
     },
+    replay: () => JSON.parse(JSON.stringify(rec)) as Replay,
     view: () => s,
     score: () => scoreOf(s),
     hash: () => hashState(s),
@@ -171,4 +196,17 @@ export function hashState(s: Readonly<SimState>): number {
   num(s.gems.length); num(s.bolts.length); num(s.effects.length); num(s.hz.length);
   for (const k of Object.keys(s.rng) as (keyof typeof s.rng)[]) for (const v of s.rng[k].state()) num(v);
   return h >>> 0;
+}
+
+/** Re-run a recorded Run headlessly; returns the fresh sim (compare its replay().hashes). */
+export function runReplay(r: Replay): Sim {
+  const sim = createSim(r.opts);
+  let ii = 0, ci = 0, mx = 0, my = 0;
+  for (let i = 0; i < r.ticks; i++) {
+    while (ii < r.inputs.length && r.inputs[ii][0] === i) { mx = r.inputs[ii][1]; my = r.inputs[ii][2]; ii++; }
+    const cmds: Command[] = [];
+    while (ci < r.commands.length && r.commands[ci][0] === i) cmds.push(r.commands[ci++][1]);
+    sim.step({ mx, my }, cmds);
+  }
+  return sim;
 }
