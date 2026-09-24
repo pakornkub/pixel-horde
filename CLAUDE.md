@@ -15,10 +15,14 @@ The artifact version uses `window.claude.use('room' | 'db' | 'user')`. These do 
 Claude artifacts. Replace them:
 | Artifact API | Used for | Replacement |
 |---|---|---|
-| `room` presence + `emit('dmg')` | co-op sync | PeerJS (WebRTC) with host-authoritative sim; room code = host peer id (4–6 chars) |
-| `user.profiles()` | player names | nickname input stored in localStorage |
-| `db` collection `scores` | leaderboard | drop for v1; later Supabase table `scores(id, name, stage, kills, lv, ch, mode, score, t)` |
-Meta progression already uses `localStorage` key `pixelhorde-meta` → keep. Best score key: `pixelhorde-best`.
+| `room` presence + `emit('dmg')` | co-op sync | Cloudflare Worker + one Durable Object per room (WebSocket relay), host-authoritative sim; room code = DO name (4–6 chars). Fallback: PeerJS P2P + Cloudflare TURN. Both behind `net/transport.ts` |
+| `user.profiles()` | player names | Supabase anonymous Player Account with nickname; can link Google later |
+| `db` collection `scores` | leaderboard | Supabase, written only via server-side RPC (never direct table writes) |
+Backend calls go through a single `net/backend.ts` (Supabase Free; fallback Cloudflare Workers + D1).
+Hosting: Cloudflare Pages (game + separate Admin Console behind Cloudflare Access), mirrored on itch.io.
+The game must stay fully playable solo offline with the built-in default Balance Config.
+Meta progression already uses `localStorage` key `pixelhorde-meta` → keep as local cache/offline save. Best score key: `pixelhorde-best`.
+Decisions and research: `.scratch/pixel-horde-web/map.md`, `docs/research/`.
 
 ## Suggested structure
 ```
@@ -31,7 +35,7 @@ src/
   systems/ spawner.ts director.ts combat.ts(hit/kill) pickups.ts levelup.ts chest.ts
            skills/{bolt,orbit,chain,nova,meteor,frost,lance,boomer,cyclone,toxic,laser,hole}.ts
            hazards.ts (enemy attacks that hurt the player) dragon.ts rival.ts pet.ts clone.ts
-  net/   protocol.ts host.ts guest.ts transport-peerjs.ts
+  net/   protocol.ts host.ts guest.ts transport.ts transport-ws.ts transport-peerjs.ts backend.ts
   ui/    overlays.ts (title, char select, level-up, chest wheel, shop, pause, clear, game over)
 tests/   sim.test.ts  # headless simulation (see Testing)
 ```
