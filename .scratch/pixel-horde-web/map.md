@@ -50,6 +50,7 @@ Label: wayfinder:map
 - [Grilling: เศรษฐกิจในรอบ: Gold, รางวัลบอส, ใบเกิด](issues/20-in-run-economy.md): รอบละ ~1,200 Gold, ร้านถาวรเปิดเฉพาะนอกรอบ, สลับสกิล 20×Ch, ใบเกิด 75×Ch (1 ครั้ง, แยกจาก Second Wind), ราชาให้ Gold + แต้มสกิล + หีบเสมอ, แลก Gold เป็นแต้มสกิลได้, มังกรตนต่อไปเจอง่ายขึ้นหลังได้ตนแรก
 - [Grilling: ระบบอาวุธ และสมดุลท่าไม้ตาย](issues/23-weapons-and-ultimate.md): ท่าไม้ตายเติมตามเวลา (~30–60 วิ), ดาเมจผูกกับ HP มอนของ Chapter ไม่ผ่านโบนัสผู้เล่น, เพดาน 8%/5% ต่อบอส · อาวุธ 10 ชิ้น (ดินแดนละ 1) เปลี่ยนแค่รูปแบบท่าไม้ตาย ไม่ให้ค่าพลัง ราชาดรอป 5% Umbra ให้แน่นอน ชิ้นที่ได้กลางรอบเปลี่ยนใช้ได้ตอนจบด่าน
 - [Grilling: โครงโค้ดหลังแยกไฟล์](issues/11-code-architecture-for-live-config.md): npm workspaces (apps/game, apps/admin, packages/sim|config|i18n, workers/room, supabase), sim headless 60 tick ที่เล่นซ้ำได้ผลเดิมตั้งแต่ตอนย้าย, Balance Config ด้วย zod, feature flags แยก, Admin ใช้ Preact+uPlot, ใช้ PartyServer/partysocket, ZzFX, Vitest+Playwright แต่ไม่ใช้เอนจินเกม
+- [Grilling: data model และ schema ของ Balance Config](issues/13-data-model-and-config-schema.md): 5 กลุ่มตารางบน Supabase, ผู้เล่นเขียนผ่าน RPC เท่านั้น, server เป็นผู้นับ Gold, ผูก Google แล้วรวมเซฟอัตโนมัติ (Gold เอาฝั่งมากกว่า), ลบบัญชีที่ถูกทิ้ง 90 วัน, กำหนดระยะเก็บข้อมูลให้อยู่ใน 500 MB, audit log อัตโนมัติ
 - [Task: พิมพ์เขียว diagram ของระบบปัจจุบัน](issues/06-current-system-blueprint.md): `docs/blueprint/current-system.html` มี 4 ภาพ (โมดูล, state machine, วงจร Run, co-op) + การ์ดสรุประบบ ใช้เป็นฐานร่วมกันตอนตัดสินว่าจะปรับระบบไหน
 - [Grilling: เลือก hosting, backend และช่องทาง co-op](issues/12-backend-and-hosting-choice.md): Cloudflare Pages (+itch.io), Supabase Free (สำรอง Workers+D1), co-op ผ่าน Worker + Durable Object (สำรอง PeerJS+TURN), สถิติในตารางตัวเอง, repo private, เกมเล่น solo ได้แม้ server ล่ม ส่วนข้อสงสัยของแพ็กฟรีไปทดสอบใน #17
 - [Task: ทดสอบข้อสงสัยของแพ็กฟรีที่เอกสารไม่ได้ตอบ](issues/17-verify-free-tier-unknowns.md): ผ่านทุกข้อ สร้าง Supabase `pixel-horde` (สิงคโปร์) แล้ว, `pg_cron` ใช้ได้, anonymous นับ MAU, Realtime ฟรีรับได้แค่ 200 connection (ผู้เล่นห้ามเปิดค้างไว้), Cloudflare ไม่ต้องผูกบัตร
@@ -61,7 +62,6 @@ Label: wayfinder:map
 - **เสียงและดนตรี**: pillar "ดาเมจสะใจ" ต้องพึ่งเสียงด้วย ตอนนี้สร้างเสียงสดด้วย Web Audio ยังไม่มีดนตรี #11 เลือกใช้ ZzFX/ZzFXM (สร้างเสียงสด ไม่ใช้ไฟล์) ยังต้องตัดสินแนวเพลงต่อดินแดน, เสียงคอมโบ/ท่าไม้ตาย และระดับเสียงใน Setting
 - **ประสิทธิภาพบนมือถือ**: มอนเยอะ + สกิลอลังการ อาจเกินกำลังมือถือ ต้องมีงบประมาณ (จำนวนมอน, particle, FPS เป้าหมาย) หลังรู้ขอบเขตเนื้อหา
 - **รายละเอียดด่านท้าทายประจำวันและอีเวนต์ตามเวลา**: กติกา รางวัล การผูกกับ leaderboard รอให้ chapter และ data model ชัดก่อน
-- **ขั้นตอนผูกบัญชี Google**: ถ้าผูกแล้วเจอเซฟสองชุดชนกันจะทำยังไง รอเลือก backend ก่อน
 - **วัด co-op จริงตอน spike แรก**: latency ของ Durable Object จากไทย, P2P ล้มเหลวบ่อยแค่ไหนบน AIS/True/dtac, TURN ต้องผูกบัตรไหม (เลื่อนมาจาก #17 ไม่กระทบ blueprint)
 - **ขั้นตอนแปลภาษา**: เก็บข้อความไทย/อังกฤษไว้ที่ไหน ใครแปล
 
