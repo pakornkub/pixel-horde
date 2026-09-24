@@ -1,7 +1,7 @@
 # Grilling: ออกแบบตัวละครใหม่ให้ต่างกันชัด
 
 Type: grilling
-Status: open
+Status: claimed
 Blocked by: 07
 
 ## Question

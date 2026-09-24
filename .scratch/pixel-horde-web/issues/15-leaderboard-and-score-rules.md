@@ -34,3 +34,5 @@ Blocked by: 05, 08
    - ทุกคนที่ชนะ Umbra ใน Season: เหรียญ "ผู้พิทักษ์หัวใจ · S1"
    - ด่านประจำวัน: อันดับ 1 ของวันได้ +1 ตัวนับ "แชมป์ประจำวัน"
 8. **ฉายาเป็นระบบเดียวกับ achievement**: ได้จากอันดับ Season และ achievement (เช่น "Dragon Tamer", "Legend of Lumora", "Ice Breaker") ผู้เล่นเลือกโชว์ได้ 1 อัน แสดงบน leaderboard, ห้อง co-op และบนหัวตัวละคร รายการ achievement ออกแบบใน #09 **ต้องเพิ่มตารางใน data model** (#13): `player_titles` (user_id, title_id, source season/achievement, earned_at), `player_badges`, `achievements` (นิยาม) และ `profiles.shown_title`
+
+**เพิ่มเติม 2026-09-25**: ซื้อใบเกิดระหว่าง Endless หักแค่คะแนน Endless 15% ไม่กระทบคะแนนโหมดหลักที่บันทึกไปแล้ว
