@@ -29,7 +29,7 @@ One of the three dragons (Inferno, Frost, Storm) torn from the Heart's original 
 _Avoid_: legendary beast, boss dragon
 
 **Three-headed Dragon**:
-The Heart's original guardian, restored by fusing the Guardians. Unlocked permanently once all three Guardians have ever been defeated; each Run still needs at least one Guardian first. (Final name to be chosen.)
+The Heart's original guardian, restored by fusing all three Guardians defeated within the same Run. Nothing carries over between Runs. (Final name to be chosen.)
 _Avoid_: hydra, fused pet
 
 **Companion**:
