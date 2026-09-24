@@ -8,7 +8,7 @@ describe('sprite files', () => {
   });
 
   it('every enemy and hero the game draws has a sprite', () => {
-    for (const k of ['mage', 'knight', 'ranger', 'alchemist', 'pet', 'slime', 'bat', 'ghost', 'mush', 'boss', 'sslime', 'scorp', 'mummy', 'skel', 'islime', 'ibat', 'snowman', 'bossD', 'bossC', 'bossS', 'dragon', 'whelp', 'rival', 'caster', 'charger', 'splitter']) {
+    for (const k of ['mage', 'knight', 'ranger', 'alchemist', 'pet', 'slime', 'bat', 'ghost', 'mush', 'boss', 'sslime', 'scorp', 'mummy', 'skel', 'islime', 'ibat', 'snowman', 'bossD', 'bossC', 'bossS', 'dragon', 'whelp', 'rival', 'umbra', 'caster', 'charger', 'splitter']) {
       expect(SPRITES[k], k).toBeDefined();
     }
   });

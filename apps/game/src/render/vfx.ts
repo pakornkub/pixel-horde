@@ -1,6 +1,6 @@
 // Presentation-only state: particles, floating numbers, shake/flash, banners.
 // Uses its own fxRng so rendering never touches the sim's seeded streams.
-import { createRng, themeIndex, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { createRng, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { bannerText } from '../ui/text';
 import { effectsScale, settings, shakeScale, vibrate } from '../settings';
@@ -72,7 +72,7 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
         if (e.col) vfx.flashCol = e.col;
         break;
       case 'banner': {
-        const tx = bannerText(e.key, e.args || {}, themeIndex(v.stage));
+        const tx = bannerText(e.key, e.args || {}, v.realm);
         setBanner(tx.txt, tx.sub, e.dur, e.big);
         if (e.key === 'bossDown' || e.key === 'dragonTamed') vibrate([60, 40, 60]);
         break;

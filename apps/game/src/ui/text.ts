@@ -1,7 +1,7 @@
 // Player-facing text comes from packages/i18n (t). This file maps game ids to keys
 // and keeps the non-text visuals (icon colour and glyph) next to them.
 import { t } from '@pixel-horde/i18n';
-import type { BannerKey, HeroId, PassiveId, ShopId, SkillId, SkillStats } from '@pixel-horde/sim';
+import type { BannerKey, Element, HeroId, PassiveId, RealmId, ShopId, SkillId, SkillStats, Trait } from '@pixel-horde/sim';
 
 export interface Icon { col: string; g: string }
 
@@ -29,12 +29,15 @@ export const heroName = (id: HeroId): string => t(`hero.${id}.name`);
 export const heroDesc = (id: HeroId): string => t(`hero.${id}.desc`);
 export const shopName = (id: ShopId): string => t(`shop.${id}.name`);
 export const shopDesc = (id: ShopId): string => t(`shop.${id}.desc`);
-export const themeShort = (i: number): string => t(`lumora.theme.${i}.short`);
-export const bossName = (i: number): string => t(`lumora.theme.${i}.boss`);
+export const realmName = (r: RealmId): string => t(`realm.${r}.name`);
+export const realmShort = (r: RealmId): string => t(`realm.${r}.short`);
+export const kingName = (r: RealmId): string => t(`realm.${r}.king`);
+export const traitName = (x: Trait): string => t(`trait.${x}`);
+export const elementName = (x: Element): string => t(`element.${x}`);
 
 /** Banner title + subtitle for a sim banner event. */
-export function bannerText(key: BannerKey, a: Record<string, string | number>, themeIdx: number): { txt: string; sub: string } {
-  const args: Record<string, string | number> = { ...a, theme: themeShort(themeIdx), boss: bossName(themeIdx) };
+export function bannerText(key: BannerKey, a: Record<string, string | number>, realm: RealmId): { txt: string; sub: string } {
+  const args: Record<string, string | number> = { ...a, theme: realmShort(realm), boss: kingName(realm) };
   if (key === 'evolved') args.evo = evoName(a.id as SkillId);
   return { txt: t(`banner.${key}.txt`, args), sub: t(`banner.${key}.sub`, args) };
 }

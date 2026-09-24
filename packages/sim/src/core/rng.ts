@@ -49,7 +49,7 @@ export function createRng(seed: number, s1?: number, s2?: number, s3?: number): 
   };
 }
 
-export const STREAMS = ['spawn', 'ai', 'combat', 'loot', 'skills', 'levelup', 'events'] as const;
+export const STREAMS = ['spawn', 'ai', 'combat', 'loot', 'skills', 'levelup', 'events', 'route'] as const;
 export type StreamName = (typeof STREAMS)[number];
 export type Streams = Record<StreamName, Rng>;
 

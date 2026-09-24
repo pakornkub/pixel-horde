@@ -14,6 +14,7 @@ export function botStep(sim: Sim, t: number): void {
   if (v.phase === 'levelup') cmds.push({ type: 'pick', index: t % (v.levelUp?.options.length || 1) });
   if (v.phase === 'chest' && t % 30 === 0) cmds.push({ type: 'chestStop' });
   if (v.phase === 'clear') cmds.push({ type: 'next' });
+  if (v.phase === 'route') cmds.push({ type: 'route', index: t % 2 });
   if (v.ult >= 80) cmds.push({ type: 'ult' });
   // quantized like the real input layer
   const a = Math.floor(t / 20) / 12; // change direction every 20 ticks (keeps replays small)

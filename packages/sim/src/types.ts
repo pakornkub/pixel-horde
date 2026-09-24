@@ -1,5 +1,6 @@
 import type { ResolvedConfig } from '@pixel-horde/config';
 import type { Streams } from './core/rng';
+import type { RealmId } from './content/lumora/realms';
 import type { EnemyId } from './data/enemies';
 import type { HeroId } from './data/heroes';
 import type { PassiveId, SkillId } from './data/skills';
@@ -9,7 +10,7 @@ import type { ShopId } from './data/shop';
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
 
-export type Phase = 'play' | 'levelup' | 'chest' | 'pause' | 'clearing' | 'clear' | 'over';
+export type Phase = 'play' | 'levelup' | 'chest' | 'pause' | 'clearing' | 'clear' | 'route' | 'over';
 
 /** Player input for one tick. mx/my in [-1, 1]; magnitude <= 1. */
 export interface InputFrame {
@@ -22,7 +23,8 @@ export type Command =
   | { type: 'chestStop' } // chest wheel animation finished
   | { type: 'pause' }
   | { type: 'resume' }
-  | { type: 'next' } // continue to the next stage from the clear screen
+  | { type: 'next' } // continue from the clear screen (to the route choice or the next Chapter)
+  | { type: 'route'; index: number } // pick one of the offered Realms
   | { type: 'ult' }
   | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
   | { type: 'setConfig'; config: ResolvedConfig } // new Balance Config: applies at the next Stage start
@@ -192,14 +194,15 @@ export type SimEvent =
   | { t: 'dmg'; d: number }
   | { t: 'kill'; ttk: number }
   | { t: 'stageStart'; stage: number; special: boolean }
-  | { t: 'stageClear'; stage: number }
+  | { t: 'stageClear'; stage: number; escaped: boolean }
+  | { t: 'victory' }
   | { t: 'gameOver' };
 
 /** Banner texts are looked up by key in the game's text table. */
 export type BannerKey =
   | 'stage' | 'bloodMoon' | 'intro.caster' | 'intro.charger' | 'intro.splitter' | 'intro.armor'
   | 'bossDown' | 'judgement' | 'swarm' | 'bossIncoming' | 'dragonOmen' | 'stageClear' | 'stageClearDragonFled'
-  | 'stageClearRivalFled' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
+  | 'stageClearRivalFled' | 'overtime' | 'kingEscaped' | 'umbraDown' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
   | 'rivalEscaped' | 'dragonTamed' | 'dragonPowerUp' | 'clonePowerUp' | 'shadowClone' | 'shadowShard';
 
 export type SfxKey = 'hit' | 'crit' | 'boom' | 'zap' | 'nova' | 'lance' | 'laser' | 'lv' | 'hurt' | 'ult' | 'coin' | 'tick' | 'gem' | 'clear';
@@ -220,7 +223,28 @@ export interface SimState {
   viewport: { w: number; h: number };
   debug: { event?: DebugEvent; god?: boolean };
 
+  /** Chapter number (difficulty follows it). */
   stage: number;
+  /** Realm of the current Chapter. */
+  realm: RealmId;
+  visited: RealmId[];
+  /** Offered while phase === 'route'. */
+  route: { chapter: number; choices: RealmId[] } | null;
+  /** Overtime: the timer ended while the King lives. */
+  overtime: boolean;
+  /** How the last Stage ended. */
+  lastEnd: 'clear' | 'escape' | null;
+  /** Re-picks used for the current Chapter after an Escape. */
+  repicks: number;
+  chaptersCleared: number[];
+  kingsKilled: number[];
+  escapes: number;
+  escapedKings: RealmId[];
+  combos: number;
+  revivesBought: number;
+  victory: boolean;
+  victoryTime: number;
+  bloodMoonShown: boolean;
   stageTime: number; stageDur: number;
   spawnAcc: number; waveT: number;
   bossSpawned: boolean;

@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:browser": "playwright test",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
-    "lab": "npm run lab -w @pixel-horde/game"
+    "lab": "npm run lab -w @pixel-horde/game",
+    "db:sync-seeds": "node scripts/sync-migration-seeds.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

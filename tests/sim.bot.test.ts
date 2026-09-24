@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createSim } from '@pixel-horde/sim';
+import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
 import { botOptions, botStep, runBot } from './bot';
 
 const MIN = 60 * 60;
@@ -8,7 +9,9 @@ describe('headless bot runs', () => {
   it.each([1, 2, 3, 4])('seed %i plays 8 minutes without exceptions and progresses stages (god mode)', (seed) => {
     const { sim } = runBot(botOptions(seed, { debug: { god: true } }), 8 * MIN);
     const v = sim.view();
-    expect(v.stage).toBeGreaterThanOrEqual(4);
+    // The bot never aims at the King, so some Stages end in overtime + escape (Chapter replayed).
+    expect(v.stage).toBeGreaterThanOrEqual(2);
+    expect(v.chaptersCleared.length + v.escapes).toBeGreaterThanOrEqual(3);
     expect(v.P.lv).toBeGreaterThan(10);
     expect(v.kills).toBeGreaterThan(500);
   });
@@ -48,27 +51,60 @@ describe('headless bot runs', () => {
     expect(moon).toBeGreaterThan(plain);
   });
 
-  it('a stage clears only when its timer ends and the next stage is longer', () => {
+  it('a Stage never clears before its timer; a King that survives overtime escapes and the Chapter is replayed', () => {
     const sim = createSim(botOptions(3, { debug: { god: true } }));
-    let clearedAt = -1;
+    let clearedAt = -1, sawOvertime = false;
     for (let t = 0; t < 2 * MIN; t++) {
       botStep(sim, t);
-      if (clearedAt < 0 && sim.view().phase === 'clearing') clearedAt = sim.view().stageTime;
+      const v = sim.view();
+      if (v.overtime && v.stage === 1) sawOvertime = true;
+      if (clearedAt < 0 && v.phase === 'clearing') clearedAt = v.stageTime;
     }
+    const v = sim.view();
+    expect(clearedAt).toBeGreaterThanOrEqual(60 + 45);
+    expect(sawOvertime).toBe(true);
+    expect(v.escapes).toBe(1);
+    expect(v.escapedKings.length).toBe(1);
+    expect(v.stage).toBe(1); // re-picked Realm, same Chapter
+    expect(v.chaptersCleared).toEqual([]);
+  });
+
+  it('killing the King clears at the timer end and the next Chapter is longer', () => {
+    const config = resolveConfig(parseBalanceConfig({ worlds: { lumora: { enemies: {
+      boss: { hp: 5 }, bossD: { hp: 5 }, bossC: { hp: 5 }, bossS: { hp: 5 } } } } }));
+    const sim = createSim(botOptions(3, { debug: { god: true }, config }));
+    let clearedAt = -1, sawRoute = false;
+    for (let t = 0; t < 2 * MIN; t++) {
+      botStep(sim, t);
+      const v = sim.view();
+      if (v.phase === 'route') {
+        sawRoute = true;
+        expect(v.route?.choices.length).toBe(2);
+        expect(new Set(v.route?.choices).size).toBe(2);
+        for (const r of v.route!.choices) expect(v.visited).not.toContain(r);
+      }
+      if (clearedAt < 0 && v.phase === 'clearing') clearedAt = v.stageTime;
+    }
+    const v = sim.view();
     expect(clearedAt).toBeGreaterThanOrEqual(60);
-    expect(sim.view().stage).toBe(2);
-    expect(sim.view().stageDur).toBe(80);
+    expect(clearedAt).toBeLessThan(61);
+    expect(sawRoute).toBe(true);
+    expect(v.stage).toBe(2);
+    expect(v.stageDur).toBe(80);
+    expect(v.kingsKilled).toEqual([1]);
+    expect(v.chaptersCleared).toEqual([1]);
+    expect(v.escapes).toBe(0);
   });
 });
 
 describe('Balance Config drives the sim', () => {
-  it('a shorter stage length clears earlier', async () => {
-    const { parseBalanceConfig, resolveConfig } = await import('@pixel-horde/config');
+  it('a shorter stage length reaches its end (clear or overtime) earlier', () => {
     const config = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 20 } } }));
     const sim = createSim(botOptions(3, { debug: { god: true }, config }));
     expect(sim.view().stageDur).toBe(20);
     let cleared = false;
-    for (let t = 0; t < 30 * 60 && !cleared; t++) { botStep(sim, t); cleared = sim.view().phase === 'clearing'; }
+    for (let t = 0; t < 30 * 60 && !cleared; t++) { botStep(sim, t); cleared = sim.view().overtime || sim.view().phase === 'clearing'; }
+    expect(sim.view().stageTime).toBeLessThan(21);
     expect(cleared).toBe(true);
   });
 });

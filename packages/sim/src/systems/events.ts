@@ -17,7 +17,7 @@ export function rollStage(s: SimState, n: number): void {
   if (force === 'dragon') { s.specialStage = true; s.dragonStage = true; return; }
   if (force === 'rival') { s.rivalStage = true; return; }
   const E = s.cfg.events;
-  if (n < E.bloodMoonFrom) return;
+  if (n < E.bloodMoonFrom || n > E.lastChapter || n >= s.cfg.stage.chapters) return;
   const R = s.rng.events, run = s.run;
   // Rolls always consume the same random numbers; switched-off events just do not happen.
   const on = s.eventSwitches;

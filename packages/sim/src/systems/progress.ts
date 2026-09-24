@@ -4,6 +4,7 @@ import { rollStage } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { recompute, U, xpNeed } from './player';
 import { DEATH_COL } from '../data/enemies';
+import { REALMS, ROUTE_REALMS, type RealmId } from '../content/lumora/realms';
 
 export function startStage(s: SimState, n: number): void {
   // A new Balance Config / event switches take effect only here, never mid-Stage.
@@ -26,17 +27,23 @@ export function startStage(s: SimState, n: number): void {
   s.gems = [];
   levelCheck(s);
   s.streak = 0; s.streakT = 0;
+  s.overtime = false;
+  s.bloodMoonShown = false;
+  s.lastEnd = null;
   s.events.push({ t: 'stageStart', stage: n, special: s.specialStage });
-  if (s.specialStage) banner(s, 'bloodMoon', 3, true);
-  else banner(s, 'stage', 2.4, false, { n, dur: s.stageDur });
+  // Blood Moon is never announced in advance: it reveals itself a little into the Stage.
+  banner(s, 'stage', 2.4, false, { n, dur: s.stageDur });
   s.phase = 'play';
 }
 
-export function stageClear(s: SimState): void {
+export function stageClear(s: SimState, escaped = false): void {
   s.phase = 'clearing';
   s.clearT = s.cfg.stage.clearDelay;
+  s.lastEnd = escaped ? 'escape' : 'clear';
+  if (!escaped) s.chaptersCleared.push(s.stage);
   sfx(s, 'clear');
-  if (s.rivalE && !s.rivalE.dead) banner(s, 'stageClearRivalFled', 2, true);
+  if (escaped) banner(s, 'kingEscaped', 2.4, true);
+  else if (s.rivalE && !s.rivalE.dead) banner(s, 'stageClearRivalFled', 2, true);
   else if (s.dragonE && !s.dragonE.dead) banner(s, 'stageClearDragonFled', 2, true);
   else banner(s, 'stageClear', 1.5, true);
   s.dragonE = s.rivalE = null;
@@ -51,12 +58,72 @@ export function stageClear(s: SimState): void {
   }
   flash(s, 0.3, '#ffffff');
   shake(s, 6);
-  s.events.push({ t: 'stageClear', stage: s.stage });
+  s.events.push({ t: 'stageClear', stage: s.stage, escaped });
+}
+
+/** The King survived overtime: he flees with his crystal shard. Umbra grows stronger. */
+export function kingEscapes(s: SimState): void {
+  const k = s.boss;
+  if (k) {
+    burst(s, k.x, k.y, '#3a1f66', 40, 120, 0.8);
+    k.dead = true;
+    s.boss = null;
+  }
+  s.escapes++;
+  s.escapedKings.push(s.realm);
+  stageClear(s, true);
+}
+
+/** Two Realms for a route choice: unvisited first, then any other available one. */
+function routeChoices(s: SimState, exclude: RealmId[]): RealmId[] {
+  const R = s.rng.route;
+  const avail = ROUTE_REALMS.filter((r) => REALMS[r].available && !exclude.includes(r));
+  const fresh = avail.filter((r) => !s.visited.includes(r));
+  const pick = (from: RealmId[], k: number): RealmId[] => {
+    const pool = from.slice(), out: RealmId[] = [];
+    while (out.length < k && pool.length) out.push(pool.splice(R.int(pool.length), 1)[0]);
+    return out;
+  };
+  const out = pick(fresh, 2);
+  if (out.length < 2) out.push(...pick(avail.filter((r) => !out.includes(r)), 2 - out.length));
+  return out;
+}
+
+/** From the clear screen: next Chapter (route choice for 2..chapters−1), a re-pick after an Escape, or the finale. */
+export function afterStage(s: SimState): void {
+  const G = s.cfg.stage;
+  let chapter = s.stage + 1;
+  if (s.lastEnd === 'escape' && s.repicks < G.escapeRepicks && s.realm !== 'crater') {
+    s.repicks++;
+    chapter = s.stage;
+  } else s.repicks = 0;
+  if (chapter >= G.chapters) {
+    s.realm = 'crater';
+    s.visited.push('crater');
+    startStage(s, chapter);
+  } else if (chapter === 1) {
+    startStage(s, 1); // Greenvale again
+  } else {
+    const exclude: RealmId[] = s.lastEnd === 'escape' && chapter === s.stage ? [s.realm] : [];
+    s.route = { chapter, choices: routeChoices(s, exclude) };
+    s.phase = 'route';
+  }
+}
+
+export function chooseRoute(s: SimState, index: number): void {
+  if (s.phase !== 'route' || !s.route) return;
+  const r = s.route.choices[index];
+  if (!r) return;
+  s.realm = r;
+  s.visited.push(r);
+  const ch = s.route.chapter;
+  s.route = null;
+  startStage(s, ch);
 }
 
 export function gameOver(s: SimState): void {
   s.phase = 'over';
-  sfx(s, 'hurt');
+  if (!s.victory) sfx(s, 'hurt');
   s.events.push({ t: 'gameOver' });
 }
 

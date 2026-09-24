@@ -56,7 +56,7 @@ for (const k of ['mage', 'knight', 'ranger', 'alchemist']) {
   HERO_SPR[k] = { r, l: r.map(flip), w: recolor(r[0], '#ffffff', 1), dk, dkl: dk.map(flip) };
 }
 
-const ENEMY_IDS = ['slime', 'bat', 'ghost', 'mush', 'boss', 'sslime', 'scorp', 'mummy', 'skel', 'islime', 'ibat', 'snowman', 'bossD', 'bossC', 'bossS', 'dragon', 'whelp', 'rival', 'caster', 'charger', 'splitter'];
+const ENEMY_IDS = ['slime', 'bat', 'ghost', 'mush', 'boss', 'sslime', 'scorp', 'mummy', 'skel', 'islime', 'ibat', 'snowman', 'bossD', 'bossC', 'bossS', 'dragon', 'whelp', 'rival', 'umbra', 'caster', 'charger', 'splitter'];
 export const ENEMY_SPR: Record<string, Sheet[]> = {};
 for (const id of ENEMY_IDS) ENEMY_SPR[id] = frames(SPRITES[id]).map(sheet);
 ENEMY_SPR.mini = ENEMY_SPR.splitter;

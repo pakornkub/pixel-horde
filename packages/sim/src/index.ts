@@ -1,6 +1,7 @@
 // Headless deterministic simulation. Must never import DOM/Canvas/network, Math.random,
 // wall-clock or non-deterministic Math.* (see core/fmath.ts).
-export { createSim, scoreOf, hashState, runReplay, HASH_EVERY, type Sim, type Replay } from './sim';
+export { createSim, scoreOf, scoreBreakdown, hashState, runReplay, HASH_EVERY, type Sim, type Replay, type ScoreLine } from './sim';
+export * from './content/lumora/realms';
 export * from './types';
 export * from './data/skills';
 export * from './data/enemies';

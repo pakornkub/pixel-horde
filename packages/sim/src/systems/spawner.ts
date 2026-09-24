@@ -1,15 +1,15 @@
 import { TAU, clamp, cos, hypot, ipow, sin } from '../core/fmath';
 import { ET, type EnemyId } from '../data/enemies';
-import { THEMES, themeIndex } from '../data/themes';
+import { REALMS } from '../content/lumora/realms';
 import type { BannerKey, Enemy, SimState } from '../types';
 import { banner } from './fx';
 import { aliveTargets } from './query';
 
 export const prog = (s: SimState): number => clamp(s.stageTime / s.stageDur, 0, 1);
-export const theme = (s: SimState) => THEMES[themeIndex(s.stage)];
+export const realm = (s: SimState) => REALMS[s.realm];
 
 export function typePool(s: SimState): EnemyId[] {
-  const p = theme(s).pool, st = s.stage, a: EnemyId[] = [p[0], p[0], p[1], p[1]];
+  const p = realm(s).pool, st = s.stage, a: EnemyId[] = [p[0], p[0], p[1], p[1]];
   if (st >= 2) a.push(p[2], 'charger');
   if (st >= 3) a.push('caster');
   if (st >= 4) a.push('splitter');
@@ -74,7 +74,7 @@ export function directorStep(s: SimState, dt: number): void {
 export function spawnStep(s: SimState, dt: number): void {
   const R = s.rng.spawn, C = s.cfg.spawn, mates = 0;
   directorStep(s, dt);
-  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * s.dir.v;
+  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * s.dir.v;
   s.spawnAcc += rate * dt;
   const pool = typePool(s);
   while (s.spawnAcc >= 1) {

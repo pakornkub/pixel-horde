@@ -29,7 +29,13 @@ export const THEME_VIS=[
     deco:x=>{x.fillStyle=K;x.beginPath();x.moveTo(8,0);x.lineTo(15,13);x.lineTo(1,13);x.closePath();x.fill();
       x.fillStyle='#2f6b4a';x.beginPath();x.moveTo(8,1);x.lineTo(14,12);x.lineTo(2,12);x.closePath();x.fill();
       x.fillStyle='#ffffff';x.fillRect(6,4,4,1);x.fillRect(4,8,8,1);x.fillRect(3,11,10,1);
-      x.fillStyle=K;x.fillRect(6,13,4,3);x.fillStyle='#7a4a2a';x.fillRect(7,13,2,3);}}
+      x.fillStyle=K;x.fillRect(6,13,4,3);x.fillStyle='#7a4a2a';x.fillRect(7,13,2,3);}},
+  {key:'crater',name:'HEART CRATER',th:'หลุมหัวใจ',pool:['skel','ghost','scorp'],boss:'umbra',bossName:'UMBRA',g:['#2a1f3d','#241a36','#1a1030'],path:['#3a1f66','#4a2d80'],
+    f1:x=>{x.fillStyle=K;x.fillRect(3,6,6,1);x.fillRect(8,7,1,4);x.fillStyle='#ff2a5c';x.fillRect(4,6,4,1);x.fillRect(8,8,1,2);},
+    f2:x=>{x.fillStyle='#b07cff';x.fillRect(10,4,1,1);x.fillRect(12,9,1,1);x.fillStyle='#6a5a8a';x.fillRect(5,12,1,1);},
+    deco:x=>{x.fillStyle=K;x.beginPath();x.moveTo(8,1);x.lineTo(13,15);x.lineTo(3,15);x.closePath();x.fill();
+      x.fillStyle='#4a2d80';x.beginPath();x.moveTo(8,3);x.lineTo(11,14);x.lineTo(5,14);x.closePath();x.fill();
+      x.fillStyle='#b07cff';x.fillRect(7,6,2,5);x.fillStyle='#ffffff';x.fillRect(7,6,1,1);}}
 ];
 function tile(fn){const c=document.createElement('canvas');c.width=16;c.height=16;fn(c.getContext('2d'));return c;}
 function makeTiles(th){

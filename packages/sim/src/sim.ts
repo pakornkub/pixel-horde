@@ -1,9 +1,9 @@
 import { DEFAULT_RESOLVED } from '@pixel-horde/config';
 import { createStreams } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
-import { theme, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
+import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { choose, chestStop, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
+import { afterStage, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
@@ -58,7 +58,9 @@ export function createSim(opts: SimOptions): Sim {
     meta: { up: { ...opts.meta.up } },
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
-    stage: 1, stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
+    stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, bloodMoonShown: false,
+    stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
     totalTime: 0, clearT: 0, slowT: 0, hitstop: 0, frostT: 0, runGold: 0,
@@ -85,10 +87,11 @@ export function createSim(opts: SimOptions): Sim {
       case 'resume': if (s.phase === 'pause') s.phase = 'play'; break;
       case 'next':
         if (s.phase === 'clear') {
-          s.P.hp = Math.min(s.P.maxHp, s.P.hp + s.P.maxHp * cfg.stage.clearHeal);
-          startStage(s, s.stage + 1);
+          s.P.hp = Math.min(s.P.maxHp, s.P.hp + s.P.maxHp * s.cfg.stage.clearHeal);
+          afterStage(s);
         }
         break;
+      case 'route': chooseRoute(s, c.index); break;
       case 'ult': useUlt(s); break;
       case 'viewport':
         if (c.w > 0 && c.h > 0) { s.viewport.w = c.w; s.viewport.h = c.h; }
@@ -126,19 +129,21 @@ export function createSim(opts: SimOptions): Sim {
       s.stageTime += dt;
       s.totalTime += dt;
       spawnStep(s, dt);
-      if (s.rivalStage && !s.rivalSpawned && prog(s) >= cfg.events.rivalAt) { s.rivalSpawned = true; spawnRival(s); }
-      if (s.dragonStage && !s.dragonWarned && prog(s) >= cfg.events.dragonWarnAt) {
+      if (s.rivalStage && !s.rivalSpawned && prog(s) >= s.cfg.events.rivalAt) { s.rivalSpawned = true; spawnRival(s); }
+      if (s.dragonStage && !s.dragonWarned && prog(s) >= s.cfg.events.dragonWarnAt) {
         s.dragonWarned = true;
         banner(s, 'dragonOmen', 2.2);
         s.effects.push({ type: 'shadowpass', t: 0, dur: 1.6, x: 0, y: 0, dmg: 0 });
         shake(s, 3);
       }
-      if (s.dragonStage && !s.dragonSpawned && prog(s) >= cfg.events.dragonAt) { s.dragonSpawned = true; spawnDragon(s); s.bossSpawned = true; }
-      if (!s.bossSpawned && prog(s) >= cfg.stage.bossAt) {
+      if (s.specialStage && !s.bloodMoonShown && prog(s) >= s.cfg.stage.bloodMoonRevealAt) { s.bloodMoonShown = true; banner(s, 'bloodMoon', 3, true); }
+      if (s.dragonStage && !s.dragonSpawned && prog(s) >= s.cfg.events.dragonAt) { s.dragonSpawned = true; spawnDragon(s); }
+      if (!s.bossSpawned && prog(s) >= s.cfg.stage.bossAt) {
         s.bossSpawned = true;
         const [x, y] = edgePos(s);
-        const b = spawnEnemy(s, theme(s).boss, x, y, false);
-        b.hp *= ipow(cfg.stage.bossHpGrowth, s.stage - 1);
+        const b = spawnEnemy(s, realm(s).king, x, y, false);
+        b.hp *= ipow(s.cfg.stage.bossHpGrowth, s.stage - 1);
+        if (b.type === 'umbra') b.hp *= 1 + s.cfg.stage.umbraEscapeHp * s.escapes;
         b.maxHp = b.hp;
         s.boss = b;
         banner(s, 'bossIncoming', 2);
@@ -157,12 +162,29 @@ export function createSim(opts: SimOptions): Sim {
     stepGems(s, dt);
 
     if (s.phase === 'play') {
-      if (s.stageTime >= s.stageDur) { stageClear(s); return; }
+      // King must die: the Stage clears at the timer only if the King is dead; otherwise overtime,
+      // and a King that survives overtime escapes (Umbra never does).
+      if (s.stageTime >= s.stageDur) {
+        const kingDead = s.bossSpawned && (!s.boss || s.boss.dead);
+        if (kingDead) { stageClear(s); return; }
+        if (!s.overtime) {
+          s.overtime = true;
+          if (s.boss) { s.boss.spd *= s.cfg.stage.enrageSpd; s.boss.dmg *= s.cfg.stage.enrageDmg; }
+          banner(s, 'overtime', 2, true);
+          shake(s, 4);
+        } else if (s.stageTime >= s.stageDur + s.cfg.stage.overtime && s.boss && s.boss.type !== 'umbra') {
+          kingEscapes(s);
+          return;
+        }
+      }
       if (s.chestQueue > 0) { s.chestQueue--; openChest(s); return; }
       if (s.pendingLv > 0 || s.pendingChest > 0) { openLevelUp(s); return; }
     } else if (s.phase === 'clearing') {
       s.clearT -= DT;
-      if (s.clearT <= 0) s.phase = 'clear';
+      if (s.clearT <= 0) {
+        if (s.victory && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) { s.events.push({ t: 'victory' }); gameOver(s); }
+        else s.phase = 'clear';
+      }
     }
   }
 
@@ -186,12 +208,42 @@ export function createSim(opts: SimOptions): Sim {
   };
 }
 
-/** The one score computation (arcade score arrives with ticket 10/15). */
-export function scoreOf(s: Readonly<SimState>): number {
-  return s.stage * 1e6 + Math.min(s.kills, 999999);
+export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'revive'; count: number; points: number }
+
+/**
+ * Arcade Score (decision #15): progress dominates, kills and Combos separate equal progress.
+ * Chapters +1,000×Ch · Kings +500×Ch · monsters +1 · Combos +5 · Umbra +20,000 ·
+ * fast finish +(1,500 − s)×10 · Escapes −3,000 each · a bought revive −15%.
+ */
+export function scoreBreakdown(s: Readonly<SimState>): { lines: ScoreLine[]; total: number } {
+  const C = s.cfg.score;
+  const sum = (a: number[]): number => a.reduce((x, y) => x + y, 0);
+  const lines: ScoreLine[] = [
+    { key: 'chapters', count: s.chaptersCleared.length, points: C.chapter * sum(s.chaptersCleared) },
+    { key: 'kings', count: s.kingsKilled.length, points: C.king * sum(s.kingsKilled) },
+    { key: 'kills', count: s.kills, points: C.kill * s.kills },
+    { key: 'combos', count: s.combos, points: C.combo * s.combos },
+  ];
+  if (s.victory) {
+    lines.push({ key: 'victory', count: 1, points: C.victory });
+    lines.push({ key: 'fast', count: Math.round(s.victoryTime), points: Math.max(0, Math.round((C.fastBase - s.victoryTime) * C.fastMul)) });
+  }
+  if (s.escapes) lines.push({ key: 'escapes', count: s.escapes, points: -C.escape * s.escapes });
+  let total = Math.max(0, sum(lines.map((l) => l.points)));
+  if (s.revivesBought > 0) {
+    const cut = Math.round(total * C.revivePenalty);
+    lines.push({ key: 'revive', count: s.revivesBought, points: -cut });
+    total -= cut;
+  }
+  return { lines, total };
 }
 
-const PHASES: Phase[] = ['play', 'levelup', 'chest', 'pause', 'clearing', 'clear', 'over'];
+/** The one score computation. */
+export function scoreOf(s: Readonly<SimState>): number {
+  return scoreBreakdown(s).total;
+}
+
+const PHASES: Phase[] = ['play', 'levelup', 'chest', 'pause', 'clearing', 'clear', 'over', 'route'];
 
 /** FNV-1a over the bytes of the gameplay-relevant numbers. */
 export function hashState(s: Readonly<SimState>): number {

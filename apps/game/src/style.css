@@ -137,3 +137,6 @@ html[lang="en"] .tabs button{font-size:9px}
 .link-row{margin-top:2px}
 #linkBtn{font-weight:700}
 .draft{background:#ff7a3d;color:#fff;border-radius:4px;padding:6px 10px;font-weight:700;margin:-6px 0 12px}
+.stats.score{border-bottom:2px solid currentColor;padding-bottom:10px}
+.stats.score .tot{font-family:var(--pix);font-size:14px;color:var(--gold)}
+.opt .route-meta{display:block;font-size:13px;opacity:.85;margin-top:2px}

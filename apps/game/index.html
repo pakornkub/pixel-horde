@@ -41,13 +41,20 @@
 
 <div class="overlay" id="ovClear"><div class="box">
   <h2 id="clearTitle">STAGE CLEAR</h2>
-  <p data-i18n="clear.note"></p>
+  <p id="clearNote"></p>
   <div class="stats" id="clearStats"></div>
   <button class="btn" id="nextBtn" data-i18n="clear.next"></button>
 </div></div>
 
+<div class="overlay" id="ovRoute"><div class="box">
+  <h2 id="routeTitle">CHAPTER</h2>
+  <p id="routeNote"></p>
+  <div class="opts" id="routeOpts"></div>
+</div></div>
+
 <div class="overlay" id="ovOver"><div class="box">
-  <h2 data-i18n="over.title"></h2>
+  <h2 id="overTitle" data-i18n="over.title"></h2>
+  <div class="stats score" id="scoreBox"></div>
   <div class="stats" id="overStats"></div>
   <button class="btn" id="retryBtn" data-i18n="over.retry"></button>
   <button class="btn ghost" id="shopBtn2" data-i18n="title.shop"></button>

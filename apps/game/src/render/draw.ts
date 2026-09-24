@@ -1,12 +1,12 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { skillStats, themeIndex, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
+import { REALMS, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, PET_R, PET_LEFT } from './sprites';
 import { tileAtT } from './tiles';
 import { MET, TAU, fxRng, rnd, vfx } from './vfx';
 import { lang, t } from '@pixel-horde/i18n';
-import { PASSIVE_ICON, SKILL_ICON, bossName } from '../ui/text';
+import { PASSIVE_ICON, SKILL_ICON, kingName, realmShort } from '../ui/text';
 
 const K = INK;
 const R = fxRng.next;
@@ -74,7 +74,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
   ox = Math.round(LW / 2 - (P ? P.x : 0) + sx);
   oy = Math.round(LH / 2 - (P ? P.y : 0) + sy);
   b.imageSmoothingEnabled = false;
-  const ti = themeIndex(v ? v.stage : 1);
+  const ti = REALMS[v ? v.realm : 'greenvale'].theme;
   const tx0 = Math.floor(-ox / 16) - 1, ty0 = Math.floor(-oy / 16) - 1, tx1 = tx0 + Math.ceil(LW / 16) + 2, ty1 = ty0 + Math.ceil(LH / 16) + 2;
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) b.drawImage(tileAtT(ti, tx, ty), tx * 16 + ox, ty * 16 + oy);
   if (v && P) {
@@ -338,9 +338,15 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   bar(left, top + 36 * D, hw, 10 * D, P.hp / P.maxHp, '#e8434f');
   outlined(Math.ceil(P.hp) + '/' + P.maxHp, left, top + 52 * D, 8 * D, '#ffd9de');
   ctx.textAlign = 'center';
-  const rem = v.stageDur - v.stageTime;
-  outlined(fmtT(rem), W / 2, top + 18 * D, 20 * D, rem <= 10 && v.phase === 'play' ? (Math.floor(clock * 4) & 1 ? '#ff4b5c' : '#ffffff') : '#ffffff');
-  outlined('STAGE ' + v.stage, W / 2, top + 44 * D, 9 * D, '#ffd23f');
+  if (v.overtime) {
+    const otLeft = v.stageDur + v.cfg.stage.overtime - v.stageTime;
+    const umbra = v.boss?.type === 'umbra'; // Umbra never escapes: no countdown
+    outlined(t('hud.overtime') + (umbra ? '' : ' ' + fmtT(Math.max(0, otLeft))), W / 2, top + 18 * D, 16 * D, Math.floor(clock * 4) & 1 ? '#ff4b5c' : '#ffb347');
+  } else {
+    const rem = v.stageDur - v.stageTime;
+    outlined(fmtT(rem), W / 2, top + 18 * D, 20 * D, rem <= 10 && v.phase === 'play' ? (Math.floor(clock * 4) & 1 ? '#ff4b5c' : '#ffffff') : '#ffffff');
+  }
+  outlined(t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
   ctx.textAlign = 'right';
   outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
   outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');
@@ -354,9 +360,8 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     let yy = top + 62 * D;
     const bw = Math.min(300, VW * 0.6) * D;
     ctx.textAlign = 'center';
-    const ti = themeIndex(v.stage);
     const bars: [Enemy | null, string, string, string][] = [
-      [v.boss, bossName(ti), '#4fa8ff', '#8fdcff'],
+      [v.boss, kingName(v.realm), v.overtime ? '#ff4b5c' : '#4fa8ff', '#8fdcff'],
       [v.dragonE, 'INFERNO DRAGON', '#ff6a2a', '#ffb347'],
       [v.rivalE, 'SHADOW ???', '#8a5ad6', '#d9b8ff'],
     ];

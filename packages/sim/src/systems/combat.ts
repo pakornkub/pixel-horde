@@ -62,12 +62,14 @@ export function killE(s: SimState, e: Enemy): void {
     return;
   }
   if (e.boss) {
+    if (e === s.boss) s.kingsKilled.push(s.stage);
+    if (e.type === 'umbra') { s.victory = true; s.victoryTime = s.totalTime; }
     shake(s, 10); flash(s, 0.35, '#ffffff'); s.hitstop = 0.12; sfx(s, 'boom');
     for (let i = 0; i < L.bossGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.bossGems), mag: false });
     s.gems.push({ kind: 'heart', x: e.x, y: e.y, v: L.heartBig, mag: false });
     s.gems.push({ kind: 'chest', x: e.x + 10, y: e.y, v: 0, mag: false });
-    s.gems.push({ kind: 'coin', x: e.x - 10, y: e.y, v: L.bossCoin, mag: false });
-    banner(s, 'bossDown', 1.6);
+    s.gems.push({ kind: 'coin', x: e.x - 10, y: e.y, v: e === s.boss ? C.stage.kingGold * s.stage : L.bossCoin, mag: false });
+    banner(s, e.type === 'umbra' ? 'umbraDown' : 'bossDown', 1.6, e.type === 'umbra');
     s.boss = null;
     return;
   }

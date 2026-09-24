@@ -3,11 +3,12 @@ import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
 import { createSim } from '@pixel-horde/sim';
 import { botOptions, botStep } from './bot';
 
-const v7 = resolveConfig({ ...parseBalanceConfig({ shared: { stage: { durBase: 20, durPerStage: 0 } } }), version: 7 });
+const weakKings = { worlds: { lumora: { enemies: { boss: { hp: 5 }, bossD: { hp: 5 }, bossC: { hp: 5 }, bossS: { hp: 5 } } } } };
+const v7 = resolveConfig({ ...parseBalanceConfig({ ...weakKings, shared: { stage: { durBase: 20, durPerStage: 0 } } }), version: 7 });
 
 describe('live Balance Config and event flags', () => {
   it('a new config version applies at the next Stage start, never mid-Stage', () => {
-    const sim = createSim(botOptions(4, { debug: { god: true } }));
+    const sim = createSim(botOptions(4, { debug: { god: true }, config: resolveConfig(parseBalanceConfig(weakKings)) }));
     let t = 0;
     for (; t < 600; t++) botStep(sim, t);
     sim.step({ mx: 0, my: 0 }, [{ type: 'setConfig', config: v7 }]);

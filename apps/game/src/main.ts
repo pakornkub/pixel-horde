@@ -16,7 +16,7 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderChars, renderLevelUp,
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -106,7 +106,7 @@ async function newRun(): Promise<void> {
 function toTitle(): void {
   sim = null;
   queue = [];
-  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovMsg'].forEach(hide);
+  ['ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
   setPlayUI(false);
@@ -136,8 +136,13 @@ function syncOverlays(): void {
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
     if (v.phase === 'clear') showClear(v, v.runGold);
+    if (v.phase === 'route' && v.route) {
+      renderRoute(v, (i) => {
+        if (sim && sim.view().phase === 'route') { hide('ovRoute'); cmd({ type: 'route', index: i }); last = performance.now(); }
+      });
+    }
     if (v.phase === 'over') {
-      bank('dead');
+      bank(v.victory ? 'victory' : 'dead');
       const bb = getBest();
       if (!bb || v.stage > bb.stage || (v.stage === bb.stage && v.kills > bb.kills)) setBest({ stage: v.stage, kills: v.kills });
       showOver(v, v.runGold);
@@ -218,8 +223,9 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' || e.code === 'Escape') { if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
   if (e.code === 'KeyM') audio.muted = !audio.muted;
   if (e.code === 'KeyI') toggleMet();
-  if (sim && sim.view().phase === 'levelup' && /^Digit[1-3]$/.test(e.code)) {
-    const bt = $('opts').children[+e.code.slice(5) - 1] as HTMLElement | undefined;
+  const choosing = sim?.view().phase === 'levelup' ? 'opts' : sim?.view().phase === 'route' ? 'routeOpts' : '';
+  if (choosing && /^Digit[1-3]$/.test(e.code)) {
+    const bt = $(choosing).children[+e.code.slice(5) - 1] as HTMLElement | undefined;
     if (bt) bt.click();
   }
 });

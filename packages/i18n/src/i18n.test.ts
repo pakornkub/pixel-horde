@@ -11,7 +11,7 @@ describe('i18n', () => {
     expect(checkCompleteness({ th: { a: 'x', b: '{n}' }, en: { b: '{m}' } })).toEqual(['missing en: a', 'placeholders differ: b']);
   });
   it('translates with arguments and switches language', () => {
-    expect(t('clear.title', { n: 3 })).toBe('STAGE 3 CLEAR');
+    expect(t('clear.title', { n: 3 })).toBe('CHAPTER 3 CLEAR');
     setLang('en');
     expect(lang()).toBe('en');
     expect(t('shop.buy', { cost: 40 })).toBe('Buy 40G');

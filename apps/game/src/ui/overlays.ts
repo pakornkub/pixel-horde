@@ -1,12 +1,12 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { EVO_PASSIVE, HERO_IDS, HEROES, SHOP_IDS, WHEEL, shopCost, shopMax, skillStats, type LevelOption, type SimState } from '@pixel-horde/sim';
+import { EVO_PASSIVE, HERO_IDS, HEROES, REALMS, SHOP_IDS, WHEEL, adviceFor, scoreBreakdown, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
 import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
 import { t } from '@pixel-horde/i18n';
-import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, evoDesc, evoName, heroDesc, heroName, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
+import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -188,17 +188,80 @@ export function chestTick(rdt: number): boolean {
 }
 export function cancelChest(): void { spin = null; hide('ovChest'); }
 
+/* ---------- route choice ---------- */
+const REALM_ICON: Record<RealmId, string> = {
+  greenvale: '#6fb553', sunscar: '#dcb86e', deepdark: '#3d3853', frostpeak: '#a9c6e0', emberforge: '#d8342c', mirefen: '#6b8a3a',
+  skyreach: '#8fdcff', tidehollow: '#3f7fbf', gearspire: '#8a94a8', duskhold: '#5a3f8a', crater: '#1a1030',
+};
+export function renderRoute(v: Readonly<SimState>, onPick: (i: number) => void): void {
+  const r = v.route!;
+  $('routeTitle').textContent = t('route.title', { n: r.chapter });
+  $('routeNote').textContent = v.lastEnd === 'escape' && r.chapter === v.stage ? t('route.repick') : t('route.pick');
+  const box = $('routeOpts');
+  box.innerHTML = '';
+  r.choices.forEach((id, idx) => {
+    const realm = REALMS[id];
+    const traits = realm.traits.length ? t('route.traits', { list: realm.traits.map(traitName).join(', ') }) : t('route.noTraits');
+    const resist = realm.element ? t('route.resists', { el: elementName(realm.element) }) : t('route.noResist');
+    const advice = adviceFor(realm);
+    const lines = [t('route.king', { king: kingName(id) }), traits, resist];
+    if (advice.length) lines.push(t('route.advice', { list: advice.map((k) => skillName(k as SkillId)).join(', ') }));
+    const bt = document.createElement('button');
+    bt.className = 'opt';
+    bt.innerHTML = `<span class="cur">▶</span><span class="ico" style="background:${REALM_ICON[id]}">${realmName(id)[0]}</span><span><span class="nm">${realmName(id)}</span>${lines.map((l) => `<span class="route-meta">${l}</span>`).join('')}</span>`;
+    bt.addEventListener('click', () => onPick(idx));
+    bt.dataset.k = String(idx + 1);
+    box.appendChild(bt);
+  });
+  show('ovRoute');
+  setTimeout(() => { const f = box.querySelector<HTMLElement>('.opt'); if (f) f.focus({ preventScroll: true }); }, 30);
+}
+
 /* ---------- stage clear / game over ---------- */
 export function showClear(v: Readonly<SimState>, runGold: number): void {
-  $('clearTitle').textContent = t('clear.title', { n: v.stage });
+  const escaped = v.lastEnd === 'escape';
+  $('clearTitle').textContent = escaped ? t('clear.escapedTitle') : t('clear.title', { n: v.stage });
+  $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
   $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
 
+/** Itemised Score that counts up line by line (decision #15). */
+let countUp = 0;
+function showScore(v: Readonly<SimState>): void {
+  const { lines, total } = scoreBreakdown(v);
+  const box = $('scoreBox');
+  const rows = lines.filter((l) => l.points !== 0 || l.key === 'kills');
+  box.innerHTML = '';
+  cancelAnimationFrame(countUp);
+  const cells = rows.map((l) => {
+    const a = document.createElement('span'); a.textContent = t(`score.${l.key}`, { n: l.count });
+    const b = document.createElement('span'); b.textContent = '0';
+    box.append(a, b);
+    return { b, to: l.points };
+  });
+  const ta = document.createElement('span'); ta.textContent = t('score.total');
+  const tb = document.createElement('span'); tb.className = 'tot'; tb.textContent = '0';
+  box.append(ta, tb);
+  const fmt = (n: number): string => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const per = reduce ? 0 : 450, start = performance.now();
+  const tick = (now: number): void => {
+    const el = now - start;
+    cells.forEach((c, i) => { const f = per ? Math.min(1, Math.max(0, (el - i * per) / per)) : 1; c.b.textContent = fmt(Math.round(c.to * f)); });
+    const done = !per || el >= cells.length * per;
+    tb.textContent = fmt(done ? total : Math.round(total * Math.min(1, el / (cells.length * per))));
+    if (!done) countUp = requestAnimationFrame(tick);
+  };
+  countUp = requestAnimationFrame(tick);
+}
+
 export function showOver(v: Readonly<SimState>, runGold: number): void {
   $('retryBtn').hidden = false;
-  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold + 'G'], [t('stat.wallet'), META.gold + 'G'], [t('stat.stage'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('overTitle').textContent = v.victory ? t('over.victory') : t('over.title');
+  showScore(v);
+  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold + 'G'], [t('stat.wallet'), META.gold + 'G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();
   show('ovOver');
   focusSoon('retryBtn');
