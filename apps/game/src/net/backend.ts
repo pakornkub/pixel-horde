@@ -98,6 +98,10 @@ export interface Backend {
   getConfig(version: number): Promise<{ version: number; data: unknown } | null>;
   /** Fire-and-forget uploads (errors, samples). keepalive=true survives the tab closing. */
   report(fn: 'report_errors' | 'report_telemetry', payload: unknown, keepalive?: boolean): Promise<boolean>;
+  /** Start linking Google (redirects away). Only for anonymous online accounts. */
+  linkGoogle(): Promise<void>;
+  /** After a link/merge round-trip: 'merged' | 'linked' | 'failed:<reason>' | null. */
+  linkResult(): string | null;
 }
 
 /** Small helper both adapters use for status listeners. */

@@ -133,3 +133,6 @@ html[lang="en"] .tabs button{font-size:9px}
 .news{margin:12px 0 0;padding:10px 12px;background:#fff3b8;border:3px solid var(--ink);border-radius:4px;font-size:14px}
 .news b{display:block;margin-bottom:2px}
 #ovMaint,#ovUpdate{z-index:9}
+
+.link-row{margin-top:2px}
+#linkBtn{font-weight:700}

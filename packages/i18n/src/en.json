@@ -275,5 +275,10 @@
  "update.title": "NEW VERSION",
  "update.text": "The game was updated. Reload to get the latest version.",
  "update.reload": "Reload",
- "set.stats": "Send anonymous play statistics"
+ "set.stats": "Send anonymous play statistics",
+ "link.button": "Link Google account",
+ "link.hint": "Link Google to keep your save on every device",
+ "link.merged": "Your save was merged into your Google account",
+ "link.linked": "Google linked. Your save is safe",
+ "link.failed": "Linking Google failed. Please try again"
 }

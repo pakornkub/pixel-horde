@@ -20,8 +20,22 @@ export interface AccountHooks {
 let hooks: AccountHooks;
 let started = false;
 
+const RUNS = 'pixelhorde-runs-done';
+/** Count finished Runs; after the 3rd one the game suggests linking Google. */
+export function noteRunFinished(): void {
+  try { localStorage.setItem(RUNS, String((Number(localStorage.getItem(RUNS)) || 0) + 1)); } catch { /* ignore */ }
+  renderAccountLine();
+}
+const runsDone = (): number => { try { return Number(localStorage.getItem(RUNS)) || 0; } catch { return 0; } };
+
 export function renderAccountLine(): void {
   const a = backend.account();
+  const canLink = !!a && a.anonymous && backend.status() === 'online';
+  $('linkRow').hidden = !canLink;
+  $('linkBtn2').hidden = !(canLink && runsDone() >= 3);
+  const res = backend.linkResult();
+  if (res) $('linkTxt').textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : t('link.failed');
+  if (res && !res.startsWith('failed')) $('linkRow').hidden = false;
   $('acctTxt').textContent = a ? t('account.as', { name: a.nickname }) + (backend.status() === 'offline' ? t('account.offline') : '') : '';
   $('renameBtn').hidden = !a;
 }
@@ -91,6 +105,9 @@ export function initAccount(h: AccountHooks): void {
     askName(a?.nickname ?? '', async (nick) => { if (nick) await backend.setNickname(nick); });
   });
   $('tabBtn').addEventListener('click', () => { takeOver(); });
+  const link = (): void => { void backend.linkGoogle().catch(() => { $('linkTxt').textContent = t('link.failed'); }); };
+  $('linkBtn').addEventListener('click', link);
+  $('linkBtn2').addEventListener('click', link);
   void guardTab({
     onAcquired: () => { hide('ovTab'); void startAccount(); },
     onBlocked: () => { $('tabTitle').textContent = t('tab.blockedTitle'); $('tabText').textContent = t('tab.blockedText'); show('ovTab'); },

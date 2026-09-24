@@ -42,6 +42,8 @@ function fakeBackend(start: BackendStatus = 'offline') {
     getLive: async () => { throw new BackendError('OFFLINE'); },
     getConfig: async () => null,
     report: async () => false,
+    linkGoogle: async () => undefined,
+    linkResult: () => null,
   };
   return { b, status, server, calls };
 }

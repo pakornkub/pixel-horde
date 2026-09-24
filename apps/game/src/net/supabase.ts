@@ -4,6 +4,12 @@ import { BackendError, StatusBox, toBackendError, type Account, type Backend, ty
 import { SUPABASE_KEY, SUPABASE_URL, TURNSTILE_SITE_KEY } from './config';
 import { createOfflineBackend } from './offline';
 import { getCaptchaToken } from './turnstile';
+import { nextLinkStep, oauthParams, type LinkState } from './link';
+
+const K_LINK = 'pixelhorde-link';
+const readLink = (): LinkState | null => { try { return JSON.parse(localStorage.getItem(K_LINK) || 'null'); } catch { return null; } };
+const writeLink = (s: LinkState | null): void => { try { if (s) localStorage.setItem(K_LINK, JSON.stringify(s)); else localStorage.removeItem(K_LINK); } catch { /* ignore */ } };
+const here = (): string => location.origin + location.pathname;
 
 interface ProfileRow { id: string; nickname: string; role: 'player' | 'admin' }
 
@@ -12,6 +18,7 @@ export function createSupabaseBackend(): Backend {
   const offline = createOfflineBackend();
   let sb: SupabaseClient | null = null;
   let acc: Account | null = null;
+  let linkOutcome: string | null = null;
 
   const client = async (): Promise<SupabaseClient> => {
     if (sb) return sb;
@@ -48,8 +55,21 @@ export function createSupabaseBackend(): Backend {
           if (error) throw error;
           session = data.session;
         }
+        // Returning from Google: finish linking / merging before anything else.
+        const step = nextLinkStep(oauthParams(location), readLink(), Date.now(), !!session);
+        if (step.do === 'signInGoogle') {
+          writeLink(step.state);
+          await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: here() } });
+          return new Promise<Account>(() => undefined); // navigating away
+        }
         const row = await rpc<ProfileRow>('claim_session');
         acc = toAccount(row, !!session?.user.is_anonymous);
+        if (step.do === 'merge') {
+          try { await rpc('merge_accounts', { p_ticket: step.ticket }); linkOutcome = 'merged'; } catch (e) { linkOutcome = 'failed:' + toBackendError(e).code; }
+          writeLink(null);
+        } else if (step.do === 'clear') { if (readLink()) linkOutcome = acc.anonymous ? null : 'linked'; writeLink(null); }
+        else if (step.do === 'failed') { linkOutcome = 'failed:' + step.reason; writeLink(null); }
+        if (linkOutcome) history.replaceState(null, '', here());
         status.set('online');
         return acc;
       } catch (e) {
@@ -105,6 +125,16 @@ export function createSupabaseBackend(): Backend {
     async getLeaderboard(board, hero) { online(); return rpc<BoardView>('get_leaderboard', { p_board: board, p_hero: hero ?? null }); },
     async getLive() { return rpc<LiveState>('get_live_state'); },
     async getConfig(version) { return rpc<{ version: number; data: unknown } | null>('get_config', { p_version: version }); },
+    async linkGoogle() {
+      online();
+      if (!acc?.anonymous) return;
+      const ticket = await rpc<string>('create_merge_ticket');
+      writeLink({ ticket, phase: 'linking', at: Date.now() });
+      const c = await client();
+      const { error } = await c.auth.linkIdentity({ provider: 'google', options: { redirectTo: here() } });
+      if (error) { writeLink(null); throw toBackendError(error); }
+    },
+    linkResult: () => linkOutcome,
     async report(fn, payload, keepalive = false) {
       // Plain fetch so it can use keepalive (sendBeacon cannot send the apikey header / JSON).
       try {

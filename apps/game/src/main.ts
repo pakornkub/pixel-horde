@@ -4,7 +4,7 @@ import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
-import { checkSession, initAccount, renderAccountLine } from './ui/account';
+import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
 import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
@@ -65,6 +65,7 @@ function bank(final?: RunResult['result']): void {
   const r = runResult(final ?? 'quit');
   if (r) metaSync.recordRun(r, ticket, !final);
   if (final) {
+    noteRunFinished();
     telemetry.queueSample(backend.account()?.id ?? '', ticket?.runId ?? null, r?.configVersion ?? 0);
     void metaSync.sync().then(() => telemetry.flush());
   }
