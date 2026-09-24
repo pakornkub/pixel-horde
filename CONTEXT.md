@@ -51,8 +51,24 @@ One timed survival segment inside a run, ending in a stage clear. Has a Theme, a
 _Avoid_: level (reserved for player level), wave
 
 **Chapter**:
-A story unit made of consecutive stages sharing one Theme, closed by that theme's boss and a short story beat. The survivor core is unchanged; chapters are how the story is told.
-_Avoid_: act, world, episode
+One step of a Run's route: a single Stage in one Realm, opened by a story card and cleared only when that Realm's King dies. A Run has 8 Chapters: Greenvale first, Heart Crater last, and a choice of 1 of 2 Realms for each Chapter in between. Difficulty follows the Chapter number, not the Realm.
+_Avoid_: act, world, episode, level
+
+**Escape**:
+When a Stage's timer and overtime run out with the King still alive: the King flees with its shard, the Chapter gives no King rewards, Umbra grows stronger, and the player picks another Realm for the same Chapter (once per Chapter).
+_Avoid_: fail, timeout
+
+**Endless Mode**:
+Optional play after defeating Umbra: random Realms with ever-rising difficulty, ranked on its own leaderboard.
+_Avoid_: survival mode, infinite mode
+
+**Weapon**:
+A permanent, unique collectible chosen before a Run that changes the form of the Ultimate. Earned by defeating Umbra (and rarely from Kings).
+_Avoid_: item, gear, equipment
+
+**Ultimate**:
+The screen-affecting special attack fired from the charged gauge (currently Judgement); its form depends on the Weapon.
+_Avoid_: ult, special, bomb
 
 **Theme**:
 The visual and enemy set of a Realm (tiles, three regular mobs, its King). Currently grass, desert, cave, snow.
