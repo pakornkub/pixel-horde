@@ -41,7 +41,9 @@ describe('headless bot runs', () => {
   });
 
   it('forced rival grants shards or a shadow clone', () => {
-    const v = runBot(botOptions(1, { debug: { god: true, event: 'rival' } }), 8 * MIN).sim.view();
+    // a weak Rival so the (non-aiming) bot surely lands the kill within its 35 s
+    const config = resolveConfig(parseBalanceConfig({ shared: { rival: { hp: 150 } } }));
+    const v = runBot(botOptions(1, { debug: { god: true, event: 'rival' }, config }), 8 * MIN).sim.view();
     expect(v.P.clone !== null || v.P.shards > 0).toBe(true);
   });
 

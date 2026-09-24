@@ -5,7 +5,8 @@ import { WEAPONS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapon
 import { REALMS } from '../content/lumora/realms';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
-import { grantDragon, grantShadow } from './events';
+import { grantShadow } from './events';
+import { grantGuardian } from './guardians';
 import { banner, burst, flash, sfx, shake, text } from './fx';
 import { say } from './kings';
 import { gameOver, offerRevive } from './progress';
@@ -52,7 +53,7 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
   if (after) for (const f of after) f();
 }
 
-const NO_RESIST = new Set(['dragon', 'whelp', 'rival']);
+const NO_RESIST = new Set(['dragon', 'frostDragon', 'stormDragon', 'whelp', 'rival']);
 
 const ownsWeapon = (s: SimState, id: WeaponId): boolean => (s.meta.weapons || []).includes(weaponKey(id)) || s.foundWeapons.includes(id);
 function findWeapon(s: SimState, id: WeaponId): void {
@@ -111,9 +112,9 @@ export function killE(s: SimState, e: Enemy): void {
   }
   burst(s, e.x, e.y, DEATH_COL[e.type], e.boss ? 80 : e.elite ? 24 : 9, e.boss ? 110 : 60, e.boss ? 1 : 0.45);
   const v = e.xp;
-  if (e.type === 'dragon' || e.type === 'rival') {
-    const isD = e.type === 'dragon';
-    if (isD) { s.dragonE = null; grantDragon(s); } else { s.rivalE = null; say(s, e, 'defeat'); grantShadow(s); }
+  if (e === s.dragonE || e.type === 'rival') {
+    const isD = e === s.dragonE;
+    if (isD) { s.dragonE = null; grantGuardian(s, s.dragonKind); } else { s.rivalE = null; say(s, e, 'defeat'); grantShadow(s); }
     shake(s, 10); flash(s, 0.3, undefined, true); s.hitstop = 0.12; sfx(s, 'boom');
     burst(s, e.x, e.y, isD ? '#ffd23f' : '#b07cff', 40, 120, 0.9);
     for (let i = 0; i < L.eventGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.eventGems), mag: false });

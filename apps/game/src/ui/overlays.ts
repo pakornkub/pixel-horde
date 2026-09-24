@@ -176,6 +176,10 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       name = passiveName(o.id);
       tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t('level.new')}</i>`;
       desc = passiveDesc(o.id);
+    } else if (o.kind === 'comp') {
+      meta = { col: '#ffd23f', g: 'D' };
+      name = t('level.comp');
+      desc = t('level.compDesc', { dragon: t(`guardian.${P.pet!.kind}`), lv: P.pet!.lv, next: P.pet!.lv + 1 });
     } else {
       meta = { col: '#ffa6c2', g: '♥' };
       name = t('level.recover');
@@ -322,6 +326,40 @@ export function showRevive(v: Readonly<SimState>, cost: number): void {
   $('reviveTxt').textContent = t('revive.text', { cost, run, wallet: Math.min(wallet, cost - run) });
   show('ovRevive');
   focusSoon('reviveBtn');
+}
+
+/* ---------- Companions and fusion (clear screen) ---------- */
+export function renderCompanions(v: Readonly<SimState>, onSwap: (i: number) => void, onFuse: (ok: boolean) => void, onLevel: () => void): void {
+  const box = $('compBox'), P = v.P, C = v.cfg.companion;
+  box.hidden = !P.pet && !P.petStore.length;
+  if (box.hidden) return;
+  box.innerHTML = `<span class="lbl">${t('comp.title')}</span>`;
+  if (P.pet) {
+    const a = document.createElement('button'); a.className = 'sel'; a.disabled = true;
+    a.textContent = `${t('comp.active')}: ${t(`guardian.${P.pet.kind}`)} LV ${P.pet.lv}`;
+    box.appendChild(a);
+  }
+  P.petStore.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.textContent = `${t(`guardian.${p.kind}`)} LV ${p.lv}`;
+    b.addEventListener('click', () => onSwap(i));
+    box.appendChild(b);
+  });
+  if (P.pet && P.pet.lv < C.maxLv) {
+    const up = document.createElement('button'); up.textContent = t('sp.comp', { n: C.spCost }); up.disabled = v.sp < C.spCost;
+    up.addEventListener('click', onLevel);
+    box.appendChild(up);
+  }
+  if (v.fuseOffer) {
+    const all = [P.pet, ...P.petStore].filter((p) => p && p.kind !== 'tri') as { lv: number }[];
+    const lv = Math.max(3, Math.ceil(all.reduce((a, p) => a + p.lv, 0) / Math.max(1, all.length)));
+    const f = document.createElement('div'); f.className = 'awaken'; f.style.flexBasis = '100%';
+    f.innerHTML = `<h3>${t('fuse.title')}</h3><p>${t('fuse.text', { lv })}</p>`;
+    const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = t('fuse.accept'); yes.addEventListener('click', () => onFuse(true));
+    const no = document.createElement('button'); no.className = 'btn ghost'; no.textContent = t('fuse.decline'); no.addEventListener('click', () => onFuse(false));
+    f.append(yes, no);
+    box.appendChild(f);
+  }
 }
 
 /* ---------- Awakening prompt (clear screen) ---------- */

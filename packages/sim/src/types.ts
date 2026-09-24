@@ -32,6 +32,9 @@ export type Command =
   | { type: 'route'; index: number } // pick one of the offered Realms
   | { type: 'weapon'; id: WeaponId } // clear screen: switch to a Weapon found this Run
   | { type: 'endless'; go: boolean } // after Umbra: continue in Endless or finish the Run
+  | { type: 'companion'; index: number } // clear screen: make a stored Companion the active one
+  | { type: 'fuse'; accept: boolean } // clear screen: fuse the three Guardians
+  | { type: 'spCompanion' } // +1 Companion level for Skill Points
   | { type: 'reroll' } // level-up: new offers for Skill Points
   | { type: 'banish'; index: number } // level-up: remove that offer's Skill/passive from this Run
   | { type: 'spUpgrade'; id: SkillId } // level-up / clear screen: +1 level for Skill Points
@@ -57,7 +60,7 @@ export interface Meta {
   weapons?: string[];
 }
 
-export type DebugEvent = 'dragon' | 'rival' | 'bloodmoon';
+export type DebugEvent = 'dragon' | 'frostdragon' | 'stormdragon' | 'rival' | 'bloodmoon';
 
 export interface SimOptions {
   seed: number;
@@ -79,7 +82,10 @@ export interface SimOptions {
   crack?: number;
 }
 
-export interface Pet { lv: number; cd: number; dive: number; x: number; y: number }
+export type GuardianKind = 'inferno' | 'frost' | 'storm';
+export type CompanionKind = GuardianKind | 'tri';
+/** A Companion (tamed Guardian). `cd` main move, `dive` second move timers. */
+export interface Pet { kind: CompanionKind; lv: number; cd: number; dive: number; x: number; y: number }
 export interface Clone { lv: number; x: number; y: number }
 
 export interface Player {
@@ -103,7 +109,11 @@ export interface Player {
   crit: number; critMul: number;
   pick: number;
   orbitA: number;
+  /** Active Companion; up to `companion.stored` more wait in `petStore` (swap at Stage end). */
   pet: Pet | null;
+  petStore: Pet[];
+  /** Guardians defeated this Run (all three → fusion offer). */
+  guardiansBeaten: GuardianKind[];
   clone: Clone | null;
   /** Awakening: done / declined for this Run; Links maxed at Stage start; full Stages each Link spent maxed. */
   awakened: boolean;
@@ -198,7 +208,7 @@ export interface Bolt {
 }
 
 export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask'
-  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir';
+  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir' | 'icewall';
 
 export interface Effect {
   type: EffectType;
@@ -229,7 +239,7 @@ export interface Effect {
  * pull = drags the player toward its centre during [te, te+du], core radius w hurts;
  * ice = slippery floor during [te, te+du]; safe = everything outside `pts` circles is hit at te.
  */
-export type HazardKind = 'cone' | 'circ' | 'line' | 'proj' | 'ring' | 'beam' | 'pull' | 'ice' | 'safe';
+export type HazardKind = 'cone' | 'circ' | 'line' | 'proj' | 'ring' | 'beam' | 'pull' | 'ice' | 'safe' | 'bliz';
 
 export interface Hazard {
   id: number;
@@ -250,6 +260,10 @@ export interface Hazard {
   spawn?: EnemyId;
   /** safe: safe circles. */
   pts?: [number, number][];
+  /** proj: bounces off the view edges. */
+  bounce?: boolean;
+  /** cone: chills the player (Frost Dragon). */
+  chill?: number;
 }
 
 export interface Gem {
@@ -265,6 +279,7 @@ export type LevelOption =
   | { kind: 'evo'; id: SkillId }
   | { kind: 'skill'; id: SkillId; toBench?: boolean }
   | { kind: 'pas'; id: PassiveId }
+  | { kind: 'comp' }
   | { kind: 'heal' };
 
 export interface LevelUpView {
@@ -309,7 +324,7 @@ export type BannerKey =
   | 'stage' | 'bloodMoon' | 'intro.caster' | 'intro.charger' | 'intro.splitter' | 'intro.armor'
   | 'bossDown' | 'judgement' | 'swarm' | 'bossIncoming' | 'dragonOmen' | 'stageClear' | 'stageClearDragonFled'
   | 'stageClearRivalFled' | 'awakened' | 'weaponFound' | 'overtime' | 'kingEscaped' | 'umbraDown' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
-  | 'rivalEscaped' | 'dragonTamed' | 'dragonPowerUp' | 'clonePowerUp' | 'shadowClone' | 'shadowShard';
+  | 'rivalEscaped' | 'dragonTamed' | 'dragonPowerUp' | 'fused' | 'blizzard' | 'clonePowerUp' | 'shadowClone' | 'shadowShard';
 
 export type SfxKey = 'hit' | 'crit' | 'boom' | 'zap' | 'nova' | 'lance' | 'laser' | 'lv' | 'hurt' | 'ult' | 'coin' | 'tick' | 'gem' | 'clear';
 
@@ -413,6 +428,10 @@ export interface SimState {
   dragonStage: boolean; rivalStage: boolean;
   dragonWarned: boolean; dragonSpawned: boolean; rivalSpawned: boolean;
   dragonE: Enemy | null;
+  /** Which Guardian this Blood Moon brings. */
+  dragonKind: GuardianKind;
+  /** All three Guardians beaten: the clear screen offers the Three-headed Dragon. */
+  fuseOffer: boolean;
   rivalE: Enemy | null;
   seen: Set<string>;
 

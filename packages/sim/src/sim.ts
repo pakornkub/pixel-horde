@@ -6,7 +6,8 @@ import { newPlayer, recompute, U } from './systems/player';
 import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
-import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
+import { cloneStep, spawnRival, stepHz } from './systems/events';
+import { answerFuse, levelCompanion, petStep, spawnGuardian, swapCompanion } from './systems/guardians';
 import { banner, shake } from './systems/fx';
 import { directionOf, initKing } from './systems/kings';
 import { REALMS } from './content/lumora/realms';
@@ -62,7 +63,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -99,6 +100,9 @@ export function createSim(opts: SimOptions): Sim {
       case 'awaken': answerAwaken(s, c.accept); break;
       case 'weapon': if (s.phase === 'clear' && s.foundWeapons.includes(c.id)) s.weapon = c.id; break;
       case 'endless': chooseEndless(s, c.go); break;
+      case 'companion': swapCompanion(s, c.index); break;
+      case 'fuse': answerFuse(s, c.accept); break;
+      case 'spCompanion': if ((s.phase === 'clear' || s.phase === 'levelup') && s.P.pet && s.P.pet.lv < s.cfg.companion.maxLv && s.sp >= s.cfg.companion.spCost) { s.sp -= s.cfg.companion.spCost; levelCompanion(s); } break;
       case 'reroll': reroll(s); break;
       case 'banish': banish(s, c.index); break;
       case 'spUpgrade': spUpgrade(s, c.id); break;
@@ -165,7 +169,7 @@ export function createSim(opts: SimOptions): Sim {
         shake(s, 3);
       }
       if (s.specialStage && !s.bloodMoonShown && prog(s) >= s.cfg.stage.bloodMoonRevealAt) { s.bloodMoonShown = true; banner(s, 'bloodMoon', 3, true); }
-      if (s.dragonStage && !s.dragonSpawned && prog(s) >= s.cfg.events.dragonAt) { s.dragonSpawned = true; spawnDragon(s); }
+      if (s.dragonStage && !s.dragonSpawned && prog(s) >= s.cfg.events.dragonAt) { s.dragonSpawned = true; spawnGuardian(s); }
       if (!s.bossSpawned && prog(s) >= s.cfg.stage.bossAt) {
         s.bossSpawned = true;
         const [x, y] = edgePos(s);

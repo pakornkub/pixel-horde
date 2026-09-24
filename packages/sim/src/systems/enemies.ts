@@ -4,6 +4,7 @@ import { hurtP } from './combat';
 import { dragonAI, rivalAI, addHz } from './events';
 import { burst } from './fx';
 import { kingAI } from './kings';
+import { frostDragonAI, stormDragonAI } from './guardians';
 import { stepStatuses } from './combos';
 import { edgePos } from './spawner';
 
@@ -67,6 +68,8 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
     const tx = P.x, ty = P.y;
     const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1, lp = hypot(P.x - e.x, P.y - e.y);
     if (e.type === 'dragon') dragonAI(s, e, dt, tx, ty, damp);
+    else if (e.type === 'frostDragon') frostDragonAI(s, e, dt, tx, ty, damp);
+    else if (e.type === 'stormDragon') stormDragonAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'rival') rivalAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'caster') casterAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'charger') chargerAI(s, e, dt, tx, ty, damp);

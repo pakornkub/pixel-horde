@@ -16,15 +16,15 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
-/* ---------- debug flags: ?debug=dragon|rival|bloodmoon|god (comma separated) ---------- */
+/* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god (comma separated) ---------- */
 const debugFlags = new Set((new URLSearchParams(location.search).get('debug') || '').split(',').filter(Boolean));
 const debug: SimOptions['debug'] = {
   god: debugFlags.has('god'),
-  event: (['dragon', 'rival', 'bloodmoon'] as DebugEvent[]).find((k) => debugFlags.has(k)),
+  event: (['dragon', 'frostdragon', 'stormdragon', 'rival', 'bloodmoon'] as DebugEvent[]).find((k) => debugFlags.has(k)),
 };
 
 /* ---------- run state ---------- */
@@ -134,6 +134,8 @@ function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benc
 function renderClear(v: Readonly<SimState>, denied = false): void {
   showClear(v, v.runGold);
   renderAwaken(v, onAwaken);
+  renderCompanions(v, (i) => { cmd({ type: 'companion', index: i }); benchDirty = true; }, (ok) => { cmd({ type: 'fuse', accept: ok }); benchDirty = true; },
+    () => { cmd({ type: 'spCompanion' }); benchDirty = true; });
   renderWeaponSwitch(v, (id) => { cmd({ type: 'weapon', id }); benchDirty = true; });
   renderSp(v, () => { cmd({ type: 'buySp' }); benchDirty = true; }, (id) => { cmd({ type: 'spUpgrade', id }); benchDirty = true; });
   renderBench(v, onSwap, denied);
@@ -148,7 +150,7 @@ function syncOverlays(): void {
     renderLevelUp(v, (i) => {
       if (sim && sim.view().phase === 'levelup') {
         const o = sim.view().levelUp?.options[i];
-        if (o) { const id = o.kind === 'heal' ? 'heal' : o.kind + ':' + o.id; telemetry.pick(id); telemetry.event({ k: 'pick', id, lv: sim.view().P.lv, t: Math.round(sim.view().totalTime) }); }
+        if (o) { const id = o.kind === 'heal' || o.kind === 'comp' ? o.kind : o.kind + ':' + o.id; telemetry.pick(id); telemetry.event({ k: 'pick', id, lv: sim.view().P.lv, t: Math.round(sim.view().totalTime) }); }
         hide('ovLevel');
         cmd({ type: 'pick', index: i });
       }

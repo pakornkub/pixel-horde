@@ -18,7 +18,7 @@ export function newPlayer(cfg: ResolvedConfig, ch: HeroId): Player {
     ch, x: 0, y: 0, hp: p.hp, maxHp: p.hp, spd: p.spd, lv: 1, xp: 0, need: xpNeed(cfg, 1), inv: 0, face: 1, dx: 1, dy: 0,
     moving: false, anim: 0, down: false,
     skills: { [HEROES[ch].start]: 1 }, pas: {}, evo: {}, revives: 0, cds: {},
-    dmgMul: 1, cdMul: 1, cdRed: 0, crit: p.crit, critMul: 2.5, pick: p.pick, orbitA: 0, pet: null, clone: null, shards: 0,
+    dmgMul: 1, cdMul: 1, cdRed: 0, crit: p.crit, critMul: 2.5, pick: p.pick, orbitA: 0, pet: null, petStore: [], guardiansBeaten: [], clone: null, shards: 0,
     bench: [], awakened: false, awakenDeclined: false, linkStart: [], linkStages: {}, statusMul: 1, shieldA: 0, slip: 0, slipGrip: 1, vx: 0, vy: 0, chill: 0,
   };
 }

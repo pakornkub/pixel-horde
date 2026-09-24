@@ -1,5 +1,5 @@
 import { TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
-import { PET_DIVE, SKILL_TAGS, type SkillId, type SkillStats } from '../data/skills';
+import { SKILL_TAGS, type SkillId, type SkillStats } from '../data/skills';
 import type { Enemy, Hazard, RivalSkill, SimState } from '../types';
 import { hit, hurtP } from './combat';
 import { banner, burst, flash, sfx, shake } from './fx';
@@ -7,6 +7,7 @@ import { nearest, visibleEnemies } from './query';
 import { edgePos, spawnEnemy } from './spawner';
 import { say } from './kings';
 import { shieldBlocks } from './shield';
+import { guardianPity, pickGuardian } from './guardians';
 
 /** Roll this stage's special event (Blood Moon / Inferno Dragon / Shadow Rival) with pity. */
 export function rollStage(s: SimState, n: number): void {
@@ -20,18 +21,26 @@ export function rollStage(s: SimState, n: number): void {
   s.dragonE = s.rivalE = null;
   s.hz = [];
   const force = s.debug.event;
+  s.dragonKind = pickGuardian(s);
   if (force === 'bloodmoon') { s.specialStage = true; return; }
-  if (force === 'dragon') { s.specialStage = true; s.dragonStage = true; return; }
+  if (force === 'dragon' || force === 'frostdragon' || force === 'stormdragon') {
+    s.specialStage = true; s.dragonStage = true;
+    s.dragonKind = force === 'frostdragon' ? 'frost' : force === 'stormdragon' ? 'storm' : 'inferno';
+    return;
+  }
   if (force === 'rival') { s.rivalStage = true; return; }
   const E = s.cfg.events;
   if (n < E.bloodMoonFrom || n > E.lastChapter || n >= s.cfg.stage.chapters) return;
   const R = s.rng.events, run = s.run;
   // Rolls always consume the same random numbers; switched-off events just do not happen.
   const on = s.eventSwitches;
-  if (R.next() < E.bloodMoonChance + E.bloodMoonPity * run.spPity) {
+  // after the first Guardian, Realms whose element matches a missing one favour Blood Moon + Guardian
+  const pity = guardianPity(s);
+  if (R.next() < (E.bloodMoonChance + E.bloodMoonPity * run.spPity) * (pity ? s.cfg.guardians.pityBloodMoon : 1)) {
     s.specialStage = on.bloodMoon;
     run.spPity = 0;
-    if (n >= E.dragonFrom && R.next() < E.dragonChance + E.dragonPity * run.drPity) { s.dragonStage = on.bloodMoon && on.dragon; run.drPity = 0; }
+    const dc = Math.max(E.dragonChance + E.dragonPity * run.drPity, pity ? s.cfg.guardians.pityDragon : 0);
+    if (n >= E.dragonFrom && R.next() < dc) { s.dragonStage = on.bloodMoon && on.dragon; run.drPity = 0; }
     else if (n >= E.dragonFrom) run.drPity++;
   } else {
     run.spPity++;
@@ -66,7 +75,7 @@ export function stepHz(s: SimState, dt: number): void {
           h.tk = 0.2;
           const dx = P.x - h.x, dy = P.y - h.y, dd = hypot(dx, dy);
           const da = atan2(sin(atan2(dy, dx) - h.a!), cos(atan2(dy, dx) - h.a!));
-          if (dd < h.r! && Math.abs(da) < h.sp!) hurtP(s, h.d!);
+          if (dd < h.r! && Math.abs(da) < h.sp!) { hurtP(s, h.d!); if (h.chill && !s.debug.god) P.chill = Math.max(P.chill, h.chill); }
         }
       }
     } else if (h.k === 'circ') {
@@ -88,6 +97,11 @@ export function stepHz(s: SimState, dt: number): void {
       h.x += h.vx! * dt;
       h.y += h.vy! * dt;
       if (shieldBlocks(s, h)) continue;
+      if (h.bounce) {
+        const w = s.viewport.w / 2 - 4, hh = s.viewport.h / 2 - 4;
+        if (Math.abs(h.x - P.x) > w) h.vx = -Math.sign(h.x - P.x) * Math.abs(h.vx!);
+        if (Math.abs(h.y - P.y) > hh) h.vy = -Math.sign(h.y - P.y) * Math.abs(h.vy!);
+      }
       if (!h.hitP && hypot(P.x - h.x, P.y - h.y) < h.r! + 5) { h.hitP = true; hurtP(s, h.d!); h.life = 0; }
     } else if (h.k === 'ring') {
       const r = h.r! * Math.min(1, h.t / h.du!);
@@ -108,6 +122,12 @@ export function stepHz(s: SimState, dt: number): void {
       }
     } else if (h.k === 'ice') {
       if (h.t >= h.te! && h.t < h.te! + h.du! && hypot(P.x - h.x, P.y - h.y) < h.r!) { P.slip = 0.15; P.slipGrip = h.sp!; }
+    } else if (h.k === 'bliz') {
+      // Frost Dragon's blizzard: standing still too long freezes you
+      if (h.t >= h.te! && h.t < h.te! + h.du!) {
+        h.tk = P.moving ? 0 : (h.tk || 0) + dt;
+        if (h.tk >= h.sp!) { h.tk = 0; hurtP(s, h.d!); P.chill = Math.max(P.chill, 1.5); burst(s, P.x, P.y, '#dff4ff', 10, 50, 0.4); }
+      }
     } else if (h.k === 'safe') {
       if (!h.done && h.t >= h.te!) {
         h.done = true;
@@ -121,22 +141,12 @@ export function stepHz(s: SimState, dt: number): void {
     }
   }
   s.hz = s.hz.filter((h) =>
-    h.k === 'cone' || h.k === 'pull' || h.k === 'ice' ? h.t < h.te! + h.du! : h.k === 'circ' ? h.t < h.te! + 0.3 : h.k === 'line' ? h.t < h.te! + 0.05
+    h.k === 'cone' || h.k === 'pull' || h.k === 'ice' || h.k === 'bliz' ? h.t < h.te! + h.du! : h.k === 'circ' ? h.t < h.te! + 0.3 : h.k === 'line' ? h.t < h.te! + 0.05
       : h.k === 'proj' ? h.t < (h.life || 1.5) : h.k === 'beam' || h.k === 'safe' ? h.t < h.te! + 0.3 : h.t < h.du!,
   );
 }
 
-/* ---------- Inferno Dragon ---------- */
-export function spawnDragon(s: SimState): void {
-  const [x, y] = edgePos(s);
-  const e = spawnEnemy(s, 'dragon', x, y, false), D = s.cfg.dragon;
-  e.hp = e.maxHp = D.hp * ipow(D.hpGrowth, s.stage - 1);
-  e.cd = D.firstCd; e.lock = 0; e.dashT = 0;
-  s.dragonE = e;
-  banner(s, 'dragonAppears', 2.4, true);
-  shake(s, 8); flash(s, 0.3, '#ff4b3a'); sfx(s, 'ult');
-}
-
+/* ---------- Inferno Dragon (Guardian) ---------- */
 export function dragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number, damp: number): void {
   const R = s.rng.ai, D = s.cfg.dragon;
   const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1;
@@ -252,20 +262,6 @@ export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numbe
 }
 
 /* ---------- rewards ---------- */
-export function grantDragon(s: SimState): void {
-  const P = s.P;
-  if (!P.pet) {
-    P.pet = { lv: 1, cd: 0.5, dive: 3, x: P.x, y: P.y };
-    banner(s, 'dragonTamed', 2.6, true);
-  } else {
-    P.pet.lv++;
-    banner(s, 'dragonPowerUp', 2, false, { lv: P.pet.lv });
-  }
-  flash(s, 0.35, '#ffd23f');
-  sfx(s, 'clear');
-  s.runGold += s.cfg.dragon.gold;
-}
-
 export function grantShadow(s: SimState): void {
   const P = s.P;
   P.shards++;
@@ -280,33 +276,6 @@ export function grantShadow(s: SimState): void {
   } else banner(s, 'shadowShard', 2.4, false, { n: P.shards });
   sfx(s, 'clear');
   s.runGold += s.cfg.rival.gold;
-}
-
-/* ---------- pet dragon ---------- */
-export function petStep(s: SimState, dt: number): void {
-  const P = s.P, pt = P.pet, R = s.rng.skills, Q = s.cfg.pet;
-  if (!pt || P.down) return;
-  const tx = P.x + cos(s.clock * 1.3) * 22, ty = P.y - 14 + sin(s.clock * 2.6) * 4;
-  pt.x += (tx - pt.x) * Math.min(1, dt * 6);
-  pt.y += (ty - pt.y) * Math.min(1, dt * 6);
-  pt.cd -= dt;
-  pt.dive -= dt;
-  if (pt.cd <= 0) {
-    const t = nearest(s, pt.x, pt.y, Q.breathRange);
-    if (t) {
-      pt.cd = Math.max(Q.breathCdMin, Q.breathCd - Q.breathCdPerLv * pt.lv);
-      const a = atan2(t.y - pt.y, t.x - pt.x);
-      s.effects.push({ type: 'pbreath', x: pt.x, y: pt.y, a, r: Q.breathR + Q.breathRPerLv * pt.lv, sp: 0.45, t: 0, dur: 0.4, hit: new Set(), dmg: (Q.breathDmg + Q.breathDmgPerLv * P.lv) * (1 + Q.perPetLv * (pt.lv - 1)) });
-    } else pt.cd = 0.2;
-  }
-  if (pt.dive <= 0) {
-    const vis = visibleEnemies(s);
-    if (vis.length) {
-      pt.dive = Math.max(Q.diveMin, Q.dive - Q.divePerLv * pt.lv);
-      const e = vis[R.int(vis.length)];
-      s.effects.push({ type: 'meteor', tag: PET_DIVE, x: e.x, y: e.y, t: 0, dur: 0, delay: 0.45, r: Q.diveR, dmg: (Q.diveDmg + Q.diveDmgPerLv * P.lv) * (1 + Q.perPetLv * (pt.lv - 1)), boomed: false, bt: 0 });
-    } else pt.dive = 0.5;
-  }
 }
 
 /* ---------- shadow clone ---------- */

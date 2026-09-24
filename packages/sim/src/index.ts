@@ -10,6 +10,7 @@ export * from './data/shop';
 export * from './data/themes';
 export * from './data/weapons';
 export { xpNeed } from './systems/player';
+export { GUARDIANS, canFuse } from './systems/guardians';
 export { awakenEligible, benchSize, qualifiedLinks, reviveCost, swapCost } from './systems/progress';
 export { DEFAULT_RESOLVED, resolveConfig, type ResolvedConfig } from '@pixel-horde/config';
 export { createRng, createStreams, hashString, type Rng } from './core/rng';

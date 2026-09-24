@@ -2,7 +2,7 @@
 import { REALMS, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
-import { INK, HERO_SPR, ENEMY_SPR, PET_R, PET_LEFT } from './sprites';
+import { INK, HERO_SPR, ENEMY_SPR, PET_SPR } from './sprites';
 import { tileAtT } from './tiles';
 import { MET, TAU, fxRng, rnd, vfx } from './vfx';
 import { lang, t } from '@pixel-horde/i18n';
@@ -87,6 +87,13 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
       b.globalAlpha = on ? 0.45 : 0.2 + 0.1 * Math.sin(clock * 20);
       b.fillStyle = on ? '#dff4ff' : '#ff2a3a'; b.beginPath(); b.ellipse(x, y, h.r!, h.r! * 0.6, 0, 0, TAU); b.fill();
       if (on) { b.globalAlpha = 0.8; b.strokeStyle = '#ffffff'; b.lineWidth = 1; b.beginPath(); b.moveTo(x - h.r! * 0.4, y - 3); b.lineTo(x + h.r! * 0.2, y - 6); b.stroke(); }
+    } else if (h.k === 'bliz') {
+      const { LW, LH } = screen, on = h.t >= h.te!;
+      b.globalAlpha = on ? 0.22 : 0.1 + 0.08 * Math.sin(clock * 12);
+      b.fillStyle = '#dff4ff'; b.fillRect(0, 0, LW, LH);
+      b.globalAlpha = 0.9; b.fillStyle = '#ffffff';
+      for (let i = 0; i < 40; i++) { const sx = (i * 37 + clock * 60 * (1 + (i % 3))) % LW, sy = (i * 53 + clock * 90) % LH; b.fillRect(Math.round(sx), Math.round(sy), 1, 1); }
+      if (on && (h.tk || 0) > 0) { b.strokeStyle = '#4fa8ff'; b.lineWidth = 2; b.beginPath(); b.arc(v.P.x + ox, v.P.y + oy, 12, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(1, (h.tk || 0) / h.sp!)); b.stroke(); }
     } else if (h.k === 'safe') {
       const { LW, LH } = screen;
       b.globalAlpha = h.t < h.te! ? 0.2 + 0.25 * (h.t / h.te!) : Math.max(0, 0.7 - (h.t - h.te!) * 2);
@@ -183,7 +190,14 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if (P.pet) {
           const pt = P.pet;
           b.fillStyle = 'rgba(30,27,51,.25)'; b.beginPath(); b.ellipse(pt.x + ox, pt.y + oy + 14, 4, 1.5, 0, 0, TAU); b.fill();
-          b.drawImage(Math.cos(clock * 1.3) < 0 ? PET_LEFT : PET_R, Math.round(pt.x + ox - 6), Math.round(pt.y + oy - 5 + (Math.floor(clock * 6) & 1)));
+          const left = Math.cos(clock * 1.3) < 0, bob = Math.floor(clock * 6) & 1;
+          const sc = pt.lv >= v.cfg.companion.growAt || pt.kind === 'tri' ? v.cfg.companion.growMul : 1;
+          const kinds = pt.kind === 'tri' ? ['storm', 'inferno', 'frost'] : [pt.kind];
+          kinds.forEach((k, i) => {
+            const im = PET_SPR[k][left ? 1 : 0], w = Math.round(im.width * sc), h = Math.round(im.height * sc);
+            const dx = kinds.length > 1 ? (i - 1) * 7 : 0, dy = kinds.length > 1 && i !== 1 ? 3 : 0;
+            b.drawImage(im, Math.round(pt.x + ox - w / 2 + dx), Math.round(pt.y + oy - h / 2 + bob + dy), w, h);
+          });
         }
         continue;
       }
@@ -272,6 +286,16 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     }
     // effects
     for (const f of v.effects) {
+      if (f.type === 'icewall') {
+        const k = f.t / f.dur, ux = Math.cos(f.a!), uy = Math.sin(f.a!), half = f.len! / 2;
+        b.save(); b.globalAlpha = k > 0.8 ? (1 - k) * 5 : 1;
+        for (let d = -half; d <= half; d += 7) {
+          const x = Math.round(f.x + ux * d + ox), y = Math.round(f.y + uy * d + oy);
+          b.fillStyle = K; b.fillRect(x - 3, y - 8, 7, 11); b.fillStyle = '#9fd8ff'; b.fillRect(x - 2, y - 7, 5, 9); b.fillStyle = '#ffffff'; b.fillRect(x - 1, y - 7, 1, 5);
+        }
+        b.restore();
+        continue;
+      }
       if (f.type === 'hawk' && !f.fired) {
         const o = f.targets![0], k = Math.min(1, f.t / f.dur);
         const x = Math.round(f.x + (o.x - f.x) * k + ox), y = Math.round(f.y + (o.y - f.y) * k - Math.sin(k * Math.PI) * 18 + oy);
@@ -561,7 +585,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     const bars: [Enemy | null, string, string, string][] = [
       [v.boss, kingName(v.realm), v.overtime ? '#ff4b5c' : '#4fa8ff', '#8fdcff'],
       [v.boss2, v.skipped ? kingName(v.skipped) : '', v.overtime ? '#ff4b5c' : '#4fa8ff', '#8fdcff'],
-      [v.dragonE, 'INFERNO DRAGON', '#ff6a2a', '#ffb347'],
+      [v.dragonE, t(`guardian.${v.dragonKind}`).toUpperCase(), v.dragonKind === 'frost' ? '#4fa8ff' : v.dragonKind === 'storm' ? '#d8b400' : '#ff6a2a', '#ffb347'],
       [v.rivalE, 'SHADOW ???', '#8a5ad6', '#d9b8ff'],
     ];
     for (const [e, nm, col, lc] of bars) {
@@ -580,7 +604,8 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   const sz = 24 * D, gap = 5 * D, by = cv.height - (SAFE.b + 14) * D - sz;
   ids.forEach((id, i) => {
     const sk = SKILL_ICON[id as SkillId], ps = PASSIVE_ICON[id as PassiveId];
-    const m = sk || ps || (id === '_pet' ? { col: '#ff6a2a', g: 'D' } : { col: '#6a4a9a', g: 'S' });
+    const petCol = P.pet?.kind === 'frost' ? '#4fa8ff' : P.pet?.kind === 'storm' ? '#d8b400' : P.pet?.kind === 'tri' ? '#ffd23f' : '#ff6a2a';
+    const m = sk || ps || (id === '_pet' ? { col: petCol, g: 'D' } : { col: '#6a4a9a', g: 'S' });
     const lv = P.skills[id as SkillId] || P.pas[id as PassiveId] || (id === '_pet' ? P.pet!.lv : id === '_clone' ? P.clone!.lv : 1);
     const x = left + i * (sz + gap);
     if (x + sz > W - 100 * D) return;

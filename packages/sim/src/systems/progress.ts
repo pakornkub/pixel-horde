@@ -3,6 +3,7 @@ import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
 import { ipow } from '../core/fmath';
 import type { LevelOption, SimState } from '../types';
 import { rollStage } from './events';
+import { canFuse, levelCompanion } from './guardians';
 import { say } from './kings';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { recompute, U, xpNeed } from './player';
@@ -86,6 +87,7 @@ export function answerAwaken(s: SimState, accept: boolean): void {
 export function stageClear(s: SimState, escaped = false): void {
   s.phase = 'clearing';
   updateLinks(s);
+  s.fuseOffer = canFuse(s);
   s.clearT = s.cfg.stage.clearDelay;
   s.lastEnd = escaped ? 'escape' : 'clear';
   if (!escaped) s.chaptersCleared.push(s.stage);
@@ -223,6 +225,7 @@ export function buildOptions(s: SimState): LevelOption[] {
     if (!lv && pasOwned >= s.cfg.passiveSlots) continue;
     c.push({ o: { kind: 'pas', id }, w: L.wPassive });
   }
+  if (P.pet && P.pet.lv < s.cfg.companion.maxLv) c.push({ o: { kind: 'comp' }, w: s.cfg.companion.wLevel });
   while (out.length < L.offers && c.length) {
     const tot = c.reduce((a, o) => a + o.w, 0);
     let r = R.next() * tot, i = 0;
@@ -287,6 +290,9 @@ export function choose(s: SimState, index: number): void {
     P.pas[o.id as PassiveId] = (P.pas[o.id] || 0) + 1;
     recompute(s);
     if (o.id === 'vital') P.hp = Math.min(P.maxHp, P.hp + s.cfg.passives.vitalHeal);
+  } else if (o.kind === 'comp') {
+    levelCompanion(s);
+    if (P.pet) banner(s, 'dragonPowerUp', 1.6, false, { lv: P.pet.lv, kind: P.pet.kind });
   } else P.hp = P.maxHp;
   if (s.pendingChest > 0) s.pendingChest--;
   else s.pendingLv--;

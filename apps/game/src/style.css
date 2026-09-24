@@ -163,3 +163,5 @@ html[lang="en"] .tabs button{font-size:9px}
 .weapons .lbl{flex-basis:100%;font-weight:700}
 .weapons button{border:2px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;padding:3px 8px;cursor:pointer}
 .weapons button.sel{outline:3px solid var(--gold);outline-offset:1px;font-weight:700}
+.sptools button.sel{outline:3px solid var(--gold);outline-offset:1px;font-weight:700;opacity:1}
+#compBox,#weaponBox{margin:0 0 14px}

@@ -3,6 +3,7 @@ import { FLASK_TAGS, HOLE_BOOM, linAt, type HitTag, PET_FIRE, SKILL_TAGS as T, s
 import { chillTick } from './combos';
 import { signatureOf } from '../data/heroes';
 import { shieldPoints } from './shield';
+import { stepIceWall } from './guardians';
 import { WEAPONS } from '../data/weapons';
 import { chapterMobHp } from './spawner';
 
@@ -395,7 +396,11 @@ export function updEffects(s: SimState, dt: number): void {
         const dx = e.x - f.x, dy = e.y - f.y, d = hypot(dx, dy);
         if (d > f.r! + e.r) continue;
         const da = wrapAngle(atan2(dy, dx) - f.a!);
-        if (Math.abs(da) < f.sp! + e.r / Math.max(d, 1)) { f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', 30, PET_FIRE); }
+        if (Math.abs(da) < f.sp! + e.r / Math.max(d, 1)) {
+          f.hit!.add(e);
+          hit(s, e, f.dmg, f.el === 'ice' ? '#9fd8ff' : '#ff8a3d', 30, f.tag ?? PET_FIRE);
+          if (f.n && !e.dead) for (let i = 0; i < f.n; i++) chillTick(s, e); // Frost Companion: frost stacks
+        }
       }
     } else if (f.type === 'cyclone') {
       f.x += f.vx! * dt;
@@ -516,6 +521,8 @@ export function updEffects(s: SimState, dt: number): void {
           if (el === 'ice' && !e.dead) chillTick(s, e);
         }
       }
+    } else if (f.type === 'icewall') {
+      stepIceWall(s, f);
     } else if (f.type === 'judge') {
       if (!f.fired && f.t >= s.cfg.ult.delay) {
         f.fired = true;
