@@ -280,5 +280,6 @@
  "link.hint": "Link Google to keep your save on every device",
  "link.merged": "Your save was merged into your Google account",
  "link.linked": "Google linked. Your save is safe",
- "link.failed": "Linking Google failed. Please try again"
+ "link.failed": "Linking Google failed. Please try again",
+ "draft.badge": "Testing a draft config (scores are not sent)"
 }

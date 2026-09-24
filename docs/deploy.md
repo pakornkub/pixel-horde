@@ -33,3 +33,22 @@ npm install
 npm run dev       # http://localhost:5173
 npm run build && npm run preview
 ```
+
+## Admin Console
+
+`apps/admin` deploys to a second Pages project, `pixel-horde-admin` (same workflow).
+Protect it with **Cloudflare Zero Trust → Access → Applications → Add → Self-hosted**:
+domain `pixel-horde-admin.pages.dev` (and `*.pixel-horde-admin.pages.dev` for previews),
+policy "Allow" → your email only. The database still checks the admin role on every call.
+
+Make your account an admin once the migrations are applied (Supabase SQL editor):
+
+```sql
+update public.profiles set role = 'admin'
+where id = (select id from auth.users where email = 'YOUR_EMAIL');
+```
+
+Sign in to the Admin with Google (same account you linked in the game) or with an email magic
+link. Try it without any backend at `…/?demo` (in-memory sample data).
+
+Local: `npm run dev -w @pixel-horde/admin` → http://localhost:5174/?demo

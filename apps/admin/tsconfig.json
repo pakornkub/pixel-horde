@@ -8,9 +8,12 @@
     ],
     "types": [
       "vite/client"
-    ]
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
   "include": [
-    "src"
+    "src",
+    "vite.config.ts"
   ]
 }

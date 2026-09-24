@@ -9,7 +9,7 @@ import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
-import { announcementText, live } from './live';
+import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen } from './platform/screen';
@@ -318,4 +318,5 @@ initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refre
 void refreshLive();
 initLeaderboard();
 installTelemetry();
+$('draftBadge').hidden = !DRAFT;
 requestAnimationFrame(frame);

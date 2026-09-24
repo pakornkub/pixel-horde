@@ -1,7 +1,7 @@
 // Live state from the server (tickets 12 + 13): feature flags, announcements, maintenance,
 // minimum client build and the published Balance Config. Checked at launch, at every Stage
 // start and before submitting a score / creating a room. No Realtime subscriptions.
-import { DEFAULT_FLAGS, FeatureFlagsSchema, parseBalanceConfig, resolveConfig, type FeatureFlags, type ResolvedConfig } from '@pixel-horde/config';
+import { DEFAULT_CONFIG, DEFAULT_FLAGS, FeatureFlagsSchema, parseBalanceConfig, resolveConfig, withOverrides, type BalanceConfig, type FeatureFlags, type ResolvedConfig } from '@pixel-horde/config';
 import { lang } from '@pixel-horde/i18n';
 import { active } from './config';
 import { backend, type Announcement, type Backend } from './net';
@@ -22,16 +22,33 @@ export function createLive(b: Backend, store: KeyValue) {
   let flags: FeatureFlags = DEFAULT_FLAGS;
   try { flags = FeatureFlagsSchema.parse(JSON.parse(store.get(K_FLAGS) || '{}')); } catch { /* defaults */ }
 
-  /** Cached config from an earlier session (validated), else the built-in defaults. */
-  function loadCachedConfig(): ResolvedConfig {
+  function cachedFull(): BalanceConfig | null {
     try {
       const c = JSON.parse(store.get(K_CONFIG) || 'null') as { version: number; data: unknown } | null;
-      if (c) return resolveConfig({ ...parseBalanceConfig(c.data), version: c.version });
+      if (c) return { ...parseBalanceConfig(c.data), version: c.version };
     } catch { /* fall back */ }
-    return active.cfg;
+    return null;
+  }
+  /** Cached config from an earlier session (validated), else the built-in defaults. */
+  function loadCachedConfig(): ResolvedConfig {
+    const c = cachedFull();
+    return c ? resolveConfig(c) : active.cfg;
+  }
+  /** Admin "test live": #draftcfg=<base64url JSON patch>. Local to this tab; the session is offline. */
+  function draftFromHash(hash: string): ResolvedConfig | null {
+    const m = hash.match(/draftcfg=([A-Za-z0-9_-]+)/);
+    if (!m) return null;
+    try {
+      const json = decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))));
+      return resolveConfig({ ...withOverrides(cachedFull() ?? DEFAULT_CONFIG, JSON.parse(json)), version: -1 });
+    } catch (e) {
+      console.warn('[live] bad draft config', e);
+      return null;
+    }
   }
 
   async function refresh(h: LiveHooks): Promise<boolean> {
+    if (active.cfg.version === -1) return false; // draft test session: never replaced by the server config
     let state;
     try { state = await b.getLive(); } catch { return false; } // offline: keep cached flags/config
     try { flags = FeatureFlagsSchema.parse(state.flags ?? {}); } catch { flags = DEFAULT_FLAGS; }
@@ -58,12 +75,14 @@ export function createLive(b: Backend, store: KeyValue) {
   return {
     flags: (): FeatureFlags => flags,
     loadCachedConfig,
+    draftFromHash,
     refresh,
   };
 }
 
 export const live = createLive(backend, browserStore);
-active.cfg = live.loadCachedConfig();
+export const DRAFT = typeof location !== 'undefined' ? live.draftFromHash(location.hash) : null;
+active.cfg = DRAFT ?? live.loadCachedConfig();
 
 export function announcementText(a: Announcement): { title: string; body: string } {
   const l = lang();
