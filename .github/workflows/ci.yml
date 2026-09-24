@@ -21,6 +21,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Sprite Lab stays out of the production build
+        run: test ! -e apps/game/dist/sprite-lab.html && ! grep -rq "Sprite Lab" apps/game/dist
 
   golden-replay-browsers:
     runs-on: ubuntu-latest

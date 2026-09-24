@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run check -w @pixel-horde/i18n && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lab": "vite --open /sprite-lab.html"
   },
   "dependencies": {
     "@pixel-horde/sim": "*",

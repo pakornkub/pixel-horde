@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite Lab</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="bar">
+  <strong>Sprite Lab</strong>
+  <span class="muted">dev only · not in the production build · drafts are kept in this browser</span>
+</header>
+<main class="lab">
+  <nav id="list" aria-label="Sprites"></nav>
+  <section class="edit">
+    <div class="row" id="frameTabs" role="tablist" aria-label="Frames"></div>
+    <div class="row tools" role="toolbar" aria-label="Tools">
+      <button data-tool="pen" aria-pressed="true">✏️ วาด</button>
+      <button data-tool="erase">🧽 ลบ</button>
+      <button data-tool="fill">🪣 เทสี</button>
+      <button data-tool="pick">💧 ดูดสี</button>
+      <span class="sep"></span>
+      <label>กว้าง <input id="w" type="number" min="1" max="64"></label>
+      <label>สูง <input id="h" type="number" min="1" max="64"></label>
+      <button id="resize">ปรับขนาด</button>
+      <span class="sep"></span>
+      <button id="undo" title="Ctrl+Z">↶ ย้อน</button>
+      <button id="flipH">⇆ กลับซ้ายขวา</button>
+      <button id="reset">คืนค่าจากไฟล์</button>
+    </div>
+    <canvas id="grid" aria-label="Paint grid"></canvas>
+    <div id="palette" class="row pal" aria-label="Palette"></div>
+    <div id="problems" class="problems" role="status"></div>
+  </section>
+  <aside class="side">
+    <h3>ตัวอย่างขนาดจริงในเกม</h3>
+    <label>พื้น <select id="ground"></select></label>
+    <label>ขยาย <select id="scale"><option>2</option><option selected>3</option><option>4</option><option>6</option></select></label>
+    <canvas id="preview" width="360" height="200"></canvas>
+    <div class="variants" id="variants"></div>
+    <h3>คัดลอกออก / วางกลับ (แถวตัวอักษร)</h3>
+    <textarea id="rows" spellcheck="false" rows="12"></textarea>
+    <div class="row">
+      <button id="copy">คัดลอกเฟรมนี้</button>
+      <button id="copyAll">คัดลอกทั้งตัว (TS)</button>
+      <button id="paste">วางแทนเฟรมนี้</button>
+    </div>
+    <p class="muted" id="msg"></p>
+  </aside>
+</main>
+<script type="module" src="/src/lab/lab.ts"></script>
+</body>
+</html>
