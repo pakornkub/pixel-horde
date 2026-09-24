@@ -11,7 +11,7 @@
     "dev": "npm run dev -w @pixel-horde/game",
     "build": "npm run build -w @pixel-horde/game",
     "preview": "npm run preview -w @pixel-horde/game",
-    "typecheck": "tsc -p packages/sim && tsc -p packages/config && tsc -p packages/i18n && tsc -p apps/game && tsc -p apps/admin && tsc -p workers/room && tsc -p tests && tsc -p workers/keepalive",
+    "typecheck": "tsc -p packages/sim && tsc -p packages/config && tsc -p packages/i18n && tsc -p packages/coop && tsc -p apps/game && tsc -p apps/admin && tsc -p workers/room && tsc -p tests && tsc -p workers/keepalive",
     "lint": "eslint .",
     "test": "vitest run",
     "test:browser": "playwright test",

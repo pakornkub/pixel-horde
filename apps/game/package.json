@@ -12,6 +12,7 @@
   "dependencies": {
     "@pixel-horde/i18n": "*",
     "@pixel-horde/sim": "*",
-    "@supabase/supabase-js": "^2.117.1"
+    "@supabase/supabase-js": "^2.117.1",
+    "@pixel-horde/coop": "*"
   }
 }

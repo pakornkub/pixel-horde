@@ -5,3 +5,6 @@ export const SUPABASE_KEY: string = import.meta.env.VITE_SUPABASE_KEY ?? 'sb_pub
 export const TURNSTILE_SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? '';
 /** `?offline` forces the offline adapter (testing, or when the owner pauses online features). */
 export const FORCE_OFFLINE = typeof location !== 'undefined' && (new URLSearchParams(location.search).has('offline') || location.hash.includes('draftcfg='));
+/** Co-op room server (Cloudflare Worker), e.g. wss://pixel-horde-room.<account>.workers.dev. Empty = co-op not set up.
+ *  `?room=ws://localhost:8787` overrides it (local `wrangler dev`). */
+export const ROOM_URL: string = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('room')) || (import.meta.env.VITE_ROOM_URL ?? '');

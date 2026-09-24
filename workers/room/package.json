@@ -6,5 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@pixel-horde/coop": "*"
   }
 }
