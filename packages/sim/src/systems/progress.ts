@@ -1,4 +1,6 @@
 import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, type PassiveId, type SkillId } from '../data/skills';
+import { signatureOf } from '../data/heroes';
+import { ipow } from '../core/fmath';
 import type { LevelOption, SimState } from '../types';
 import { rollStage } from './events';
 import { say } from './kings';
@@ -21,6 +23,7 @@ export function startStage(s: SimState, n: number): void {
   rollStage(s, n);
   if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * G.reviveHp); P.inv = 2; }
   s.stage = n;
+  s.swaps = 0;
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
   s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
   s.enemies = []; s.bolts = []; s.effects = [];
@@ -135,22 +138,36 @@ export function levelCheck(s: SimState): void {
   while (P.xp >= P.need) { P.xp -= P.need; P.lv++; P.need = xpNeed(s.cfg, P.lv); s.pendingLv++; }
 }
 
+/** Bench slots: start, +1 once each growth Chapter is behind the player. */
+export function benchSize(s: SimState): number {
+  const B = s.cfg.bench;
+  return B.start + (s.stage > B.growAt1 ? 1 : 0) + (s.stage > B.growAt2 ? 1 : 0);
+}
+
+/** Offer rules (ticket 21): 4 attack slots, then new Skills go to the Bench while it has room;
+ *  benched Skills are never offered; new passives only while a passive slot is free. */
 export function buildOptions(s: SimState): LevelOption[] {
   const P = s.P, R = s.rng.levelup, L = s.cfg.levelup, K = s.cfg.skills, out: LevelOption[] = [];
   for (const id of Object.keys(P.skills) as SkillId[]) {
     if (P.skills[id]! >= K[id].max && !P.evo[id] && (P.pas[EVO_PASSIVE[id]] || 0) >= 1 && out.length < L.offers) out.push({ kind: 'evo', id });
   }
   const c: { o: LevelOption; w: number }[] = [];
-  const owned = Object.keys(P.skills).length;
+  const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
+  const slotFree = owned < s.cfg.maxAttackSlots, benchFree = P.bench.length < benchSize(s);
   for (const id of SKILL_IDS) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max) continue;
-    if (!lv && owned >= s.cfg.maxAttackSlots) continue;
-    c.push({ o: { kind: 'skill', id }, w: lv ? L.wUpgrade : L.wNew });
+    if (!lv) {
+      if (P.bench.some((b) => b.id === id)) continue;
+      if (!slotFree && !benchFree) continue;
+      c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew });
+    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) });
   }
+  const pasOwned = Object.keys(P.pas).length;
   for (const id of PASSIVE_IDS) {
     const lv = P.pas[id] || 0;
     if (lv >= s.cfg.passives.max[id]) continue;
+    if (!lv && pasOwned >= s.cfg.passiveSlots) continue;
     c.push({ o: { kind: 'pas', id }, w: L.wPassive });
   }
   while (out.length < L.offers && c.length) {
@@ -161,6 +178,40 @@ export function buildOptions(s: SimState): LevelOption[] {
   }
   if (!out.length) out.push({ kind: 'heal' });
   return out;
+}
+
+/** Stage-end cost of the next swap: base × Chapter × growth^swaps. */
+export function swapCost(s: SimState): number {
+  const B = s.cfg.bench;
+  return Math.round(B.swapBase * s.stage * ipow(B.swapGrowth, s.swaps));
+}
+
+/** Pay from this Run's Gold first, then the wallet. Returns false (nothing paid) if short. */
+export function spendGold(s: SimState, cost: number): boolean {
+  const wallet = Math.max(0, (s.meta.wallet || 0) - s.walletSpent);
+  if (s.runGold + wallet < cost) return false;
+  const fromRun = Math.min(s.runGold, cost);
+  s.runGold -= fromRun;
+  s.walletSpent += cost - fromRun;
+  return true;
+}
+
+/** Clear screen: move Bench skill `bi` into an attack slot, swapping out `slot` (never the Signature). */
+export function swapBench(s: SimState, bi: number, slot: SkillId | null): void {
+  const P = s.P, b = P.bench[bi];
+  if (s.phase !== 'clear' || !b) return;
+  if (slot === signatureOf(P.ch)) return;
+  if (slot ? !P.skills[slot] : Object.keys(P.skills).length >= s.cfg.maxAttackSlots) return;
+  if (!spendGold(s, swapCost(s))) { s.events.push({ t: 'swapDenied' }); return; }
+  s.swaps++;
+  P.bench.splice(bi, 1);
+  if (slot) {
+    P.bench.splice(bi, 0, { id: slot, lv: P.skills[slot]!, evo: !!P.evo[slot] });
+    delete P.skills[slot]; delete P.evo[slot]; delete P.cds[slot];
+  }
+  P.skills[b.id] = b.lv;
+  if (b.evo) P.evo[b.id] = true;
+  sfx(s, 'coin');
 }
 
 export function openLevelUp(s: SimState): void {
@@ -175,7 +226,10 @@ export function choose(s: SimState, index: number): void {
   if (!o) return;
   const P = s.P;
   if (o.kind === 'evo') { P.evo[o.id] = true; banner(s, 'evolved', 1.8, true, { id: o.id }); flash(s, 0.3, '#ffd23f'); }
-  else if (o.kind === 'skill') P.skills[o.id] = (P.skills[o.id] || 0) + 1;
+  else if (o.kind === 'skill') {
+    if (o.toBench) P.bench.push({ id: o.id, lv: 1, evo: false });
+    else P.skills[o.id] = (P.skills[o.id] || 0) + 1;
+  }
   else if (o.kind === 'pas') {
     P.pas[o.id as PassiveId] = (P.pas[o.id] || 0) + 1;
     recompute(s);

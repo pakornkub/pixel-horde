@@ -16,7 +16,7 @@
  "hero.desc": "{name}: starts with {skill}, {bonus}",
  "level.title": "LEVEL UP!  LV {lv}",
  "level.chestTitle": "TREASURE CHEST",
- "level.slots": "Attack slots {n}/{max} (when full you only get upgrades)",
+ "level.slots": "Attack slots {n}/{max} · Bench {b}/{bmax}",
  "level.new": "NEW!",
  "level.evolve": "EVOLVE!",
  "level.final": " Final level. Evolves with {passive}",
@@ -382,5 +382,15 @@
  "dir.left": "from the left",
  "dir.right": "from the right",
  "dir.up": "from above",
- "dir.down": "from below"
+ "dir.down": "from below",
+ "level.bench": "→ BENCH",
+ "level.link": " · counts as a Link",
+ "level.signature": " · Signature",
+ "bench.title": "Skills (tap a Bench skill, then the slot to swap)",
+ "bench.attack": "Attack",
+ "bench.bench": "Bench",
+ "bench.empty": "empty",
+ "bench.cost": "Next swap: {cost}G ({run}G this Run + {wallet}G wallet)",
+ "bench.short": "Not enough Gold for this swap",
+ "bench.locked": "Signature: always equipped"
 }

@@ -140,3 +140,12 @@ html[lang="en"] .tabs button{font-size:9px}
 .stats.score{border-bottom:2px solid currentColor;padding-bottom:10px}
 .stats.score .tot{font-family:var(--pix);font-size:14px;color:var(--gold)}
 .opt .route-meta{display:block;font-size:13px;opacity:.85;margin-top:2px}
+.bench{margin:0 0 14px;font-size:13px}
+.bench .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
+.bench .lbl{min-width:78px;font-weight:700}
+.bench button.sk{display:inline-flex;align-items:center;gap:4px;border:2px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;padding:3px 6px;cursor:pointer}
+.bench button.sk .ico{width:18px;height:18px;font-size:10px}
+.bench button.sk.sel{outline:3px solid var(--gold);outline-offset:1px}
+.bench button.sk:disabled{opacity:.55;cursor:default}
+.bench .cost{margin-top:6px;opacity:.85}
+.bench .warn{color:#e8434f;font-weight:700}

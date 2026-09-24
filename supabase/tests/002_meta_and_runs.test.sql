@@ -1,6 +1,6 @@
 -- Ticket 09: server-counted Gold, Run start/submit checks, Shop, offline Runs, legacy import.
 begin;
-select plan(31);
+select plan(32);
 
 insert into auth.users (id, raw_user_meta_data) values ('11111111-1111-1111-1111-111111111111', '{"nickname":"Alice"}'), ('22222222-2222-2222-2222-222222222222', '{"nickname":"Bob"}');
 
@@ -63,11 +63,13 @@ select throws_ok($$ select public.buy_upgrade('nonsense') $$, 'UNKNOWN_ITEM', 'u
 -- offline Runs: same ceilings, duplicates ignored
 select is(public.submit_offline_run('{"clientRunId":"c1","chapter":2,"kills":120,"gold":40,"playMs":90000,"hero":"mage"}') ->> 'status', 'offline', 'offline Run accepted');
 select is(public.submit_offline_run('{"clientRunId":"c1","chapter":2,"kills":120,"gold":40,"playMs":90000,"hero":"mage"}') ->> 'status', 'duplicate', 'the same offline Run counts once');
+select is((public.submit_offline_run('{"clientRunId":"c2","chapter":2,"kills":120,"gold":10,"walletSpent":30,"playMs":90000,"hero":"mage"}') -> 'meta' ->> 'gold')::int,
+          190, 'wallet Gold spent during a Run (Stage-end swaps) is charged on submit');
 
 -- legacy save: clamped and only once
 select is((public.import_legacy_meta('{"gold":999999999,"up":{"power":99,"greed":2},"owned":["alchemist","hacker"]}') ->> 'gold')::bigint,
-          210 + 50000::bigint, 'legacy Gold is capped');
-select is((public.import_legacy_meta('{"gold":5000}') ->> 'gold')::bigint, 50210::bigint, 'legacy import happens once');
+          190 + 50000::bigint, 'legacy Gold is capped');
+select is((public.import_legacy_meta('{"gold":5000}') ->> 'gold')::bigint, 50190::bigint, 'legacy import happens once');
 
 select * from finish();
 rollback;

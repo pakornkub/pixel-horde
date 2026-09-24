@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { EVO_PASSIVE, HERO_IDS, HEROES, REALMS, SHOP_IDS, WHEEL, adviceFor, scoreBreakdown, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { EVO_PASSIVE, HERO_IDS, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -111,7 +111,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
   box.innerHTML = '';
-  $('lvSlots').textContent = t('level.slots', { n: Object.keys(P.skills).length, max: v.cfg.maxAttackSlots });
+  $('lvSlots').textContent = t('level.slots', { n: Object.keys(P.skills).length, max: v.cfg.maxAttackSlots, b: P.bench.length, bmax: benchSize(v as SimState) });
   $('lvTitle').textContent = lu.chest ? t('level.chestTitle') : t('level.title', { lv: lu.lv });
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
@@ -126,8 +126,10 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       meta = SKILL_ICON[o.id];
       const lv = P.skills[o.id] || 0;
       name = skillName(o.id);
-      tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t('level.new')}</i>`;
+      tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t(o.toBench ? 'level.bench' : 'level.new')}</i>`;
       desc = (lv ? '' : skillDesc(o.id) + ' ') + '(' + skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false)) + ')';
+      if (o.id === signatureOf(P.ch)) desc += t('level.signature');
+      else if (SKILL_LINES[P.ch].includes(o.id)) desc += t('level.link');
       if (lv + 1 === v.cfg.skills[o.id].max) desc += t('level.final', { passive: passiveName(EVO_PASSIVE[o.id]) });
     } else if (o.kind === 'pas') {
       meta = PASSIVE_ICON[o.id];
@@ -225,6 +227,46 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
+}
+
+/* ---------- Bench ↔ attack slots (clear screen) ---------- */
+let benchSel = -1;
+export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot: SkillId | null) => void, denied = false): void {
+  const P = v.P, box = $('benchBox');
+  box.hidden = !P.bench.length;
+  if (!P.bench.length) return;
+  if (benchSel >= P.bench.length) benchSel = -1;
+  const sig = signatureOf(P.ch), cost = swapCost(v as SimState), wallet = Math.max(0, (v.meta.wallet || 0) - v.walletSpent);
+  const fromRun = Math.min(v.runGold, cost), afford = v.runGold + wallet >= cost;
+  const chip = (id: SkillId, lv: number, evo: boolean): string =>
+    `<span class="ico" style="background:${SKILL_ICON[id].col}${evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''}">${SKILL_ICON[id].g}</span>${skillName(id)} ${lv}`;
+  box.innerHTML = `<div>${t('bench.title')}</div>`;
+  const attack = document.createElement('div'); attack.className = 'row';
+  attack.innerHTML = `<span class="lbl">${t('bench.attack')}</span>`;
+  const ids = Object.keys(P.skills) as SkillId[];
+  for (const id of ids) {
+    const bt = document.createElement('button'); bt.className = 'sk';
+    bt.innerHTML = chip(id, P.skills[id]!, !!P.evo[id]);
+    if (id === sig) { bt.disabled = true; bt.title = t('bench.locked'); }
+    else bt.addEventListener('click', () => { if (benchSel >= 0 && afford) { onSwap(benchSel, id); benchSel = -1; } });
+    attack.appendChild(bt);
+  }
+  for (let i = ids.length; i < v.cfg.maxAttackSlots; i++) {
+    const bt = document.createElement('button'); bt.className = 'sk'; bt.textContent = t('bench.empty');
+    bt.addEventListener('click', () => { if (benchSel >= 0 && afford) { onSwap(benchSel, null); benchSel = -1; } });
+    attack.appendChild(bt);
+  }
+  const bench = document.createElement('div'); bench.className = 'row';
+  bench.innerHTML = `<span class="lbl">${t('bench.bench')}</span>`;
+  P.bench.forEach((b, i) => {
+    const bt = document.createElement('button'); bt.className = 'sk' + (i === benchSel ? ' sel' : '');
+    bt.innerHTML = chip(b.id, b.lv, b.evo);
+    bt.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; renderBench(v, onSwap); });
+    bench.appendChild(bt);
+  });
+  const c = document.createElement('div'); c.className = 'cost' + (afford ? '' : ' warn');
+  c.textContent = denied || !afford ? t('bench.short') + ' — ' + t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun }) : t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun });
+  box.append(attack, bench, c);
 }
 
 /** Itemised Score that counts up line by line (decision #15). */

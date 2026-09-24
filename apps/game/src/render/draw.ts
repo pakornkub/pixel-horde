@@ -485,6 +485,19 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.font = font(10 * D); ctx.fillText(m.g, x + sz / 2, by + sz / 2);
     ctx.textBaseline = 'top'; outlined(String(lv), x + sz - 2 * D, by - 6 * D, 7 * D, '#ffffff'); ctx.textBaseline = 'top';
   });
+  // benched skills: small and dimmed after the row
+  {
+    const bs = 14 * D, bx0 = left + ids.length * (sz + gap) + 4 * D;
+    P.bench.forEach((bk, i) => {
+      const x = bx0 + i * (bs + 3 * D), y = by + sz - bs;
+      if (x + bs > W - 100 * D) return;
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = INK; ctx.fillRect(x - 1 * D, y - 1 * D, bs + 2 * D, bs + 2 * D);
+      ctx.fillStyle = SKILL_ICON[bk.id].col; ctx.fillRect(x, y, bs, bs);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.font = font(7 * D); ctx.fillText(SKILL_ICON[bk.id].g, x + bs / 2, y + bs / 2);
+      ctx.globalAlpha = 1;
+    });
+  }
   // banner
   const bn = vfx.banner;
   if (bn) {

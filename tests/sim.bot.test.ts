@@ -93,7 +93,7 @@ describe('headless bot runs', () => {
     expect(sawRoute).toBe(true);
     expect(v.stage).toBe(2);
     expect(v.stageDur).toBe(80);
-    expect(v.kingsKilled).toEqual([1]);
+    expect(v.kingsKilled[0]).toBe(1); // Chapter 2's weak King may already be down too
     expect(v.chaptersCleared).toEqual([1]);
     expect(v.escapes).toBe(0);
   });

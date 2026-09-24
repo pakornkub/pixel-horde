@@ -118,7 +118,15 @@ const passives = obj({
 }, 'Passive skills');
 
 const shared = obj({
-  maxAttackSlots: int(6, 1, 12, 'Attack skills a player can own'),
+  maxAttackSlots: int(4, 1, 12, 'Attack slots, including the Signature Skill'),
+  passiveSlots: int(3, 1, 6, 'Passive slots'),
+  bench: obj({
+    start: int(1, 0, 6, 'Bench slots at the start of a Run'),
+    growAt1: int(2, 1, 20, 'Bench +1 once this Chapter is behind you'),
+    growAt2: int(4, 1, 20, 'Bench +1 once this Chapter is behind you'),
+    swapBase: pos(20, 'Swap cost: Gold × Chapter'),
+    swapGrowth: mul(2, 'Each further swap in the same Stage end costs × this'),
+  }, 'Bench and Stage-end swaps'),
   stage: obj({
     durBase: sec(60, 'Stage 1 length (s)'), durPerStage: sec(20, 'Extra seconds per stage'), durMax: sec(150, 'Longest stage (s)'),
     bossAt: frac(0.55, 'Boss appears at this fraction of the stage'), bossHpGrowth: mul(1.25, 'Extra boss HP multiplier per stage'),
@@ -165,7 +173,7 @@ const shared = obj({
     kbDecay: n(0.02, 0.0001, 1, 'Knockback left after 1 s'),
   }, 'Player'),
   xp: obj({ base: pos(5, 'XP to level: constant'), perLv: pos(4, 'XP to level: × level'), quad: pos(0.5, 'XP to level: × level²'), lateFrom: int(8, 0, 99, 'Late curve starts after level'), lateQuad: pos(1.4, 'Late curve: × (level − start)²') }, 'Level curve'),
-  levelup: obj({ offers: int(3, 1, 6, 'Choices per level-up'), wUpgrade: mul(1.3, 'Weight: upgrade an owned skill'), wNew: mul(1.1, 'Weight: new skill'), wPassive: mul(0.8, 'Weight: passive') }, 'Level-up offers'),
+  levelup: obj({ offers: int(3, 1, 6, 'Choices per level-up'), wUpgrade: mul(1.3, 'Weight: upgrade an owned skill'), wNew: mul(1.1, 'Weight: new skill'), wPassive: mul(0.8, 'Weight: passive'), wSignature: mul(1.25, 'Weight × for upgrading the Signature Skill') }, 'Level-up offers'),
   ult: obj({
     max: pos(80, 'Charge needed'), perKill: pos(1, 'Charge per kill'), perElite: pos(5, 'Charge per elite kill'), perBoss: pos(40, 'Charge per boss kill'),
     dmgBase: pos(160, 'Damage base'), dmgPerLv: pos(45, 'Damage per player level'), dmgGrowth: mul(1.45, 'Damage × per stage'),

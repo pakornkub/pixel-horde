@@ -136,6 +136,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
 
   /** Local wallet display during a Run (the server credits Gold on submit). */
   function bankLocal(amount: number): void { if (amount > 0) { meta.gold += amount; save(); } }
+  /** Local wallet display when the Run spends wallet Gold (the server charges it on submit). */
+  function spendLocal(amount: number): void { if (amount > 0) { meta.gold = Math.max(0, meta.gold - amount); save(); } }
 
   return {
     meta,
@@ -147,6 +149,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     unlockHero,
     recordRun,
     bankLocal,
+    spendLocal,
     pending: (): readonly QueueOp[] => queue,
     onChange(fn: () => void): () => void { listeners.add(fn); return () => listeners.delete(fn); },
     save,
@@ -161,7 +164,7 @@ export const META = metaSync.meta;
 export const U = metaSync.U;
 export const ownsHero = metaSync.ownsHero;
 export const saveMeta = metaSync.save;
-export const simMeta = (): Meta => ({ up: { ...META.up } });
+export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold });
 export const HEROES_ALL = HERO_IDS;
 
 export interface Best { stage: number; kills: number }

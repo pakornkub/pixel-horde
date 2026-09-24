@@ -16,7 +16,7 @@
  "hero.desc": "{name}: เริ่มด้วย {skill}, {bonus}",
  "level.title": "LEVEL UP!  LV {lv}",
  "level.chestTitle": "TREASURE CHEST",
- "level.slots": "ช่องสกิลโจมตี {n}/{max} (เต็มแล้วจะได้แค่อัปเกรดสกิลเดิม)",
+ "level.slots": "ช่องโจมตี {n}/{max} · Bench {b}/{bmax}",
  "level.new": "NEW!",
  "level.evolve": "EVOLVE!",
  "level.final": " ขั้นสุดท้าย วิวัฒน์ได้ถ้ามี {passive}",
@@ -382,5 +382,15 @@
  "dir.left": "ทางซ้าย",
  "dir.right": "ทางขวา",
  "dir.up": "ทางบน",
- "dir.down": "ทางล่าง"
+ "dir.down": "ทางล่าง",
+ "level.bench": "→ BENCH",
+ "level.link": " · นับเป็น Link",
+ "level.signature": " · Signature",
+ "bench.title": "สกิล (แตะสกิลใน Bench แล้วแตะช่องที่จะสลับ)",
+ "bench.attack": "ช่องโจมตี",
+ "bench.bench": "Bench",
+ "bench.empty": "ว่าง",
+ "bench.cost": "สลับครั้งถัดไป: {cost}G (จากรอบนี้ {run}G + กระเป๋า {wallet}G)",
+ "bench.short": "Gold ไม่พอสำหรับการสลับครั้งนี้",
+ "bench.locked": "Signature: ติดตัวตลอด"
 }

@@ -3,7 +3,7 @@ import { createStreams } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
+import { afterStage, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
@@ -56,11 +56,11 @@ export function createSim(opts: SimOptions): Sim {
   const s: SimState = {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
-    meta: { up: { ...opts.meta.up } },
+    meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0) },
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, swaps: 0, walletSpent: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -93,6 +93,7 @@ export function createSim(opts: SimOptions): Sim {
         }
         break;
       case 'route': chooseRoute(s, c.index); break;
+      case 'swap': swapBench(s, c.bench, c.slot); break;
       case 'ult': useUlt(s); break;
       case 'viewport':
         if (c.w > 0 && c.h > 0) { s.viewport.w = c.w; s.viewport.h = c.h; }

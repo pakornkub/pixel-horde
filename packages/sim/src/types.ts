@@ -25,6 +25,7 @@ export type Command =
   | { type: 'resume' }
   | { type: 'next' } // continue from the clear screen (to the route choice or the next Chapter)
   | { type: 'route'; index: number } // pick one of the offered Realms
+  | { type: 'swap'; bench: number; slot: SkillId | null } // clear screen: Bench skill ↔ attack slot (null = empty slot)
   | { type: 'ult' }
   | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
   | { type: 'setConfig'; config: ResolvedConfig } // new Balance Config: applies at the next Stage start
@@ -36,6 +37,8 @@ export interface EventSwitches { bloodMoon: boolean; dragon: boolean; rival: boo
 export interface Meta {
   /** Permanent shop levels. */
   up: Partial<Record<ShopId, number>>;
+  /** Wallet Gold at Run start (Stage-end costs draw on it after this Run's Gold). */
+  wallet?: number;
 }
 
 export type DebugEvent = 'dragon' | 'rival' | 'bloodmoon';
@@ -80,6 +83,8 @@ export interface Player {
   orbitA: number;
   pet: Pet | null;
   clone: Clone | null;
+  /** Benched skills keep their level and Evolution but do not fire and are not offered upgrades. */
+  bench: BenchSkill[];
   /** Slippery floor: movement keeps momentum while > 0. */
   slip: number; slipGrip: number;
   vx: number; vy: number;
@@ -114,6 +119,8 @@ export interface Enemy {
   /** Burrowed/airborne: cannot be hit, deals no contact damage. */
   hide?: boolean;
 }
+
+export interface BenchSkill { id: SkillId; lv: number; evo: boolean }
 
 export type KingMove = 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne';
 
@@ -199,7 +206,7 @@ export interface Gem {
 
 export type LevelOption =
   | { kind: 'evo'; id: SkillId }
-  | { kind: 'skill'; id: SkillId }
+  | { kind: 'skill'; id: SkillId; toBench?: boolean }
   | { kind: 'pas'; id: PassiveId }
   | { kind: 'heal' };
 
@@ -233,6 +240,7 @@ export type SimEvent =
   | { t: 'stageStart'; stage: number; special: boolean }
   | { t: 'stageClear'; stage: number; escaped: boolean }
   | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
+  | { t: 'swapDenied' }
   | { t: 'victory' }
   | { t: 'gameOver' };
 
@@ -282,6 +290,10 @@ export interface SimState {
   revivesBought: number;
   victory: boolean;
   victoryTime: number;
+  /** Swaps made at this Stage end (cost doubles each time). */
+  swaps: number;
+  /** Gold taken from the wallet this Run (reported with the Run result). */
+  walletSpent: number;
   bloodMoonShown: boolean;
   stageTime: number; stageDur: number;
   spawnAcc: number; waveT: number;

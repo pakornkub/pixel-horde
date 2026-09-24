@@ -116,7 +116,7 @@ export function createSupabaseBackend(): Backend {
     },
     async submitRun(ticket, r) {
       online();
-      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, score: r.score, pausedMs: r.pausedMs, summary: r.summary ?? {} } });
+      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, score: r.score, pausedMs: r.pausedMs, summary: r.summary ?? {} } });
     },
     async submitOfflineRun(r) { online(); return rpc<SubmitOutcome>('submit_offline_run', { p: r }); },
     async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },

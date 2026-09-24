@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions } from '@pixel-horde/sim';
+import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SkillId } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
@@ -16,7 +16,7 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderChars, renderLevelUp, renderRoute,
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderBench, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -31,6 +31,7 @@ const debug: SimOptions['debug'] = {
 let sim: Sim | null = null;
 let queue: Command[] = [];
 let runBanked = 0;
+let walletBanked = 0;
 let ticket: RunTicket | null = null;
 let clientRunId = '';
 let runWallStart = 0;
@@ -49,19 +50,27 @@ function runResult(result: RunResult['result']): RunResult | null {
   const v = sim.view();
   const playMs = Math.round(v.totalTime * 1000);
   return {
-    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold,
+    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent,
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
     summary: telemetry.summary(v),
   };
 }
 
+/** Mirror this Run's Gold (and wallet spending) in the local wallet display. */
+function syncWallet(): void {
+  if (!sim) return;
+  const v = sim.view(), add = v.runGold - runBanked, ws = v.walletSpent - walletBanked;
+  if (add > 0) metaSync.bankLocal(add); else if (add < 0) metaSync.spendLocal(-add);
+  if (ws > 0) metaSync.spendLocal(ws);
+  runBanked = v.runGold; walletBanked = v.walletSpent;
+}
+
 /** Stage clear / Run end: show the Gold in the wallet now; the server credits it on submit. */
 function bank(final?: RunResult['result']): void {
   if (!sim) return;
   if (final) void refreshLive();
-  const add = sim.view().runGold - runBanked;
-  if (add > 0) { metaSync.bankLocal(add); runBanked += add; }
+  syncWallet();
   const r = runResult(final ?? 'quit');
   if (r) metaSync.recordRun(r, ticket, !final);
   if (final) {
@@ -94,6 +103,7 @@ async function newRun(): Promise<void> {
   });
   queue = [];
   runBanked = 0;
+  walletBanked = 0;
   shownLevelUp = null;
   shownPhase = '';
   consume(sim.view().events, sim.view());
@@ -115,6 +125,9 @@ function toTitle(): void {
   show('ovTitle');
 }
 
+let benchDirty = false;
+function onSwap(bench: number, slot: SkillId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
+
 /** Open/close overlays when the sim's phase changes. */
 function syncOverlays(): void {
   if (!sim) return;
@@ -135,7 +148,7 @@ function syncOverlays(): void {
     shownPhase = v.phase;
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
-    if (v.phase === 'clear') showClear(v, v.runGold);
+    if (v.phase === 'clear') { showClear(v, v.runGold); renderBench(v, onSwap); }
     if (v.phase === 'route' && v.route) {
       renderRoute(v, (i) => {
         if (sim && sim.view().phase === 'route') { hide('ovRoute'); cmd({ type: 'route', index: i }); last = performance.now(); }
@@ -165,6 +178,12 @@ function frame(now: number): void {
         queue = [];
         const v = sim.view();
         consume(events, v);
+        if (benchDirty && v.phase === 'clear') {
+          benchDirty = false;
+          syncWallet();
+          showClear(v, v.runGold);
+          renderBench(v, onSwap, events.some((e) => e.t === 'swapDenied'));
+        }
         if (events.some((e) => e.t === 'stageClear')) { bank(); telemetry.event({ k: 'clear', st: v.stage, t: Math.round(v.totalTime), hp: Math.round(v.P.hp), lv: v.P.lv }); }
         if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); }
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);

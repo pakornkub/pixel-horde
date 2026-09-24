@@ -49,6 +49,8 @@ export interface RunResult {
   kills: number;
   level: number;
   gold: number;
+  /** Gold taken from the wallet during the Run (Stage-end swaps); charged on submit. */
+  walletSpent?: number;
   score: number;
   /** Active play time (sim time). */
   playMs: number;
