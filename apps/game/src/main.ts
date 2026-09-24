@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, reviveCost } from '@pixel-horde/sim';
+import { createSim, DT, isHero, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, reviveCost } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
@@ -16,7 +16,7 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, stepVfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderSp, showRevive, renderChars, renderLevelUp, renderRoute,
+  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -50,7 +50,7 @@ function runResult(result: RunResult['result']): RunResult | null {
   const v = sim.view();
   const playMs = Math.round(v.totalTime * 1000);
   return {
-    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent,
+    clientRunId, hero: v.hero, mode: 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
     summary: telemetry.summary(v),
@@ -85,7 +85,7 @@ async function newRun(): Promise<void> {
   starting = true;
   initAudio();
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
-  ticket = await Promise.race([backend.startRun(META.ch).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  ticket = await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   runWallStart = performance.now();
@@ -95,6 +95,7 @@ async function newRun(): Promise<void> {
   sim = createSim({
     seed: ticket ? ticket.seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
+    weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH },
     config: active.cfg,
@@ -131,6 +132,7 @@ function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benc
 function renderClear(v: Readonly<SimState>, denied = false): void {
   showClear(v, v.runGold);
   renderAwaken(v, onAwaken);
+  renderWeaponSwitch(v, (id) => { cmd({ type: 'weapon', id }); benchDirty = true; });
   renderSp(v, () => { cmd({ type: 'buySp' }); benchDirty = true; }, (id) => { cmd({ type: 'spUpgrade', id }); benchDirty = true; });
   renderBench(v, onSwap, denied);
 }
@@ -188,6 +190,8 @@ function frame(now: number): void {
         const v = sim.view();
         consume(events, v);
         if (events.some((e) => e.t === 'spent')) syncWallet();
+        const found = events.filter((e) => e.t === 'weaponFound').map((e) => (e as { id: WeaponId }).id);
+        if (found.length) metaSync.addWeapons(found);
         if (benchDirty && v.phase === 'clear') {
           benchDirty = false;
           syncWallet();

@@ -107,7 +107,9 @@ export type ComboId = 'shatter' | 'firestorm' | 'overload' | 'superconduct' | 't
 export const COMBO_IDS: ComboId[] = ['shatter', 'firestorm', 'overload', 'superconduct', 'toxicBurst', 'grinder', 'catalyst'];
 
 /** What a hit carries: element, heavy (Shatter), sweeper (Grinder), Status it leaves. */
-export interface HitTag { el?: HitElement; heavy?: boolean; sweep?: boolean; applies?: 'burning' | 'shocked' | 'poisoned'; combo?: boolean }
+export interface HitTag { el?: HitElement; heavy?: boolean; sweep?: boolean; applies?: 'burning' | 'shocked' | 'poisoned'; combo?: boolean;
+  /** Ultimate: fixed damage (no Might/Power/crit/variance), capped on bosses, starts no Combo. */
+  raw?: boolean }
 
 export const SKILL_TAGS: Record<SkillId, HitTag> = {
   bolt: { el: 'arcane' },

@@ -6,6 +6,7 @@ import type { ComboId, HitTag } from './data/skills';
 import type { HeroId } from './data/heroes';
 import type { PassiveId, SkillId } from './data/skills';
 import type { ShopId } from './data/shop';
+import type { WeaponId } from './data/weapons';
 
 /** Fixed simulation rate. */
 export const TICK_HZ = 60;
@@ -27,6 +28,7 @@ export type Command =
   | { type: 'resume' }
   | { type: 'next' } // continue from the clear screen (to the route choice or the next Chapter)
   | { type: 'route'; index: number } // pick one of the offered Realms
+  | { type: 'weapon'; id: WeaponId } // clear screen: switch to a Weapon found this Run
   | { type: 'reroll' } // level-up: new offers for Skill Points
   | { type: 'banish'; index: number } // level-up: remove that offer's Skill/passive from this Run
   | { type: 'spUpgrade'; id: SkillId } // level-up / clear screen: +1 level for Skill Points
@@ -48,6 +50,8 @@ export interface Meta {
   up: Partial<Record<ShopId, number>>;
   /** Wallet Gold at Run start (Stage-end costs draw on it after this Run's Gold). */
   wallet?: number;
+  /** Owned Weapons ("lumora:thornwhip"); Kings only drop ones not owned. */
+  weapons?: string[];
 }
 
 export type DebugEvent = 'dragon' | 'rival' | 'bloodmoon';
@@ -66,6 +70,8 @@ export interface SimOptions {
   events?: EventSwitches;
   /** Run mode; the daily challenge disables the bought revive. */
   mode?: 'solo' | 'daily' | 'endless';
+  /** Weapon picked for this Run (default Judgement). */
+  weapon?: WeaponId;
 }
 
 export interface Pet { lv: number; cd: number; dive: number; x: number; y: number }
@@ -287,6 +293,7 @@ export type SimEvent =
   | { t: 'stageClear'; stage: number; escaped: boolean }
   | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
   | { t: 'combo'; id: ComboId; x: number; y: number }
+  | { t: 'weaponFound'; id: WeaponId }
   | { t: 'swapDenied' }
   | { t: 'spent'; what: 'reroll' | 'banish' | 'upgrade' | 'buySp' | 'revive' }
   | { t: 'victory' }
@@ -296,7 +303,7 @@ export type SimEvent =
 export type BannerKey =
   | 'stage' | 'bloodMoon' | 'intro.caster' | 'intro.charger' | 'intro.splitter' | 'intro.armor'
   | 'bossDown' | 'judgement' | 'swarm' | 'bossIncoming' | 'dragonOmen' | 'stageClear' | 'stageClearDragonFled'
-  | 'stageClearRivalFled' | 'awakened' | 'overtime' | 'kingEscaped' | 'umbraDown' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
+  | 'stageClearRivalFled' | 'awakened' | 'weaponFound' | 'overtime' | 'kingEscaped' | 'umbraDown' | 'evolved' | 'secondWind' | 'dragonAppears' | 'dragonSummons' | 'rivalAppears'
   | 'rivalEscaped' | 'dragonTamed' | 'dragonPowerUp' | 'clonePowerUp' | 'shadowClone' | 'shadowShard';
 
 export type SfxKey = 'hit' | 'crit' | 'boom' | 'zap' | 'nova' | 'lance' | 'laser' | 'lv' | 'hurt' | 'ult' | 'coin' | 'tick' | 'gem' | 'clear';
@@ -339,6 +346,11 @@ export interface SimState {
   victory: boolean;
   victoryTime: number;
   mode: 'solo' | 'daily' | 'endless';
+  weapon: WeaponId;
+  /** Weapons found this Run (kept forever; switchable at the next Stage end). */
+  foundWeapons: WeaponId[];
+  /** Kill charge still allowed (kills add at most killCap × the time rate). */
+  ultBudget: number;
   /** Skill Points (King rewards, bought with Gold). */
   sp: number;
   /** Skills/passives banished for this Run. */

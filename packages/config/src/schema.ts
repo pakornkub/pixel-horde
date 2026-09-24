@@ -211,8 +211,11 @@ const shared = obj({
   xp: obj({ base: pos(5, 'XP to level: constant'), perLv: pos(4, 'XP to level: × level'), quad: pos(0.5, 'XP to level: × level²'), lateFrom: int(8, 0, 99, 'Late curve starts after level'), lateQuad: pos(1.4, 'Late curve: × (level − start)²') }, 'Level curve'),
   levelup: obj({ offers: int(3, 1, 6, 'Choices per level-up'), wUpgrade: mul(1.3, 'Weight: upgrade an owned skill'), wNew: mul(1.1, 'Weight: new skill'), wPassive: mul(0.8, 'Weight: passive'), wSignature: mul(1.25, 'Weight × for upgrading the Signature Skill') }, 'Level-up offers'),
   ult: obj({
-    max: pos(80, 'Charge needed'), perKill: pos(1, 'Charge per kill'), perElite: pos(5, 'Charge per elite kill'), perBoss: pos(40, 'Charge per boss kill'),
-    dmgBase: pos(160, 'Damage base'), dmgPerLv: pos(45, 'Damage per player level'), dmgGrowth: mul(1.45, 'Damage × per stage'),
+    max: pos(80, 'Charge needed'), fill: sec(60, 'Seconds to fill from time alone'),
+    killCap: mul(1, 'Kills can add at most this × the time rate (1 = at most twice as fast)'),
+    perKill: pos(1, 'Charge per kill'), perElite: pos(5, 'Charge per elite kill'), perBoss: pos(20, 'Charge per boss kill'),
+    mobHp: mul(1.5, 'Damage = this × the Chapter\'s normal monster HP (no Might/Power/crit)'),
+    bossCap: frac(0.08, 'At most this × a King\'s or Guardian\'s max HP per Ultimate'), umbraCap: frac(0.05, 'At most this × Umbra\'s max HP per Ultimate'),
     slow: sec(0.55, 'Slow-motion time (s)'), delay: sec(0.3, 'Strike delay (s)'), kb: pos(120, 'Knockback'),
   }, 'Ultimate (Judgement)'),
   streak: obj({ window: sec(2.2, 'Seconds between kills to keep the Kill Streak') }, 'Kill Streak'),
@@ -277,6 +280,13 @@ const shared = obj({
     armorMul: mul(2, 'Armoured Realms: armour chance ×'), armorFrom: int(2, 1, 20, 'Armoured Realms: armour from this Chapter'),
     fastSpd: mul(1.1, 'Fast Realms: fast monsters speed ×'),
   }, 'Realm traits and resistances'),
+  weapons: obj({
+    drop: frac(0.05, 'A King drops its Realm\'s Weapon (if not owned yet)'),
+    umbraGold: pos(500, 'Gold for beating Umbra when every Weapon is owned'),
+    root: sec(2, 'Thornwhip: monsters rooted (s)'),
+    execute: frac(0.2, 'Bone Scythe: normal monsters below this HP fraction are reaped'),
+    freeze: sec(2, 'Glacier Lance: monsters frozen (s); bosses slowed'),
+  }, 'Weapons (change only the Ultimate)'),
   economy: obj({
     kingSkillPoints: int(1, 0, 10, 'Skill Points per King killed'),
     kingChest: int(1, 0, 5, 'Chest wheels per King killed'),

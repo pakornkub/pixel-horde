@@ -1,6 +1,6 @@
 -- Ticket 09: server-counted Gold, Run start/submit checks, Shop, offline Runs, legacy import.
 begin;
-select plan(32);
+select plan(36);
 
 insert into auth.users (id, raw_user_meta_data) values ('11111111-1111-1111-1111-111111111111', '{"nickname":"Alice"}'), ('22222222-2222-2222-2222-222222222222', '{"nickname":"Bob"}');
 
@@ -63,6 +63,17 @@ select throws_ok($$ select public.buy_upgrade('nonsense') $$, 'UNKNOWN_ITEM', 'u
 -- offline Runs: same ceilings, duplicates ignored
 select is(public.submit_offline_run('{"clientRunId":"c1","chapter":2,"kills":120,"gold":40,"playMs":90000,"hero":"mage"}') ->> 'status', 'offline', 'offline Run accepted');
 select is(public.submit_offline_run('{"clientRunId":"c1","chapter":2,"kills":120,"gold":40,"playMs":90000,"hero":"mage"}') ->> 'status', 'duplicate', 'the same offline Run counts once');
+-- Weapons: a locked Weapon cannot start a Run; found Weapons join the collection (max 2, well-formed)
+select throws_ok($$ select public.start_run('mage', 'solo', 'lumora', 'sunblade') $$, 'WEAPON_LOCKED', 'only owned Weapons can be picked');
+select is(public.submit_offline_run('{"clientRunId":"c3","chapter":2,"kills":120,"gold":0,"playMs":90000,"hero":"mage","weaponsFound":["sunblade","bad id!","thornwhip","boneScythe"]}') -> 'meta' -> 'weapons',
+          '["lumora:sunblade", "lumora:thornwhip"]'::jsonb, 'found Weapons are added (at most 2, well-formed ids)');
+reset role;
+update public.runs set started_at = started_at - interval '1 hour';
+set local role authenticated;
+select ok((public.start_run('mage', 'solo', 'lumora', 'sunblade') ->> 'runId') is not null, 'an owned Weapon starts a Run');
+reset role;
+select is((select weapon from public.runs order by started_at desc limit 1), 'sunblade', 'the Run records its Weapon');
+set local role authenticated;
 select is((public.submit_offline_run('{"clientRunId":"c2","chapter":2,"kills":120,"gold":10,"walletSpent":30,"playMs":90000,"hero":"mage"}') -> 'meta' ->> 'gold')::int,
           490, 'wallet Gold spent during a Run (Stage-end swaps) is charged on submit');
 

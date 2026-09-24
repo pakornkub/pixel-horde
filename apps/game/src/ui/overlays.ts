@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, HERO_IDS, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -62,8 +62,26 @@ export function renderChars(): void {
     });
     box.appendChild(bt);
   }
+  renderWeapons();
   const sel = HEROES[META.ch];
   $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), role: heroRole(META.ch), skill: skillName(sel.start), bonus: heroDesc(META.ch) });
+}
+
+/* ---------- weapon pick (title) ---------- */
+function renderWeapons(): void {
+  const row = $('weaponRow');
+  row.innerHTML = `<span class="lbl">${t('weapon.pick')}</span>`;
+  for (const w of WEAPON_IDS) {
+    if (!metaSync.ownsWeapon(w)) continue;
+    const bt = document.createElement('button');
+    bt.className = META.weapon === w ? 'sel' : '';
+    bt.textContent = t(`weapon.${w}.name`);
+    bt.title = t(`weapon.${w}.desc`);
+    bt.addEventListener('click', () => { metaSync.selectWeapon(w); renderWeapons(); });
+    row.appendChild(bt);
+  }
+  const d = document.createElement('span'); d.textContent = t(`weapon.${META.weapon}.desc`); d.style.flexBasis = '100%';
+  row.appendChild(d);
 }
 
 /* ---------- shop ---------- */
@@ -248,6 +266,21 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
+}
+
+/* ---------- Weapons found this Run (clear screen) ---------- */
+export function renderWeaponSwitch(v: Readonly<SimState>, onUse: (id: WeaponId) => void): void {
+  const box = $('weaponBox'), found = v.foundWeapons.filter((w) => w !== v.weapon);
+  box.hidden = !found.length;
+  if (!found.length) return;
+  box.innerHTML = `<span class="lbl">${t('weapon.using', { weapon: t(`weapon.${v.weapon}.name`) })}</span>`;
+  for (const w of found) {
+    const bt = document.createElement('button');
+    bt.textContent = t('weapon.use', { weapon: t(`weapon.${w}.name`) });
+    bt.title = t(`weapon.${w}.desc`);
+    bt.addEventListener('click', () => onUse(w));
+    box.appendChild(bt);
+  }
 }
 
 /* ---------- Skill Points (clear screen) ---------- */

@@ -402,7 +402,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.beginPath(); b.ellipse(-60 + (LW + 120) * k, LH * 0.4 + Math.sin(k * 6) * 10, 70, 26, -0.2, 0, TAU); b.fill(); b.restore();
       } else if (f.type === 'judge') {
         if (!f.fired) {
-          b.save(); b.globalAlpha = 0.5; b.strokeStyle = '#fff35c'; b.lineWidth = 2;
+          b.save(); b.globalAlpha = 0.5; b.strokeStyle = f.col || '#fff35c'; b.lineWidth = 2;
           const r = (1 - f.t / 0.3) * LW * 0.6 + 8;
           b.beginPath(); b.ellipse(P.x + ox, P.y + oy, r, r * 0.85, 0, 0, TAU); b.stroke(); b.restore();
           for (const o of f.targets!) { b.fillStyle = 'rgba(255,243,92,.8)'; b.fillRect(Math.round(o.x + ox) - 1, 0, 2, Math.round(o.y + oy)); }
@@ -410,7 +410,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
           b.save(); b.globalAlpha = Math.max(0, 1 - (f.t - 0.3) / 0.7);
           for (const o of f.targets!) {
             const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
-            b.fillStyle = '#ffd23f'; b.fillRect(x - 5, 0, 10, y); b.fillStyle = '#fff8c0'; b.fillRect(x - 3, 0, 6, y); b.fillStyle = '#fff'; b.fillRect(x - 1, 0, 2, y);
+            b.fillStyle = f.col && f.col !== '#fff35c' ? f.col : '#ffd23f'; b.fillRect(x - 5, 0, 10, y); b.fillStyle = '#fff8c0'; b.fillRect(x - 3, 0, 6, y); b.fillStyle = '#fff'; b.fillRect(x - 1, 0, 2, y);
             b.fillStyle = '#fff8c0'; b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.fill();
           }
           b.restore();

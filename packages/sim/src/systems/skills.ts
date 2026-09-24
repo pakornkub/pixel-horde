@@ -1,8 +1,10 @@
-import { PI, TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
-import { FLASK_TAGS, HOLE_BOOM, linAt, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
+import { PI, TAU, atan2, cos, hypot, sin } from '../core/fmath';
+import { FLASK_TAGS, HOLE_BOOM, linAt, type HitTag, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
 import { chillTick } from './combos';
 import { signatureOf } from '../data/heroes';
 import { shieldPoints } from './shield';
+import { WEAPONS } from '../data/weapons';
+import { chapterMobHp } from './spawner';
 
 const FLASKS = ['fire', 'ice', 'poison'] as const;
 const FLASK_COL = { fire: '#ff8a3d', ice: '#9fd8ff', poison: '#b6f24a' } as const;
@@ -33,14 +35,26 @@ export function useUlt(s: SimState): void {
   if (s.phase !== 'play' || s.ult < U.max) return;
   s.ult = 0;
   const targets = visibleEnemies(s);
-  const dmg = (U.dmgBase + U.dmgPerLv * s.P.lv) * ipow(U.dmgGrowth, s.stage - 1);
-  s.effects.push({ type: 'judge', t: 0, dur: 1.0, x: s.P.x, y: s.P.y, fired: false, targets: targets.map((e) => ({ e, x: e.x, y: e.y })), dmg });
+  const dmg = U.mobHp * chapterMobHp(s); // relative to this Chapter's monsters, never to player bonuses
+  s.effects.push({ type: 'judge', col: WEAPONS[s.weapon].col, t: 0, dur: 1.0, x: s.P.x, y: s.P.y, fired: false, targets: targets.map((e) => ({ e, x: e.x, y: e.y })), dmg });
   s.slowT = U.slow;
   flash(s, 0.25, '#fff8c0', false, true);
   shake(s, 6);
   sfx(s, 'ult');
   banner(s, 'judgement', 1.1, true);
 }
+
+/** One Ultimate strike in the form of the equipped Weapon. */
+function ultStrike(s: SimState, e: Enemy, dmg: number): void {
+  const w = WEAPONS[s.weapon], W = s.cfg.weapons;
+  if (w.form === 'reap' && !e.boss && e.hp < e.maxHp * W.execute) dmg = e.hp; // reaped outright
+  hit(s, e, dmg, w.col, s.cfg.ult.kb, w.form === 'burn' ? ULT_BURN : ULT_TAG);
+  if (e.dead) return;
+  if (w.form === 'root') { if (e.boss) e.slowT = Math.max(e.slowT, W.root); else e.stun = W.root; }
+  if (w.form === 'freeze') { if (e.boss) e.slowT = Math.max(e.slowT, W.freeze); else e.frz = W.freeze; }
+}
+const ULT_TAG: HitTag = { raw: true };
+const ULT_BURN: HitTag = { raw: true, applies: 'burning' };
 
 export function updSkills(s: SimState, dt: number): void {
   const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills;
@@ -508,7 +522,7 @@ export function updEffects(s: SimState, dt: number): void {
         flash(s, 0.45, '#ffffff', false, true); shake(s, 11);
         s.hitstop = 0.08;
         for (const o of f.targets!) {
-          if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; hit(s, o.e, f.dmg, '#fff35c', s.cfg.ult.kb); }
+          if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; ultStrike(s, o.e, f.dmg); }
           burst(s, o.x, o.y, '#fff8c0', 8, 80, 0.6);
         }
         sfx(s, 'boom');

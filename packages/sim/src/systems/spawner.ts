@@ -39,8 +39,7 @@ function introType(s: SimState, type: EnemyId, armored: boolean): void {
 
 export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, elite: boolean): Enemy {
   const t = ET[type], b = s.cfg.enemies[type], c = s.cfg.scaling, P = s.P, R = s.rng.spawn;
-  const lvS = 1 + c.hpPerLv * (P.lv - 1);
-  const hm = ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * lvS * (c.hpDirBase + c.hpDirK * s.dir.v);
+  const hm = hpScale(s);
   const dm = ipow(c.dmgGrowth, s.stage - 1) * (1 + c.dmgProg * prog(s)) * (1 + c.dmgPerLv * (P.lv - 1));
   const e: Enemy = {
     id: s.eid++ & 262143, type, x, y,
@@ -60,6 +59,15 @@ export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, eli
   introType(s, type, e.armor > 0);
   return e;
 }
+
+/** Monster HP multiplier right now (Chapter, Stage progress, player level, Director). */
+export function hpScale(s: SimState): number {
+  const c = s.cfg.scaling;
+  return ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * (1 + c.hpPerLv * (s.P.lv - 1)) * (c.hpDirBase + c.hpDirK * s.dir.v);
+}
+
+/** HP of this Chapter's normal monster (the Realm's first mob) right now. */
+export const chapterMobHp = (s: SimState): number => s.cfg.enemies[realm(s).pool[0]].hp * hpScale(s);
 
 /** A point just outside the view around a random living player. */
 export function edgePos(s: SimState): [number, number] {

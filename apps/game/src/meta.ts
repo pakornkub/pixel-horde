@@ -1,7 +1,7 @@
 // Meta progression. The server owns Gold/Shop/unlocks (ticket 09); this module keeps a local cache
 // (`pixelhorde-meta`, also the offline save) plus a queue of offline actions, and lets the server
 // win whenever it is reachable. The old artifact save is uploaded once.
-import { HERO_IDS, isHero, SHOP_IDS, shopCost, type HeroId, type Meta, type ShopId } from '@pixel-horde/sim';
+import { HERO_IDS, isHero, isWeapon, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
 import { BackendError, type Backend, type RunResult, type RunTicket, type ServerMeta } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
@@ -12,6 +12,9 @@ export interface MetaSave {
   up: Partial<Record<ShopId, number>>;
   owned: HeroId[];
   ch: HeroId;
+  /** Weapon collection ("lumora:thornwhip") and the Weapon picked for the next Run. */
+  weapons: string[];
+  weapon: WeaponId;
 }
 
 export type QueueOp =
@@ -31,6 +34,8 @@ export function parseMeta(raw: unknown): MetaSave {
     up,
     owned: Array.isArray(m.owned) ? m.owned.filter(isHero) : [],
     ch: isHero(m.ch) ? m.ch : 'mage',
+    weapons: Array.isArray(m.weapons) ? m.weapons.filter((w): w is string => typeof w === 'string') : [],
+    weapon: isWeapon(m.weapon) ? m.weapon : 'judgement',
   };
 }
 
@@ -57,6 +62,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     for (const id of SHOP_IDS) { const v = Number(s.shop?.[id]); if (v > 0) up[id] = v; }
     meta.up = up;
     meta.owned = (s.heroes || []).filter(isHero);
+    meta.weapons = Array.isArray(s.weapons) ? s.weapons : meta.weapons;
+    if (!ownsWeapon(meta.weapon)) meta.weapon = 'judgement';
     if (!ownsHero(meta.ch)) meta.ch = 'mage';
     save();
   }
@@ -128,6 +135,14 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
   }
 
   /** Record a Run's progress (every Stage clear and at the end) so a crash still pays out later. */
+  const ownsWeapon = (w: WeaponId): boolean => w === 'judgement' || meta.weapons.includes(weaponKey(w));
+  /** Weapons found in a Run join the local collection at once (the server confirms on submit). */
+  function addWeapons(found: WeaponId[]): void {
+    for (const w of found) if (!ownsWeapon(w)) meta.weapons.push(weaponKey(w));
+    if (found.length) save();
+  }
+  function selectWeapon(w: WeaponId): void { if (ownsWeapon(w)) { meta.weapon = w; save(); } }
+
   function recordRun(result: RunResult, ticket: RunTicket | null, live: boolean): void {
     queue = queue.filter((q) => !(q.kind === 'run' && q.result.clientRunId === result.clientRunId));
     queue.push({ kind: 'run', result, ticket: ticket ?? undefined, live });
@@ -148,6 +163,9 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     buy,
     unlockHero,
     recordRun,
+    ownsWeapon,
+    addWeapons,
+    selectWeapon,
     bankLocal,
     spendLocal,
     pending: (): readonly QueueOp[] => queue,
@@ -164,7 +182,7 @@ export const META = metaSync.meta;
 export const U = metaSync.U;
 export const ownsHero = metaSync.ownsHero;
 export const saveMeta = metaSync.save;
-export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold });
+export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold, weapons: [...META.weapons] });
 export const HEROES_ALL = HERO_IDS;
 
 export interface Best { stage: number; kills: number }

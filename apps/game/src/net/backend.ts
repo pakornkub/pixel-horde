@@ -49,6 +49,9 @@ export interface RunResult {
   kills: number;
   level: number;
   gold: number;
+  /** Weapon used and Weapons found this Run. */
+  weapon?: string;
+  weaponsFound?: string[];
   /** Gold taken from the wallet during the Run (Stage-end swaps); charged on submit. */
   walletSpent?: number;
   score: number;
@@ -88,7 +91,7 @@ export interface Backend {
   // --- progression (ticket 09); all throw BackendError('OFFLINE') when not online ---
   getMeta(): Promise<ServerMeta>;
   /** null when offline: the Run then uses a local seed and is submitted later as an offline Run. */
-  startRun(hero: string, mode?: RunResult['mode']): Promise<RunTicket | null>;
+  startRun(hero: string, mode?: RunResult['mode'], weapon?: string): Promise<RunTicket | null>;
   submitRun(ticket: RunTicket, r: RunResult): Promise<SubmitOutcome>;
   submitOfflineRun(r: RunResult): Promise<SubmitOutcome>;
   buyUpgrade(item: string): Promise<ServerMeta>;

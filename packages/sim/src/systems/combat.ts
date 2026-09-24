@@ -1,6 +1,7 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL } from '../data/enemies';
 import { linAt, type HitTag } from '../data/skills';
+import { WEAPONS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
 import { REALMS } from '../content/lumora/realms';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
@@ -15,6 +16,7 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
   if (e.dead || e.hide) return;
   const P = s.P, R = s.rng.combat, pl = s.cfg.player;
   let after: (() => void)[] | null = null;
+  if (tag?.raw) return rawHit(s, e, base, col, kb, tag);
   if (tag && !tag.combo) {
     const c = combosFor(s, e, base, tag);
     if (c.after.length) after = c.after;
@@ -52,6 +54,29 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
 
 const NO_RESIST = new Set(['dragon', 'whelp', 'rival']);
 
+const ownsWeapon = (s: SimState, id: WeaponId): boolean => (s.meta.weapons || []).includes(weaponKey(id)) || s.foundWeapons.includes(id);
+function findWeapon(s: SimState, id: WeaponId): void {
+  s.foundWeapons.push(id);
+  s.events.push({ t: 'weaponFound', id });
+  banner(s, 'weaponFound', 2.6, true, { id });
+}
+
+/** Ultimate damage: fixed, capped on Kings/Guardians (Umbra lower), leaves the Weapon's Status. */
+function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | undefined, tag: HitTag): void {
+  const U = s.cfg.ult;
+  let d = base;
+  if (e.boss) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap));
+  d = Math.max(1, Math.round(d));
+  s.events.push({ t: 'dmg', d });
+  e.hp -= d;
+  e.flash = 0.08;
+  const P = s.P, dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1, k = (kb ?? 0) * (e.boss ? s.cfg.player.kbBoss : 1);
+  e.kx += (dx / l) * k; e.ky += (dy / l) * k;
+  text(s, e.x, e.y - e.r * 1.2, d, col, false, { jitter: true });
+  if (tag.applies === 'burning' && e.hp > 0) e.burn = s.cfg.status.burning * P.statusMul;
+  if (e.hp <= 0) killE(s, e);
+}
+
 export function killE(s: SimState, e: Enemy): void {
   const R = s.rng.loot, C = s.cfg, L = C.loot;
   s.events.push({ t: 'kill', ttk: s.clock - e.born });
@@ -79,7 +104,11 @@ export function killE(s: SimState, e: Enemy): void {
   s.streak++;
   s.streakT = C.streak.window;
   if (s.streak > s.maxStreak) s.maxStreak = s.streak;
-  s.ult = Math.min(C.ult.max, s.ult + (e.boss ? C.ult.perBoss : e.elite ? C.ult.perElite : C.ult.perKill));
+  { // kills add charge only within the budget (at most killCap × the time rate)
+    const add = Math.min(s.ultBudget, e.boss ? C.ult.perBoss : e.elite ? C.ult.perElite : C.ult.perKill);
+    s.ultBudget -= add;
+    s.ult = Math.min(C.ult.max, s.ult + add);
+  }
   burst(s, e.x, e.y, DEATH_COL[e.type], e.boss ? 80 : e.elite ? 24 : 9, e.boss ? 110 : 60, e.boss ? 1 : 0.45);
   const v = e.xp;
   if (e.type === 'dragon' || e.type === 'rival') {
@@ -97,6 +126,13 @@ export function killE(s: SimState, e: Enemy): void {
       // King reward: Skill Point(s) and the chest wheel (Gold drops below)
       s.sp += C.economy.kingSkillPoints;
       s.chestQueue += C.economy.kingChest;
+      const w = weaponOfRealm(s.realm);
+      if (w && !ownsWeapon(s, w.id) && R.next() < C.weapons.drop) findWeapon(s, w.id);
+    }
+    if (e.type === 'umbra') {
+      // beating Umbra always gives a missing Weapon (or Gold when the collection is complete)
+      const w = Object.values(WEAPONS).find((x) => x.available && x.realm && !ownsWeapon(s, x.id));
+      if (w) findWeapon(s, w.id); else s.runGold += C.weapons.umbraGold;
     }
     if (e.kg) say(s, e, 'defeat');
     if (e.type === 'umbra') { s.victory = true; s.victoryTime = s.totalTime; }

@@ -45,6 +45,7 @@ export const elementName = (x: Element): string => t(`element.${x}`);
 export function bannerText(key: BannerKey, a: Record<string, string | number>, realm: RealmId): { txt: string; sub: string } {
   const args: Record<string, string | number> = { ...a, theme: realmShort(realm), boss: kingName(realm) };
   if (key === 'evolved') args.evo = evoName(a.id as SkillId);
+  if (key === 'weaponFound') args.weapon = t(`weapon.${a.id}.name`);
   if (key === 'bossIncoming') args.dir = a.dir ? t(`dir.${a.dir}`) : '';
   return { txt: t(`banner.${key}.txt`, args), sub: t(`banner.${key}.sub`, args) };
 }

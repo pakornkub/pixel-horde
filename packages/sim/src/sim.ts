@@ -9,6 +9,7 @@ import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
 import { banner, shake } from './systems/fx';
 import { directionOf, initKing } from './systems/kings';
+import { isWeapon } from './data/weapons';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type SimOptions, type SimState } from './types';
 
 
@@ -56,11 +57,11 @@ export function createSim(opts: SimOptions): Sim {
   const s: SimState = {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
-    meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0) },
+    meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0), weapons: [...(opts.meta.weapons || [])] },
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -95,6 +96,7 @@ export function createSim(opts: SimOptions): Sim {
       case 'route': chooseRoute(s, c.index); break;
       case 'swap': swapBench(s, c.bench, c.slot); break;
       case 'awaken': answerAwaken(s, c.accept); break;
+      case 'weapon': if (s.phase === 'clear' && s.foundWeapons.includes(c.id)) s.weapon = c.id; break;
       case 'reroll': reroll(s); break;
       case 'banish': banish(s, c.index); break;
       case 'spUpgrade': spUpgrade(s, c.id); break;
@@ -148,6 +150,10 @@ export function createSim(opts: SimOptions): Sim {
     if (live) {
       s.stageTime += dt;
       s.totalTime += dt;
+      // the Ultimate fills over time; kills may add at most killCap × this rate
+      const U = s.cfg.ult, rate = U.max / U.fill;
+      s.ult = Math.min(U.max, s.ult + rate * dt);
+      s.ultBudget = Math.min(rate * U.killCap * 2, s.ultBudget + rate * U.killCap * dt);
       spawnStep(s, dt);
       if (s.rivalStage && !s.rivalSpawned && prog(s) >= s.cfg.events.rivalAt) { s.rivalSpawned = true; spawnRival(s); }
       if (s.dragonStage && !s.dragonWarned && prog(s) >= s.cfg.events.dragonWarnAt) {

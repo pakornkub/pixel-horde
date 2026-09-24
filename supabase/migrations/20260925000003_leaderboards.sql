@@ -104,6 +104,7 @@ begin
   if problem is null and g > 0 then
     update public.meta_progress set gold = gold + g, updated_at = now() where user_id = uid returning * into m;
   end if;
+  if problem is null then m := public.add_found_weapons(uid, r.world, p -> 'weaponsFound'); end if;
   -- Gold the Run took from the wallet (Stage-end swaps etc.) is always charged, never below zero.
   if coalesce((p ->> 'walletSpent')::int, 0) > 0 then
     update public.meta_progress set gold = greatest(0, gold - (p ->> 'walletSpent')::int), updated_at = now() where user_id = uid returning * into m;

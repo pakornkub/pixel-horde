@@ -104,10 +104,10 @@ export function createSupabaseBackend(): Backend {
       status.set('online');
     },
     async getMeta() { online(); return rpc<ServerMeta>('get_meta'); },
-    async startRun(hero, mode = 'solo') {
+    async startRun(hero, mode = 'solo', weapon = 'judgement') {
       if (status.get() !== 'online') return null;
       try {
-        const t = await rpc<{ runId: string; token: string; seed: number; configVersion: number }>('start_run', { p_hero: hero, p_mode: mode });
+        const t = await rpc<{ runId: string; token: string; seed: number; configVersion: number }>('start_run', { p_hero: hero, p_mode: mode, p_weapon: weapon });
         return { runId: t.runId, token: t.token, seed: Number(t.seed) >>> 0, configVersion: t.configVersion } satisfies RunTicket;
       } catch (e) {
         if (e instanceof BackendError && e.code === 'SESSION_REPLACED') throw e;
@@ -116,7 +116,7 @@ export function createSupabaseBackend(): Backend {
     },
     async submitRun(ticket, r) {
       online();
-      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, score: r.score, pausedMs: r.pausedMs, summary: r.summary ?? {} } });
+      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, weaponsFound: r.weaponsFound ?? [], score: r.score, pausedMs: r.pausedMs, summary: r.summary ?? {} } });
     },
     async submitOfflineRun(r) { online(); return rpc<SubmitOutcome>('submit_offline_run', { p: r }); },
     async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },
