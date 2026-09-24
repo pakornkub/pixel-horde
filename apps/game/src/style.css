@@ -103,3 +103,11 @@ html[lang="en"] .chestTxt{font-size:11px}
 .setmsg{font-size:13px;min-height:1.4em;margin:0}
 html[lang="en"] .setrow{font-size:10px}
 html[lang="en"] .seg button{font-size:9px}
+
+/* account (ticket 08) */
+.field{width:100%;font:inherit;font-size:18px;padding:10px 12px;border:3px solid var(--ink);border-radius:4px;background:#fff;color:var(--ink);margin:0 0 6px}
+.field:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.err{color:#b0182a;font-size:14px;min-height:1.4em;margin:0 0 8px}
+.acct{margin-top:4px}
+.link{font:inherit;background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer}
+#ovTab,#ovReplaced{z-index:8}

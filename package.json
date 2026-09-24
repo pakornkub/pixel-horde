@@ -19,6 +19,7 @@
     "lab": "npm run lab -w @pixel-horde/game"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.4",

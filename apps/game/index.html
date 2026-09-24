@@ -26,6 +26,7 @@
   <button class="btn ghost" id="settingsBtn1" data-i18n="title.settings"></button>
   <button class="btn ghost" id="langBtn" data-i18n="title.lang"></button>
   <div class="best" id="bestTxt"></div>
+  <div class="best acct"><span id="acctTxt"></span> <button class="link" id="renameBtn" data-i18n="account.rename"></button></div>
 </div></div>
 
 <div class="overlay" id="ovLevel"><div class="box">
@@ -87,6 +88,27 @@
   <p class="slots" data-i18n="set.note"></p>
   <div id="setList" class="setlist"></div>
   <button class="btn ghost" id="setBack" data-i18n="set.back"></button>
+</div></div>
+
+<div class="overlay" id="ovName"><div class="box">
+  <h2 data-i18n="name.title"></h2>
+  <p data-i18n="name.text"></p>
+  <input id="nameInput" class="field" maxlength="16" autocomplete="nickname" data-i18n-placeholder="name.placeholder">
+  <p class="err" id="nameErr" role="alert"></p>
+  <button class="btn" id="nameOk" data-i18n="name.ok"></button>
+  <button class="btn ghost" id="nameSkip" data-i18n="name.skip"></button>
+</div></div>
+
+<div class="overlay" id="ovTab"><div class="box">
+  <h2 id="tabTitle"></h2>
+  <p id="tabText"></p>
+  <button class="btn" id="tabBtn" data-i18n="tab.useHere"></button>
+</div></div>
+
+<div class="overlay" id="ovReplaced"><div class="box">
+  <h2 data-i18n="replaced.title"></h2>
+  <p data-i18n="replaced.text"></p>
+  <button class="btn" id="replacedBtn" data-i18n="replaced.playHere"></button>
 </div></div>
 
 <script type="module" src="/src/main.ts"></script>

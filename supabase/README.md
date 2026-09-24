@@ -1,4 +1,21 @@
 # supabase/
 
-Migrations, RLS policies, RPCs (`submit_run`, run token, …) and pg_cron jobs for the
-`pixel-horde` Supabase project (ap-southeast-1). Filled in from ticket 08 onward.
+Migrations, RLS policies, RPCs and pg_cron jobs for the Supabase project `pixel-horde`
+(id `jqvgmkhzdhjreikjqhxt`, ap-southeast-1).
+
+- `migrations/` — applied in filename order (`supabase db push`, or the Supabase MCP `apply_migration`).
+- `tests/*.test.sql` — pgTAP tests. On Supabase: `supabase test db`. In CI they run inside PGlite
+  with a tiny pgTAP shim (`tests/db/*.sql`, `tests/db.test.ts`), so every push checks them.
+- `profanity.json` — basic Thai/English nickname word list shared by the SQL filter and the client
+  (a test keeps them in sync).
+
+## Rules
+- Players never write tables: every table has RLS; writes go through `SECURITY DEFINER` RPCs.
+- Every gameplay RPC starts with `public.assert_session()` → raises `SESSION_REPLACED` when the JWT's
+  `session_id` is not the account's latest `claim_session()` (latest login wins).
+
+## One-time project settings (dashboard, owner)
+1. **Authentication → Sign In / Providers → Allow anonymous sign-ins: ON.**
+2. **Authentication → Rate Limits**: raise "anonymous sign-ins per hour" (e.g. 300).
+3. **Authentication → Attack Protection → CAPTCHA**: Cloudflare Turnstile with the Turnstile
+   *secret* key; put the *site* key in the game build as `VITE_TURNSTILE_SITE_KEY`.

@@ -4,6 +4,7 @@ import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio } from './audio/sfx';
 import { applyLang, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
+import { checkSession, initAccount, renderAccountLine } from './ui/account';
 import { active } from './config';
 import { META, getBest, saveMeta, setBest, simMeta } from './meta';
 import { keys, readInput, touch } from './platform/input';
@@ -57,6 +58,7 @@ function newRun(): void {
   shownLevelUp = null;
   shownPhase = '';
   consume(sim.view().events, sim.view());
+  checkSession();
   setPlayUI(true);
   last = performance.now();
   acc = 0;
@@ -115,6 +117,7 @@ function frame(now: number): void {
         const v = sim.view();
         consume(events, v);
         if (events.some((e) => e.t === 'stageClear')) bank();
+        if (events.some((e) => e.t === 'stageStart')) checkSession();
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
         acc -= DT;
         steps++;
@@ -229,9 +232,11 @@ function refreshText(): void {
   metLabel();
   renderChars();
   $('bestTxt').textContent = bestLine();
+  renderAccountLine();
 }
 onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
+initAccount({ pauseGame: pause });
 requestAnimationFrame(frame);

@@ -10,7 +10,8 @@
     "lab": "vite --open /sprite-lab.html"
   },
   "dependencies": {
+    "@pixel-horde/i18n": "*",
     "@pixel-horde/sim": "*",
-    "@pixel-horde/i18n": "*"
+    "@supabase/supabase-js": "^2.117.1"
   }
 }
