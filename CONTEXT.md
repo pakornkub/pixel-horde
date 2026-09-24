@@ -113,6 +113,10 @@ _Avoid_: ultimate evolution, second evolution, ascension
 The automatic reaction when a Skill hits an enemy carrying a Status left by a different element (e.g. Shatter = Frozen + heavy hit).
 _Avoid_: synergy, chain (Chain Lightning is a Skill)
 
+**Kill Streak**:
+The count of kills made in quick succession (each within ~2 s of the last), shown as "×50 KO!". Named `combo` in the original code; renamed so it never collides with Combo.
+_Avoid_: combo (reserved for elemental reactions)
+
 **Status**:
 A temporary effect a Skill leaves on an enemy (Frozen, Gathered, Burning, Shocked, Poisoned) that Combos consume.
 _Avoid_: debuff, element
