@@ -1,7 +1,8 @@
 // Presentation-only state: particles, floating numbers, shake/flash, banners.
 // Uses its own fxRng so rendering never touches the sim's seeded streams.
 import { createRng, type SimEvent, type SimState } from '@pixel-horde/sim';
-import { sfx } from '../audio/sfx';
+import { castSound, comboSound, saySound, sfx, ultSound } from '../audio/sfx';
+import { WEAPONS } from '@pixel-horde/sim';
 import { t } from '@pixel-horde/i18n';
 import { bannerText } from '../ui/text';
 import { effectsScale, settings, shakeScale, vibrate } from '../settings';
@@ -54,8 +55,8 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
   for (const e of events) {
     switch (e.t) {
       case 'sfx':
-        sfx(e.k);
-        if (e.k === 'ult') vibrate(80);
+        if (e.k === 'ult') { ultSound(WEAPONS[v.weapon].form); vibrate(80); } // the Weapon decides the Ultimate's sound
+        else sfx(e.k);
         break;
       case 'text': {
         if (e.hurt) vibrate(35);
@@ -83,7 +84,9 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
         if (e.key === 'bossDown' || e.key === 'dragonTamed') vibrate([60, 40, 60]);
         break;
       }
+      case 'cast': castSound(e.id); break;
       case 'say': {
+        saySound();
         const txt = t(`king.${e.who}.${e.beat}`);
         vfx.bubbles = vfx.bubbles.filter((b) => b.who !== e.who);
         vfx.bubbles.push({ txt, who: e.who, x: e.x, y: e.y, t: 0, life: 2.6 + txt.length * 0.03 });
@@ -91,7 +94,7 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
       }
       case 'combo': {
         vfx.texts.push({ x: e.x, y: e.y - 18, vx: 0, vy: -26, t: 0, life: 1.1, v: t(`combo.${e.id}`), col: COMBO_COL[e.id], cr: false, big: true });
-        sfx('crit');
+        comboSound(e.id);
         break;
       }
       case 'dmg': if (MET.on) { MET.dmg.push([v.clock, e.d]); if (MET.dmg.length > 4000) MET.dmg.splice(0, 1000); } break;

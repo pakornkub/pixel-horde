@@ -315,6 +315,7 @@ export type SimEvent =
   | { t: 'stageClear'; stage: number; escaped: boolean }
   | { t: 'say'; who: EnemyId; beat: SayBeat; x: number; y: number }
   | { t: 'combo'; id: ComboId; x: number; y: number }
+  | { t: 'cast'; id: SkillId }
   | { t: 'weaponFound'; id: WeaponId }
   | { t: 'swapDenied' }
   | { t: 'spent'; what: 'reroll' | 'banish' | 'upgrade' | 'buySp' | 'revive' }

@@ -1,12 +1,14 @@
-// Tiny WebAudio synth (ported from the original). ZzFX replaces it in ticket 40.
-import type { SfxKey } from '@pixel-horde/sim';
+// Audio engine: ZzFX sounds on an effects bus and ZzFXM-style music on a music bus; both
+// volumes follow Settings. No audio files are shipped — everything is synthesized once.
+import type { ComboId, SfxKey, SkillId } from '@pixel-horde/sim';
 import { onSettingsChange, settings } from '../settings';
+import { SONGS, renderSong } from './music';
+import { CAST, COMBO, SAY, SFX, ULT } from './sounds';
+import { SAMPLE_RATE, zzfxSamples, type ZzfxParams } from './zzfx';
 
 let AC: AudioContext | null = null;
-/** Effects bus; its gain follows the effects-volume setting. Music gets its own bus in ticket 40. */
 let sfxBus: GainNode | null = null;
-let noiseBuf: AudioBuffer | null = null;
-let lastHit = 0, lastGem = 0;
+let musicBus: GainNode | null = null;
 export const audio = { muted: false };
 
 export function initAudio(): void {
@@ -15,62 +17,88 @@ export function initAudio(): void {
     const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     AC = new Ctor();
     sfxBus = AC.createGain();
-    sfxBus.gain.value = settings.sfx;
+    musicBus = AC.createGain();
     sfxBus.connect(AC.destination);
+    musicBus.connect(AC.destination);
+    applyVolumes();
+    if (wanted) playMusic(wanted, true);
   } catch { AC = null; }
 }
 
-function tone(f: number, d: number, type: OscillatorType, vol: number, slide?: number, delay?: number): void {
-  const ac = AC!;
-  const t = ac.currentTime + (delay || 0);
-  const o = ac.createOscillator(), g = ac.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(f, t);
-  if (slide) o.frequency.linearRampToValueAtTime(Math.max(40, f + slide), t + d);
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-  o.connect(g); g.connect(sfxBus!);
-  o.start(t); o.stop(t + d + 0.02);
+function applyVolumes(): void {
+  if (sfxBus) sfxBus.gain.value = audio.muted ? 0 : settings.sfx;
+  if (musicBus) musicBus.gain.value = audio.muted ? 0 : settings.music * 0.5;
 }
+onSettingsChange(applyVolumes);
+export function setMuted(m: boolean): void { audio.muted = m; applyVolumes(); }
 
-function noise(d: number, vol: number): void {
-  const ac = AC!;
-  if (!noiseBuf) {
-    noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
-    const a = noiseBuf.getChannelData(0);
-    for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1;
-  }
-  const s = ac.createBufferSource();
-  s.buffer = noiseBuf;
-  const g = ac.createGain(), f = ac.createBiquadFilter();
-  f.type = 'lowpass';
-  f.frequency.value = 900;
-  const t = ac.currentTime;
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-  s.connect(f); f.connect(g); g.connect(sfxBus!);
-  s.start(t); s.stop(t + d);
-}
+/* ---------- effects ---------- */
+const buffers = new Map<ZzfxParams, AudioBuffer>();
+const lastAt = new Map<string, number>();
 
-export function sfx(k: SfxKey): void {
-  if (!AC || audio.muted || AC.state !== 'running' || settings.sfx <= 0) return;
-  const t = AC.currentTime, R = Math.random;
+function play(p: ZzfxParams, key: string, minGap: number, rate = 1): void {
+  if (!AC || !sfxBus || audio.muted || AC.state !== 'running' || settings.sfx <= 0) return;
+  const now = AC.currentTime;
+  if (now - (lastAt.get(key) ?? -1) < minGap) return; // hordes: do not stack the same sound
+  lastAt.set(key, now);
   try {
-    if (k === 'hit') { if (t - lastHit < 0.05) return; lastHit = t; tone(700 + R() * 300, 0.04, 'square', 0.025, -300); }
-    else if (k === 'crit') { if (t - lastHit < 0.03) return; lastHit = t; tone(1500, 0.07, 'square', 0.035, -900); }
-    else if (k === 'boom') noise(0.35, 0.14);
-    else if (k === 'zap') tone(1800, 0.12, 'sawtooth', 0.03, -1400);
-    else if (k === 'nova') tone(300, 0.25, 'sawtooth', 0.04, -200);
-    else if (k === 'lance') tone(1100, 0.08, 'triangle', 0.04, -500);
-    else if (k === 'laser') tone(700, 0.8, 'sawtooth', 0.03, 900);
-    else if (k === 'lv') [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.12, 'square', 0.045, 0, i * 0.07));
-    else if (k === 'hurt') tone(160, 0.16, 'square', 0.06, -80);
-    else if (k === 'ult') { noise(1.1, 0.25); tone(160, 0.9, 'sawtooth', 0.07, 700); }
-    else if (k === 'coin') { if (t - lastGem < 0.035) return; lastGem = t; tone(1600, 0.06, 'square', 0.03, 500); }
-    else if (k === 'tick') { if (t - lastGem < 0.02) return; lastGem = t; tone(900, 0.025, 'square', 0.025, 0); }
-    else if (k === 'gem') { if (t - lastGem < 0.035) return; lastGem = t; tone(1300 + R() * 500, 0.03, 'triangle', 0.02, 0); }
-    else if (k === 'clear') [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, 'square', 0.05, 0, i * 0.1));
+    let buf = buffers.get(p);
+    if (!buf) {
+      const smp = zzfxSamples(p);
+      buf = AC.createBuffer(1, smp.length, SAMPLE_RATE);
+      buf.getChannelData(0).set(smp);
+      buffers.set(p, buf);
+    }
+    const src = AC.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    src.connect(sfxBus);
+    src.start();
   } catch { /* audio is best-effort */ }
 }
 
-onSettingsChange(() => { if (sfxBus) sfxBus.gain.value = settings.sfx; });
+const GAP: Partial<Record<SfxKey, number>> = { hit: 0.05, crit: 0.03, coin: 0.035, gem: 0.035, tick: 0.02 };
+
+export function sfx(k: SfxKey): void { play(SFX[k], k, GAP[k] ?? 0.02, k === 'hit' || k === 'gem' ? 0.9 + Math.random() * 0.2 : 1); }
+export function castSound(id: SkillId): void { play(CAST[id], 'cast:' + id, 0.08); }
+export function comboSound(id: ComboId): void { play(COMBO[id], 'combo:' + id, 0.12); }
+export function ultSound(form: string): void { play(ULT[form] ?? SFX.ult, 'ult', 0.3); }
+export function saySound(): void { play(SAY, 'say', 0.15); }
+
+/* ---------- music ---------- */
+export type MusicId = keyof typeof SONGS;
+let wanted: MusicId | null = null;
+let current: { id: MusicId; src: AudioBufferSourceNode; gain: GainNode } | null = null;
+const rendered = new Map<MusicId, AudioBuffer>();
+
+/** Crossfade to a track (null = silence). Safe to call every frame. */
+export function playMusic(id: MusicId | null, force = false): void {
+  if (id === wanted && !force) return;
+  wanted = id;
+  if (!AC || !musicBus) return;
+  const t = AC.currentTime;
+  if (current) {
+    const old = current;
+    old.gain.gain.setTargetAtTime(0, t, 0.3);
+    setTimeout(() => { try { old.src.stop(); } catch { /* already stopped */ } }, 1500);
+    current = null;
+  }
+  if (!id) return;
+  try {
+    let buf = rendered.get(id);
+    if (!buf) {
+      const smp = renderSong(SONGS[id]);
+      buf = AC.createBuffer(1, smp.length, SAMPLE_RATE);
+      buf.getChannelData(0).set(smp);
+      rendered.set(id, buf);
+    }
+    const src = AC.createBufferSource(), gain = AC.createGain();
+    src.buffer = buf;
+    src.loop = true;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.setTargetAtTime(1, t, 0.4);
+    src.connect(gain); gain.connect(musicBus);
+    src.start();
+    current = { id, src, gain };
+  } catch { /* best-effort */ }
+}

@@ -57,13 +57,18 @@ function ultStrike(s: SimState, e: Enemy, dmg: number): void {
 const ULT_TAG: HitTag = { raw: true };
 const ULT_BURN: HitTag = { raw: true, applies: 'burning' };
 
+/** Skills whose cooldown ran out this tick (a cast event is emitted when they actually fired). */
+const castSeen: SkillId[] = [];
+
 export function updSkills(s: SimState, dt: number): void {
   const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills;
+  castSeen.length = 0;
   for (const id of Object.keys(sk) as SkillId[]) {
     const lv = sk[id]!, t = st(s, id, lv);
     if (id === 'orbit' || id === 'frost' || id === 'shield' || id === 'timeWarp' || id === 'galeStep' || id === 'transmute') continue;
     P.cds[id] = (P.cds[id] || 0) - dt;
     if (P.cds[id]! > 0) continue;
+    castSeen.push(id);
     if (id === 'bolt') {
       const c = K.bolt, list = nearestN(s, t.n, c.range);
       if (!list.length) { P.cds[id] = 0.1; continue; }
@@ -277,6 +282,7 @@ export function updSkills(s: SimState, dt: number): void {
       }
     }
   }
+  for (const id of castSeen) if ((P.cds[id] || 0) >= st(s, id, sk[id]!).cd * P.cdMul - 1e-9) s.events.push({ t: 'cast', id });
   if (sk.timeWarp) {
     const t = st(s, 'timeWarp', sk.timeWarp);
     P.cds.timeWarp = (P.cds.timeWarp || 0) - dt;

@@ -1,7 +1,7 @@
 import './style.css';
 import { createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
-import { initAudio, audio } from './audio/sfx';
+import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
@@ -313,6 +313,8 @@ function frame(now: number): void {
     telemetry.recordError(String((err as Error)?.message ?? err), (err as Error)?.stack ?? '');
   }
   const v = sim ? sim.view() : null;
+  // music: title theme outside Runs, King and Umbra themes during their fights (Realm themes come with Realm tickets)
+  playMusic(!v || v.phase === 'over' ? 'title' : v.boss?.type === 'umbra' ? 'umbra' : v.boss || v.boss2 || v.dragonE ? 'king' : null);
   renderWorld(v, v ? v.clock : rclock, !v || v.phase === 'over');
   if (v) { drawTexts(v.clock); drawHud(v, v.clock, v.runGold); }
   requestAnimationFrame(frame);
@@ -352,7 +354,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Space' && playing()) cmd({ type: 'ult' });
   if (e.code === 'Escape' && settingsOpen()) { closeSettings(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
-  if (e.code === 'KeyM') audio.muted = !audio.muted;
+  if (e.code === 'KeyM') setMuted(!audio.muted);
   if (e.code === 'KeyI') toggleMet();
   const choosing = sim?.view().phase === 'levelup' ? 'opts' : sim?.view().phase === 'route' ? 'routeOpts' : '';
   if (choosing && /^Digit[1-3]$/.test(e.code)) {
