@@ -86,14 +86,14 @@ describe('Skill slots v2 and the Bench', () => {
 
   it('a swap is refused when Gold is short, outside the clear screen, or for the Signature Skill', () => {
     const { sim, s } = fresh(0);
-    s.P.skills = { bolt: 1, chain: 1 };
+    s.P.skills = { sigil: 1, chain: 1 };
     s.P.bench = [{ id: 'frost', lv: 1, evo: false }];
     s.runGold = 1000;
     sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'chain' }]); // phase play
     expect(s.P.bench[0].id).toBe('frost');
     s.phase = 'clear';
-    sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'bolt' }]); // Signature (Mage)
-    expect(s.P.skills.bolt).toBe(1);
+    sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'sigil' }]); // Signature (Lyra)
+    expect(s.P.skills.sigil).toBe(1);
     s.runGold = 5;
     const ev = sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'chain' }]);
     expect(ev.some((e) => e.t === 'swapDenied')).toBe(true);

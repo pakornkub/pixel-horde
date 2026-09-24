@@ -1,8 +1,14 @@
 import type { ResolvedConfig } from '@pixel-horde/config';
 // Skill, passive and evolution gameplay data (numbers only; names/descriptions live in the game UI).
 
+/** The 12 general Skills any Hero can pick. */
 export const SKILL_IDS = ['bolt', 'orbit', 'chain', 'nova', 'meteor', 'frost', 'lance', 'boomer', 'cyclone', 'toxic', 'laser', 'hole'] as const;
-export type SkillId = (typeof SKILL_IDS)[number];
+/** Signature Skills: one per Hero, in the locked slot, never offered to other Heroes. */
+export const SIGNATURE_IDS = ['sigil', 'shield', 'hawk', 'flask'] as const;
+export type SignatureId = (typeof SIGNATURE_IDS)[number];
+export type SkillId = (typeof SKILL_IDS)[number] | SignatureId;
+export const ALL_SKILL_IDS: SkillId[] = [...SKILL_IDS, ...SIGNATURE_IDS];
+export const isSignature = (id: SkillId): id is SignatureId => (SIGNATURE_IDS as readonly string[]).includes(id);
 export const PASSIVE_IDS = ['might', 'haste', 'swift', 'vital', 'magnet', 'crit'] as const;
 export type PassiveId = (typeof PASSIVE_IDS)[number];
 
@@ -10,6 +16,7 @@ export type PassiveId = (typeof PASSIVE_IDS)[number];
 export const EVO_PASSIVE: Record<SkillId, PassiveId> = {
   bolt: 'haste', orbit: 'swift', chain: 'crit', nova: 'might', meteor: 'vital', frost: 'magnet',
   lance: 'crit', boomer: 'magnet', cyclone: 'haste', toxic: 'vital', laser: 'swift', hole: 'might',
+  sigil: 'might', shield: 'vital', hawk: 'swift', flask: 'haste',
 };
 
 export interface SkillStats {
@@ -26,6 +33,12 @@ export interface SkillStats {
   boom: number;
   freeze: boolean;
   twin: boolean;
+  /** Aegis: blocked projectiles heal, damage taken reduced. */
+  absorb: boolean;
+  /** Twin Hawks stun. */
+  stun: boolean;
+  /** Smart Flask picks the element that combos. */
+  smart: boolean;
 }
 
 type Lin = { base: number; perLv: number; min?: number; max?: number };
@@ -41,7 +54,7 @@ const step = (c: Step, lv: number): number => c.base + Math.floor((lv - c.offset
 export const skillMax = (cfg: ResolvedConfig, id: SkillId): number => cfg.skills[id].max;
 export const passiveMax = (cfg: ResolvedConfig, id: PassiveId): number => cfg.passives.max[id];
 
-const EMPTY: SkillStats = { dmg: 0, cd: 0, n: 0, r: 0, pierce: 0, jumps: 0, spd: 0, range: 0, dur: 0, len: 0, boom: 0, freeze: false, twin: false };
+const EMPTY: SkillStats = { dmg: 0, cd: 0, n: 0, r: 0, pierce: 0, jumps: 0, spd: 0, range: 0, dur: 0, len: 0, boom: 0, freeze: false, twin: false, absorb: false, stun: false, smart: false };
 
 /** Stats of a skill at a level, optionally evolved (numbers from the Balance Config). */
 export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: boolean): SkillStats {
@@ -59,6 +72,10 @@ export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: bo
     case 'cyclone': { const c = K.cyclone; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = step(c.n, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); if (evo) { s.r *= c.evo.rMul; s.n += c.evo.nAdd; s.dmg *= c.evo.dmgMul; } break; }
     case 'toxic': { const c = K.toxic; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = step(c.n, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); if (evo) { s.r *= c.evo.rMul; s.dmg *= c.evo.dmgMul; } break; }
     case 'laser': { const c = K.laser; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.len = lin(c.len, lv); s.dur = c.dur; if (evo) { s.twin = true; s.dmg *= c.evo.dmgMul; } break; }
+    case 'sigil': { const c = K.sigil; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); s.n = 1; if (evo) { s.r *= c.evo.rMul; s.n = c.evo.n; } break; }
+    case 'shield': { const c = K.shield; s.dmg = lin(c.dmg, lv); s.n = Math.floor(lin(c.n, lv)); s.r = lin(c.r, lv); s.spd = lin(c.spd, lv); if (evo) { s.n = c.evo.n; s.absorb = true; } break; }
+    case 'hawk': { const c = K.hawk; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = 1; s.range = c.range; if (evo) { s.n = c.evo.n; s.stun = true; } break; }
+    case 'flask': { const c = K.flask; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.n = 1; s.range = c.range; if (evo) { s.n = c.evo.n; s.dmg *= c.evo.dmgMul; s.smart = true; } break; }
     case 'hole': { const c = K.hole; s.dmg = lin(c.dmg, lv); s.boom = lin(c.boom, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); if (evo) { s.boom *= c.evo.boomMul; s.r *= c.evo.rMul; } break; }
   }
   if (evo) s.dmg = Math.round(s.dmg);
@@ -87,6 +104,16 @@ export const SKILL_TAGS: Record<SkillId, HitTag> = {
   toxic: { el: 'poison', applies: 'poisoned' },
   laser: { el: 'lightning', applies: 'shocked' },
   hole: { el: 'dark' },
+  sigil: {},
+  shield: { sweep: true },
+  hawk: { heavy: true },
+  flask: {},
+};
+/** Volatile Flask: the element of each flask decides its tag. */
+export const FLASK_TAGS: Record<'fire' | 'ice' | 'poison', HitTag> = {
+  fire: { el: 'fire', applies: 'burning' },
+  ice: { el: 'ice' },
+  poison: { el: 'poison', applies: 'poisoned' },
 };
 /** Black Hole's collapse is a heavy hit. */
 export const HOLE_BOOM: HitTag = { el: 'dark', heavy: true };

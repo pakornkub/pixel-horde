@@ -9,6 +9,7 @@ export const SKILL_ICON: Record<SkillId, Icon> = {
   bolt: { col: '#ff5cf4', g: 'B' }, orbit: { col: '#7df9ff', g: 'O' }, chain: { col: '#fff35c', g: 'L' }, nova: { col: '#ff8a3d', g: 'N' },
   meteor: { col: '#ff4b3a', g: 'M' }, frost: { col: '#9fd8ff', g: 'F' }, lance: { col: '#ffe9a8', g: 'I' }, boomer: { col: '#7dffb0', g: 'R' },
   cyclone: { col: '#d8f3e0', g: 'T' }, toxic: { col: '#b6f24a', g: 'X' }, laser: { col: '#5cf4ff', g: 'Z' }, hole: { col: '#b07cff', g: 'Q' },
+  sigil: { col: '#e08cff', g: '*' }, shield: { col: '#fff8c0', g: '=' }, hawk: { col: '#c48a55', g: '^' }, flask: { col: '#ff9f5c', g: '%' },
 };
 export const PASSIVE_ICON: Record<PassiveId, Icon> = {
   might: { col: '#ff7a7a', g: '+' }, haste: { col: '#c9a8ff', g: 'H' }, swift: { col: '#a9e38a', g: 'S' },
@@ -27,6 +28,7 @@ export const evoName = (id: SkillId): string => t(`evo.${id}.name`);
 export const evoDesc = (id: SkillId): string => t(`evo.${id}.desc`);
 export const heroName = (id: HeroId): string => t(`hero.${id}.name`);
 export const heroDesc = (id: HeroId): string => t(`hero.${id}.desc`);
+export const heroRole = (id: HeroId): string => t(`hero.${id}.role`);
 export const shopName = (id: ShopId): string => t(`shop.${id}.name`);
 export const shopDesc = (id: ShopId): string => t(`shop.${id}.desc`);
 export const realmName = (r: RealmId): string => t(`realm.${r}.name`);

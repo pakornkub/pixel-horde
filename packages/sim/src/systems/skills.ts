@@ -1,6 +1,16 @@
 import { PI, TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
-import { HOLE_BOOM, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
+import { FLASK_TAGS, HOLE_BOOM, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
 import { chillTick } from './combos';
+import { shieldPoints } from './shield';
+
+const FLASKS = ['fire', 'ice', 'poison'] as const;
+const FLASK_COL = { fire: '#ff8a3d', ice: '#9fd8ff', poison: '#b6f24a' } as const;
+/** Smart Flask: fire where it combos (Gathered/Shocked/Poisoned), otherwise set one up. */
+function smartElement(e: Enemy): 'fire' | 'ice' | 'poison' {
+  if ((e.gath || 0) > 0 || (e.shock || 0) > 0 || (e.pois || 0) > 0) return 'fire';
+  if ((e.burn || 0) > 0) return 'poison';
+  return 'ice';
+}
 import type { Enemy, SimState } from '../types';
 import { hit } from './combat';
 import { cloneCast } from './events';
@@ -31,7 +41,7 @@ export function updSkills(s: SimState, dt: number): void {
   const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills;
   for (const id of Object.keys(sk) as SkillId[]) {
     const lv = sk[id]!, t = st(s, id, lv);
-    if (id === 'orbit' || id === 'frost') continue;
+    if (id === 'orbit' || id === 'frost' || id === 'shield') continue;
     P.cds[id] = (P.cds[id] || 0) - dt;
     if (P.cds[id]! > 0) continue;
     if (id === 'bolt') {
@@ -117,6 +127,32 @@ export function updSkills(s: SimState, dt: number): void {
       s.effects.push({ type: 'laser', t: 0, dur: t.dur, x: P.x, y: P.y, a0: R.next() * TAU, a: 0, len: t.len, dmg: t.dmg, hit: new Set(), hit2: new Set(), twin: t.twin });
       sfx(s, 'laser');
       P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'sigil') {
+      if (!nearest(s, P.x, P.y, t.r + 40)) { P.cds[id] = 0.2; continue; }
+      for (let i = 0; i < t.n; i++) {
+        const a = R.next() * TAU, d = i ? t.r * 1.3 : 0;
+        s.effects.push({ type: 'sigil', x: P.x + cos(a) * d, y: P.y + sin(a) * d, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0 });
+      }
+      sfx(s, 'nova');
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'hawk') {
+      // hunts the biggest monsters in range
+      const prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < t.range).sort((a, b) => b.hp - a.hp || a.id - b.id);
+      if (!prey.length) { P.cds[id] = 0.2; continue; }
+      for (let i = 0; i < t.n; i++) {
+        const e = prey[i % prey.length];
+        s.effects.push({ type: 'hawk', x: P.x, y: P.y - 10, t: 0, dur: K.hawk.flight, dmg: t.dmg, targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun });
+      }
+      P.cds[id] = t.cd * P.cdMul;
+    } else if (id === 'flask') {
+      const vis = visibleEnemies(s).filter((e) => hypot(e.x - P.x, e.y - P.y) < t.range);
+      if (!vis.length) { P.cds[id] = 0.2; continue; }
+      for (let i = 0; i < t.n; i++) {
+        const e = vis[R.int(vis.length)];
+        const el = t.smart ? smartElement(e) : FLASKS[R.int(3)];
+        s.effects.push({ type: 'flask', x: e.x, y: e.y, pts: [[P.x, P.y - 6]], t: 0, dur: K.flask.flight, r: t.r, dmg: t.dmg, el, fired: false });
+      }
+      P.cds[id] = t.cd * P.cdMul;
     } else if (id === 'hole') {
       const vis = visibleEnemies(s);
       if (vis.length < K.hole.minTargets) { P.cds[id] = 0.3; continue; }
@@ -143,6 +179,21 @@ export function updSkills(s: SimState, dt: number): void {
           e.oc = K.orbit.hitCd;
           hit(s, e, t.dmg, '#7df9ff', K.orbit.kb, T.orbit);
           burst(s, bx, by, '#c8fdff', 3, 40, 0.25, 0.4);
+        }
+      }
+    }
+  }
+  if (sk.shield) {
+    const t = st(s, 'shield', sk.shield);
+    P.shieldA += t.spd * dt;
+    for (const [bx, by] of shieldPoints(s)) {
+      for (const e of s.enemies) {
+        if (e.dead || (e.shc || 0) > 0) continue;
+        const dx = e.x - bx, dy = e.y - by, rr = e.r + 6;
+        if (dx * dx + dy * dy < rr * rr) {
+          e.shc = K.shield.hitCd;
+          hit(s, e, t.dmg, '#fff8c0', K.shield.kb, T.shield);
+          burst(s, bx, by, '#fff8c0', 3, 40, 0.25, 0.4);
         }
       }
     }
@@ -295,6 +346,41 @@ export function updEffects(s: SimState, dt: number): void {
           sfx(s, 'boom');
         }
       } else f.bt! += dt;
+    } else if (f.type === 'sigil') {
+      f.tick! -= dt;
+      if (f.tick! <= 0) {
+        f.tick = K.sigil.tick;
+        for (const e of s.enemies) {
+          if (e.dead) continue;
+          const dx = e.x - f.x, dy = (e.y - f.y) * 1.25;
+          if (dx * dx + dy * dy < (f.r! + e.r) * (f.r! + e.r)) hit(s, e, f.dmg, '#ff5cf4', 0, T.sigil);
+        }
+      }
+    } else if (f.type === 'hawk') {
+      const o = f.targets![0];
+      if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; }
+      if (!f.fired && f.t >= f.dur) {
+        f.fired = true;
+        if (!o.e.dead) {
+          hit(s, o.e, f.dmg, '#ffe9a8', K.hawk.kb, T.hawk);
+          if (f.stun && !o.e.dead) { if (o.e.boss) o.e.slowT = Math.max(o.e.slowT, K.hawk.evo.stun); else o.e.stun = K.hawk.evo.stun; }
+        }
+        burst(s, o.x, o.y, '#c48a55', 8, 60, 0.3);
+      }
+    } else if (f.type === 'flask') {
+      if (!f.fired && f.t >= f.dur) {
+        f.fired = true;
+        const tag = FLASK_TAGS[f.el!];
+        for (const e of s.enemies) {
+          if (e.dead) continue;
+          if (hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) {
+            hit(s, e, f.dmg, FLASK_COL[f.el!], 30, tag);
+            if (f.el === 'ice' && !e.dead) for (let i = 0; i < s.cfg.status.frostStacks; i++) chillTick(s, e);
+          }
+        }
+        burst(s, f.x, f.y, FLASK_COL[f.el!], 16, 70, 0.45);
+        sfx(s, 'boom');
+      }
     } else if (f.type === 'judge') {
       if (!f.fired && f.t >= s.cfg.ult.delay) {
         f.fired = true;
@@ -309,6 +395,6 @@ export function updEffects(s: SimState, dt: number): void {
     }
   }
   s.effects = s.effects.filter((f) =>
-    f.type === 'meteor' || f.type === 'hole' ? !(f.boomed && f.bt! > 0.3) : f.t < f.dur,
+    f.type === 'meteor' || f.type === 'hole' ? !(f.boomed && f.bt! > 0.3) : f.type === 'flask' || f.type === 'hawk' ? f.t < f.dur + 0.25 : f.t < f.dur,
   );
 }

@@ -67,7 +67,7 @@ export function chillTick(s: SimState, e: Enemy): void {
   if (e.chill < S.frostStacks) return;
   e.chill = 0;
   if (e.boss) e.slowT = Math.max(e.slowT, S.frozen);
-  else { e.frz = S.frozen; burst(s, e.x, e.y, '#dff4ff', 6, 30, 0.4); }
+  else { e.frz = S.frozen * s.P.statusMul; burst(s, e.x, e.y, '#dff4ff', 6, 30, 0.4); }
 }
 
 export function stepStatuses(e: Enemy, dt: number): void {
@@ -76,4 +76,6 @@ export function stepStatuses(e: Enemy, dt: number): void {
   if (e.pois) e.pois -= dt;
   if (e.gath) e.gath -= dt;
   if (e.armorOff) e.armorOff -= dt;
+  if (e.stun) e.stun -= dt;
+  if (e.shc) e.shc -= dt;
 }

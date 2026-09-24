@@ -154,7 +154,7 @@ export function buildOptions(s: SimState): LevelOption[] {
   const c: { o: LevelOption; w: number }[] = [];
   const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
   const slotFree = owned < s.cfg.maxAttackSlots, benchFree = P.bench.length < benchSize(s);
-  for (const id of SKILL_IDS) {
+  for (const id of [...SKILL_IDS, sig]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max) continue;
     if (!lv) {

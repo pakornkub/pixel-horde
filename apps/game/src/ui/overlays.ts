@@ -6,7 +6,7 @@ import { active } from '../config';
 import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
 import { t } from '@pixel-horde/i18n';
-import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
+import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -63,7 +63,7 @@ export function renderChars(): void {
     box.appendChild(bt);
   }
   const sel = HEROES[META.ch];
-  $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), skill: skillName(sel.start), bonus: heroDesc(META.ch) });
+  $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), role: heroRole(META.ch), skill: skillName(sel.start), bonus: heroDesc(META.ch) });
 }
 
 /* ---------- shop ---------- */

@@ -84,6 +84,10 @@ export interface Player {
   orbitA: number;
   pet: Pet | null;
   clone: Clone | null;
+  /** Statuses this player leaves last × this (Vex). */
+  statusMul: number;
+  /** Holy Shield rotation. */
+  shieldA: number;
   /** Benched skills keep their level and Evolution but do not fire and are not offered upgrades. */
   bench: BenchSkill[];
   /** Slippery floor: movement keeps momentum while > 0. */
@@ -125,6 +129,10 @@ export interface Enemy {
   chill?: number;
   /** Poison damage per second (Toxic Burst). */
   poisDps?: number;
+  /** Stunned (Twin Hawks): cannot move; bosses are slowed instead. */
+  stun?: number;
+  /** Holy Shield hit cooldown. */
+  shc?: number;
   /** Superconduct: armour ignored while > 0. */
   armorOff?: number;
   /** Combo → clock time when it may hit this monster again. */
@@ -163,7 +171,7 @@ export interface Bolt {
   tag?: HitTag;
 }
 
-export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass';
+export type EffectType = 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask';
 
 export interface Effect {
   type: EffectType;
@@ -179,6 +187,10 @@ export interface Effect {
   pts?: [number, number][];
   /** Overrides the Skill tag of this effect type (pet dive, …). */
   tag?: HitTag;
+  /** Volatile Flask element. */
+  el?: 'fire' | 'ice' | 'poison';
+  /** Twin Hawks stun. */
+  stun?: boolean;
 }
 
 /**

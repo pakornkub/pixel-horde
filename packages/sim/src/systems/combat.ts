@@ -41,10 +41,10 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
   text(s, e.x, e.y - e.r * 1.2, d, col, cr, { jitter: true });
   sfx(s, cr ? 'crit' : 'hit');
   if (tag?.applies && e.hp > 0) {
-    const S = s.cfg.status;
-    if (tag.applies === 'burning') e.burn = S.burning;
-    else if (tag.applies === 'shocked') e.shock = S.shocked;
-    else { e.pois = S.poisoned; e.poisDps = d / s.cfg.skills.toxic.tick; }
+    const S = s.cfg.status, m = P.statusMul;
+    if (tag.applies === 'burning') e.burn = S.burning * m;
+    else if (tag.applies === 'shocked') e.shock = S.shocked * m;
+    else { e.pois = S.poisoned * m; e.poisDps = d / s.cfg.skills.toxic.tick; }
   }
   if (e.hp <= 0) killE(s, e);
   if (after) for (const f of after) f();
@@ -111,6 +111,7 @@ export function hurtP(s: SimState, d: number): void {
   s.dir.lastHurt = s.clock;
   if (s.debug.god) return;
   const hv = s.cfg.scaling.hitVariance;
+  if (P.evo.shield && P.skills.shield) d *= 1 - s.cfg.skills.shield.evo.absorb; // Aegis
   d = Math.max(1, Math.round(d * s.rng.combat.range(1 - hv, 1 + hv)));
   P.hp -= d;
   P.inv = s.cfg.player.inv;

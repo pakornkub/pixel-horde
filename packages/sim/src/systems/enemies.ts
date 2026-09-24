@@ -73,7 +73,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
     else if (e.kg) kingAI(s, e, dt, tx, ty, damp);
     else {
       const a = atan2(dy, dx) + e.wob * (l > 40 ? 1 : 0.2);
-      const sp = e.frz > 0 && !e.boss ? 0 : e.spd * (e.slowT > 0 ? slow : 1);
+      const sp = (e.frz > 0 || (e.stun || 0) > 0) && !e.boss ? 0 : e.spd * (e.slowT > 0 ? slow : 1);
       e.x += cos(a) * sp * dt + e.kx * dt;
       e.y += sin(a) * sp * dt + e.ky * dt;
       e.kx *= damp; e.ky *= damp;

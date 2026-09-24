@@ -143,8 +143,21 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.fillRect(x - 3, y - 3, 2, 1); b.fillRect(x + 1, y - 3, 2, 1); b.fillRect(x - 3, y - 2, 6, 2); b.fillRect(x - 2, y, 4, 1); b.fillRect(x - 1, y + 1, 2, 1);
       }
     }
-    // meteor shadows
+    // meteor shadows, ground sigils
     for (const f of v.effects) {
+      if (f.type === 'sigil') {
+        const x = f.x + ox, y = f.y + oy, r = f.r!, fade = Math.min(1, (f.dur - f.t) / 0.3, f.t / 0.15);
+        b.save(); b.globalAlpha = 0.35 * fade; b.fillStyle = '#e08cff';
+        b.beginPath(); b.ellipse(x, y, r, r * 0.8, 0, 0, TAU); b.fill();
+        b.globalAlpha = 0.9 * fade; b.strokeStyle = '#ff5cf4'; b.lineWidth = 1;
+        b.beginPath(); b.ellipse(x, y, r, r * 0.8, 0, 0, TAU); b.stroke();
+        b.beginPath(); b.ellipse(x, y, r * 0.62, r * 0.5, 0, 0, TAU); b.stroke();
+        for (let i = 0; i < 5; i++) {
+          const a = clock * 0.8 + (i * TAU) / 5, a2 = a + (2 * TAU) / 5;
+          b.beginPath(); b.moveTo(x + Math.cos(a) * r * 0.62, y + Math.sin(a) * r * 0.5); b.lineTo(x + Math.cos(a2) * r * 0.62, y + Math.sin(a2) * r * 0.5); b.stroke();
+        }
+        b.restore();
+      }
       if (f.type === 'meteor' && !f.boomed) {
         const k = f.t / f.delay!;
         b.fillStyle = 'rgba(30,27,51,' + (0.2 + 0.3 * k) + ')'; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r! * k, f.r! * k * 0.5, 0, 0, TAU); b.fill();
@@ -214,6 +227,16 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.fillStyle = '#ffffff'; b.fillRect(-1, -5, 1, 4); b.fillStyle = '#ffd23f'; b.fillRect(-2, 3, 4, 1); b.restore();
       }
     }
+    // holy shields
+    if (P.skills.shield && v.phase !== 'over' && !P.down) {
+      const sh = skillStats(v.cfg, 'shield', P.skills.shield, !!P.evo.shield);
+      for (let i = 0; i < sh.n; i++) {
+        const a = P.shieldA + (i * TAU) / sh.n, x = Math.round(P.x + ox + Math.cos(a) * sh.r), y = Math.round(P.y + oy + Math.sin(a) * sh.r * 0.8);
+        b.fillStyle = K; b.beginPath(); b.arc(x, y, 5, 0, TAU); b.fill();
+        b.fillStyle = P.evo.shield ? '#ffd23f' : '#c7ced9'; b.beginPath(); b.arc(x, y, 4, 0, TAU); b.fill();
+        b.fillStyle = '#fff8c0'; b.fillRect(x - 1, y - 3, 2, 6); b.fillRect(x - 3, y - 1, 6, 2);
+      }
+    }
     // bolts
     for (const bo of v.bolts) {
       const x = Math.round(bo.x + ox), y = Math.round(bo.y + oy);
@@ -234,6 +257,28 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     }
     // effects
     for (const f of v.effects) {
+      if (f.type === 'hawk' && !f.fired) {
+        const o = f.targets![0], k = Math.min(1, f.t / f.dur);
+        const x = Math.round(f.x + (o.x - f.x) * k + ox), y = Math.round(f.y + (o.y - f.y) * k - Math.sin(k * Math.PI) * 18 + oy);
+        const dir = o.x < f.x ? -1 : 1, flap = Math.floor(clock * 16) & 1;
+        b.fillStyle = K; b.fillRect(x - 4, y - 2, 8, 4); b.fillRect(x - 6, y - (flap ? 4 : 0), 12, 2);
+        b.fillStyle = '#c48a55'; b.fillRect(x - 3, y - 1, 6, 2); b.fillRect(x - 5, y - (flap ? 3 : 1) + 0, 10, 1);
+        b.fillStyle = '#ffd23f'; b.fillRect(x + dir * 4, y - 1, 1, 1);
+        continue;
+      }
+      if (f.type === 'flask') {
+        const col = f.el === 'fire' ? '#ff8a3d' : f.el === 'ice' ? '#9fd8ff' : '#b6f24a';
+        if (!f.fired) {
+          const [sx, sy] = f.pts![0], k = Math.min(1, f.t / f.dur);
+          const x = Math.round(sx + (f.x - sx) * k + ox), y = Math.round(sy + (f.y - sy) * k - Math.sin(k * Math.PI) * 24 + oy);
+          b.fillStyle = K; b.fillRect(x - 3, y - 3, 6, 7); b.fillStyle = col; b.fillRect(x - 2, y - 1, 4, 4); b.fillStyle = '#e9f1ff'; b.fillRect(x - 1, y - 3, 2, 2);
+          b.save(); b.globalAlpha = 0.5; b.strokeStyle = col; b.lineWidth = 1; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r!, f.r! * 0.6, 0, 0, TAU); b.stroke(); b.restore();
+        } else {
+          const k = Math.min(1, (f.t - f.dur) / 0.25);
+          b.save(); b.globalAlpha = 0.6 * (1 - k); b.fillStyle = col; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r! * (0.7 + k * 0.4), f.r! * 0.6 * (0.7 + k * 0.4), 0, 0, TAU); b.fill(); b.restore();
+        }
+        continue;
+      }
       if (f.type === 'nova') {
         const k = Math.min(1, f.t / f.dur), r = f.R! * k;
         b.save(); b.globalAlpha = 1 - k * 0.7;

@@ -56,20 +56,20 @@ select is((select public.submit_run(jsonb_build_object('runId', (select id from 
 -- shop and heroes
 select is((public.buy_upgrade('power') -> 'shop' ->> 'power')::int, 1, 'buy_upgrade raises the level');
 select is((public.get_meta() ->> 'gold')::int, 470, 'and charges the server price');
-select ok((public.unlock_hero('alchemist') -> 'heroes') ? 'alchemist', 'unlock a Hero (300 Gold)');
-select throws_ok($$ select public.buy_upgrade('revive') $$, 'NOT_ENOUGH_GOLD', 'cannot buy what you cannot afford');
+select throws_ok($$ select public.unlock_hero('alchemist') $$, 'NOT_ENOUGH_GOLD', 'Vex costs 1,000 Gold');
+select throws_ok($$ select public.unlock_hero('ranger') $$, 'NOT_ENOUGH_GOLD', 'cannot buy what you cannot afford (Kit 500)');
 select throws_ok($$ select public.buy_upgrade('nonsense') $$, 'UNKNOWN_ITEM', 'unknown items are refused');
 
 -- offline Runs: same ceilings, duplicates ignored
 select is(public.submit_offline_run('{"clientRunId":"c1","chapter":2,"kills":120,"gold":40,"playMs":90000,"hero":"mage"}') ->> 'status', 'offline', 'offline Run accepted');
 select is(public.submit_offline_run('{"clientRunId":"c1","chapter":2,"kills":120,"gold":40,"playMs":90000,"hero":"mage"}') ->> 'status', 'duplicate', 'the same offline Run counts once');
 select is((public.submit_offline_run('{"clientRunId":"c2","chapter":2,"kills":120,"gold":10,"walletSpent":30,"playMs":90000,"hero":"mage"}') -> 'meta' ->> 'gold')::int,
-          190, 'wallet Gold spent during a Run (Stage-end swaps) is charged on submit');
+          490, 'wallet Gold spent during a Run (Stage-end swaps) is charged on submit');
 
 -- legacy save: clamped and only once
 select is((public.import_legacy_meta('{"gold":999999999,"up":{"power":99,"greed":2},"owned":["alchemist","hacker"]}') ->> 'gold')::bigint,
-          190 + 50000::bigint, 'legacy Gold is capped');
-select is((public.import_legacy_meta('{"gold":5000}') ->> 'gold')::bigint, 50190::bigint, 'legacy import happens once');
+          490 + 50000::bigint, 'legacy Gold is capped');
+select is((public.import_legacy_meta('{"gold":5000}') ->> 'gold')::bigint, 50490::bigint, 'legacy import happens once');
 
 select * from finish();
 rollback;

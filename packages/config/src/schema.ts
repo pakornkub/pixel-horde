@@ -103,6 +103,29 @@ const skills = obj({
     dur: sec(1.9, 'Lifetime (s)'), tick: sec(0.2, 'Damage interval (s)'), pull: pos(150, 'Pull speed'), minTargets: int(3, 1, 50, 'Visible enemies needed'), kb: pos(140, 'Collapse knockback'),
     evo: evo({ boomMul: mul(2, 'Collapse multiplier'), rMul: mul(1.2, 'Radius multiplier') }),
   }),
+  // Signature Skills (ticket 23): one per Hero, always in the locked slot
+  sigil: obj({
+    max: int(7, 1, 20, 'Max level'),
+    dmg: lin(9, 5, 'Damage per tick'), cd: lin(3.2, -0.2, 'Cooldown (s)', 1.6), r: lin(34, 4, 'Radius'), dur: lin(2.6, 0.2, 'Lasts (s)'),
+    tick: sec(0.35, 'Damage interval (s)'),
+    evo: evo({ rMul: mul(1.35, 'Radius multiplier'), n: int(2, 1, 5, 'Sigils per cast') }),
+  }, 'Lyra: Arcane Sigil'),
+  shield: obj({
+    max: int(6, 1, 20, 'Max level'),
+    dmg: lin(8, 5, 'Bash damage'), n: lin(1, 0.4, 'Shields', 1, 3), r: lin(24, 1.5, 'Orbit radius'), spd: lin(2.2, 0.2, 'Turn speed'),
+    hitCd: sec(0.4, 'Hit interval per enemy (s)'), kb: pos(90, 'Knockback'), block: pos(7, 'Projectile block radius'),
+    evo: evo({ n: int(3, 1, 6, 'Shields'), heal: pos(3, 'HP healed per blocked projectile'), absorb: frac(0.15, 'Damage taken × (1 − this)') }),
+  }, 'Bram: Holy Shield'),
+  hawk: obj({
+    max: int(7, 1, 20, 'Max level'),
+    dmg: lin(34, 16, 'Dive damage'), cd: lin(2.2, -0.14, 'Cooldown (s)', 0.9), range: pos(230, 'Hunting range'), flight: sec(0.35, 'Dive time (s)'), kb: pos(40, 'Knockback'),
+    evo: evo({ n: int(2, 1, 4, 'Hawks'), stun: sec(0.8, 'Stun (s); bosses are slowed') }),
+  }, 'Kit: Hawk Companion'),
+  flask: obj({
+    max: int(7, 1, 20, 'Max level'),
+    dmg: lin(22, 11, 'Splash damage'), cd: lin(2.6, -0.16, 'Cooldown (s)', 1.1), r: lin(22, 2, 'Splash radius'), flight: sec(0.45, 'Throw time (s)'), range: pos(190, 'Throw range'),
+    evo: evo({ n: int(2, 1, 4, 'Flasks per throw'), dmgMul: mul(1.2, 'Damage multiplier') }),
+  }, 'Vex: Volatile Flask'),
 }, 'Attack skills: level formulas and evolutions');
 
 const passives = obj({
@@ -197,10 +220,10 @@ const shared = obj({
     revive: obj({ max: int(1, 0, 5, 'Max level'), base: pos(400, 'Base price') }),
   }, 'Permanent shop'),
   heroes: obj({
-    mage: obj({ cost: pos(0, 'Unlock price'), dmg: frac(0.15, 'Damage bonus') }),
-    knight: obj({ cost: pos(0, 'Unlock price'), hp: pos(50, 'Max HP bonus'), spd: frac(0.08, 'Speed penalty') }),
-    ranger: obj({ cost: pos(150, 'Unlock price'), spd: frac(0.15, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus') }),
-    alchemist: obj({ cost: pos(300, 'Unlock price'), cd: frac(0.1, 'Cooldown reduction'), crit: frac(0.05, 'Crit chance bonus') }),
+    mage: obj({ cost: pos(0, 'Unlock price'), dmg: frac(0.1, 'Skill damage bonus') }, 'Lyra'),
+    knight: obj({ cost: pos(0, 'Unlock price'), hp: pos(40, 'Max HP bonus'), spd: frac(0.05, 'Speed penalty') }, 'Bram'),
+    ranger: obj({ cost: pos(500, 'Unlock price'), spd: frac(0.12, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus') }, 'Kit'),
+    alchemist: obj({ cost: pos(1000, 'Unlock price'), cd: frac(0.08, 'Cooldown reduction'), status: frac(0.2, 'Statuses last longer by') }, 'Vex'),
   }, 'Heroes'),
   secondWind: obj({ hp: frac(0.5, 'HP after revive'), inv: sec(2.5, 'Invulnerability (s)'), r: pos(110, 'Blast radius'), dmg: pos(150, 'Blast damage'), dmgGrowth: mul(1.45, 'Blast × per stage') }, 'Second Wind revive'),
   chest: obj({ p1: frac(0.5, 'Chance of ×1'), p2: frac(0.35, 'Chance of ×2 (rest is ×3)') }, 'Treasure chest wheel'),

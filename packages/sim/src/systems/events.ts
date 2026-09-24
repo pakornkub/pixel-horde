@@ -5,6 +5,7 @@ import { hit, hurtP } from './combat';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, visibleEnemies } from './query';
 import { edgePos, spawnEnemy } from './spawner';
+import { shieldBlocks } from './shield';
 
 /** Roll this stage's special event (Blood Moon / Inferno Dragon / Shadow Rival) with pity. */
 export function rollStage(s: SimState, n: number): void {
@@ -80,6 +81,7 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'proj') {
       h.x += h.vx! * dt;
       h.y += h.vy! * dt;
+      if (shieldBlocks(s, h)) continue;
       if (!h.hitP && hypot(P.x - h.x, P.y - h.y) < h.r! + 5) { h.hitP = true; hurtP(s, h.d!); h.life = 0; }
     } else if (h.k === 'ring') {
       const r = h.r! * Math.min(1, h.t / h.du!);

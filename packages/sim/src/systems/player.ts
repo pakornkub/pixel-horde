@@ -19,7 +19,7 @@ export function newPlayer(cfg: ResolvedConfig, ch: HeroId): Player {
     moving: false, anim: 0, down: false,
     skills: { [HEROES[ch].start]: 1 }, pas: {}, evo: {}, revives: 0, cds: {},
     dmgMul: 1, cdMul: 1, cdRed: 0, crit: p.crit, critMul: 2.5, pick: p.pick, orbitA: 0, pet: null, clone: null, shards: 0,
-    bench: [], slip: 0, slipGrip: 1, vx: 0, vy: 0, chill: 0,
+    bench: [], statusMul: 1, shieldA: 0, slip: 0, slipGrip: 1, vx: 0, vy: 0, chill: 0,
   };
 }
 
@@ -29,7 +29,8 @@ export function recompute(s: SimState): void {
   P.dmgMul = 1 + ps.mightDmg * (p.might || 0) + sh.power.per * U(s, 'power') + (c === 'mage' ? h.mage.dmg : 0);
   P.cdRed = Math.min(pl.cdCap, ps.hasteCd * (p.haste || 0) + (c === 'alchemist' ? h.alchemist.cd : 0));
   P.cdMul = 1 - P.cdRed;
-  P.crit = Math.min(pl.critCap, pl.crit + ps.keenCrit * (p.crit || 0) + (c === 'alchemist' ? h.alchemist.crit : 0));
+  P.crit = Math.min(pl.critCap, pl.crit + ps.keenCrit * (p.crit || 0));
+  P.statusMul = 1 + (c === 'alchemist' ? h.alchemist.status : 0);
   P.critMul = pl.critMul + ps.keenCritMul * (p.crit || 0);
   P.spd = pl.spd * (1 + ps.swiftSpd * (p.swift || 0) + sh.speed.per * U(s, 'speed') + (c === 'ranger' ? h.ranger.spd : 0) - (c === 'knight' ? h.knight.spd : 0));
   P.maxHp = pl.hp + ps.vitalHp * (p.vital || 0) + sh.vigor.per * U(s, 'vigor') + (c === 'knight' ? h.knight.hp : 0);
