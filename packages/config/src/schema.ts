@@ -248,6 +248,7 @@ const shared = obj({
     bloodMoonSpawn: mul(2.3, 'Blood Moon spawn ×'), bloodMoonCoin: mul(2, 'Blood Moon coin ×'),
     dragonFrom: int(3, 1, 99, 'First stage with the dragon'), dragonChance: frac(0.25, 'Dragon chance inside Blood Moon'), dragonPity: frac(0.15, 'Dragon chance + per miss'),
     dragonWarnAt: frac(0.33, 'Dragon omen at stage fraction'), dragonAt: frac(0.42, 'Dragon arrives at stage fraction'),
+    doubleKingFrom: int(4, 1, 20, 'Double-King Stages from this Chapter'), doubleKingChance: frac(0.1, 'Double-King Stage chance (never announced)'), doubleKingHp: frac(0.7, 'Each King\'s HP × on a double-King Stage'),
     rivalChance: frac(0.25, 'Shadow Rival chance on normal stages'), rivalAt: frac(0.25, 'Rival arrives at stage fraction'),
     lastChapter: int(7, 1, 99, 'Last Chapter with special events (the finale has none)'),
   }, 'Special events'),

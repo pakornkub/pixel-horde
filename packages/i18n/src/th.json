@@ -511,5 +511,8 @@
  "weapon.use": "ใช้ {weapon}",
  "weapon.using": "ท่าไม้ตาย: {weapon}",
  "banner.weaponFound.txt": "ได้อาวุธ!",
- "banner.weaponFound.sub": "{weapon}: เปลี่ยนมาใช้ได้ตอนจบด่านถัดไป"
+ "banner.weaponFound.sub": "{weapon}: เปลี่ยนมาใช้ได้ตอนจบด่านถัดไป",
+ "king.rival.arrive": "ข้าคือเงาของพลังเจ้าเอง",
+ "king.rival.defeat": "อัมบรา... จะจำเรื่องนี้ไว้...",
+ "king.rival.escape": "ข้าจะกลับสู่ความมืด อัมบรารออยู่"
 }

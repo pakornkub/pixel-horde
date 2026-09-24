@@ -113,7 +113,7 @@ export function killE(s: SimState, e: Enemy): void {
   const v = e.xp;
   if (e.type === 'dragon' || e.type === 'rival') {
     const isD = e.type === 'dragon';
-    if (isD) { s.dragonE = null; grantDragon(s); } else { s.rivalE = null; grantShadow(s); }
+    if (isD) { s.dragonE = null; grantDragon(s); } else { s.rivalE = null; say(s, e, 'defeat'); grantShadow(s); }
     shake(s, 10); flash(s, 0.3, undefined, true); s.hitstop = 0.12; sfx(s, 'boom');
     burst(s, e.x, e.y, isD ? '#ffd23f' : '#b07cff', 40, 120, 0.9);
     for (let i = 0; i < L.eventGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.eventGems), mag: false });
@@ -121,12 +121,13 @@ export function killE(s: SimState, e: Enemy): void {
     return;
   }
   if (e.boss) {
-    if (e === s.boss) {
+    const kingRealm = e === s.boss ? s.realm : e === s.boss2 ? s.skipped : null;
+    if (kingRealm) {
       s.kingsKilled.push(s.stage);
       // King reward: Skill Point(s) and the chest wheel (Gold drops below)
       s.sp += C.economy.kingSkillPoints;
       s.chestQueue += C.economy.kingChest;
-      const w = weaponOfRealm(s.realm);
+      const w = weaponOfRealm(kingRealm);
       if (w && !ownsWeapon(s, w.id) && R.next() < C.weapons.drop) findWeapon(s, w.id);
     }
     if (e.type === 'umbra') {
@@ -140,9 +141,10 @@ export function killE(s: SimState, e: Enemy): void {
     for (let i = 0; i < L.bossGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.bossGems), mag: false });
     s.gems.push({ kind: 'heart', x: e.x, y: e.y, v: L.heartBig, mag: false });
     s.gems.push({ kind: 'chest', x: e.x + 10, y: e.y, v: 0, mag: false });
-    s.gems.push({ kind: 'coin', x: e.x - 10, y: e.y, v: e === s.boss ? C.stage.kingGold * s.stage : L.bossCoin, mag: false });
+    s.gems.push({ kind: 'coin', x: e.x - 10, y: e.y, v: kingRealm ? C.stage.kingGold * s.stage : L.bossCoin, mag: false });
     banner(s, e.type === 'umbra' ? 'umbraDown' : 'bossDown', 1.6, e.type === 'umbra');
-    s.boss = null;
+    if (e === s.boss) s.boss = null;
+    if (e === s.boss2) s.boss2 = null;
     return;
   }
   if (R.next() < (e.elite ? 1 : L.coinChance)) s.gems.push({ kind: 'coin', x: e.x + R.range(-3, 3), y: e.y + R.range(-3, 3), v: (e.elite ? L.eliteCoin : L.coin) * (s.specialStage ? C.events.bloodMoonCoin : 1), mag: false });

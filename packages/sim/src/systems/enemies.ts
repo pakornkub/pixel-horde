@@ -89,6 +89,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
   }
   s.enemies = s.enemies.filter((e) => !e.dead);
   if (s.boss && s.boss.dead) s.boss = null;
+  if (s.boss2 && s.boss2.dead) s.boss2 = null;
   if (s.dragonE && s.dragonE.dead) s.dragonE = null;
   if (s.rivalE && s.rivalE.dead) s.rivalE = null;
 }

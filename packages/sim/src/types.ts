@@ -366,6 +366,11 @@ export interface SimState {
   spawnAcc: number; waveT: number;
   bossSpawned: boolean;
   boss: Enemy | null;
+  /** Double-King Stage: the King of the Realm the player skipped. */
+  boss2: Enemy | null;
+  doubleKing: boolean;
+  /** The route choice not taken for this Chapter. */
+  skipped: RealmId | null;
   eid: number;
   kills: number; stageKills: number;
   /** Kill Streak (formerly `combo`): kills without a 2.2 s gap. */

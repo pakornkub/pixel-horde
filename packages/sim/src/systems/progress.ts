@@ -110,16 +110,16 @@ export function stageClear(s: SimState, escaped = false): void {
 
 /** The King survived overtime: he flees with his crystal shard. Umbra grows stronger. */
 export function kingEscapes(s: SimState): void {
-  const k = s.boss;
-  if (k) {
+  for (const [k, r] of [[s.boss, s.realm], [s.boss2, s.skipped]] as const) {
+    if (!k || k.dead || !r) continue;
     say(s, k, 'escape');
     s.events.push({ t: 'say', who: 'umbra', beat: 'absorb', x: k.x, y: k.y });
     burst(s, k.x, k.y, '#3a1f66', 40, 120, 0.8);
     k.dead = true;
-    s.boss = null;
+    s.escapes++;
+    s.escapedKings.push(r);
   }
-  s.escapes++;
-  s.escapedKings.push(s.realm);
+  s.boss = s.boss2 = null;
   stageClear(s, true);
 }
 
@@ -146,6 +146,7 @@ export function afterStage(s: SimState): void {
     s.repicks++;
     chapter = s.stage;
   } else s.repicks = 0;
+  s.skipped = null;
   if (chapter >= G.chapters) {
     s.realm = 'crater';
     s.visited.push('crater');
@@ -165,6 +166,7 @@ export function chooseRoute(s: SimState, index: number): void {
   if (!r) return;
   s.realm = r;
   s.visited.push(r);
+  s.skipped = s.route.choices.find((x) => x !== r) ?? null;
   const ch = s.route.chapter;
   s.route = null;
   startStage(s, ch);

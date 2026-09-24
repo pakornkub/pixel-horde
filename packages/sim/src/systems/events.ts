@@ -5,10 +5,16 @@ import { hit, hurtP } from './combat';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, visibleEnemies } from './query';
 import { edgePos, spawnEnemy } from './spawner';
+import { say } from './kings';
 import { shieldBlocks } from './shield';
 
 /** Roll this stage's special event (Blood Moon / Inferno Dragon / Shadow Rival) with pity. */
 export function rollStage(s: SimState, n: number): void {
+  s.doubleKing = false;
+  s.boss2 = null;
+  const E0 = s.cfg.events;
+  // double-King Stage: never announced; rolled first on its own stream so other rolls stay put
+  if (n >= E0.doubleKingFrom && n <= E0.lastChapter && n < s.cfg.stage.chapters && s.skipped && s.rng.route.next() < E0.doubleKingChance) s.doubleKing = true;
   s.specialStage = s.dragonStage = s.rivalStage = false;
   s.dragonWarned = s.dragonSpawned = s.rivalSpawned = false;
   s.dragonE = s.rivalE = null;
@@ -186,6 +192,7 @@ export function spawnRival(s: SimState): void {
   e.life = V.life;
   e.ang = R.next() * TAU;
   s.rivalE = e;
+  say(s, e, 'arrive');
   banner(s, 'rivalAppears', 2.6, true);
   sfx(s, 'zap');
 }
@@ -197,6 +204,7 @@ export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numbe
     burst(s, e.x, e.y, '#8a5ad6', 30, 90, 0.7);
     e.dead = true;
     s.rivalE = null;
+    say(s, e, 'escape');
     banner(s, 'rivalEscaped', 1.8);
     return;
   }

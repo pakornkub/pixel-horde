@@ -444,7 +444,7 @@ function thaiText(txt: string, x: number, y: number, px: number, col: string, lw
 /** Off-screen arrows with the boss icon (Kings, dragon, Shadow Rival, Umbra). Always on. */
 function drawArrows(v: Readonly<SimState>, clock: number): void {
   const { S, DPR: D, LW, LH } = screen, W = cv.width, H = cv.height, m = 26 * D;
-  for (const e of [v.boss, v.dragonE, v.rivalE]) {
+  for (const e of [v.boss, v.boss2, v.dragonE, v.rivalE]) {
     if (!e || e.dead) continue;
     const sx = e.x + ox, sy = e.y + oy;
     if (sx > 0 && sy > 0 && sx < LW && sy < LH) continue;
@@ -453,7 +453,7 @@ function drawArrows(v: Readonly<SimState>, clock: number): void {
     const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx);
     const near = Math.hypot(sx - LW / 2, sy - LH / 2) < Math.max(LW, LH) * 0.9;
     if (v.clock - e.born < 2 && Math.floor(clock * 8) & 1) continue; // blink right after the spawn
-    const sz = (near ? 1.3 : 1) * 9 * D, col = e === v.boss ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
+    const sz = (near ? 1.3 : 1) * 9 * D, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
     ctx.save();
     ctx.translate(ax, ay); ctx.rotate(a);
     ctx.beginPath(); ctx.moveTo(sz * 1.6, 0); ctx.lineTo(sz * 0.4, -sz); ctx.lineTo(sz * 0.4, sz); ctx.closePath();
@@ -473,7 +473,7 @@ function drawArrows(v: Readonly<SimState>, clock: number): void {
 function drawBubbles(v: Readonly<SimState>): void {
   const { S, DPR: D } = screen, W = cv.width, H = cv.height;
   for (const bb of vfx.bubbles) {
-    const who = v.boss && v.boss.type === bb.who ? v.boss : null;
+    const who = [v.boss, v.boss2, v.rivalE].find((k) => k && k.type === bb.who) ?? null;
     if (who) { bb.x = who.x; bb.y = who.y; }
     const px = 11 * D;
     ctx.font = lang() === 'en' ? `${Math.round(px * 0.75)}px "Press Start 2P", ui-monospace, monospace` : `700 ${Math.round(px)}px "Chakra Petch", Tahoma, sans-serif`;
@@ -553,6 +553,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.textAlign = 'center';
     const bars: [Enemy | null, string, string, string][] = [
       [v.boss, kingName(v.realm), v.overtime ? '#ff4b5c' : '#4fa8ff', '#8fdcff'],
+      [v.boss2, v.skipped ? kingName(v.skipped) : '', v.overtime ? '#ff4b5c' : '#4fa8ff', '#8fdcff'],
       [v.dragonE, 'INFERNO DRAGON', '#ff6a2a', '#ffb347'],
       [v.rivalE, 'SHADOW ???', '#8a5ad6', '#d9b8ff'],
     ];

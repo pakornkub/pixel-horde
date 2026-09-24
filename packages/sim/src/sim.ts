@@ -9,6 +9,7 @@ import { stepEnemies } from './systems/enemies';
 import { cloneStep, petStep, spawnDragon, spawnRival, stepHz } from './systems/events';
 import { banner, shake } from './systems/fx';
 import { directionOf, initKing } from './systems/kings';
+import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type SimOptions, type SimState } from './types';
 
@@ -61,7 +62,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h },
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, sp: 0, banished: [], mode: opts.mode ?? 'solo', weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
@@ -173,6 +174,15 @@ export function createSim(opts: SimOptions): Sim {
         b.maxHp = b.hp;
         s.boss = b;
         initKing(s, b);
+        if (s.doubleKing && s.skipped) {
+          // the King of the Realm not taken joins; both at reduced HP, both pay out
+          const [x2, y2] = edgePos(s);
+          const b2 = spawnEnemy(s, REALMS[s.skipped].king, x2, y2, false);
+          b2.hp = b.maxHp * s.cfg.events.doubleKingHp; b2.maxHp = b2.hp;
+          b.hp = b.maxHp = b.maxHp * s.cfg.events.doubleKingHp;
+          s.boss2 = b2;
+          initKing(s, b2);
+        }
         banner(s, 'bossIncoming', 2, false, { dir: directionOf(s, x, y) });
         shake(s, 5);
       }
@@ -195,14 +205,14 @@ export function createSim(opts: SimOptions): Sim {
       // King must die: the Stage clears at the timer only if the King is dead; otherwise overtime,
       // and a King that survives overtime escapes (Umbra never does).
       if (s.stageTime >= s.stageDur) {
-        const kingDead = s.bossSpawned && (!s.boss || s.boss.dead);
+        const kingDead = s.bossSpawned && (!s.boss || s.boss.dead) && (!s.boss2 || s.boss2.dead);
         if (kingDead) { stageClear(s); return; }
         if (!s.overtime) {
           s.overtime = true;
-          if (s.boss) { s.boss.spd *= s.cfg.stage.enrageSpd; s.boss.dmg *= s.cfg.stage.enrageDmg; }
+          for (const k of [s.boss, s.boss2]) if (k) { k.spd *= s.cfg.stage.enrageSpd; k.dmg *= s.cfg.stage.enrageDmg; }
           banner(s, 'overtime', 2, true);
           shake(s, 4);
-        } else if (s.stageTime >= s.stageDur + s.cfg.stage.overtime && s.boss && s.boss.type !== 'umbra') {
+        } else if (s.stageTime >= s.stageDur + s.cfg.stage.overtime && (s.boss || s.boss2) && s.boss?.type !== 'umbra') {
           kingEscapes(s);
           return;
         }

@@ -511,5 +511,8 @@
  "weapon.use": "Use {weapon}",
  "weapon.using": "Ultimate: {weapon}",
  "banner.weaponFound.txt": "WEAPON FOUND!",
- "banner.weaponFound.sub": "{weapon}: switch to it at the next Stage end"
+ "banner.weaponFound.sub": "{weapon}: switch to it at the next Stage end",
+ "king.rival.arrive": "I am the shadow of your own strength.",
+ "king.rival.defeat": "Umbra... will remember this...",
+ "king.rival.escape": "I return to the dark. Umbra waits."
 }
