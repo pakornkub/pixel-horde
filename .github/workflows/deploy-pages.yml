@@ -47,6 +47,10 @@ jobs:
       - name: Deploy co-op room worker
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && github.ref_name == 'main'
         run: npx wrangler deploy --config workers/room/wrangler.toml
+      # Daily ping so the Supabase Free project is never paused for inactivity.
+      - name: Deploy keep-alive worker
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && github.ref_name == 'main'
+        run: npx wrangler deploy --config workers/keepalive/wrangler.toml
       - name: Smoke test the room worker
         if: env.CLOUDFLARE_API_TOKEN != '' && env.VITE_ROOM_URL != '' && github.ref_name == 'main'
         run: node scripts/room-smoke.mjs "$VITE_ROOM_URL"

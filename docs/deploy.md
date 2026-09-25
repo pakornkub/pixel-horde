@@ -48,6 +48,10 @@ in the project's migration history); the row is byte-identical to the one in the
   `update public.config_schema set schema = $schema$<npx tsx scripts/config-json.ts schema>$schema$::jsonb where id = 1;`
   New defaults for players are then published from the Admin Console as a new config version.
 
+Keep-alive: `workers/keepalive` pings `get_live_state` once a day (03:17 UTC) so the Free project is
+never paused for inactivity. The same workflow deploys it on every push to `main`; open its
+`workers.dev` URL once to trigger a ping by hand (`ok` = working).
+
 ## Admin Console
 
 `apps/admin` deploys to a second Pages project, `pixel-horde-admin` (same workflow).
