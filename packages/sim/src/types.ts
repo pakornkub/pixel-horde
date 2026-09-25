@@ -336,6 +336,8 @@ export interface Hazard {
   bounce?: boolean;
   /** cone: chills the player (Frost Dragon). */
   chill?: number;
+  /** Made by a King's move (drawn red, announced on screen). */
+  bm?: KingMove;
 }
 
 export interface Gem {

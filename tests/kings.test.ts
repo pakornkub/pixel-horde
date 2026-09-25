@@ -122,3 +122,15 @@ describe('Royal Splash', () => {
     expect(s.boss).not.toBeNull();
   });
 });
+
+describe('King move warnings', () => {
+  it('every hazard a King creates is tagged with its move (red telegraph + on-screen warning)', async () => {
+    const { KING_KITS } = await import('@pixel-horde/sim');
+    const { sim, t } = withKing('greenvale');
+    const tags = new Set<string>();
+    run(sim, t, 20, (st) => { for (const h of st.hz) if (h.bm) tags.add(h.bm); });
+    const kit = KING_KITS.boss!;
+    expect(tags.size).toBeGreaterThan(0);
+    for (const k of tags) expect([...kit.moves, kit.ult]).toContain(k);
+  });
+});

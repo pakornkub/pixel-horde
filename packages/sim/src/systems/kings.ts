@@ -51,6 +51,13 @@ function umbraUlt(s: SimState): { k: KingMove; mul: number } {
   return { k: ULTS[R.int(ULTS.length)], mul: s.cfg.kings.umbraUltDmg };
 }
 
+/** Every hazard a King move creates is tagged with the move (red telegraph + on-screen warning). */
+function tagged(s: SimState, k: KingMove, f: () => void): void {
+  const n = s.hz.length;
+  f();
+  for (let i = n; i < s.hz.length; i++) s.hz[i].bm = k;
+}
+
 function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
   const K = s.cfg.kings, R = s.rng.ai, P = s.P, kg = e.kg!;
   const tx = P.x, ty = P.y, a = atan2(ty - e.y, tx - e.x), D = e.dmg * mul, W = K.ultWarn;
@@ -353,7 +360,7 @@ export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number
   // after the landing, so a follow-up starts where the King came down
   if (kg.next) {
     kg.next.t -= dt;
-    if (kg.next.t <= 0) { const k = kg.next.k; kg.next = null; doNext(s, e, k); }
+    if (kg.next.t <= 0) { const k = kg.next.k; kg.next = null; tagged(s, k, () => doNext(s, e, k)); }
   }
   if (locked) return;
   const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1;
@@ -369,6 +376,6 @@ export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number
     const u = e.type === 'umbra' ? umbraUlt(s) : { k: kit.ult, mul: 1 };
     flash(s, 0.2, '#ffffff');
     sfx(s, 'ult');
-    doMove(s, e, u.k, u.mul);
-  } else doMove(s, e, kit.moves[R.int(2)], 1);
+    tagged(s, u.k, () => doMove(s, e, u.k, u.mul));
+  } else { const k = kit.moves[R.int(2)]; tagged(s, k, () => doMove(s, e, k, 1)); }
 }

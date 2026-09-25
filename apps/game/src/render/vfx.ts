@@ -1,6 +1,6 @@
 // Presentation-only state: particles, floating numbers, shake/flash, banners.
 // Uses its own fxRng so rendering never touches the sim's seeded streams.
-import { DEATH_COL, REALMS, createRng, type EnemyId, type RealmId, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { DEATH_COL, REALMS, ULTS, createRng, type EnemyId, type KingMove, type RealmId, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { active } from '../config';
 import { isMobile } from '../platform/device';
 import { castSound, comboSound, saySound, sfx, ultSound } from '../audio/sfx';
@@ -38,6 +38,8 @@ export const vfx = {
   intro: null as { realm: RealmId; king: EnemyId; t: number; life: number } | null,
   /** "×50 KO!" Kill Streak popup. */
   streak: null as { n: number; t: number } | null,
+  /** Centre-screen warning when a King starts a move (ultimates are louder). */
+  warn: null as { k: KingMove; txt: string; ult: boolean; t: number; life: number } | null,
   /** Camera zoom moment (Evolution, Awakening, fusion): seconds elapsed / length. */
   zoom: null as { t: number; life: number; k: number } | null,
   /** Real seconds of slow motion left (King deaths); main.ts scales the tick accumulator. */
@@ -100,8 +102,22 @@ export function setBanner(txt: string, sub: string, t: number, big?: boolean): v
 
 export function clearVfx(): void {
   vfx.fx = []; vfx.texts = []; vfx.bubbles = []; vfx.rings = []; vfx.banner = null; vfx.shake = 0; vfx.flash = 0;
-  vfx.intro = null; vfx.streak = null; vfx.zoom = null; vfx.slowmo = 0;
+  vfx.intro = null; vfx.streak = null; vfx.zoom = null; vfx.slowmo = 0; vfx.warn = null; warned.clear();
 }
+
+/** Hazard ids already announced (host and co-op guests both see King hazards tagged with their move). */
+const warned = new Set<number>();
+function announceKingMoves(v: Readonly<SimState>): void {
+  for (const h of v.hz) {
+    if (!h.bm || warned.has(h.id)) continue;
+    warned.add(h.id);
+    if (vfx.warn && vfx.warn.k === h.bm && vfx.warn.t < 0.8) continue; // same move, more pieces
+    const ult = ULTS.includes(h.bm);
+    vfx.warn = { k: h.bm, txt: t(`kingMove.${h.bm}`), ult, t: 0, life: ult ? 1.8 : 1.3 };
+  }
+  if (warned.size > 400) { const live = new Set(v.hz.map((h) => h.id)); for (const id of warned) if (!live.has(id)) warned.delete(id); }
+}
+
 
 export function consume(events: readonly SimEvent[], v: Readonly<SimState>): void {
   FX = v.cfg.fx;
@@ -167,6 +183,7 @@ export function consume(events: readonly SimEvent[], v: Readonly<SimState>): voi
 
 /** Per-tick ambient particles that the original spawned inside its update loop. */
 export function ambient(v: Readonly<SimState>): void {
+  announceKingMoves(v);
   const k = effectsScale();
   if (k === 0 || (k < 1 && R() > k)) return;
   const fx = vfx.fx;
@@ -207,6 +224,7 @@ export function stepVfx(rdt: number, simDt: number): void {
   vfx.shake = Math.max(0, vfx.shake - rdt * 20);
   vfx.flash = Math.max(0, vfx.flash - rdt * 1.6);
   if (vfx.banner) { vfx.banner.t -= rdt; if (vfx.banner.t <= 0) vfx.banner = null; }
+  if (vfx.warn) { vfx.warn.t += rdt; if (vfx.warn.t >= vfx.warn.life) vfx.warn = null; }
   const damp = Math.pow(0.05, simDt);
   for (const p of vfx.fx) {
     p.t += simDt; p.x += p.vx * simDt; p.y += p.vy * simDt;
