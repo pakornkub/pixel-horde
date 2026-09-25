@@ -30,12 +30,12 @@ select is(public.publish_config((select data - 'version' from public.balance_con
           'a valid config publishes as version 1');
 select is((public.get_config() -> 'data' -> 'shared' -> 'stage' ->> 'durBase')::int, 45, 'players get the latest version');
 select throws_ok($$ select public.publish_config('{"shared":{"stage":{"bossAt":3}}}') $$, '22023', 'out-of-range values are refused');
-select ok(array_to_string(public.config_problems('{"shared":{"stage":{"bossAt":3,"typo":1}}}'), '|') ~ 'shared.stage.bossAt: above 1.*typo: unknown field|shared.stage.typo: unknown field.*bossAt',
-          'problems name the exact fields');
 select is(public.rollback_config(0), 2, 'rollback creates a new version');
 select is((public.get_config() -> 'data' -> 'shared' -> 'stage' ->> 'durBase')::int, 60, 'with the old numbers');
 
 reset role;
+select ok(array_to_string(public.config_problems('{"shared":{"stage":{"bossAt":3,"typo":1}}}'), '|') ~ 'shared.stage.bossAt: above 1.*typo: unknown field|shared.stage.typo: unknown field.*bossAt',
+          'problems name the exact fields');
 select throws_ok($$ update public.balance_configs set data = '{}' where version = 1 $$, 'PUBLISHED_CONFIG_IS_IMMUTABLE', 'published versions are immutable');
 select ok((select count(*) from public.audit_log where target in ('feature_flags', 'balance_configs')) >= 4, 'admin changes are audited');
 select throws_ok($$ delete from public.audit_log $$, 'AUDIT_LOG_IS_APPEND_ONLY', 'the audit log cannot be edited');
