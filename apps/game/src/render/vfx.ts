@@ -1,6 +1,6 @@
 // Presentation-only state: particles, floating numbers, shake/flash, banners.
 // Uses its own fxRng so rendering never touches the sim's seeded streams.
-import { DEATH_COL, REALMS, ULTS, createRng, type EnemyId, type KingMove, type RealmId, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { DEATH_COL, REALMS, ULTS, createRng, type BossMove, type EnemyId, type KingMove, type RealmId, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { active } from '../config';
 import { isMobile } from '../platform/device';
 import { castSound, comboSound, saySound, sfx, ultSound } from '../audio/sfx';
@@ -39,7 +39,7 @@ export const vfx = {
   /** "×50 KO!" Kill Streak popup. */
   streak: null as { n: number; t: number } | null,
   /** Centre-screen warning when a King starts a move (ultimates are louder). */
-  warn: null as { k: KingMove; txt: string; ult: boolean; t: number; life: number } | null,
+  warn: null as { k: BossMove; txt: string; ult: boolean; t: number; life: number } | null,
   /** Camera zoom moment (Evolution, Awakening, fusion): seconds elapsed / length. */
   zoom: null as { t: number; life: number; k: number } | null,
   /** Real seconds of slow motion left (King deaths); main.ts scales the tick accumulator. */
@@ -112,7 +112,7 @@ function announceKingMoves(v: Readonly<SimState>): void {
     if (!h.bm || warned.has(h.id)) continue;
     warned.add(h.id);
     if (vfx.warn && vfx.warn.k === h.bm && vfx.warn.t < 0.8) continue; // same move, more pieces
-    const ult = ULTS.includes(h.bm);
+    const ult = ULTS.includes(h.bm as KingMove);
     vfx.warn = { k: h.bm, txt: t(`kingMove.${h.bm}`), ult, t: 0, life: ult ? 1.8 : 1.3 };
   }
   if (warned.size > 400) { const live = new Set(v.hz.map((h) => h.id)); for (const id of warned) if (!live.has(id)) warned.delete(id); }

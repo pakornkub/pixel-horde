@@ -1,6 +1,6 @@
 import { TAU, atan2, cos, hypot, ipow, sin } from '../core/fmath';
 import { SKILL_TAGS, type SkillId, type SkillStats } from '../data/skills';
-import type { Enemy, Hazard, RivalSkill, SimState } from '../types';
+import type { Enemy, Hazard, RivalSkill, SimState, BossMove } from '../types';
 import { hit, hurtP } from './combat';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, visibleEnemies } from './query';
@@ -48,6 +48,11 @@ export function rollStage(s: SimState, n: number): void {
   }
 }
 
+/** Tag every hazard added since index `from` with the boss move that made it. */
+export function tagSince(s: SimState, from: number, k: BossMove): void {
+  for (let i = from; i < s.hz.length; i++) s.hz[i].bm = k;
+}
+
 export function addHz(s: SimState, h: Omit<Hazard, 'id' | 't'>): Hazard {
   const hz: Hazard = { ...h, id: s.hzId++, t: 0 };
   s.hz.push(hz);
@@ -81,7 +86,7 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'circ') {
       if (!h.done && h.t >= h.te!) {
         h.done = true;
-        if (h.spawn) { spawnEnemy(s, h.spawn, h.x, h.y, false); burst(s, h.x, h.y, HZ_BURST_COL(h.c), 8, 40, 0.4); continue; }
+        if (h.spawn) { const m = spawnEnemy(s, h.spawn, h.x, h.y, false); if (h.bm) m.summoned = true; burst(s, h.x, h.y, HZ_BURST_COL(h.c), 8, 40, 0.4); continue; }
         if (hypot(P.x - h.x, P.y - h.y) < h.r! + 5) hurtP(s, h.d!);
         burst(s, h.x, h.y, HZ_BURST_COL(h.c), 14, 70, 0.45);
         sfx(s, 'boom');
@@ -175,6 +180,7 @@ export function dragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numb
   if (whelps < D.whelpCap) opts.push('summon');
   const pick = opts[R.int(opts.length)], a = atan2(dy, dx);
   e.cd = R.range(D.cdMin, D.cdMax);
+  const n0 = s.hz.length;
   if (pick === 'breath') { addHz(s, { k: 'cone', x: e.x, y: e.y, a, r: D.breathR, sp: D.breathArc, te: D.breathWarn, du: D.breathDur, d: e.dmg * D.breathDmg }); e.lock = D.breathWarn + D.breathDur; }
   else if (pick === 'dash') { addHz(s, { k: 'line', x: e.x, y: e.y, a, r: D.dashLen, te: D.dashWarn, c: 0 }); e.lock = D.dashWarn; e.pend = 'dash'; e.dashA = a; }
   else if (pick === 'rain') {
@@ -183,10 +189,12 @@ export function dragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numb
     for (let i = 0; i < D.whelps; i++) spawnEnemy(s, 'whelp', e.x + R.range(-20, 20), e.y + R.range(-20, 20), false);
     banner(s, 'dragonSummons', 1);
   }
+  if (pick !== 'summon') tagSince(s, n0, pick === 'breath' ? 'dBreath' : pick === 'dash' ? 'dDash' : 'dRain');
 }
 
 /* ---------- Shadow Rival ---------- */
 const RIVAL_SK: RivalSkill[] = ['bolt', 'lance', 'nova', 'meteor', 'zap'];
+const RIVAL_MOVE: Record<RivalSkill, BossMove> = { bolt: 'rBolt', lance: 'rLance', nova: 'rNova', meteor: 'rMeteor', zap: 'rZap' };
 
 export function spawnRival(s: SimState): void {
   const R = s.rng.events, V = s.cfg.rival;
@@ -233,6 +241,7 @@ export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numbe
   for (const k of e.sk!) {
     e.cds![k]! -= dt;
     if (e.cds![k]! > 0) continue;
+    const n0 = s.hz.length;
     if (k === 'bolt') {
       const c = V.bolt, n = 1 + Math.floor(L / 2);
       for (let i = 0; i < n; i++) {
@@ -258,6 +267,7 @@ export function rivalAI(s: SimState, e: Enemy, dt: number, tx: number, ty: numbe
       addHz(s, { k: 'circ', x: tx, y: ty, r: c.r, te: c.warn, d: e.dmg * c.dmg, c: 2 });
       e.cds![k] = Math.max(c.cdMin, c.cd - c.cdPerLv * L);
     }
+    tagSince(s, n0, RIVAL_MOVE[k]);
   }
 }
 

@@ -804,5 +804,19 @@
  "kingMove.swap": "Swap",
  "kingMove.requiem": "Requiem",
  "warn.move": "WATCH OUT!",
- "warn.ult": "ULTIMATE!"
+ "warn.ult": "ULTIMATE!",
+ "kingMove.dBreath": "Fire Breath",
+ "kingMove.dDash": "Dragon Dash",
+ "kingMove.dRain": "Fireball Rain",
+ "kingMove.fBreath": "Frost Breath",
+ "kingMove.fRing": "Ice Pillars",
+ "kingMove.fBliz": "Blizzard",
+ "kingMove.sRows": "Lightning Rows",
+ "kingMove.sBalls": "Storm Orbs",
+ "kingMove.sDash": "Storm Dash",
+ "kingMove.rBolt": "Shadow Bolt",
+ "kingMove.rLance": "Shadow Lance",
+ "kingMove.rNova": "Shadow Nova",
+ "kingMove.rMeteor": "Shadow Meteor",
+ "kingMove.rZap": "Shadow Zap"
 }

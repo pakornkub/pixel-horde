@@ -804,5 +804,19 @@
  "kingMove.swap": "สลับที่",
  "kingMove.requiem": "บทเพลงศพ",
  "warn.move": "ระวัง!",
- "warn.ult": "ท่าไม้ตาย!"
+ "warn.ult": "ท่าไม้ตาย!",
+ "kingMove.dBreath": "ลมหายใจเพลิง",
+ "kingMove.dDash": "พุ่งชน",
+ "kingMove.dRain": "ฝนลูกไฟ",
+ "kingMove.fBreath": "ลมหายใจน้ำแข็ง",
+ "kingMove.fRing": "วงเสาน้ำแข็ง",
+ "kingMove.fBliz": "พายุหิมะ",
+ "kingMove.sRows": "แถวสายฟ้า",
+ "kingMove.sBalls": "ลูกบอลสายฟ้า",
+ "kingMove.sDash": "พุ่งสายฟ้า",
+ "kingMove.rBolt": "ลูกเงา",
+ "kingMove.rLance": "หอกเงา",
+ "kingMove.rNova": "ระเบิดเงา",
+ "kingMove.rMeteor": "อุกกาบาตเงา",
+ "kingMove.rZap": "สายฟ้าเงา"
 }

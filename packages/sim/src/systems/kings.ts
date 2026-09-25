@@ -5,7 +5,7 @@ import { TAU, atan2, cos, hypot, sin } from '../core/fmath';
 import type { EnemyId } from '../data/enemies';
 import { REALMS, type RealmId } from '../content/lumora/realms';
 import type { Enemy, KingMove, SayBeat, SimState } from '../types';
-import { addHz } from './events';
+import { addHz, tagSince } from './events';
 import { burst, flash, sfx, shake } from './fx';
 
 interface KingKit { moves: [KingMove, KingMove]; ult: KingMove }
@@ -55,7 +55,7 @@ function umbraUlt(s: SimState): { k: KingMove; mul: number } {
 function tagged(s: SimState, k: KingMove, f: () => void): void {
   const n = s.hz.length;
   f();
-  for (let i = n; i < s.hz.length; i++) s.hz[i].bm = k;
+  tagSince(s, n, k);
 }
 
 function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
