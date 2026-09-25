@@ -37,22 +37,35 @@ npm run build && npm run preview
 ## Database (Supabase)
 
 The live project (`jqvgmkhzdhjreikjqhxt`) has every migration in `supabase/migrations/` applied,
-up to `20260925000011_hardening`, plus `20260926000012_coop_feedback` (applied 2026-09-26 as
-`coop_feedback`: account suspension + the `shared.coop` part of the config schema). The branch
-`main-p4020s` separately applied `shield_pickup` (patches `shared.loot`); its file is on that branch. Migration 0004 went in without its large `config_schema` insert,
+through `20260925000012_shield_pickup` (patches `shared.loot`) and `20260926000012_coop_feedback`
+(account suspension + the `shared.coop` part of the config schema; applied as `coop_feedback`).
+Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`
 in the project's migration history); the row is byte-identical to the one in the file.
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
 - When the Balance Config schema (`packages/config`) gains or changes fields, update the live copy
-  in a new migration, otherwise `publish_config` rejects the new fields:
-  `update public.config_schema set schema = $schema$<npx tsx scripts/config-json.ts schema>$schema$::jsonb where id = 1;`
+  in a new migration, otherwise `publish_config` rejects the new fields. Patch only the object you
+  changed (so parallel branches do not overwrite each other), taking it from
+  `npx tsx scripts/config-json.ts schema`:
+  `update public.config_schema set schema = jsonb_set(schema, '{properties,shared,properties,<object>}', $j$<its JSON>$j$::jsonb) where id = 1;`
   New defaults for players are then published from the Admin Console as a new config version.
 
 Keep-alive: `workers/keepalive` pings `get_live_state` once a day (03:17 UTC) so the Free project is
 never paused for inactivity. The same workflow deploys it on every push to `main`; open its
 `workers.dev` URL once to trigger a ping by hand (`ok` = working).
+
+## Balance AI (Admin Console → ผู้ช่วย AI)
+
+Supabase Edge Function `supabase/functions/balance-ai` calls Gemini with the owner's API key.
+It only answers admins (it calls `admin_configs()` as the signed-in user) and never publishes:
+proposals go to the Tuning Lab draft, and the owner publishes from there.
+
+1. Supabase → **Edge Functions → Secrets** → add `GEMINI_API_KEY` (optional `GEMINI_MODEL`,
+   default `gemini-3.8-flash`).
+2. Deploy: `supabase functions deploy balance-ai` (or the Supabase MCP `deploy_edge_function`),
+   JWT verification on. Already deployed to the live project; redeploy after changing it.
 
 ## Admin Console
 

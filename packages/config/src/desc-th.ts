@@ -3,6 +3,10 @@
 
 /** Thai text for each English field description: `th` = what it is (short, ≤ 60 chars), `up` = what raising it does (≤ 90 chars). */
 export const FIELD_TH: Record<string, { th: string; up: string }> = {
+  'Shield drop chance (normal monster)': { th: 'โอกาสดรอปโล่ (มอนธรรมดา)', up: 'เจอโล่บ่อยขึ้น เกมง่ายขึ้น' },
+  'Shield drop chance (elite monster)': { th: 'โอกาสดรอปโล่ (มอน elite)', up: 'ฆ่า elite แล้วได้โล่บ่อยขึ้น' },
+  'Shield absorbs this much damage (× max HP)': { th: 'โล่กันดาเมจได้เท่าไร (× HP สูงสุด)', up: 'โล่รับดาเมจแทนได้มากขึ้นก่อนแตก' },
+  'Shield lasts (s)': { th: 'โล่อยู่ได้นานกี่วินาที', up: 'โล่อยู่นานขึ้นก่อนหายไปเอง' },
   'Not used any more (guests pick up shared Gold drops); kept so older versions stay valid': { th: '(ไม่ใช้แล้ว) Gold ต่อการฆ่าของทีมสำหรับเพื่อน', up: 'ไม่มีผล ตอนนี้ทุกคนเก็บ Gold จากของดรอปร่วมกัน' },
   'Shared drops: a heart also heals allies this close to the player who took it': { th: 'ระยะที่หัวใจฮีลเพื่อนรอบตัวคนเก็บด้วย', up: 'เพื่อนที่อยู่ไกลขึ้นก็ได้ฮีลจากหัวใจที่คนอื่นเก็บ' },
   'Level-up / chest: seconds to choose before a pick is made for you (the room keeps playing)': { th: 'เวลาเลือกเลเวลอัป/หีบ ก่อนระบบสุ่มให้ (วินาที)', up: 'มีเวลาเลือกนานขึ้น แต่ยืนในโล่เฉย ๆ นานขึ้น' },

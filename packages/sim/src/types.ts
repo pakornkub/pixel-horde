@@ -107,6 +107,8 @@ export interface MateWire {
   pk?: number;
   /** Still inside the shield bubble after a level-up / chest (drawn for the others). */
   sh?: boolean;
+  /** Has a Shield pickup's absorb left (drawn for the others). */
+  gt?: boolean;
 }
 /** Another player in this Run (host: the guests; guest: everyone else, host included). */
 export interface Mate extends MateWire {
@@ -124,6 +126,8 @@ export interface HostSnap {
   xp: number; kc: number; bk: number; gd: number; gk: GuardianKind; rk: number;
   /** Shared drops: Gold and chests picked up by anyone, heart healing (fraction of max HP) per player id. */
   tg?: number; tc?: number; hl?: Record<string, number>;
+  /** Shared drops: Shield pickups granted per player id (the picker and allies close by). */
+  sg?: Record<string, number>;
   /** Shared drops on the ground, packed 7 characters each (kind, x, y) relative to ox/oy. */
   g?: string;
   /** Kings that escaped this Run (the Escape penalty applies to the whole team). */
@@ -144,7 +148,7 @@ export interface CoopState {
   // host
   teamXp: number; kingKills: number; guardians: number; lastGuardian: GuardianKind; rivals: number;
   /** Shared drops: Gold (before Greed) and chests picked up by anyone; heart healing given per player id. */
-  teamGold: number; teamChests: number; healed: Record<string, number>;
+  teamGold: number; teamChests: number; healed: Record<string, number>; guarded: Record<string, number>;
   /** Level-up / chest while the room keeps playing: seconds left before a pick is made for you. */
   chooseT: number;
   /** Shield bubble left after choosing (s), and whether this player was choosing last tick. */
@@ -158,7 +162,7 @@ export interface CoopState {
   hostPhase: HostPhase;
   /** Damage waiting to be sent to the host, per enemy id. */
   out: Record<number, number>;
-  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number };
+  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number; sg: number };
   /** The host's drops on the ground (drawn only; the host decides pickups). */
   drops: Gem[];
 }
@@ -213,6 +217,8 @@ export interface Player {
   /** Chilled: slower while > 0. */
   chill: number;
   shards: number;
+  /** Shield pickup: damage it still absorbs, and seconds left. */
+  guard: number; guardT: number;
 }
 
 export interface Enemy {
@@ -352,7 +358,7 @@ export interface Hazard {
 }
 
 export interface Gem {
-  kind: 'xp' | 'coin' | 'chest' | 'heart';
+  kind: 'xp' | 'coin' | 'chest' | 'heart' | 'shield';
   x: number; y: number;
   v: number;
   mag: boolean;

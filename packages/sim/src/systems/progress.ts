@@ -344,6 +344,12 @@ export function stepGems(s: SimState, dt: number): void {
         sfx(s, 'coin');
         if (g.v >= 5) s.events.push({ t: 'text', x: g.x, y: g.y - 8, v: '+' + c + 'G', col: '#ffd23f', cr: false });
       } else if (g.kind === 'chest') { s.chestQueue++; s.runGold += L.chestGold; }
+      else if (g.kind === 'shield') {
+        P.guard = Math.max(P.guard, Math.round(P.maxHp * g.v));
+        P.guardT = L.shieldDur;
+        sfx(s, 'lv');
+        s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + P.guard, col: '#7fd4ff', cr: false });
+      }
       else {
         const h = Math.round(P.maxHp * g.v);
         P.hp = Math.min(P.maxHp, P.hp + h);

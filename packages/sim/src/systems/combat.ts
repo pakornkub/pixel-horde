@@ -179,7 +179,10 @@ export function killE(s: SimState, e: Enemy): void {
     if (g.kind === 'xp') { g.v += v; return; }
   }
   s.gems.push({ kind: 'xp', x: e.x, y: e.y, v, mag: false });
-  if (R.next() < L.heartChance) s.gems.push({ kind: 'heart', x: e.x + 4, y: e.y, v: L.heartSmall, mag: false });
+  // one roll decides heart or shield, so adding the shield did not shift any other random draw
+  const r = R.next();
+  if (r < L.heartChance) s.gems.push({ kind: 'heart', x: e.x + 4, y: e.y, v: L.heartSmall, mag: false });
+  else if (r < L.heartChance + (e.elite ? L.shieldElite : L.shieldChance)) s.gems.push({ kind: 'shield', x: e.x - 4, y: e.y, v: L.shieldAbsorb, mag: false });
 }
 
 /** ALL damage to the player goes through here. */
@@ -191,8 +194,15 @@ export function hurtP(s: SimState, d: number): void {
   const hv = s.cfg.scaling.hitVariance;
   if (P.evo.shield && P.skills.shield) d *= 1 - s.cfg.skills.shield.evo.absorb; // Aegis
   d = Math.max(1, Math.round(d * s.rng.combat.range(1 - hv, 1 + hv)));
-  P.hp -= d;
   P.inv = s.cfg.player.inv;
+  if (P.guardT > 0 && P.guard > 0) { // Shield pickup soaks the hit first
+    const a = Math.min(P.guard, d);
+    P.guard -= a; d -= a;
+    if (P.guard <= 0) P.guardT = 0;
+    text(s, P.x, P.y - 12, '-' + a, '#7fd4ff', false, { hurt: true });
+    if (d <= 0) { sfx(s, 'hit'); return; }
+  }
+  P.hp -= d;
   shake(s, 5); flash(s, 0.2, '#ff2a3a'); sfx(s, 'hurt');
   text(s, P.x, P.y - 12, '-' + d, '#ff4b5c', d >= P.maxHp * 0.2, { hurt: true });
   if (P.hp <= 0) handleDown(s);

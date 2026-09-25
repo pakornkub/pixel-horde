@@ -170,6 +170,30 @@ describe('co-op host / guest', () => {
     expect(r.gs().P.hp).toBeGreaterThan(40);
   });
 
+  it('a Shield pickup guards the player who takes it and allies close by (guests too)', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(30);
+    const h = r.hs(), g = r.gs();
+    g.P.x = h.P.x + 20; g.P.y = h.P.y;
+    r.step(12);
+    h.gems.push({ kind: 'shield', x: h.P.x, y: h.P.y, v: 0.3, mag: false });
+    r.step(4);
+    expect(r.gs().coop!.drops.some((d) => d.kind === 'shield') || r.hs().P.guard > 0).toBe(true); // guests see it (unless already taken)
+    r.step(12);
+    expect(r.hs().P.guard).toBe(Math.round(r.hs().P.maxHp * 0.3));
+    expect(r.gs().P.guard).toBe(Math.round(r.gs().P.maxHp * r.gs().cfg.loot.shieldAbsorb));
+    expect(r.gs().P.guardT).toBeGreaterThan(0);
+    // a far ally gets nothing
+    const r2 = room(1, { debug: { god: true } });
+    r2.step(30);
+    r2.gs().P.x = r2.hs().P.x + 400;
+    r2.step(12);
+    r2.hs().gems.push({ kind: 'shield', x: r2.hs().P.x, y: r2.hs().P.y, v: 0.3, mag: false });
+    r2.step(16);
+    expect(r2.hs().P.guard).toBeGreaterThan(0);
+    expect(r2.gs().P.guard).toBe(0);
+  });
+
   it('Kings aim at a player who is still standing, not at a downed host', () => {
     const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { bossAt: 0.02 } } }));
     const r = room(1, { debug: { god: true }, config: cfg });

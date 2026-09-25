@@ -43,3 +43,14 @@ test('admin: mobile nav is a scrollable top bar', async ({ page }) => {
   expect(box!.height).toBeLessThan(120);
   expect(await nav.evaluate((n) => getComputedStyle(n).overflowX)).toBe('auto');
 });
+
+test('admin: AI assistant proposes changes that land in the tuning lab draft', async ({ page }) => {
+  await page.goto(ADMIN + '#/ai');
+  await page.fill('textarea', 'บอสด่านแรกแรงไป');
+  await page.getByRole('button', { name: 'ส่ง', exact: true }).click();
+  await expect(page.locator('table tbody tr')).toHaveCount(2);
+  await page.getByRole('button', { name: /ส่งเข้าฉบับร่าง/ }).click();
+  await expect(page.locator('.stage')).toContainText('รอ publish (2)');
+  await expect(page.locator('.stage')).toContainText('overtimeUltMul');
+  await expect(page.locator('.stage input')).toHaveValue('ตามคำแนะนำของผู้ช่วย AI');
+});

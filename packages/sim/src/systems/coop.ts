@@ -20,9 +20,9 @@ import { U } from './player';
 export function initCoop(role: CoopRole, self: string): CoopState {
   return {
     role, self, mates: [], teamXp: 0, kingKills: 0, guardians: 0, lastGuardian: 'inferno', rivals: 0,
-    teamGold: 0, teamChests: 0, healed: {}, chooseT: 0, shieldT: 0, wasChoosing: false,
+    teamGold: 0, teamChests: 0, healed: {}, guarded: {}, chooseT: 0, shieldT: 0, wasChoosing: false,
     reviveT: {}, revived: {}, revivedStage: [], hostPhase: 'play', out: {},
-    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0 }, drops: [],
+    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0, sg: 0 }, drops: [],
   };
 }
 
@@ -63,7 +63,7 @@ export function unpackEnemies(str: string, ox: number, oy: number): PackedEnemy[
 }
 
 /* ---------- shared drops: 7 chars = kind(1) x(3) y(3), relative to the host ---------- */
-const GEM_KINDS: Gem['kind'][] = ['xp', 'coin', 'chest', 'heart'];
+const GEM_KINDS: Gem['kind'][] = ['xp', 'coin', 'chest', 'heart', 'shield']; // append only: the index is the wire code
 /** Drops per snapshot (the ones closest to a player first). */
 export const SNAP_GEMS = 150;
 
@@ -95,12 +95,21 @@ export function unpackGems(str: unknown, ox: number, oy: number): Gem[] {
   return out;
 }
 
+/** A Shield pickup on this player (same as solo: the stronger absorb wins, the timer restarts). */
+function giveGuard(s: SimState, v: number): void {
+  const P = s.P;
+  P.guard = Math.max(P.guard, Math.round(P.maxHp * v));
+  P.guardT = s.cfg.loot.shieldDur;
+  sfx(s, 'lv');
+  s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + P.guard, col: '#7fd4ff', cr: false });
+}
+
 const roundHeal = (h: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(h).map(([k, v]) => [k, Math.round(v * 1000) / 1000]));
 
 /**
  * Host, every tick (replaces stepGems in co-op): the drops are shared. Any standing player picks
  * them up (guests at their last reported position); EXP, Gold and chests go to the whole team,
- * a heart heals the player who took it and allies close by.
+ * a heart heals — and a Shield guards — the player who took it and allies close by.
  */
 export function coopGems(s: SimState, dt: number): void {
   const c = s.coop!, P = s.P, L = s.cfg.loot, sh = s.cfg.shop, C = s.cfg.coop;
@@ -139,6 +148,13 @@ export function coopGems(s: SimState, dt: number): void {
         } else c.healed[p.id] = (c.healed[p.id] || 0) + g.v;
       }
       burst(s, g.x, g.y, '#6fe36a', 8, 40, 0.35);
+    } else if (g.kind === 'shield') {
+      for (const p of players) {
+        if (p !== best && hypot(p.x - best.x, p.y - best.y) > C.heartShare) continue;
+        if (p.id === c.self) giveGuard(s, g.v);
+        else c.guarded[p.id] = (c.guarded[p.id] || 0) + 1;
+      }
+      burst(s, g.x, g.y, '#7fd4ff', 8, 40, 0.35);
     }
   }
   s.gems = s.gems.filter((g) => !g.got);
@@ -151,7 +167,7 @@ export function selfWire(s: SimState, name?: string): MateWire {
   return {
     id: s.coop?.self ?? '', name, x: Math.round(P.x), y: Math.round(P.y), hp: Math.ceil(Math.max(0, P.hp)), mh: P.maxHp, lv: P.lv,
     dn: P.down, fc: P.face, mv: P.moving, hero: P.ch, sel: s.phase === 'levelup' || s.phase === 'chest', pet: P.pet?.kind ?? null,
-    pk: Math.round(P.pick), sh: (s.coop?.shieldT ?? 0) > 0,
+    pk: Math.round(P.pick), sh: (s.coop?.shieldT ?? 0) > 0, gt: P.guardT > 0 && P.guard > 0,
   };
 }
 
@@ -287,9 +303,9 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
     st: s.stage, realm: s.realm, t: Math.round(s.stageTime * 10), dur: s.stageDur, ph: hostPhaseOf(s), ox, oy,
     e: packEnemies(s.enemies, ox, oy), bs,
     xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
-    tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), g: packGems(s, ox, oy),
+    tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), sg: { ...c.guarded }, g: packGems(s, ox, oy),
     hz: s.hz.slice(0, 60).map(cleanHz), sp: s.specialStage, dark: s.darkness, ot: s.overtime, le: s.lastEnd,
-    pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, sh: m.sh, pet: m.pet }))],
+    pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, sh: m.sh, gt: m.gt, pet: m.pet }))],
     rv: { ...c.revived }, route: s.phase === 'route' ? s.route : null, victory: s.victory,
   };
 }
@@ -360,6 +376,9 @@ export function applySnap(s: SimState, h: HostSnap): void {
     s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + add, col: '#6fe36a', cr: false });
   }
   L.hl = hl;
+  const sg = h.sg && typeof h.sg[c.self] === 'number' ? h.sg[c.self] : L.sg;
+  if (sg > L.sg && sg - L.sg < 20 && !P.down) giveGuard(s, s.cfg.loot.shieldAbsorb);
+  L.sg = sg;
   c.drops = unpackGems(h.g, h.ox, h.oy);
   for (let k = L.bk; k < h.bk && k - L.bk < 10; k++) {
     s.kingsKilled.push(s.stage);

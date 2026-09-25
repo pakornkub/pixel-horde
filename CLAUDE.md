@@ -94,7 +94,7 @@ made for them after `coop.pickTime` (10 s).
   every 150 ms; take contact/hazard damage locally; gain team XP/kills/gold/chests from deltas.
 - Drops are shared ("help each other collect"): the host owns them and sends them packed in the
   snapshot (7 chars each); anyone standing picks them up (guests at their reported position);
-  EXP, Gold and chests go to the whole team, a heart heals the picker + allies within `coop.heartShare`.
+  EXP, Gold and chests go to the whole team; a heart heals and a Shield pickup guards the picker + allies within `coop.heartShare`.
 - Kings aim their moves at the nearest standing player (never at a downed host).
 - Guest presence: position, hp, lv, down, facing, char, `sel` (choosing upgrade), pet, `pk` (pickup radius).
 

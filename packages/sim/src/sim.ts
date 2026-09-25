@@ -186,6 +186,7 @@ export function createSim(opts: SimOptions): Sim {
       P.dy = my;
     }
     P.inv -= dt;
+    if (P.guardT > 0) { P.guardT -= dt; if (P.guardT <= 0) P.guard = 0; }
   }
 
   /** Co-op guest: own Hero and Skills against the host's mirrored world. */
