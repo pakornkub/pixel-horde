@@ -4,12 +4,14 @@
 
 **Blocked by:** 01 (Workspace scaffold and the original game running on Cloudflare Pages)
 
-**Status:** ready-for-agent
+**Status:** in-progress — code + tests done; waiting for the owner to apply the migration and switch on anonymous sign-in / rate limit / Turnstile (supabase/README.md)
 
 - [ ] Supabase project `pixel-horde` has `profiles` with RLS; anonymous sign-in enabled with raised rate limit and Turnstile
-- [ ] `claim_session` stores the JWT session id; gameplay RPCs reject stale sessions with SESSION_REPLACED
-- [ ] Same-browser tabs coordinate via Web Locks/BroadcastChannel
-- [ ] Nickname profanity filter (Thai/English basic list)
-- [ ] pgTAP tests cover RLS on `profiles` and stale-session rejection
+- [x] `claim_session` stores the JWT session id; gameplay RPCs reject stale sessions with SESSION_REPLACED
+- [x] Same-browser tabs coordinate via Web Locks/BroadcastChannel
+- [x] Nickname profanity filter (Thai/English basic list)
+- [x] pgTAP tests cover RLS on `profiles` and stale-session rejection
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`
+
+**Notes (implementation):** migration `supabase/migrations/20260925000001_profiles_and_sessions.sql`; pgTAP file `supabase/tests/001_profiles_sessions.test.sql` (runs in CI via PGlite + shim). Client: `apps/game/src/net/` (`backend.ts` interface, `supabase.ts` lazy adapter that falls back to `offline.ts`), `platform/tabs.ts` (Web Locks + BroadcastChannel), `ui/account.ts` (nickname prompt, rename, tab screens, "opened elsewhere"). Session is checked at Run start, every Stage start and when the tab becomes visible. Not yet exercised against the live project (the migration is not applied and this sandbox cannot reach supabase.co).

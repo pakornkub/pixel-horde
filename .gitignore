@@ -27,3 +27,7 @@ Thumbs.db
 
 # Claude Code agent worktrees
 .claude/worktrees/
+tests/browser/.out/
+test-results/
+playwright-report/
+.wrangler/

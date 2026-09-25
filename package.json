@@ -1,0 +1,37 @@
+{
+  "name": "pixel-horde",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "workers/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @pixel-horde/game",
+    "build": "npm run build -w @pixel-horde/game",
+    "preview": "npm run preview -w @pixel-horde/game",
+    "typecheck": "tsc -p packages/sim && tsc -p packages/config && tsc -p packages/i18n && tsc -p packages/coop && tsc -p apps/game && tsc -p apps/admin && tsc -p workers/room && tsc -p tests && tsc -p workers/keepalive",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "lab": "npm run lab -w @pixel-horde/game",
+    "db:sync-seeds": "node scripts/sync-migration-seeds.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@eslint/js": "^10.0.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.4",
+    "eslint": "^10.11.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.1",
+    "wrangler": "^4.138.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

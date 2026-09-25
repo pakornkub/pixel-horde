@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Sprite Lab stays out of the production build
+        run: test ! -e apps/game/dist/sprite-lab.html && ! grep -rq "Sprite Lab" apps/game/dist
+
+  golden-replay-browsers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Start the co-op room worker (for tests/browser/coop.spec.ts)
+        run: |
+          (cd workers/room && npx wrangler dev --port 8787 --ip 127.0.0.1 > /tmp/wrangler.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/health && break; sleep 1; done || true
+      - run: npx playwright test

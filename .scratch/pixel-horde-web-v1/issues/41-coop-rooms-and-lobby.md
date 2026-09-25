@@ -4,11 +4,22 @@
 
 **Blocked by:** 08 (Anonymous Player Accounts, nicknames and one-place-at-a-time sessions); 03 (Move special events, hazards, dragon, rival and pet into the sim)
 
-**Status:** ready-for-agent
+**Status:** done (awaiting owner: deploy secrets + ROOM_URL, and a real-network playtest)
 
-- [ ] Transport interface with a WebSocket adapter and an in-memory adapter
-- [ ] Room worker deployed; codes avoid ambiguous characters
-- [ ] In-memory tests: join/ready/start, damage aggregation, snapshots under 4 KB, host-drop close
-- [ ] Deploy-time smoke test against the real Durable Object
+- [x] Transport interface with a WebSocket adapter and an in-memory adapter
+- [x] Room worker deployed; codes avoid ambiguous characters
+- [x] In-memory tests: join/ready/start, damage aggregation, snapshots under 4 KB, host-drop close
+- [x] Deploy-time smoke test against the real Durable Object
+
+## Notes (implementation)
+
+- Room rules (`packages/coop`): 5-character codes without I/L/O/0/1, first connection = host, up to 3 guests, joins only while waiting (a dropped player may come back with the same player id), host messages → all guests or one, guest messages → host only, host leaves → room closes for everyone.
+- Worker (`workers/room`): one Durable Object per code (`locationHint: apac`), plain WebSocket relay (no PartyServer dependency — same behaviour, fewer moving parts), `/health`; a 503 or a socket closed before the welcome shows "co-op full" (room full or the free daily allowance used up; resets 07:00 Thai time). Deploy + smoke test (`scripts/room-smoke.mjs`) run in `deploy-pages.yml` on `main` once the Cloudflare secrets and the `ROOM_URL` repo variable exist; verified locally with `wrangler dev`.
+- Transport (`apps/game/src/net/transport.ts`): WebSocket adapter + in-memory hub sharing the same room rules.
+- Session (`apps/game/src/coop/session.ts`): lobby (Hero, Weapon, ready), start (seed + the host's Balance Config version), host snapshots 15 Hz (packed monsters 11 chars each, < 4 KB), guest presence + aggregated damage merged into one 10 Hz message (halves Durable Object requests), host-lost detection.
+- Sim (`packages/sim/src/systems/coop.ts`): host/guest roles as in the original protocol (see ticket 42 notes).
+- Lobby UI (`#ovCoop`, `apps/game/src/ui/lobby.ts`): create / join by code, invite link `?join=CODE`, player list, Ready / Start, clear messages for off / not set up / full / started / host left. The co-op flag is respected.
+- PeerJS fallback adapter is not built (the DO relay covers every network; add it only if playtests show a need).
+- Tests: `apps/game/src/net/transport.test.ts`, `apps/game/src/coop/session.test.ts`, `tests/coop.test.ts` (incl. snapshot size, host drop), `tests/browser/coop.spec.ts` (two browsers against `wrangler dev`, also in CI).
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

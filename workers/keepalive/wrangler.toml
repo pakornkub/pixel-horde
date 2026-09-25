@@ -1,0 +1,12 @@
+name = "pixel-horde-keepalive"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# 03:17 UTC daily
+[triggers]
+crons = ["17 3 * * *"]
+
+[vars]
+SUPABASE_URL = "https://jqvgmkhzdhjreikjqhxt.supabase.co"
+# Publishable key: safe to ship, only reaches what RLS/RPC grants allow.
+SUPABASE_KEY = "sb_publishable_g90qGZet0U9BylLeZrPnNQ_iYjBfDPA"

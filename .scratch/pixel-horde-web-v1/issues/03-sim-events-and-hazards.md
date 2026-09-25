@@ -4,11 +4,13 @@
 
 **Blocked by:** 02 (Extract the headless deterministic sim core)
 
-**Status:** ready-for-agent
+**Status:** in-progress — code done (with ticket 02); waiting for the owner's playtest
 
-- [ ] All hazard shapes (cone, circle, line, projectile, ring) are simulated in the sim and exposed through `view()`
-- [ ] Event rolls and pity counters use the seeded RNG
-- [ ] Debug URL flags `?debug=dragon|rival|bloodmoon|god` still force events
+- [x] All hazard shapes (cone, circle, line, projectile, ring) are simulated in the sim and exposed through `view()`
+- [x] Event rolls and pity counters use the seeded RNG
+- [x] Debug URL flags `?debug=dragon|rival|bloodmoon|god` still force events
 - [ ] Playtest confirms events look and behave as before
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`
+
+**Notes (implementation):** `packages/sim/src/systems/events.ts`. Debug flags are comma-separated (`?debug=god,dragon`); `dragon`/`bloodmoon`/`rival` force the event on every Stage including Stage 1.

@@ -4,12 +4,14 @@
 
 **Blocked by:** 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** ready-for-agent
+**Status:** in-progress — code + tests done; waiting for the owner to apply migrations and deploy the keep-alive Worker
 
-- [ ] Tables `player_days`, `telemetry_samples`, `client_errors`, `stats_daily`; retention jobs per the spec
-- [ ] Outbox in localStorage + sendBeacon on tab hide
-- [ ] pg_cron nightly rollup and retention cleanup; anonymous-account cleanup (unlinked, inactive 90 days)
+- [x] Tables `player_days`, `telemetry_samples`, `client_errors`, `stats_daily`; retention jobs per the spec
+- [x] Outbox in localStorage + sendBeacon on tab hide
+- [x] pg_cron nightly rollup and retention cleanup; anonymous-account cleanup (unlinked, inactive 90 days)
 - [ ] Keep-alive Worker cron deployed
-- [ ] pgTAP tests for rollup correctness on fixture data
+- [x] pgTAP tests for rollup correctness on fixture data
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`
+
+**Notes (implementation):** migration `20260925000005_telemetry_stats.sql` (player days via a trigger on `runs`, cut in Asia/Bangkok; `report_errors` / `report_telemetry` open to anon with size caps; `rollup_day`, `retention_cleanup`, `nightly_jobs` scheduled with pg_cron at 00:10 Thai time when the extension exists). Client `apps/game/src/telemetry.ts`: Run summary (skills, picks, FPS histogram, config versions…) rides on `submit_run`; 5% sample stable per account; outbox flushed every minute and with `fetch(keepalive)` when the tab hides — plain `sendBeacon` cannot send the Supabase `apikey` header or JSON without a CORS preflight. Settings has a statistics opt-out (PDPA). Keep-alive Worker `workers/keepalive` (daily cron) is written but not deployed (needs the owner's Cloudflare token: `cd workers/keepalive && npx wrangler deploy`).

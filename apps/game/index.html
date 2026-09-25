@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixel Horde</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="probe"></div>
+<button id="ultBtn" data-i18n-aria="ui.ult"><div class="fill"></div><span>ULT</span></button>
+<button id="pauseBtn" data-i18n-aria="ui.pause">II</button>
+<div id="tipBar" role="status" aria-live="polite" hidden></div>
+<div id="fpsTip" role="status" hidden><span data-i18n="fx.lowFps"></span><button id="fpsLower" data-i18n="fx.lower"></button><button id="fpsKeep" data-i18n="fx.keep"></button></div>
+
+<div class="overlay title on" id="ovTitle">
+  <div class="tbg" id="titleBg"></div>
+  <div class="tmain">
+    <h1 class="logo">PIXEL<br>HORDE</h1>
+    <p class="draft" id="draftBadge" data-i18n="draft.badge" hidden></p>
+    <p class="tagline" data-i18n="title.tagline"></p>
+    <button class="thero" id="heroBtn2" data-i18n-aria="title.hero"><canvas id="titleHero" width="64" height="64"></canvas><span id="titleSel"></span></button>
+    <button class="btn play" id="continueBtn" hidden></button>
+    <button class="btn play big" id="startBtn" data-i18n="title.start"></button>
+    <div class="tmenu">
+      <button id="heroBtn" data-i18n="title.hero"></button>
+      <button id="coopBtn" disabled><span data-i18n="title.coop"></span> <small data-i18n="title.soon"></small></button>
+      <button id="boardBtn" data-i18n="board.open"></button>
+      <button id="shopBtn1" data-i18n="title.shop"></button>
+      <button id="collBtn" data-i18n="coll.open"></button>
+      <button id="settingsBtn1" data-i18n="title.settings"></button>
+    </div>
+    <div class="news" id="news" hidden></div>
+    <div class="tfoot">
+      <div class="best" id="bestTxt"></div>
+      <div class="best acct"><span id="acctTxt"></span> <button class="link" id="renameBtn" data-i18n="account.rename"></button> · <button class="link" id="langBtn" data-i18n="title.lang"></button></div>
+      <div class="best link-row" id="linkRow" hidden><span id="linkTxt" data-i18n="link.hint"></span> <button class="link" id="linkBtn" data-i18n="link.button"></button></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovHero"><div class="box">
+  <h2 data-i18n="title.hero"></h2>
+  <p data-i18n="title.intro"></p>
+  <div class="chars" id="chars"></div>
+  <p class="chdesc" id="chDesc"></p>
+  <div class="weapons" id="weaponRow"></div>
+  <div class="weapons" id="crackRow" hidden></div>
+  <div class="keys" data-i18n-html="title.keys"></div>
+  <button class="btn" id="heroDone" data-i18n="title.heroDone"></button>
+</div></div>
+
+<div class="overlay" id="ovLevel"><div class="box">
+  <h2 id="lvTitle">LEVEL UP!</h2>
+  <p class="slots" id="lvSlots"></p>
+  <div class="opts" id="opts"></div>
+  <div class="sptools" id="lvTools"></div>
+</div></div>
+
+<div class="overlay" id="ovEnding"><div class="box">
+  <h2 data-i18n="ending.title"></h2>
+  <p data-i18n="ending.l1"></p>
+  <p data-i18n="ending.l2"></p>
+  <p data-i18n="ending.l3"></p>
+  <p class="note" data-i18n="ending.note"></p>
+  <button class="btn" id="endlessBtn" data-i18n="ending.endless"></button>
+  <button class="btn ghost" id="finishBtn" data-i18n="ending.finish"></button>
+</div></div>
+
+<div class="overlay" id="ovCollection"><div class="box">
+  <h2 data-i18n="coll.title"></h2>
+  <div class="weapons" id="collTabs">
+    <button data-tab="ach" data-i18n="coll.ach"></button><button data-tab="titles" data-i18n="coll.titles"></button>
+    <button data-tab="badges" data-i18n="coll.badges"></button><button data-tab="bestiary" data-i18n="coll.bestiary"></button>
+    <button data-tab="weapons" data-i18n="coll.weapons"></button>
+  </div>
+  <div class="coll" id="collBody"></div>
+  <button class="btn" id="collBack" data-i18n="coll.back"></button>
+</div></div>
+
+<div class="overlay" id="ovRevive"><div class="box">
+  <h2 data-i18n="revive.title"></h2>
+  <p id="reviveTxt"></p>
+  <button class="btn" id="reviveBtn" data-i18n="revive.buy"></button>
+  <button class="btn ghost" id="giveUpBtn" data-i18n="revive.giveUp"></button>
+</div></div>
+
+<div class="overlay" id="ovClear"><div class="box">
+  <h2 id="clearTitle">STAGE CLEAR</h2>
+  <p id="clearNote"></p>
+  <div class="stats" id="clearStats"></div>
+  <div class="awaken" id="awakenBox" hidden></div>
+  <div class="sptools" id="compBox" hidden></div>
+  <div class="sptools" id="weaponBox" hidden></div>
+  <div class="sptools" id="spBox" hidden></div>
+  <div class="bench" id="benchBox" hidden></div>
+  <p class="note" id="clearTeam" hidden></p>
+  <button class="btn" id="nextBtn" data-i18n="clear.next"></button>
+</div></div>
+
+<div class="overlay" id="ovRoute"><div class="box">
+  <h2 id="routeTitle">CHAPTER</h2>
+  <p id="routeNote"></p>
+  <div class="opts" id="routeOpts"></div>
+  <p class="note" id="routeTeam" hidden></p>
+</div></div>
+
+<div class="overlay" id="ovOver"><div class="box">
+  <h2 id="overTitle" data-i18n="over.title"></h2>
+  <div class="stats score" id="scoreBox"></div>
+  <div class="stats score" id="endlessBox" hidden></div>
+  <p class="note" id="newAch" hidden></p>
+  <div class="stats" id="overStats"></div>
+  <button class="btn" id="retryBtn" data-i18n="over.retry"></button>
+  <button class="btn ghost" id="shopBtn2" data-i18n="title.shop"></button>
+  <button class="btn ghost" id="homeBtn" data-i18n="over.home"></button>
+  <button class="btn ghost" id="replayBtn2" data-i18n="replay.download"></button>
+  <button class="btn ghost" id="linkBtn2" data-i18n="link.button" hidden></button>
+  <div class="best" id="bestOver"></div>
+</div></div>
+
+<div class="overlay" id="ovChest"><div class="box">
+  <h2 data-i18n="chest.title"></h2>
+  <div class="wheel" id="wheel"></div>
+  <p class="chestTxt" id="chestTxt"></p>
+</div></div>
+
+<div class="overlay" id="ovMsg"><div class="box">
+  <h2 id="msgTitle" data-i18n="msg.title"></h2>
+  <p id="msgTxt"></p>
+  <button class="btn" id="msgBtn" data-i18n="over.home"></button>
+</div></div>
+
+<div class="overlay" id="ovShop"><div class="box">
+  <h2 data-i18n="shop.title"></h2>
+  <p class="slots" data-i18n="shop.note"></p>
+  <div class="goldline" id="shopGold"></div>
+  <div id="shopList"></div>
+  <button class="btn ghost" id="shopBack" data-i18n="shop.back"></button>
+</div></div>
+
+<div class="overlay" id="ovPause"><div class="box">
+  <h2 data-i18n="pause.title"></h2>
+  <p id="pauseTxt" data-i18n="pause.text"></p>
+  <button class="btn" id="resumeBtn" data-i18n="pause.resume"></button>
+  <button class="btn ghost" id="settingsBtn2" data-i18n="title.settings"></button>
+  <button class="btn ghost" id="metBtn"></button>
+  <button class="btn ghost" id="replayBtn" data-i18n="replay.download"></button>
+  <button class="btn ghost" id="saveQuitBtn" data-i18n="save.quit"></button>
+  <p class="slots" style="margin:0 0 8px" data-i18n="save.quitNote"></p>
+  <button class="btn ghost" id="leaveBtn" data-i18n="pause.leave"></button>
+  <p class="slots" style="margin:10px 0 0" data-i18n="pause.leaveNote"></p>
+</div></div>
+
+<div class="overlay" id="ovSettings"><div class="box">
+  <h2 data-i18n="set.title"></h2>
+  <p class="slots" data-i18n="set.note"></p>
+  <div id="setList" class="setlist"></div>
+  <button class="btn ghost" id="setBack" data-i18n="set.back"></button>
+</div></div>
+
+<div class="overlay" id="ovBoard"><div class="box wide">
+  <h2 data-i18n="board.title"></h2>
+  <div class="tabs" id="boardTabs" role="tablist"></div>
+  <label class="slots"><select id="boardHero"></select></label>
+  <p class="slots" id="boardNote"></p>
+  <ol class="lb" id="boardList"></ol>
+  <ol class="lb" id="boardMine"></ol>
+  <button class="btn ghost" id="boardBack" data-i18n="shop.back"></button>
+</div></div>
+
+<div class="overlay" id="ovMaint"><div class="box">
+  <h2 data-i18n="maint.title"></h2>
+  <p data-i18n="maint.text"></p>
+  <button class="btn" id="maintBtn" data-i18n="maint.play"></button>
+</div></div>
+
+<div class="overlay" id="ovUpdate"><div class="box">
+  <h2 data-i18n="update.title"></h2>
+  <p data-i18n="update.text"></p>
+  <button class="btn" id="updateBtn" data-i18n="update.reload"></button>
+</div></div>
+
+<div class="overlay" id="ovCoop"><div class="box">
+  <h2 data-i18n="coop.title"></h2>
+  <div id="coopEntry">
+    <p data-i18n="coop.intro"></p>
+    <button class="btn" id="coopCreate" data-i18n="coop.create"></button>
+    <div class="coopjoin"><input id="coopCode" class="field" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" data-i18n-placeholder="coop.codePh"><button class="btn" id="coopJoin" data-i18n="coop.join"></button></div>
+  </div>
+  <div id="coopRoom" hidden>
+    <p class="coopcode"><span data-i18n="coop.code"></span> <b id="coopCodeTxt"></b> <button class="link" id="coopCopy" data-i18n="coop.copy"></button></p>
+    <ul class="cooplist" id="coopList"></ul>
+    <button class="btn ghost" id="coopHero" data-i18n="title.hero"></button>
+    <button class="btn" id="coopGo"></button>
+  </div>
+  <p class="note" id="coopMsg" role="status"></p>
+  <button class="btn ghost" id="coopBack" data-i18n="coop.leave"></button>
+</div></div>
+
+<div class="overlay" id="ovName"><div class="box">
+  <h2 data-i18n="name.title"></h2>
+  <p data-i18n="name.text"></p>
+  <input id="nameInput" class="field" maxlength="16" autocomplete="nickname" data-i18n-placeholder="name.placeholder">
+  <p class="err" id="nameErr" role="alert"></p>
+  <button class="btn" id="nameOk" data-i18n="name.ok"></button>
+  <button class="btn ghost" id="nameSkip" data-i18n="name.skip"></button>
+</div></div>
+
+<div class="overlay" id="ovTab"><div class="box">
+  <h2 id="tabTitle"></h2>
+  <p id="tabText"></p>
+  <button class="btn" id="tabBtn" data-i18n="tab.useHere"></button>
+</div></div>
+
+<div class="overlay" id="ovReplaced"><div class="box">
+  <h2 data-i18n="replaced.title"></h2>
+  <p data-i18n="replaced.text"></p>
+  <button class="btn" id="replacedBtn" data-i18n="replaced.playHere"></button>
+</div></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
