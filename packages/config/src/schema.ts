@@ -410,11 +410,13 @@ const shared = obj({
     zap: obj({ cd: pos(3, 'Interval (s)'), cdPerLv: pos(0.15, 'Interval − per level'), cdMin: pos(1.4, 'Interval minimum'), r: pos(10, 'Strike radius'), warn: sec(0.5, 'Warning (s)'), dmg: mul(0.9, 'Damage ×') }, 'Rival lightning'),
   }, 'Shadow Rival'),
   caster: obj({
+    on: int(0, 0, 1, 'Normal monsters shoot (1) or just walk (0); King-summoned turrets always shoot'),
     far: pos(130, 'Approach when farther than this'), near: pos(90, 'Back off when nearer than this'), strafe: frac(0.6, 'Strafe speed ×'),
     fireRange: pos(210, 'Shooting range'), firstMin: sec(1, 'First shot min (s)'), firstMax: sec(2.5, 'First shot max (s)'), cdMin: sec(2.3, 'Shot interval min (s)'), cdMax: sec(3, 'Shot interval max (s)'),
     projSpeed: pos(95, 'Projectile speed'), projLife: sec(2.6, 'Projectile life (s)'), slow: frac(0.5, 'Speed kept while slowed'),
   }, 'Eye Caster'),
   charger: obj({
+    on: int(0, 0, 1, 'Normal monsters charge (1) or just walk (0)'),
     range: pos(150, 'Charge trigger range'), warn: sec(0.6, 'Telegraph time (s)'), dash: sec(0.5, 'Dash time (s)'), speed: pos(230, 'Dash speed'), dmgMul: mul(1.5, 'Dash contact damage ×'),
     firstMin: sec(1.5, 'First charge min (s)'), firstMax: sec(3, 'First charge max (s)'), cdMin: sec(2.5, 'Charge interval min (s)'), cdMax: sec(3.5, 'Charge interval max (s)'), slow: frac(0.5, 'Speed kept while slowed'),
   }, 'Wild Boar'),

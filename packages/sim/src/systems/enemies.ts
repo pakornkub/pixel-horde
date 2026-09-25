@@ -92,8 +92,8 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
     else if (e.type === 'frostDragon') frostDragonAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'stormDragon') stormDragonAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'rival') rivalAI(s, e, dt, tx, ty, damp);
-    else if (RANGED[e.type]) casterAI(s, e, dt, tx, ty, damp, RANGED[e.type]!);
-    else if (CHARGERS.has(e.type)) chargerAI(s, e, dt, tx, ty, damp);
+    else if (RANGED[e.type] && (s.cfg.caster.on || e.summoned)) casterAI(s, e, dt, tx, ty, damp, RANGED[e.type]!);
+    else if (CHARGERS.has(e.type) && s.cfg.charger.on) chargerAI(s, e, dt, tx, ty, damp);
     else if (e.type === 'frog') hopAI(s, e, dt, tx, ty, damp);
     else if (e.kg) kingAI(s, e, dt, tx, ty, damp);
     else {
@@ -112,7 +112,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
       if (ET[e.type].trait === 'leech' && P.hp < hp0) e.hp = Math.min(e.maxHp, e.hp + (hp0 - P.hp) * s.cfg.leech.heal); // it drinks what it takes
       if (s.phase === 'over') return;
     }
-    if (!e.boss && !RANGED[e.type]?.still && l > farDist) { const [x, y] = edgePos(s); e.x = x; e.y = y; }
+    if (!e.boss && !(RANGED[e.type]?.still && (s.cfg.caster.on || e.summoned)) && l > farDist) { const [x, y] = edgePos(s); e.x = x; e.y = y; }
   }
   s.enemies = s.enemies.filter((e) => !e.dead);
   if (s.boss && s.boss.dead) s.boss = null;

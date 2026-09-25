@@ -5,7 +5,7 @@ import { TAU, atan2, cos, hypot, sin } from '../core/fmath';
 import type { EnemyId } from '../data/enemies';
 import { REALMS, type RealmId } from '../content/lumora/realms';
 import type { Enemy, KingMove, SayBeat, SimState } from '../types';
-import { addHz } from './events';
+import { addHz, tagSince } from './events';
 import { burst, flash, sfx, shake } from './fx';
 
 interface KingKit { moves: [KingMove, KingMove]; ult: KingMove }
@@ -49,6 +49,13 @@ function umbraUlt(s: SimState): { k: KingMove; mul: number } {
   const esc = s.escapedKings.map((r: RealmId) => KING_KITS[REALMS[r].king]?.ult).filter((u): u is KingMove => !!u);
   if (esc.length) return { k: esc[R.int(esc.length)], mul: 1 };
   return { k: ULTS[R.int(ULTS.length)], mul: s.cfg.kings.umbraUltDmg };
+}
+
+/** Every hazard a King move creates is tagged with the move (red telegraph + on-screen warning). */
+function tagged(s: SimState, k: KingMove, f: () => void): void {
+  const n = s.hz.length;
+  f();
+  tagSince(s, n, k);
 }
 
 function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
@@ -353,7 +360,7 @@ export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number
   // after the landing, so a follow-up starts where the King came down
   if (kg.next) {
     kg.next.t -= dt;
-    if (kg.next.t <= 0) { const k = kg.next.k; kg.next = null; doNext(s, e, k); }
+    if (kg.next.t <= 0) { const k = kg.next.k; kg.next = null; tagged(s, k, () => doNext(s, e, k)); }
   }
   if (locked) return;
   const dx = tx - e.x, dy = ty - e.y, l = hypot(dx, dy) || 1;
@@ -369,6 +376,6 @@ export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number
     const u = e.type === 'umbra' ? umbraUlt(s) : { k: kit.ult, mul: 1 };
     flash(s, 0.2, '#ffffff');
     sfx(s, 'ult');
-    doMove(s, e, u.k, u.mul);
-  } else doMove(s, e, kit.moves[R.int(2)], 1);
+    tagged(s, u.k, () => doMove(s, e, u.k, u.mul));
+  } else { const k = kit.moves[R.int(2)]; tagged(s, k, () => doMove(s, e, k, 1)); }
 }

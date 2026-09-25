@@ -44,8 +44,32 @@ describe('the ten Realms', () => {
 });
 
 describe('new monster behaviours', () => {
+  it('by default normal monsters neither shoot nor charge; King-summoned turrets still shoot', async () => {
+    const { typePool } = await import('../packages/sim/src/systems/spawner');
+    const { stepEnemies } = await import('../packages/sim/src/systems/enemies');
+    for (const r of Object.keys(REALMS) as RealmId[]) {
+      const { s } = realmSim(r);
+      s.stage = 8;
+      const pool = typePool(s);
+      expect(pool, r).not.toContain('caster');
+      expect(pool, r).not.toContain('charger');
+      expect(pool, r).not.toContain('turret');
+    }
+    const { s } = realmSim('duskhold');
+    s.enemies = [];
+    const book = spawnEnemy(s, 'book', s.P.x + 60, s.P.y, false), boar = spawnEnemy(s, 'charger', s.P.x - 60, s.P.y, false);
+    const tu = spawnEnemy(s, 'turret', s.P.x, s.P.y + 60, false);
+    tu.summoned = true;
+    for (let i = 0; i < 400; i++) stepEnemies(s, 1 / 60, 0.99, true);
+    expect(s.hz.filter((h) => h.k === 'line').length).toBe(0); // no charge telegraph
+    expect(boar.cst).toBeUndefined();
+    expect(s.hz.some((h) => h.k === 'proj')).toBe(true); // only the summoned turret fired
+    expect(book.cd).toBeUndefined();
+  });
+
   it('turrets never move; frogs hop; leeches drink; spore caps and haunted armor split', () => {
     const { sim, s } = realmSim('gearspire');
+    s.cfg.caster.on = 1; // shooting monsters are off by default
     const tu = spawnEnemy(s, 'turret', s.P.x + 60, s.P.y, false), fr = spawnEnemy(s, 'frog', s.P.x - 80, s.P.y, false);
     const x0 = tu.x, fx0 = fr.x;
     const xs: number[] = [];
