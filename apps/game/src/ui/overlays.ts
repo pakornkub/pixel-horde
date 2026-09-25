@@ -142,6 +142,15 @@ export function closeShop(): void {
 
 /* ---------- level up ---------- */
 export interface LevelTools { reroll: () => void; banish: (i: number) => void }
+/** Level-up notes, one colored row per kind (Signature, Link, Skill Line, Combo, final level). */
+type NoteKind = 'sig' | 'link' | 'line' | 'combo' | 'final';
+const NOTE_ICON: Record<NoteKind, string> = { sig: '★', link: '⛓', line: '◆', combo: '⚡', final: '▲' };
+function noteRows(notes: [NoteKind, string][]): string {
+  if (!notes.length) return '';
+  const clean = (s: string): string => s.replace(/^\s*[·,]\s*/, '').trim();
+  return `<span class="nrows">${notes.map(([k, s]) => `<span class="nrow n-${k}"><b>${NOTE_ICON[k]}</b><span>${clean(s)}</span></span>`).join('')}</span>`;
+}
+
 export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void, tools?: LevelTools): void {
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
@@ -151,7 +160,8 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
     bt.className = 'opt';
-    let meta: { col: string; g: string }, name: string, desc: string, tag = '', stats = '', note = '';
+    let meta: { col: string; g: string }, name: string, desc: string, tag = '', stats = '';
+    const notes: [NoteKind, string][] = [];
     if (o.kind === 'evo') {
       meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g };
       name = evoName(o.id); tag = `<b class="tag evo">${t('level.evolve')}</b>`;
@@ -165,14 +175,13 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t(o.toBench ? 'level.bench' : 'level.new')}</b>`;
       desc = lv ? '' : skillDesc(o.id);
       stats = skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false));
+      if (o.id === signatureOf(P.ch)) notes.push(['sig', t('level.signature')]);
+      else if (SKILL_LINES[P.ch].includes(o.id)) notes.push(['link', t('level.link')]);
+      else if (AWAKENING[P.ch].line.includes(o.id as never)) notes.push(['line', t('level.line')]);
       const partners = (Object.keys(P.skills) as SkillId[]).filter((k) => k !== o.id && combosBetween(o.id, k).length);
-      if (partners.length) note += t('level.combos', { list: partners.slice(0, 2).map((k) => `${skillName(k)} (${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join('/')})`).join(', ') });
-      if (o.id === signatureOf(P.ch)) note += t('level.signature');
-      else if (SKILL_LINES[P.ch].includes(o.id)) note += t('level.link');
-      else if (AWAKENING[P.ch].line.includes(o.id as never)) note += t('level.line');
+      for (const k of partners.slice(0, 2)) notes.push(['combo', t('level.combos', { list: `${skillName(k)} → ${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join(' / ')}` })]);
       const evoPas = EVO_PASSIVE[o.id];
-      if (evoPas && lv + 1 === v.cfg.skills[o.id].max) note += t('level.final', { passive: passiveName(evoPas) });
-      note = note.replace(/^\s*[·,]\s*/, '').trim();
+      if (evoPas && lv + 1 === v.cfg.skills[o.id].max) notes.push(['final', t('level.final', { passive: passiveName(evoPas) })]);
     } else if (o.kind === 'pas') {
       meta = PASSIVE_ICON[o.id];
       const lv = P.pas[o.id] || 0;
@@ -189,7 +198,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       desc = t('level.recoverDesc');
     }
     bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span class="body"><span class="nm">${name} ${tag}</span>`
-      + (desc ? `<span class="ds">${desc}</span>` : '') + (stats ? `<span class="st">${stats}</span>` : '') + (note ? `<span class="nt">${note}</span>` : '') + '</span>';
+      + (desc ? `<span class="ds">${desc}</span>` : '') + (stats ? `<span class="st">${stats}</span>` : '') + noteRows(notes) + '</span>';
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
     const E = v.cfg.economy;

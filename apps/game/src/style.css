@@ -65,20 +65,24 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .goldline{font-family:var(--pix);font-size:12px;color:#9a6a00;margin:0 0 12px}
 .opts{display:flex;flex-direction:column;gap:10px}
 /* one card per choice: number key, big icon, name + tag, what it does, its numbers, extra notes */
-.opt{position:relative;display:grid;grid-template-columns:auto 46px 1fr;gap:12px;align-items:center;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:6px;
+.opt{position:relative;display:grid;grid-template-columns:46px 1fr;gap:12px;align-items:center;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:6px;
   padding:10px 12px;cursor:pointer;font:inherit;color:inherit;box-shadow:0 3px 0 var(--ink);transition:transform .06s}
 .opt:hover,.opt:focus-visible{background:#fff8d8;transform:translateY(-1px)}
 .opt:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
-.opt .key,.opt .cur{font-family:var(--pix);font-size:11px;background:var(--ink);color:var(--paper);border-radius:3px;padding:5px 6px;align-self:start;margin-top:2px}
+.opt .key,.opt .cur{display:none} /* number keys 1/2/3 still pick; the badge is hidden (owner's choice) */
 .ico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink)}
 .opt .ico{width:46px;height:46px;font-size:18px}
 .opt .body{display:flex;flex-direction:column;gap:3px;min-width:0}
 .opt .nm{font-family:var(--th);font-weight:700;font-size:18px;line-height:1.3;display:block}
 .opt .nm i{font-style:normal;color:#c2361f}
-.opt .ds{font-size:15px;line-height:1.45;display:block}
-.opt .st{font-size:13px;line-height:1.4;display:block;background:var(--paper2);border-radius:4px;padding:3px 8px;color:#3a3363;font-weight:700}
-.opt .nt{font-size:13px;line-height:1.4;display:block;color:#7a3fbf;font-weight:700}
-.tag{display:inline-block;font-family:var(--pix);font-weight:400;font-size:9px;line-height:1;padding:4px 6px;border-radius:3px;vertical-align:middle;margin-left:4px;white-space:nowrap}
+.opt .ds{font-size:12px;line-height:1.2;display:block}
+.opt .st{font-size:12px;line-height:1.3;display:block;background:var(--paper2);border-radius:4px;padding:3px 8px;color:#3a3363;font-weight:700}
+.opt .nrows{display:flex;flex-direction:column;gap:2px;margin-top:1px}
+/* note kinds, each its own color: Signature, Link, Skill Line, Combo, final level */
+.opt .nrow{--c:#7a3fbf;display:flex;gap:6px;align-items:baseline;font-size:12px;font-weight:700;line-height:1.3;color:var(--c);border-left:4px solid var(--c);padding-left:6px}
+.opt .nrow b{flex:none;font-weight:700;font-family:var(--th),"Segoe UI Symbol","Noto Sans Symbols 2",sans-serif}
+.opt .n-sig{--c:#b8860b}.opt .n-link{--c:#2f6fd0}.opt .n-line{--c:#1f8a7a}.opt .n-combo{--c:#d9481f}.opt .n-final{--c:#7a3fbf}
+.tag{display:inline-block;font-family:var(--th);font-weight:700;font-size:12px;line-height:1;padding:3px 7px;border-radius:3px;vertical-align:middle;margin-left:4px;white-space:nowrap}
 .tag.new{background:#c2361f;color:#fff}
 .tag.up{background:#3a7a2c;color:#fff}
 .tag.evo{background:var(--gold);color:var(--ink)}
@@ -149,8 +153,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench .step{font-size:14px;font-weight:700;background:#fff3b8;border-radius:4px;padding:4px 8px;margin:0 0 6px}
 .bench .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
 .bench .row>.lbl{flex-basis:100%;font-weight:700;font-size:13px;opacity:.8}
-.bench button.sk{display:inline-flex;align-items:center;gap:6px;border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;font-size:15px;padding:5px 8px;cursor:pointer;min-height:40px}
-.bench button.sk .ico{width:26px;height:26px;font-size:12px;border-width:2px}
+.bench button.sk{display:inline-flex;align-items:center;gap:6px;border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;font-size:14px;padding:5px 8px;cursor:pointer;min-height:40px}
+.bench button.sk .ico{width:24px;height:24px;font-size:11px;border-width:2px}
 .bench button.sk .lv{font-family:var(--pix);font-weight:400;font-size:9px;background:var(--ink);color:var(--paper);border-radius:3px;padding:3px 4px}
 .bench button.sk.empty{border-style:dashed;opacity:.7;min-width:64px;justify-content:center}
 .bench button.sk.sel{background:var(--gold);outline:3px solid var(--ink);outline-offset:1px}
@@ -172,8 +176,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 #spBox{margin:0 0 14px;border:3px solid var(--ink);border-radius:6px;padding:10px 12px;background:#fff}
 #spBox .buysp{background:var(--ink);color:var(--paper)}
 #spBox .buysp:hover:not(:disabled){background:#3a3363}
-#spBox .uprow{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;width:100%;text-align:left}
-#spBox .uprow .ico{width:28px;height:28px;font-size:12px;border-width:2px}
+#spBox .uprow{display:grid;grid-template-columns:24px 1fr auto auto;gap:8px;align-items:center;width:100%;text-align:left;font-size:14px}
+#spBox .uprow .ico{width:24px;height:24px;font-size:11px;border-width:2px}
 #spBox .uprow .tag{margin:0}
 #spBox .uprow .cost{font-size:13px;opacity:.8}
 .opt .ban{position:absolute;top:4px;right:6px;border:0;background:transparent;font:inherit;font-size:16px;font-weight:700;color:#e8434f;cursor:pointer;padding:2px 6px}
