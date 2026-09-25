@@ -8,7 +8,7 @@ import { PET_DIVE, PET_FIRE, type HitTag } from '../data/skills';
 import type { CompanionKind, Enemy, GuardianKind, Pet, SimState } from '../types';
 import { hit } from './combat';
 import { chillTick } from './combos';
-import { addHz } from './events';
+import { addHz, tagSince } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, visibleEnemies } from './query';
 import { edgePos, spawnEnemy } from './spawner';
@@ -72,7 +72,7 @@ export function frostDragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty:
   e.cd! -= dt;
   if (e.cd! > 0) return;
   e.cd = R.range(F.cdMin, F.cdMax);
-  const pick = R.int(3), a = atan2(ty - e.y, tx - e.x);
+  const pick = R.int(3), a = atan2(ty - e.y, tx - e.x), n0 = s.hz.length;
   if (pick === 0) {
     addHz(s, { k: 'cone', x: e.x, y: e.y, a, r: F.breathR, sp: F.breathArc, te: F.breathWarn, du: F.breathDur, d: e.dmg * F.breathDmg, chill: F.chill });
     e.lock = F.breathWarn + F.breathDur;
@@ -83,6 +83,7 @@ export function frostDragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty:
     addHz(s, { k: 'bliz', x: tx, y: ty, te: F.blizWarn, du: F.blizDur, sp: F.blizFreeze, d: e.dmg * F.blizDmg });
     banner(s, 'blizzard', 1.6);
   }
+  tagSince(s, n0, pick === 0 ? 'fBreath' : pick === 1 ? 'fRing' : 'fBliz');
 }
 
 /** Storm Dragon: lightning rows, bouncing orbs, dash across the screen. */
@@ -106,7 +107,7 @@ export function stormDragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty:
   e.cd! -= dt;
   if (e.cd! > 0) return;
   e.cd = R.range(S.cdMin, S.cdMax);
-  const pick = R.int(3), a = atan2(ty - e.y, tx - e.x);
+  const pick = R.int(3), a = atan2(ty - e.y, tx - e.x), n0 = s.hz.length;
   if (pick === 0) {
     // parallel rows of lightning across the player's area
     const horiz = R.next() < 0.5, w = s.viewport.w, h = s.viewport.h;
@@ -126,6 +127,7 @@ export function stormDragonAI(s: SimState, e: Enemy, dt: number, tx: number, ty:
     addHz(s, { k: 'line', x: e.x, y: e.y, a, r: S.dashLen, te: S.dashWarn, c: 2 });
     e.lock = S.dashWarn; e.pend = 'dash'; e.dashA = a;
   }
+  tagSince(s, n0, pick === 0 ? 'sRows' : pick === 1 ? 'sBalls' : 'sDash');
 }
 
 /* ---------- rewards: a defeated Guardian becomes (or strengthens) a Companion ---------- */

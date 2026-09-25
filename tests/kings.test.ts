@@ -122,3 +122,26 @@ describe('Royal Splash', () => {
     expect(s.boss).not.toBeNull();
   });
 });
+
+describe('King move warnings', () => {
+  it('every hazard a King creates is tagged with its move (red telegraph + on-screen warning)', async () => {
+    const { KING_KITS } = await import('@pixel-horde/sim');
+    const { sim, t } = withKing('greenvale');
+    const tags = new Set<string>();
+    run(sim, t, 20, (st) => { for (const h of st.hz) if (h.bm) tags.add(h.bm); });
+    const kit = KING_KITS.boss!;
+    expect(tags.size).toBeGreaterThan(0);
+    for (const k of tags) expect([...kit.moves, kit.ult]).toContain(k);
+  });
+});
+
+describe('event boss warnings', () => {
+  it('the Inferno Dragon and the Shadow Rival tag their hazards too', () => {
+    for (const [event, prefix] of [['dragon', 'd'], ['rival', 'r']] as const) {
+      const sim = createSim(botOptions(11, { debug: { god: true, event } }));
+      const tags = new Set<string>();
+      for (let t = 0; t < 150 * 60 && tags.size === 0; t++) { botStep(sim, t); for (const h of (sim.view() as SimState).hz) if (h.bm && h.bm[0] === prefix && h.bm[1] === h.bm[1].toUpperCase()) tags.add(h.bm); }
+      expect(tags.size, event).toBeGreaterThan(0);
+    }
+  });
+});

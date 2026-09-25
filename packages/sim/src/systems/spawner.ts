@@ -1,5 +1,5 @@
 import { TAU, clamp, cos, hypot, ipow, sin } from '../core/fmath';
-import { ET, type EnemyId } from '../data/enemies';
+import { ET, RANGED, type EnemyId } from '../data/enemies';
 import { REALMS } from '../content/lumora/realms';
 import type { BannerKey, Enemy, SimState } from '../types';
 import { banner } from './fx';
@@ -10,19 +10,23 @@ export const prog = (s: SimState): number => clamp(s.stageTime / s.stageDur, 0, 
 export const realm = (s: SimState) => REALMS[s.realm];
 
 export function typePool(s: SimState): EnemyId[] {
-  const p = realm(s).pool, st = s.stage, a: EnemyId[] = [p[0], p[0], p[1], p[1]];
-  if (st >= 2) a.push(p[2], 'charger');
-  if (st >= 3) a.push('caster');
+  // Shooting / charging monsters only come when those skills are switched on (caster.on / charger.on);
+  // a turret that cannot shoot is left out of its Realm's pool.
+  const shoot = !!s.cfg.caster.on, charge = !!s.cfg.charger.on;
+  const p = realm(s).pool.filter((m) => shoot || !RANGED[m]?.still), st = s.stage, a: EnemyId[] = [p[0], p[0], p[1], p[1]];
+  const px = (i: number): EnemyId => p[Math.min(i, p.length - 1)];
+  if (st >= 2) { a.push(px(2)); if (charge) a.push('charger'); }
+  if (st >= 3 && shoot) a.push('caster');
   if (st >= 4) a.push('splitter');
-  if (st >= 6) a.push('charger', 'caster');
+  if (st >= 6) { if (charge) a.push('charger'); if (shoot) a.push('caster'); }
   if (st >= 3) a.push(p[1]);
-  if (st >= 5) a.push(p[2], p[1]);
+  if (st >= 5) a.push(px(2), p[1]);
   // Realm traits bring more of the matching monsters
   const tr = realm(s).traits;
   if (tr.includes('fast')) for (const m of p) if (ET[m].trait === 'fast') a.push(m);
-  if (tr.includes('ranged') && st >= 2) a.push('caster');
+  if (tr.includes('ranged') && st >= 2 && shoot) a.push('caster');
   if (tr.includes('split') && st >= 2) a.push('splitter');
-  if (tr.includes('charge')) a.push('charger');
+  if (tr.includes('charge') && charge) a.push('charger');
   return a;
 }
 

@@ -233,6 +233,8 @@ export interface Enemy {
   elite: boolean; boss: boolean;
   dmgMul: number;
   kx: number; ky: number;
+  /** Called in by a King move (King-summoned turrets keep shooting even when normal monsters don't). */
+  summoned?: boolean;
   flash: number; slowT: number; frz: number; oc: number;
   wob: number; ph: number;
   dead: boolean;
@@ -269,6 +271,11 @@ export interface BenchSkill { id: SkillId; lv: number; evo: boolean }
 export type KingMove = 'shadowBolts' | 'shadowMeteors' | 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne'
   | 'quake' | 'lavaDrops' | 'eruption' | 'spit' | 'frogs' | 'gossip' | 'trail' | 'swoop' | 'grid'
   | 'tideWave' | 'bubbles' | 'siren' | 'laser' | 'turrets' | 'purge' | 'soulSpiral' | 'swap' | 'requiem';
+
+/** Moves of the event bosses (dragons, Shadow Rival), announced like King moves. */
+export type EventMove = 'dBreath' | 'dDash' | 'dRain' | 'fBreath' | 'fRing' | 'fBliz' | 'sRows' | 'sBalls' | 'sDash'
+  | 'rBolt' | 'rLance' | 'rNova' | 'rMeteor' | 'rZap';
+export type BossMove = KingMove | EventMove;
 
 export interface KingState {
   phase: 1 | 2 | 3;
@@ -355,6 +362,8 @@ export interface Hazard {
   bounce?: boolean;
   /** cone: chills the player (Frost Dragon). */
   chill?: number;
+  /** Made by a boss move: King, Guardian dragon or Shadow Rival (drawn red, announced on screen). */
+  bm?: BossMove;
 }
 
 export interface Gem {

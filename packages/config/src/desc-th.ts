@@ -3,6 +3,8 @@
 
 /** Thai text for each English field description: `th` = what it is (short, ≤ 60 chars), `up` = what raising it does (≤ 90 chars). */
 export const FIELD_TH: Record<string, { th: string; up: string }> = {
+  'Normal monsters shoot (1) or just walk (0); King-summoned turrets always shoot': { th: 'มอนธรรมดายิงกระสุนได้ไหม (1 = ยิง, 0 = เดินอย่างเดียว)', up: '1 = มอนสายยิงยิงใส่ผู้เล่น เกมยากขึ้น (ป้อมที่ King เรียกยิงเสมอ)' },
+  'Normal monsters charge (1) or just walk (0)': { th: 'มอนธรรมดาพุ่งชนได้ไหม (1 = พุ่ง, 0 = เดินอย่างเดียว)', up: '1 = มอนสายพุ่งชาร์จใส่ผู้เล่น เกมยากขึ้น' },
   'Shield drop chance (normal monster)': { th: 'โอกาสดรอปโล่ (มอนธรรมดา)', up: 'เจอโล่บ่อยขึ้น เกมง่ายขึ้น' },
   'Shield drop chance (elite monster)': { th: 'โอกาสดรอปโล่ (มอน elite)', up: 'ฆ่า elite แล้วได้โล่บ่อยขึ้น' },
   'Shield absorbs this much damage (× max HP)': { th: 'โล่กันดาเมจได้เท่าไร (× HP สูงสุด)', up: 'โล่รับดาเมจแทนได้มากขึ้นก่อนแตก' },

@@ -26,13 +26,16 @@ export function fmtT(s: number): string {
 /** Hazard colour codes: 0 fire, 1 shadow, 2 lightning/sand, 3 slime, 4 bone, 5 ice. */
 const HZ_COL: Record<number, string> = { 0: '#ff2a3a', 1: '#b07cff', 2: '#fff35c', 3: '#8fce6a', 4: '#f4f0e0', 5: '#9fd8ff' };
 
+/** King moves are always drawn in this red so they stand out from everything else. */
+const KING_RED = '#ff2a3a';
+
 function drawHz(v: Readonly<SimState>, clock: number): void {
   for (const h of v.hz) {
-    const x = h.x + ox, y = h.y + oy;
+    const x = h.x + ox, y = h.y + oy, king = !!h.bm;
     b.save();
     if (h.k === 'cone') {
       const on = h.t >= h.te!;
-      const cc = h.c ? HZ_COL[h.c] : null; // poison / water cones (Bog Queen, Tide Queen)
+      const cc = king ? KING_RED : h.c ? HZ_COL[h.c] : null; // poison / water cones (Bog Queen, Tide Queen)
       b.globalAlpha = on ? 0.55 : 0.18 + 0.12 * Math.sin(clock * 20);
       b.fillStyle = on ? cc ?? '#ff8a3d' : cc ?? '#ff2a3a';
       b.beginPath(); b.moveTo(x, y); b.arc(x, y, h.r!, h.a! - h.sp!, h.a! + h.sp!); b.closePath(); b.fill();
@@ -40,10 +43,11 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
     } else if (h.k === 'circ') {
       if (h.t < h.te!) {
         const k = h.t / h.te!;
-        const col = HZ_COL[h.c ?? 0] || '#ff2a3a';
+        const col = king ? KING_RED : HZ_COL[h.c ?? 0] || '#ff2a3a';
+        if (king) { b.globalAlpha = 0.16 + 0.1 * Math.sin(clock * 18); b.fillStyle = KING_RED; b.beginPath(); b.ellipse(x, y, h.r!, h.r! * 0.6, 0, 0, TAU); b.fill(); }
         b.globalAlpha = 0.25 + 0.3 * k; b.fillStyle = col;
         b.beginPath(); b.ellipse(x, y, h.r! * k, h.r! * k * 0.6, 0, 0, TAU); b.fill();
-        b.globalAlpha = 0.9; b.strokeStyle = col; b.lineWidth = 1;
+        b.globalAlpha = 0.9; b.strokeStyle = col; b.lineWidth = king ? 2 : 1;
         b.beginPath(); b.ellipse(x, y, h.r!, h.r! * 0.6, 0, 0, TAU); b.stroke();
         if (h.c === 2) { b.globalAlpha = 0.7; b.strokeStyle = '#fff35c'; b.beginPath(); b.moveTo(x, y); b.lineTo(x + rnd(-3, 3), 0); b.stroke(); }
         if (h.c === 0) {
@@ -58,11 +62,11 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
       }
     } else if (h.k === 'line') {
       b.globalAlpha = 0.35 + 0.3 * Math.sin(clock * 25);
-      b.strokeStyle = h.c ? HZ_COL[h.c] : '#ff2a3a';
-      b.lineWidth = h.c ? 2 : 6;
+      b.strokeStyle = king ? KING_RED : h.c ? HZ_COL[h.c] : '#ff2a3a';
+      b.lineWidth = king ? 3 : h.c ? 2 : 6;
       b.beginPath(); b.moveTo(x, y); b.lineTo(x + Math.cos(h.a!) * h.r!, y + Math.sin(h.a!) * h.r!); b.stroke();
     } else if (h.k === 'proj') {
-      const col = h.c === 1 ? '#8a5ad6' : h.c === 3 ? '#d27bff' : h.c === 4 ? '#f4f0e0' : h.c === 5 ? '#bfe6ff' : '#ff8a3d';
+      const col = king ? '#ff4b5c' : h.c === 1 ? '#8a5ad6' : h.c === 3 ? '#d27bff' : h.c === 4 ? '#f4f0e0' : h.c === 5 ? '#bfe6ff' : '#ff8a3d';
       b.fillStyle = K; b.beginPath(); b.arc(x, y, h.r! + 1, 0, TAU); b.fill();
       b.fillStyle = col; b.beginPath(); b.arc(x, y, h.r!, 0, TAU); b.fill();
       b.fillStyle = '#fff'; b.fillRect(Math.round(x) - 1, Math.round(y) - 1, 1, 1);
@@ -70,7 +74,7 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
       const r = h.r! * Math.min(1, h.t / h.du!);
       b.globalAlpha = 1 - (h.t / h.du!) * 0.6;
       b.strokeStyle = '#3a1f66'; b.lineWidth = 5; b.beginPath(); b.ellipse(x, y, r, r * 0.85, 0, 0, TAU); b.stroke();
-      b.strokeStyle = h.c === 3 ? '#8fce6a' : h.c === 0 ? '#ff8a3d' : h.c === 5 ? '#9fd8ff' : '#b07cff'; b.lineWidth = 2; b.stroke();
+      b.strokeStyle = king ? KING_RED : h.c === 3 ? '#8fce6a' : h.c === 0 ? '#ff8a3d' : h.c === 5 ? '#9fd8ff' : '#b07cff'; b.lineWidth = king ? 3 : 2; b.stroke();
     } else if (h.k === 'beam') {
       const ex = x + Math.cos(h.a!) * h.r!, ey = y + Math.sin(h.a!) * h.r!;
       b.lineCap = 'round';
@@ -79,13 +83,13 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
         b.beginPath(); b.moveTo(x, y); b.lineTo(ex, ey); b.stroke();
         b.globalAlpha = 0.8; b.lineWidth = 1; b.stroke();
       } else {
-        b.globalAlpha = Math.max(0, 1 - (h.t - h.te!) / 0.3); b.strokeStyle = HZ_COL[h.c ?? 2]; b.lineWidth = h.w! * 2;
+        b.globalAlpha = Math.max(0, 1 - (h.t - h.te!) / 0.3); b.strokeStyle = king ? KING_RED : HZ_COL[h.c ?? 2]; b.lineWidth = h.w! * 2;
         b.beginPath(); b.moveTo(x, y); b.lineTo(ex, ey); b.stroke();
       }
     } else if (h.k === 'pull') {
       const on = h.t >= h.te!;
       b.globalAlpha = on ? 0.35 : 0.15 + 0.1 * Math.sin(clock * 20);
-      b.fillStyle = '#b88a45'; b.beginPath(); b.ellipse(x, y, h.r!, h.r! * 0.6, 0, 0, TAU); b.fill();
+      b.fillStyle = king && !on ? KING_RED : '#b88a45'; b.beginPath(); b.ellipse(x, y, h.r!, h.r! * 0.6, 0, 0, TAU); b.fill();
       b.globalAlpha = 0.9; b.strokeStyle = on ? '#7a5a2a' : '#ff2a3a'; b.lineWidth = 1; b.setLineDash([3, 3]); b.lineDashOffset = -clock * 20; b.stroke(); b.setLineDash([]);
       b.fillStyle = '#5a3f1a'; b.beginPath(); b.ellipse(x, y, h.w!, h.w! * 0.6, 0, 0, TAU); b.fill();
     } else if (h.k === 'ice') {
@@ -103,11 +107,11 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
     } else if (h.k === 'safe') {
       const { LW, LH } = screen;
       b.globalAlpha = h.t < h.te! ? 0.2 + 0.25 * (h.t / h.te!) : Math.max(0, 0.7 - (h.t - h.te!) * 2);
-      b.fillStyle = h.c === 3 ? '#6fb553' : '#9fd8ff'; // Gossip Swamp / Absolute Throne
+      b.fillStyle = king ? KING_RED : h.c === 3 ? '#6fb553' : '#9fd8ff'; // Gossip Swamp / Absolute Throne: everything but the safe spots
       b.beginPath(); b.rect(0, 0, LW, LH);
       for (const [px, py] of h.pts!) { b.moveTo(px + ox + h.r!, py + oy); b.ellipse(px + ox, py + oy, h.r!, h.r! * 0.7, 0, 0, TAU, true); }
       b.fill('evenodd');
-      b.globalAlpha = 1; b.strokeStyle = '#ffffff'; b.lineWidth = 1;
+      b.globalAlpha = 1; b.strokeStyle = king ? '#6fe36a' : '#ffffff'; b.lineWidth = king ? 2 : 1;
       for (const [px, py] of h.pts!) { b.beginPath(); b.ellipse(px + ox, py + oy, h.r!, h.r! * 0.7, 0, 0, TAU); b.stroke(); }
     }
     b.restore();
@@ -766,6 +770,26 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     ctx.globalAlpha = Math.min(1, k * 2.5);
     outlined(bn.txt, W / 2, cv.height * 0.34, px, bn.big ? '#fff35c' : '#ffffff', px * 0.3);
     if (bn.sub) thaiText(bn.sub, W / 2, cv.height * 0.34 + 26 * D, 13 * D, '#ffd23f', 4 * D);
+    ctx.globalAlpha = 1; ctx.textBaseline = 'top';
+  }
+  // King move warning: centre of the screen, just above the player
+  const wn = vfx.warn;
+  if (wn) {
+    const k = wn.t / wn.life, a = k < 0.1 ? k / 0.1 : k > 0.8 ? (1 - k) / 0.2 : 1;
+    const y = cv.height * 0.3, bandH = (wn.ult ? 58 : 44) * D;
+    ctx.globalAlpha = Math.max(0, a) * 0.78;
+    ctx.fillStyle = wn.ult ? '#8a0f1c' : '#3a0a12'; ctx.fillRect(0, y - bandH / 2, W, bandH);
+    ctx.fillStyle = KING_RED; ctx.fillRect(0, y - bandH / 2, W, 2 * D); ctx.fillRect(0, y + bandH / 2 - 2 * D, W, 2 * D);
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const pulse = 1 + 0.06 * Math.sin(clock * 18);
+    thaiText('⚠ ' + t(wn.ult ? 'warn.ult' : 'warn.move'), W / 2, y - bandH * 0.22, 11 * D, Math.floor(clock * 8) & 1 ? '#ffd23f' : '#ffffff', 3 * D);
+    thaiText(wn.txt, W / 2, y + bandH * 0.18, (wn.ult ? 20 : 16) * D * pulse, '#ff6b76', 4 * D);
+    if (wn.ult) { // red edges for ultimates
+      const g = ctx.createRadialGradient(W / 2, cv.height / 2, Math.min(W, cv.height) * 0.35, W / 2, cv.height / 2, Math.max(W, cv.height) * 0.75);
+      g.addColorStop(0, 'rgba(255,42,58,0)'); g.addColorStop(1, 'rgba(255,42,58,0.35)');
+      ctx.globalAlpha = Math.max(0, a) * (0.6 + 0.4 * Math.sin(clock * 12)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, cv.height);
+    }
     ctx.globalAlpha = 1; ctx.textBaseline = 'top';
   }
   // King intro card: slides in from the left under the banner
