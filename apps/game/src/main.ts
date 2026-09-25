@@ -27,7 +27,7 @@ import { cv, onResize, screen } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
-  $, bestLine, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
+  $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -359,7 +359,7 @@ function toTitle(): void {
   setPlayUI(false);
   renderChars();
   renderTitleSel();
-  $('bestTxt').textContent = bestLine();
+  renderTitleStats();
   show('ovTitle');
   void refreshContinue();
 }
@@ -654,7 +654,7 @@ function refreshText(): void {
   renderTitleSel();
   metLabel();
   renderChars();
-  $('bestTxt').textContent = bestLine();
+  renderTitleStats();
   renderAccountLine();
   renderNews();
 }

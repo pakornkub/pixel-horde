@@ -13,6 +13,22 @@ export const show = (id: string): void => { $(id).classList.add('on'); };
 export const hide = (id: string): void => { $(id).classList.remove('on'); };
 const focusSoon = (id: string): void => { setTimeout(() => $(id).focus({ preventScroll: true }), 30); };
 
+/** Title footer: wallet and best record as two readable chips. */
+export function renderTitleStats(): void {
+  const bb = getBest(), el = $('bestTxt');
+  el.textContent = '';
+  const chip = (label: string, value: string): void => {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    const l = document.createElement('small'); l.textContent = label;
+    const v = document.createElement('b'); v.textContent = value;
+    c.append(l, v);
+    el.append(c);
+  };
+  chip(t('stat.wallet'), META.gold.toLocaleString() + ' G');
+  if (bb) chip(t('title.bestLabel'), t('title.bestValue', { stage: bb.stage, kills: bb.kills.toLocaleString() }));
+}
+
 export function bestLine(): string {
   const bb = getBest();
   return t('title.best', { gold: META.gold }) + (bb ? t('title.bestRecord', { stage: bb.stage, kills: bb.kills }) : '');
@@ -57,7 +73,7 @@ export function renderChars(): void {
         }
         metaSync.selectHero(k);
         renderChars();
-        $('bestTxt').textContent = bestLine();
+        renderTitleStats();
       })();
     });
     box.appendChild(bt);
@@ -135,7 +151,7 @@ export function openShop(from: string): void {
 export function closeShop(): void {
   hide('ovShop');
   renderChars();
-  $('bestTxt').textContent = bestLine();
+  renderTitleStats();
   $('bestOver').textContent = bestLine();
   show(shopFrom);
 }

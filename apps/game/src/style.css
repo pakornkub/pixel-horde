@@ -226,9 +226,32 @@ html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);fo
 .tmenu button small[hidden]{display:none}
 .tmenu button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .tfoot{width:100%;background:rgba(244,247,228,.92);color:var(--ink);border:3px solid var(--ink);border-radius:4px;padding:6px 10px;font-family:var(--th)}
-.tfoot .best{margin-top:2px;opacity:1}
+.tfoot{display:flex;flex-direction:column;gap:8px;padding:10px 12px;font-size:14px;line-height:1.35}
+.tstats{display:flex;gap:8px;flex-wrap:wrap}
+.tstats:empty{display:none}
+.tstats .chip{flex:1 1 140px;display:flex;flex-direction:column;align-items:flex-start;background:#fff;border:2px solid var(--ink);border-radius:4px;padding:4px 8px}
+.tstats .chip small{font-size:11px;font-weight:600;opacity:.7}
+.tstats .chip b{font-size:15px;font-weight:700}
+.trow{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;border-top:2px dashed rgba(30,27,51,.25);padding-top:8px}
+.trow .who{flex:1 1 auto;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.trow .acts{display:flex;gap:12px;margin-left:auto}
+.tlink{font:inherit;font-size:13px;font-weight:600;color:var(--ink);background:none;border:0;padding:4px 2px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.link-row{display:flex;flex-direction:column;align-items:stretch;gap:6px;border-top:2px dashed rgba(30,27,51,.25);padding-top:8px}
+.linkhint{margin:0;font-size:13px;text-align:center}
+.linkhint.bad{color:#b3261e;font-weight:700}
+.linkhint.ok{color:#1e7a34;font-weight:700}
+/* Google sign-in button (Google branding: white, #747775 border, #1F1F1F text, Roboto 500 14px, 40px tall) */
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:40px;padding:0 12px;background:#fff;color:#1f1f1f;border:1px solid #747775;border-radius:4px;
+  font-family:Roboto,"Helvetica Neue",Arial,var(--th),sans-serif;font-weight:500;font-size:14px;letter-spacing:.25px;cursor:pointer;align-self:center;min-width:220px}
+.gbtn:hover{background:#f7f8f8;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15)}
+.gbtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.gbtn .glogo{flex:none}
+.gbtn[hidden]{display:none}
+.gbtn.wide{width:100%;margin-top:10px}
 .tmain .news{width:100%;text-align:left;margin:0}
-html[lang="en"] .tmenu button,html[lang="en"] .tagline,html[lang="en"] .tfoot{font-family:var(--pix);font-weight:400;font-size:9px;line-height:1.7}
+html[lang="en"] .tmenu button,html[lang="en"] .tagline{font-family:var(--pix);font-weight:400;font-size:9px;line-height:1.7}
+html[lang="en"] .tfoot{font-size:13px}
+html[lang="en"] .tstats .chip b,html[lang="en"] .trow .who{font-family:var(--pix);font-weight:400;font-size:10px;line-height:1.8}
 html[lang="en"] .tagline{font-size:10px}
 @media (max-width:360px){.tmenu{grid-template-columns:repeat(2,1fr)}}
 @media (max-height:520px){.logo{font-size:24px}.logo br{display:none}.tagline{display:none}.thero canvas{width:64px;height:64px}.tmain{gap:8px}}
