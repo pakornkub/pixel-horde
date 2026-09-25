@@ -118,6 +118,8 @@ export interface HostSnap {
   bs: [string, number, number][];
   /** Team counters: EXP from kills, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
   xp: number; kc: number; bk: number; gd: number; gk: GuardianKind; rk: number;
+  /** Kings that escaped this Run (the Escape penalty applies to the whole team). */
+  es?: number;
   hz: Hazard[]; sp: boolean; dark: boolean; ot: boolean; le: 'clear' | 'escape' | null;
   /** Every player, host first. */
   pl: MateWire[];
@@ -142,7 +144,7 @@ export interface CoopState {
   hostPhase: HostPhase;
   /** Damage waiting to be sent to the host, per enemy id. */
   out: Record<number, number>;
-  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; st: number; realm: RealmId | null; ph: HostPhase };
+  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase };
   goldAcc: number;
 }
 

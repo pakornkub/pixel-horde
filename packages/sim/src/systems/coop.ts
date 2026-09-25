@@ -21,7 +21,7 @@ export function initCoop(role: CoopRole, self: string): CoopState {
   return {
     role, self, mates: [], teamXp: 0, kingKills: 0, guardians: 0, lastGuardian: 'inferno', rivals: 0,
     reviveT: {}, revived: {}, revivedStage: [], hostPhase: 'play', out: {},
-    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, st: 0, realm: null, ph: 'play' }, goldAcc: 0,
+    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play' }, goldAcc: 0,
   };
 }
 
@@ -173,7 +173,7 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
   return {
     st: s.stage, realm: s.realm, t: Math.round(s.stageTime * 10), dur: s.stageDur, ph: hostPhaseOf(s), ox, oy,
     e: packEnemies(s.enemies, ox, oy), bs,
-    xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals,
+    xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
     hz: s.hz.slice(0, 60).map(cleanHz), sp: s.specialStage, dark: s.darkness, ot: s.overtime, le: s.lastEnd,
     pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, pet: m.pet }))],
     rv: { ...c.revived }, route: s.phase === 'route' ? s.route : null, victory: s.victory,
@@ -243,6 +243,9 @@ export function applySnap(s: SimState, h: HostSnap): void {
   L.gd = h.gd;
   if (h.rk > L.rk && h.rk - L.rk < 5) for (let k = L.rk; k < h.rk; k++) grantShadow(s);
   L.rk = h.rk;
+  const es = typeof h.es === 'number' ? h.es : L.es;
+  for (let k = L.es; k < es && k - L.es < 5; k++) { s.escapes++; if (s.realm) s.escapedKings.push(s.realm); }
+  L.es = es;
   // ally revive
   const rv = (h.rv && h.rv[c.self]) || 0;
   if (rv > L.rv) { L.rv = rv; if (P.down) reviveSelf(s); }
