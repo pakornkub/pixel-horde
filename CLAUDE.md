@@ -86,7 +86,9 @@ clear screen — never at the next Stage start.
   - Shadow Rival: 25% on normal stages ≥2, 35 s to kill, uses 3 of 5 player-like skills (all
     telegraphed). Reward: 35% Shadow Clone else a shard (3 shards = clone). Clone repeats
     bolt/lance/boomer/chain/nova/meteor casts at 35–60% damage.
-- Chest wheel: 8 cells [1,2,1,3,1,2,1,2], result weights 1:50% 2:35% 3:15%.
+- Chest wheel: 8 cells [1,2,1,3,1,2,1,2], result weights 1:50% 2:35% 3:15%. A King gives ONE chest (the wheel,
+  `economy.kingChest`); it drops no chest item (its Gold rides on the King coin). Skill Points come only
+  from Kings — they are not sold for Gold at the Stage end.
 
 ## Co-op protocol (host-authoritative)
 - Host simulates everything and broadcasts ~15 Hz: stage, time, phase (`play|wait|pause|clear|over`),

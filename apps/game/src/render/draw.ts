@@ -555,17 +555,38 @@ function thaiText(txt: string, x: number, y: number, px: number, col: string, lw
   ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
 
-/** A screen-edge arrow pointing at (sx, sy) (hi-res pixels); returns where it was drawn. */
+/** A screen-edge arrow pointing at (sx, sy) (hi-res pixels), with a glow; returns where it was drawn. */
 function edgeArrow(sx: number, sy: number, mg: number, sz: number, col: string): { ax: number; ay: number; a: number } {
   const D = screen.DPR, W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
-  const k = Math.min((W / 2 - mg) / Math.max(1e-6, Math.abs(dx)), (H / 2 - mg) / Math.max(1e-6, Math.abs(dy)));
+  const g = Math.max(mg, sz * 1.8 + 8 * D); // keep the whole tip on screen
+  const k = Math.min((W / 2 - g) / Math.max(1e-6, Math.abs(dx)), (H / 2 - g) / Math.max(1e-6, Math.abs(dy)));
   const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx);
   ctx.save();
   ctx.translate(ax, ay); ctx.rotate(a);
-  ctx.beginPath(); ctx.moveTo(sz * 1.7, 0); ctx.lineTo(sz * 0.3, -sz * 1.1); ctx.lineTo(sz * 0.3, sz * 1.1); ctx.closePath();
-  ctx.fillStyle = col; ctx.strokeStyle = INK; ctx.lineWidth = 3 * D; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(sz * 1.8, 0); ctx.lineTo(sz * 0.2, -sz * 1.2); ctx.lineTo(sz * 0.55, 0); ctx.lineTo(sz * 0.2, sz * 1.2); ctx.closePath();
+  ctx.shadowColor = col; ctx.shadowBlur = 14 * D; // glow so it stands out on any Realm
+  ctx.fillStyle = col; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = INK; ctx.lineWidth = 4 * D; ctx.lineJoin = 'round'; ctx.stroke(); ctx.fill();
   ctx.restore();
   return { ax, ay, a };
+}
+
+/** Round badge behind an arrow: a sprite in a ringed disc, a sonar ping and the distance under it. */
+function edgeBadge(ax: number, ay: number, a: number, sz: number, col: string, im: CanvasImageSource | undefined, dist: number, clock: number): { bx: number; by: number; r: number } {
+  const D = screen.DPR, r = 24 * D, bx = ax - Math.cos(a) * (sz * 0.2 + r * 1.05), by = ay - Math.sin(a) * (sz * 0.2 + r * 1.05);
+  const ping = (clock * 0.9) % 1; // an expanding ring once a second
+  ctx.save();
+  ctx.globalAlpha = 0.7 * (1 - ping); ctx.strokeStyle = col; ctx.lineWidth = 3 * D;
+  ctx.beginPath(); ctx.arc(bx, by, r * (1 + ping * 0.8), 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(bx, by, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 4 * D; ctx.stroke();
+  if (im) { const isz = r * 1.5; ctx.imageSmoothingEnabled = false; ctx.drawImage(im, bx - isz / 2, by - isz / 2, isz, isz); }
+  ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  outlined(Math.round(dist / 16) + 'm', bx, by + r + 4 * D, 10 * D, col);
+  return { bx, by, r };
 }
 
 /** Off-screen arrows with the boss icon (Kings, dragon, Shadow Rival, Umbra). Always on. */
@@ -575,19 +596,11 @@ function drawArrows(v: Readonly<SimState>, clock: number): void {
     if (!e || e.dead) continue;
     const sx = e.x + ox, sy = e.y + oy;
     if (sx > 0 && sy > 0 && sx < LW && sy < LH) continue;
-    const near = Math.hypot(sx - LW / 2, sy - LH / 2) < Math.max(LW, LH) * 0.9;
     if (v.clock - e.born < 2 && Math.floor(clock * 8) & 1) continue; // blink right after the spawn
-    const pulse = 1 + 0.08 * Math.sin(clock * 6);
-    const sz = (near ? 1.25 : 1) * 14 * D * pulse, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
+    const pulse = 1 + 0.1 * Math.sin(clock * 6);
+    const sz = 22 * D * pulse, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
     const { ax, ay, a } = edgeArrow(sx * S, sy * S, m, sz, col);
-    const im = ENEMY_SPR[e.type]?.[0]?.n;
-    if (im) {
-      const isz = 26 * D, r = isz * 0.72, ix = ax - Math.cos(a) * sz * 0.9, iy = ay - Math.sin(a) * sz * 0.9;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ix, iy, r, 0, TAU); ctx.fill();
-      ctx.strokeStyle = col; ctx.lineWidth = 2 * D; ctx.stroke();
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(im, ix - isz / 2, iy - isz / 2, isz, isz);
-    }
+    edgeBadge(ax, ay, a, sz, col, ENEMY_SPR[e.type]?.[0]?.n, Math.hypot(e.x - v.P.x, e.y - v.P.y), clock);
   }
 }
 
@@ -614,7 +627,8 @@ function drawBubbles(v: Readonly<SimState>): void {
   }
 }
 
-/** Co-op: names and HP over teammates; arrows (with the name) to teammates off screen — downed ones blink red. */
+/** Co-op: names and HP over teammates; off screen, a big arrow with the ally's Hero, name and
+ * distance — downed allies blink red so someone goes to revive them. */
 function drawMates(v: Readonly<SimState>, clock: number): void {
   const mates = v.coop?.mates;
   if (!mates?.length) return;
@@ -631,12 +645,21 @@ function drawMates(v: Readonly<SimState>, clock: number): void {
       ctx.fillStyle = '#e8434f'; ctx.fillRect(x - bw / 2, y - 3 * D, bw * clamp(m.hp / (m.mh || 1), 0, 1), 2 * D);
       continue;
     }
-    const blink = m.dn && Math.floor(clock * 4) & 1;
-    const { ax, ay, a } = edgeArrow(x, y, 30 * D, (m.dn ? 13 : 11) * D, m.dn ? (blink ? '#ff4b5c' : '#ffd9de') : '#8fdcff');
-    // the name sits on the inner side of the arrow
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = Math.cos(a) > 0.5 ? 'right' : Math.cos(a) < -0.5 ? 'left' : 'center';
-    outlined(label, ax - Math.cos(a) * 26 * D, ay - Math.sin(a) * 24 * D, 9 * D, m.dn ? '#ff8a8a' : '#8fdcff');
+    const blink = m.dn && Math.floor(clock * 4) & 1, col = m.dn ? (blink ? '#ff4b5c' : '#ffd9de') : '#8fdcff';
+    const sz = (m.dn ? 22 : 18) * D * (m.dn ? 1 + 0.12 * Math.sin(clock * 8) : 1);
+    const { ax, ay, a } = edgeArrow(x, y, 30 * D, sz, col);
+    const spr = HERO_SPR[m.hero] || HERO_SPR.mage;
+    const { bx, by, r } = edgeBadge(ax, ay, a, sz, col, m.fc < 0 ? spr.l[0] : spr.r[0], Math.hypot(m.x - v.P.x, m.y - v.P.y), clock);
+    // the name in a dark pill beside the badge, on the side facing the middle of the screen
+    ctx.font = font(9 * D);
+    const tw = ctx.measureText(label).width, pw = tw + 12 * D, ph = 18 * D;
+    const left = Math.cos(a) > 0.3, px = left ? bx - r - 6 * D - pw : bx + r + 6 * D;
+    const py = Math.max(ph, Math.min(cv.height - ph * 2, by - ph / 2));
+    const qx = Math.max(4 * D, Math.min(cv.width - pw - 4 * D, px));
+    ctx.fillStyle = 'rgba(30,27,51,.85)'; ctx.fillRect(qx, py, pw, ph);
+    ctx.strokeStyle = col; ctx.lineWidth = 2 * D; ctx.strokeRect(qx, py, pw, ph);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    outlined(label, qx + 6 * D, py + ph / 2 + D, 9 * D, m.dn ? '#ff8a8a' : '#8fdcff');
   }
 }
 

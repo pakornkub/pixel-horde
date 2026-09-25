@@ -18,7 +18,7 @@ const levelUp = (s: SimState): void => {
 };
 
 describe('King rewards', () => {
-  it('a King kill gives a Skill Point, the chest wheel and 50 × Chapter Gold', () => {
+  it('a King kill gives a Skill Point, one chest (the wheel, no chest item) and 50 × Chapter Gold + the chest Gold', () => {
     const { s } = fresh();
     s.stage = 3;
     const k = spawnEnemy(s, 'boss', 30, 0, false);
@@ -27,8 +27,9 @@ describe('King rewards', () => {
     killE(s, k);
     expect(s.sp).toBe(1);
     expect(s.chestQueue).toBe(1);
+    expect(s.gems.slice(gems).some((g) => g.kind === 'chest')).toBe(false);
     const coin = s.gems.slice(gems).find((g) => g.kind === 'coin');
-    expect(coin?.v).toBe(50 * 3);
+    expect(coin?.v).toBe(50 * 3 + s.cfg.loot.chestGold);
   });
 });
 

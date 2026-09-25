@@ -333,13 +333,11 @@ export function renderWeaponSwitch(v: Readonly<SimState>, onUse: (id: WeaponId) 
 }
 
 /* ---------- Skill Points (clear screen) ---------- */
-export function renderSp(v: Readonly<SimState>, onBuy: () => void, onUp: (id: SkillId) => void): void {
+/** Stage end: spend Skill Points on +1 level (Skill Points are no longer sold for Gold). */
+export function renderSp(v: Readonly<SimState>, onUp: (id: SkillId) => void): void {
   const box = $('spBox'), E = v.cfg.economy, P = v.P;
-  box.hidden = false;
+  box.hidden = v.sp <= 0; // nothing to spend (Skill Points come from Kings)
   box.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
-  const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
-  buy.addEventListener('click', onBuy);
-  box.appendChild(buy);
   for (const id of Object.keys(P.skills) as SkillId[]) {
     const lv = P.skills[id]!;
     if (lv >= v.cfg.skills[id].max) continue;

@@ -95,7 +95,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Bubble speed': { th: 'ความเร็วฟอง', up: 'ฟองลอยเร็วขึ้น หลบยากขึ้น' },
   'Bubbles': { th: 'จำนวนฟอง', up: 'ฟองเยอะขึ้น หลบยากขึ้น' },
   'Burning (s)': { th: 'สถานะ Burning (ติดไฟ) นาน (วินาที)', up: 'ติดไฟนานขึ้น ทำ Combo ได้ง่ายขึ้น' },
-  'Buy 1 Skill Point at Stage end: Gold × Chapter': { th: 'ซื้อ Skill Point 1 แต้มตอนจบด่าน: Gold × Chapter', up: 'Skill Point แพงขึ้น' },
+  'Buy 1 Skill Point at Stage end: Gold × Chapter': { th: '(ปิดแล้ว) ราคาซื้อแต้มสกิลตอนจบด่าน', up: 'ไม่มีผล ตอนนี้ไม่มีปุ่มซื้อแต้มสกิลแล้ว (แต้มได้จาก King เท่านั้น)' },
   'Cage radius': { th: 'รัศมีกรงกระดูก', up: 'กรงกว้างขึ้น มีที่ให้เดินมากขึ้น' },
   'Camera zoom for Evolution/Awakening/fusion': { th: 'ซูมกล้องตอน Evolution/Awakening/รวมร่าง', up: 'ซูมใกล้ขึ้น ดูอลังการขึ้น' },
   'Catalyst: Arcane Bolt on any Status, damage ×': { th: 'Catalyst: Arcane Bolt โดนมอนติด Status คูณดาเมจ', up: 'Combo Catalyst แรงขึ้น' },

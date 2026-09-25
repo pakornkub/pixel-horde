@@ -477,7 +477,6 @@
  "sp.count": "Skill Points: {n}",
  "sp.reroll": "Reroll ({n} SP)",
  "sp.banish": "Banish ({n} SP)",
- "sp.buy": "Buy 1 SP ({cost}G)",
  "sp.upgrade": "+1 level ({n} SP)",
  "sp.title": "Skill Points (from Kings; reroll / banish on level-up)",
  "revive.title": "DOWN!",

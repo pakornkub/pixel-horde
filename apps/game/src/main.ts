@@ -373,7 +373,7 @@ function renderClear(v: Readonly<SimState>, denied = false): void {
   renderCompanions(v, (i) => { cmd({ type: 'companion', index: i }); benchDirty = true; }, (ok) => { cmd({ type: 'fuse', accept: ok }); benchDirty = true; },
     () => { cmd({ type: 'spCompanion' }); benchDirty = true; });
   renderWeaponSwitch(v, (id) => { cmd({ type: 'weapon', id }); benchDirty = true; });
-  renderSp(v, () => { cmd({ type: 'buySp' }); benchDirty = true; }, (id) => { cmd({ type: 'spUpgrade', id }); benchDirty = true; });
+  renderSp(v, (id) => { cmd({ type: 'spUpgrade', id }); benchDirty = true; });
   renderBench(v, onSwap, denied);
 }
 
