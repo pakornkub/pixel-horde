@@ -18,7 +18,9 @@ Migrations, RLS policies, RPCs and pg_cron jobs for the Supabase project `pixel-
 1. **Authentication → Sign In / Providers → Allow anonymous sign-ins: ON.**
 2. **Authentication → Rate Limits**: raise "anonymous sign-ins per hour" (e.g. 300).
 3. **Authentication → Attack Protection → CAPTCHA**: Cloudflare Turnstile with the Turnstile
-   *secret* key; put the *site* key in the game build as `VITE_TURNSTILE_SITE_KEY`.
+   *secret* key; put the *site* key in the GitHub repository variable `TURNSTILE_SITE_KEY` (the build passes it on as
+   `VITE_TURNSTILE_SITE_KEY`). Add the variable and let one deploy finish BEFORE switching CAPTCHA on,
+   otherwise anonymous sign-in is refused and players fall back to offline.
 4. **Authentication → Sign In / Providers → Google**: enable, paste the Google Cloud OAuth client ID
    and secret (authorised redirect URI = the one Supabase shows). Also turn on
    **"Allow manual linking"** (Authentication → Sign In) so anonymous players can link Google.

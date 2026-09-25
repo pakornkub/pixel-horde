@@ -20,6 +20,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # co-op room worker URL (repo variable, e.g. wss://pixel-horde-room.<subdomain>.workers.dev)
       VITE_ROOM_URL: ${{ vars.ROOM_URL }}
+      # Cloudflare Turnstile site key (repo variable); needed once Supabase CAPTCHA is switched on
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
