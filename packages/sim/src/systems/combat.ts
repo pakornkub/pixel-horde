@@ -185,7 +185,7 @@ export function killE(s: SimState, e: Enemy): void {
 /** ALL damage to the player goes through here. */
 export function hurtP(s: SimState, d: number): void {
   const P = s.P;
-  if (P.down || P.inv > 0 || s.phase !== 'play') return;
+  if (P.down || P.inv > 0 || s.phase !== 'play' || (s.coop && s.coop.shieldT > 0)) return; // co-op: shield after a level-up
   s.dir.lastHurt = s.clock;
   if (s.debug.god) return;
   const hv = s.cfg.scaling.hitVariance;

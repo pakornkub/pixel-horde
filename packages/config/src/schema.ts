@@ -227,6 +227,7 @@ const shared = obj({
     pickTime: sec(10, 'Level-up / chest: seconds to choose before a pick is made for you (the room keeps playing)'),
     shieldR: pos(40, 'Shield bubble radius while choosing (monsters are pushed out)'),
     shieldPush: pos(220, 'Shield bubble push speed'),
+    shieldAfter: sec(5, 'Shield stays this long after choosing (s): time to get moving again, still no damage'),
     reviveTime: sec(3, 'Seconds standing next to a downed ally to revive them'), reviveRange: pos(22, 'Ally revive distance'),
     reviveHp: frac(0.3, 'HP after an ally revive'),
     voteTime: sec(15, 'Route vote time (s); the host breaks ties'), clearWait: sec(30, 'Stage-end: wait for everyone to be ready at most (s)'),

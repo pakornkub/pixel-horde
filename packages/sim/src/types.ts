@@ -105,6 +105,8 @@ export interface MateWire {
   dn: boolean; fc: number; mv: boolean; hero: HeroId; sel: boolean; pet: CompanionKind | null;
   /** Pickup radius (shared drops: the host collects gems for this player). */
   pk?: number;
+  /** Still inside the shield bubble after a level-up / chest (drawn for the others). */
+  sh?: boolean;
 }
 /** Another player in this Run (host: the guests; guest: everyone else, host included). */
 export interface Mate extends MateWire {
@@ -145,6 +147,8 @@ export interface CoopState {
   teamGold: number; teamChests: number; healed: Record<string, number>;
   /** Level-up / chest while the room keeps playing: seconds left before a pick is made for you. */
   chooseT: number;
+  /** Shield bubble left after choosing (s), and whether this player was choosing last tick. */
+  shieldT: number; wasChoosing: boolean;
   /** Ally revive progress (s) per downed player id, and revives granted. */
   reviveT: Record<string, number>;
   revived: Record<string, number>;

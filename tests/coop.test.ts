@@ -102,6 +102,27 @@ describe('co-op host / guest', () => {
     expect(r.gs().P.lv).toBeGreaterThan(1);
   });
 
+  it('the shield stays coop.shieldAfter seconds after choosing: the player moves, still takes no damage', () => {
+    const r = room(1);
+    r.step(60);
+    r.gs().P.xp = r.gs().P.need;
+    r.step(2, undefined, false);
+    expect(r.gs().phase).toBe('levelup');
+    r.guests[0].step({ mx: 0, my: 0 }, [{ type: 'pick', index: 0 }]);
+    r.step(1, undefined, false);
+    const g = r.gs();
+    expect(g.phase).toBe('play');
+    expect(g.coop!.shieldT).toBeGreaterThan(4.5);
+    const hp0 = g.P.hp, x0 = g.P.x;
+    for (const e of g.enemies.slice(0, 5)) { e.tx = g.P.x + 1; e.ty = g.P.y; e.x = g.P.x + 1; e.y = g.P.y; }
+    r.moves[0][0] = 1;
+    r.step(4 * 60, undefined, false);
+    expect(r.gs().P.x).toBeGreaterThan(x0 + 50); // can move
+    expect(r.gs().P.hp).toBe(hp0); // no damage yet
+    r.step(2 * 60, undefined, false);
+    expect(r.gs().coop!.shieldT).toBe(0);
+  });
+
   it('the host choosing a level-up does not stop the world either', () => {
     const r = room(1, { debug: { god: true } });
     r.step(60);

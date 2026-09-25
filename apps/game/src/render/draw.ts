@@ -180,14 +180,16 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     drawHz(v, clock);
     // co-op: shield bubbles around players picking a level-up / spinning a chest (the room keeps playing)
     if (v.coop) {
-      const bubble = (x: number, y: number): void => {
+      const bubble = (x: number, y: number, fade = 1): void => {
         const r = v.cfg.coop.shieldR * (0.92 + 0.05 * Math.sin(clock * 5));
-        b.save(); b.globalAlpha = 0.16; b.fillStyle = '#8fdcff';
+        b.save(); b.globalAlpha = 0.16 * fade; b.fillStyle = '#8fdcff';
         b.beginPath(); b.arc(Math.round(x + ox), Math.round(y + oy), r, 0, TAU); b.fill();
-        b.globalAlpha = 0.75; b.strokeStyle = '#e6f6ff'; b.lineWidth = 1; b.setLineDash([3, 2]); b.lineDashOffset = -clock * 12; b.stroke(); b.restore();
+        b.globalAlpha = 0.75 * fade; b.strokeStyle = '#e6f6ff'; b.lineWidth = 1; b.setLineDash([3, 2]); b.lineDashOffset = -clock * 12; b.stroke(); b.restore();
       };
+      const after = v.coop.shieldT; // the bubble stays a few seconds after choosing; it blinks in the last one
       if (v.phase === 'levelup' || v.phase === 'chest') bubble(P.x, P.y);
-      for (const m of v.coop.mates) if (m.sel && !m.dn) bubble(m.rx, m.ry);
+      else if (after > 0 && (after > 1 || Math.floor(clock * 8) & 1)) bubble(P.x, P.y, Math.min(1, 0.5 + after / 2));
+      for (const m of v.coop.mates) if ((m.sel || m.sh) && !m.dn) bubble(m.rx, m.ry);
     }
     // co-op mates (under the entities; they never block)
     for (const m of v.coop?.mates ?? []) {

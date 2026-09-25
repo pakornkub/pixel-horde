@@ -20,7 +20,7 @@ import { U } from './player';
 export function initCoop(role: CoopRole, self: string): CoopState {
   return {
     role, self, mates: [], teamXp: 0, kingKills: 0, guardians: 0, lastGuardian: 'inferno', rivals: 0,
-    teamGold: 0, teamChests: 0, healed: {}, chooseT: 0,
+    teamGold: 0, teamChests: 0, healed: {}, chooseT: 0, shieldT: 0, wasChoosing: false,
     reviveT: {}, revived: {}, revivedStage: [], hostPhase: 'play', out: {},
     last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0 }, drops: [],
   };
@@ -76,8 +76,10 @@ function packGems(s: SimState, ox: number, oy: number): string {
   }
   let out = '';
   for (const g of list) {
+    const k = GEM_KINDS.indexOf(g.kind);
+    if (k < 0) continue; // a drop kind this build does not share yet
     const x = Math.max(0, Math.min(MAXC, Math.round(g.x - ox) + OFF)), y = Math.max(0, Math.min(MAXC, Math.round(g.y - oy) + OFF));
-    out += A64[GEM_KINDS.indexOf(g.kind)] + enc(x, 3) + enc(y, 3);
+    out += A64[k] + enc(x, 3) + enc(y, 3);
   }
   return out;
 }
@@ -127,7 +129,7 @@ export function coopGems(s: SimState, dt: number): void {
       sfx(s, 'coin');
       if (g.v >= 5) s.events.push({ t: 'text', x: g.x, y: g.y - 8, v: '+' + gg + 'G', col: '#ffd23f', cr: false });
     } else if (g.kind === 'chest') { c.teamChests++; s.chestQueue++; s.runGold += L.chestGold; }
-    else {
+    else if (g.kind === 'heart') {
       for (const p of players) {
         if (p !== best && hypot(p.x - best.x, p.y - best.y) > C.heartShare) continue;
         if (p.id === c.self) {
@@ -149,7 +151,7 @@ export function selfWire(s: SimState, name?: string): MateWire {
   return {
     id: s.coop?.self ?? '', name, x: Math.round(P.x), y: Math.round(P.y), hp: Math.ceil(Math.max(0, P.hp)), mh: P.maxHp, lv: P.lv,
     dn: P.down, fc: P.face, mv: P.moving, hero: P.ch, sel: s.phase === 'levelup' || s.phase === 'chest', pet: P.pet?.kind ?? null,
-    pk: Math.round(P.pick),
+    pk: Math.round(P.pick), sh: (s.coop?.shieldT ?? 0) > 0,
   };
 }
 
@@ -186,18 +188,26 @@ export const coopBossMul = (s: SimState): number => 1 + s.cfg.coop.bossHpPerMate
 /** Co-op: this player is picking a level-up or spinning a chest (the world does not stop). */
 export const choosing = (s: SimState): boolean => !!s.coop && (s.phase === 'levelup' || s.phase === 'chest');
 
+/** Shield bubble on this player: picking right now, or the few seconds after (to get moving again). */
+export const shielded = (s: SimState): boolean => choosing(s) || (!!s.coop && s.coop.shieldT > 0);
+
 /**
- * Every tick while choosing: the Hero stands still inside a shield bubble (no damage — hurtP only
- * hurts in 'play' — and monsters are pushed out) and a pick is made for them when time runs out.
+ * Every tick in co-op: while choosing, the Hero stands still inside a shield bubble (no damage —
+ * hurtP only hurts in 'play' — and monsters are pushed out) and a pick is made for them when time
+ * runs out. The bubble stays `coop.shieldAfter` s after the choice (moving, still no damage).
  */
 export function chooseStep(s: SimState, dt: number): void {
-  const c = s.coop!, C = s.cfg.coop, P = s.P;
-  if (!choosing(s)) return;
+  const c = s.coop!, C = s.cfg.coop, P = s.P, now = choosing(s);
+  if (c.wasChoosing && !now) c.shieldT = C.shieldAfter;
+  c.wasChoosing = now;
+  if (!now && c.shieldT > 0) c.shieldT = Math.max(0, c.shieldT - dt);
+  if (!shielded(s)) return;
   for (const e of s.enemies) {
     if (e.dead || e.boss) continue;
     const dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1;
     if (l < C.shieldR + e.r) { const k = Math.min(C.shieldR + e.r - l, C.shieldPush * dt); e.x += (dx / l) * k; e.y += (dy / l) * k; }
   }
+  if (!now) return;
   c.chooseT -= dt;
   if (c.chooseT > 0) return;
   c.chooseT = C.pickTime;
@@ -279,7 +289,7 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
     xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
     tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), g: packGems(s, ox, oy),
     hz: s.hz.slice(0, 60).map(cleanHz), sp: s.specialStage, dark: s.darkness, ot: s.overtime, le: s.lastEnd,
-    pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, pet: m.pet }))],
+    pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, sh: m.sh, pet: m.pet }))],
     rv: { ...c.revived }, route: s.phase === 'route' ? s.route : null, victory: s.victory,
   };
 }
