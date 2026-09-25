@@ -177,7 +177,7 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
 
 /** Co-op: time left to pick a level-up / stop the chest before a pick is made (the room keeps playing). */
 function coopTimer(v: Readonly<SimState>): void {
-  const on = !!v.coop && (v.phase === 'levelup' || v.phase === 'chest');
+  const on = !!v.coop && (v.phase === 'levelup' || v.phase === 'chest') && !v.pickReturn; // no timer for Stage-end rewards
   for (const id of ['lvTimer', 'chestTimer']) {
     const el = $(id);
     el.hidden = !on;

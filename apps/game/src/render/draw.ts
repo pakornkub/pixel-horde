@@ -192,7 +192,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.globalAlpha = 0.75 * fade; b.strokeStyle = '#e6f6ff'; b.lineWidth = 1; b.setLineDash([3, 2]); b.lineDashOffset = -clock * 12; b.stroke(); b.restore();
       };
       const after = v.coop.shieldT; // the bubble stays a few seconds after choosing; it blinks in the last one
-      if (v.phase === 'levelup' || v.phase === 'chest') bubble(P.x, P.y);
+      if ((v.phase === 'levelup' || v.phase === 'chest') && !v.pickReturn) bubble(P.x, P.y);
       else if (after > 0 && (after > 1 || Math.floor(clock * 8) & 1)) bubble(P.x, P.y, Math.min(1, 0.5 + after / 2));
       for (const m of v.coop.mates) if ((m.sel || m.sh) && !m.dn) bubble(m.rx, m.ry);
     }

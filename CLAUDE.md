@@ -56,7 +56,9 @@ golden replay → backend/admin/co-op → new features.
 `title → play ⇄ (levelup | chest | pause) → clearing → clear → play(next stage) … → over`
 (+ `joining` for co-op guests). Solo: level-up and chest pause the sim. Co-op: they never stop the
 room — the choosing player stands in a shield bubble (no damage, monsters pushed out) and a pick is
-made for them after `coop.pickTime` (10 s).
+made for them after `coop.pickTime` (10 s). Rewards still waiting when a Stage ends (the King's
+vacuumed chest, the Blood Moon bonus chest, pending level-ups) open during `clearing`, before the
+clear screen — never at the next Stage start.
 
 ## Core rules & balance (current values)
 - Render: low-res buffer (≈190 px on short side, integer scale), world tiles 16×16, UI/HUD and

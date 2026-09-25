@@ -510,6 +510,8 @@ export interface SimState {
   streak: number; maxStreak: number; streakT: number;
   ult: number;
   pendingLv: number; pendingChest: number; chestQueue: number;
+  /** Rewards opened at the Stage end return here ('clearing' host/solo, 'clear' guests) instead of 'play'. */
+  pickReturn?: 'clearing' | 'clear' | null;
   levelUp: LevelUpView | null;
   chest: ChestView | null;
   totalTime: number;

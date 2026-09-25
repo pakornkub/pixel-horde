@@ -12,7 +12,7 @@ import { hit, hurtP, rollKingWeapon } from './combat';
 import { grantShadow } from './events';
 import { grantGuardian } from './guardians';
 import { banner, burst, flash, sfx } from './fx';
-import { choose, chestStop, gameOver, levelCheck, startStage } from './progress';
+import { choose, chestStop, gameOver, levelCheck, stageEndRewards, startStage } from './progress';
 import { spawnEnemy } from './spawner';
 import { stepStatuses } from './combos';
 import { U } from './player';
@@ -201,8 +201,8 @@ export const aliveMates = (s: SimState): number => (isHost(s) ? s.coop!.mates.fi
 export const coopBossMul = (s: SimState): number => 1 + s.cfg.coop.bossHpPerMate * extraPlayers(s);
 
 /* ---------- level-up / chest while the room keeps playing ---------- */
-/** Co-op: this player is picking a level-up or spinning a chest (the world does not stop). */
-export const choosing = (s: SimState): boolean => !!s.coop && (s.phase === 'levelup' || s.phase === 'chest');
+/** Co-op: this player is picking a level-up or spinning a chest during play (the world does not stop). */
+export const choosing = (s: SimState): boolean => !!s.coop && (s.phase === 'levelup' || s.phase === 'chest') && !s.pickReturn;
 
 /** Shield bubble on this player: picking right now, or the few seconds after (to get moving again). */
 export const shielded = (s: SimState): boolean => choosing(s) || (!!s.coop && s.coop.shieldT > 0);
@@ -281,6 +281,7 @@ export function hostPhaseOf(s: SimState): HostPhase {
     case 'victory': return 'victory';
     case 'pause': return 'pause';
     case 'revive': return 'wait';
+    case 'levelup': case 'chest': return s.pickReturn ? 'clear' : 'play'; // Stage-end rewards happen on the clear screen
     default: return 'play'; // level-ups and chests never stop the room
   }
 }
@@ -415,8 +416,12 @@ export function applySnap(s: SimState, h: HostSnap): void {
     if (h.le === 'clear') s.chaptersCleared.push(s.stage);
     s.lastEnd = h.le;
     s.hz = []; s.enemies = []; s.boss = s.boss2 = s.dragonE = s.rivalE = null;
-    if (s.phase === 'play') { s.phase = 'clear'; banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear'); }
-  } else if (h.ph === 'clear' && s.phase === 'play') s.phase = 'clear'; // finished a level-up after the host cleared
+    if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest
+    if (s.phase === 'play') {
+      banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear');
+      if (!stageEndRewards(s, 'clear')) s.phase = 'clear'; // waiting chests / level-ups first
+    }
+  } else if (h.ph === 'clear' && s.phase === 'play' && !stageEndRewards(s, 'clear')) s.phase = 'clear'; // finished a level-up after the host cleared
   if (h.ph === 'route') { s.route = h.route; if (s.phase === 'clear' || s.phase === 'play') s.phase = 'route'; }
   if (h.ph === 'victory' && s.phase !== 'victory') { s.victory = true; if (s.phase === 'clear' || s.phase === 'play' || s.phase === 'route') s.phase = 'victory'; }
   if (h.ph === 'play' && (s.phase === 'clear' || s.phase === 'route' || s.phase === 'victory')) s.phase = 'play';

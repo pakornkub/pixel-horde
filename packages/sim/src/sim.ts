@@ -3,7 +3,7 @@ import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems, levelCheck } from './systems/progress';
+import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stageEndRewards, stepGems, levelCheck } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, spawnRival, stepHz } from './systems/events';
@@ -35,7 +35,7 @@ export interface Sim {
 /** A Stage-start snapshot. `hash` identifies it on the server (single use). */
 export interface Checkpoint { chapter: number; configVersion: number; hash: string; data: string }
 
-const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile', 'coop']); // mobile: the resuming device decides
+const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile', 'coop', 'pickReturn']); // mobile: the resuming device decides
 
 /** Serialize the state at a Stage start (no live monsters, effects or menus). */
 function snapshotOf(s: SimState): Checkpoint {
@@ -97,7 +97,7 @@ export function createSim(opts: SimOptions): Sim {
     chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
-    pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
+    pendingLv: 0, pendingChest: 0, chestQueue: 0, pickReturn: null, levelUp: null, chest: null,
     totalTime: 0, clearT: 0, slowT: 0, hitstop: 0, frostT: 0, runGold: 0,
     P, enemies: [], bolts: [], gems: [], effects: [], hz: [], hzId: 1,
     dir: { v: cfg.director.start, lastHurt: 0 }, run: { spPity: 0, drPity: 0 },
@@ -307,7 +307,10 @@ export function createSim(opts: SimOptions): Sim {
       }
     } else if (s.phase === 'clearing') {
       s.clearT -= DT;
-      if (s.clearT <= 0) {
+      // let the end-of-Stage vacuum finish (a King's chest may still be flying in), then open every
+      // reward still waiting — chests, level-ups, the Blood Moon chest — before the Stage-end screen
+      if (s.clearT <= 0 && (s.gems.length === 0 || s.clearT < -s.cfg.stage.clearDelay * 2)) {
+        if (stageEndRewards(s, 'clearing')) return;
         if (s.victory && !s.endless && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) {
           // the main Score is final now; the player may continue in Endless
           s.main = scoreBreakdown(s);
