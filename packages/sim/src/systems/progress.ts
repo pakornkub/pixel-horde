@@ -32,7 +32,7 @@ export function startStage(s: SimState, n: number): void {
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
   s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
   s.enemies = []; s.bolts = []; s.effects = [];
-  for (const g of s.gems) if (g.kind === 'xp') P.xp += g.v;
+  for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v; if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
   s.gems = [];
   levelCheck(s);
   s.streak = 0; s.streakT = 0;
@@ -275,6 +275,7 @@ export function swapBench(s: SimState, bi: number, slot: SkillId | null): void {
 
 export function openLevelUp(s: SimState): void {
   s.phase = 'levelup';
+  if (s.coop) s.coop.chooseT = s.cfg.coop.pickTime; // co-op: the room keeps playing; pick in time
   sfx(s, 'lv');
   s.levelUp = { options: buildOptions(s), chest: s.pendingChest > 0, lv: s.P.lv - s.pendingLv + 1 };
 }
@@ -307,6 +308,7 @@ export function choose(s: SimState, index: number): void {
 export function openChest(s: SimState): void {
   const R = s.rng.loot;
   s.phase = 'chest';
+  if (s.coop) s.coop.chooseT = s.cfg.coop.pickTime;
   const W = s.cfg.chest, r = R.next(), res = r < W.p1 ? 1 : r < W.p1 + W.p2 ? 2 : 3;
   const cells: number[] = [];
   [1, 2, 1, 3, 1, 2, 1, 2].forEach((v, i) => { if (v === res) cells.push(i); });

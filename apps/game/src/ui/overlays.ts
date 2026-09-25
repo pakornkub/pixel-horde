@@ -151,30 +151,33 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
     bt.className = 'opt';
-    let meta: { col: string; g: string }, name: string, desc: string, tag = '';
+    let meta: { col: string; g: string }, name: string, desc: string, tag = '', stats = '', note = '';
     if (o.kind === 'evo') {
       meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g };
-      name = evoName(o.id); tag = `<i>${t('level.evolve')}</i>`;
-      desc = `${evoDesc(o.id)} (${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id]!)})`;
+      name = evoName(o.id); tag = `<b class="tag evo">${t('level.evolve')}</b>`;
+      desc = evoDesc(o.id);
+      stats = `${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id]!)}`;
       bt.classList.add('evo');
     } else if (o.kind === 'skill') {
       meta = SKILL_ICON[o.id];
       const lv = P.skills[o.id] || 0;
       name = skillName(o.id);
-      tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t(o.toBench ? 'level.bench' : 'level.new')}</i>`;
-      desc = (lv ? '' : skillDesc(o.id) + ' ') + '(' + skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false)) + ')';
+      tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t(o.toBench ? 'level.bench' : 'level.new')}</b>`;
+      desc = lv ? '' : skillDesc(o.id);
+      stats = skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false));
       const partners = (Object.keys(P.skills) as SkillId[]).filter((k) => k !== o.id && combosBetween(o.id, k).length);
-      if (partners.length) desc += t('level.combos', { list: partners.slice(0, 2).map((k) => `${skillName(k)} (${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join('/')})`).join(', ') });
-      if (o.id === signatureOf(P.ch)) desc += t('level.signature');
-      else if (SKILL_LINES[P.ch].includes(o.id)) desc += t('level.link');
-      else if (AWAKENING[P.ch].line.includes(o.id as never)) desc += t('level.line');
+      if (partners.length) note += t('level.combos', { list: partners.slice(0, 2).map((k) => `${skillName(k)} (${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join('/')})`).join(', ') });
+      if (o.id === signatureOf(P.ch)) note += t('level.signature');
+      else if (SKILL_LINES[P.ch].includes(o.id)) note += t('level.link');
+      else if (AWAKENING[P.ch].line.includes(o.id as never)) note += t('level.line');
       const evoPas = EVO_PASSIVE[o.id];
-      if (evoPas && lv + 1 === v.cfg.skills[o.id].max) desc += t('level.final', { passive: passiveName(evoPas) });
+      if (evoPas && lv + 1 === v.cfg.skills[o.id].max) note += t('level.final', { passive: passiveName(evoPas) });
+      note = note.replace(/^\s*[·,]\s*/, '').trim();
     } else if (o.kind === 'pas') {
       meta = PASSIVE_ICON[o.id];
       const lv = P.pas[o.id] || 0;
       name = passiveName(o.id);
-      tag = lv ? `LV ${lv}→${lv + 1}` : `<i>${t('level.new')}</i>`;
+      tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t('level.new')}</b>`;
       desc = passiveDesc(o.id);
     } else if (o.kind === 'comp') {
       meta = { col: '#ffd23f', g: 'D' };
@@ -185,7 +188,8 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       name = t('level.recover');
       desc = t('level.recoverDesc');
     }
-    bt.innerHTML = `<span class="cur">▶</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span><span class="nm">${name} ${tag}</span><span class="ds">${desc}</span></span>`;
+    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span class="body"><span class="nm">${name} ${tag}</span>`
+      + (desc ? `<span class="ds">${desc}</span>` : '') + (stats ? `<span class="st">${stats}</span>` : '') + (note ? `<span class="nt">${note}</span>` : '') + '</span>';
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
     const E = v.cfg.economy;
@@ -269,7 +273,7 @@ export function renderRoute(v: Readonly<SimState>, onPick: (i: number) => void):
     if (advice.length) lines.push(t('route.advice', { list: advice.map((k) => skillName(k as SkillId)).join(', ') }));
     const bt = document.createElement('button');
     bt.className = 'opt';
-    bt.innerHTML = `<span class="cur">▶</span><span class="ico" style="background:${REALM_ICON[id]}">${realmName(id)[0]}</span><span><span class="nm">${realmName(id)}</span>${lines.map((l) => `<span class="route-meta">${l}</span>`).join('')}</span>`;
+    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${REALM_ICON[id]}">${realmName(id)[0]}</span><span class="body"><span class="nm">${realmName(id)}</span>${lines.map((l) => `<span class="route-meta">${l}</span>`).join('')}</span>`;
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
     box.appendChild(bt);
@@ -308,13 +312,15 @@ export function renderSp(v: Readonly<SimState>, onBuy: () => void, onUp: (id: Sk
   const box = $('spBox'), E = v.cfg.economy, P = v.P;
   box.hidden = false;
   box.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
-  const buy = document.createElement('button'); buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
+  const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
   buy.addEventListener('click', onBuy);
   box.appendChild(buy);
   for (const id of Object.keys(P.skills) as SkillId[]) {
-    if (P.skills[id]! >= v.cfg.skills[id].max) continue;
+    const lv = P.skills[id]!;
+    if (lv >= v.cfg.skills[id].max) continue;
     const bt = document.createElement('button');
-    bt.textContent = `${skillName(id)} ${t('sp.upgrade', { n: E.upgrade })}`;
+    bt.className = 'uprow';
+    bt.innerHTML = `<span class="ico" style="background:${SKILL_ICON[id].col}">${SKILL_ICON[id].g}</span><span class="nm">${skillName(id)}</span><b class="tag up">LV ${lv} → ${lv + 1}</b><span class="cost">${t('sp.upgrade', { n: E.upgrade })}</span>`;
     bt.disabled = v.sp < E.upgrade;
     bt.addEventListener('click', () => onUp(id));
     box.appendChild(bt);
@@ -390,8 +396,9 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
   const sig = signatureOf(P.ch), cost = swapCost(v as SimState), wallet = Math.max(0, (v.meta.wallet || 0) - v.walletSpent);
   const fromRun = Math.min(v.runGold, cost), afford = v.runGold + wallet >= cost;
   const chip = (id: SkillId, lv: number, evo: boolean): string =>
-    `<span class="ico" style="background:${SKILL_ICON[id].col}${evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''}">${SKILL_ICON[id].g}</span>${skillName(id)} ${lv}`;
-  box.innerHTML = `<div>${t('bench.title')}</div>`;
+    `<span class="ico" style="background:${SKILL_ICON[id].col}${evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''}">${SKILL_ICON[id].g}</span><span class="nm">${skillName(id)}</span><b class="lv">LV ${lv}</b>`;
+  box.innerHTML = `<div class="lbl">${t('bench.title')}</div><div class="step">${benchSel >= 0 ? t('bench.step2', { name: skillName(P.bench[benchSel].id) }) : t('bench.step1')}</div>`;
+  box.classList.toggle('picking', benchSel >= 0);
   const attack = document.createElement('div'); attack.className = 'row';
   attack.innerHTML = `<span class="lbl">${t('bench.attack')}</span>`;
   const ids = Object.keys(P.skills) as SkillId[];
@@ -403,7 +410,7 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
     attack.appendChild(bt);
   }
   for (let i = ids.length; i < v.cfg.maxAttackSlots; i++) {
-    const bt = document.createElement('button'); bt.className = 'sk'; bt.textContent = t('bench.empty');
+    const bt = document.createElement('button'); bt.className = 'sk empty'; bt.textContent = t('bench.empty');
     bt.addEventListener('click', () => { if (benchSel >= 0 && afford) { onSwap(benchSel, null); benchSel = -1; } });
     attack.appendChild(bt);
   }

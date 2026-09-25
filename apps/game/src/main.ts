@@ -17,7 +17,7 @@ import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
 import { createTips, type TipId } from './tips';
-import { initLobby, leaveRoom, openLobby } from './ui/lobby';
+import { initLobby, leaveRoom, openLobby, refreshLobbyName } from './ui/lobby';
 import { createTeam } from './coop/team';
 import type { Session } from './coop/session';
 import type { CloseReason } from '@pixel-horde/coop';
@@ -173,6 +173,16 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
     else if (e.t === 'vote') team.vote(e.id, e.i);
     else if (e.t === 'team') renderTeam(e.ready, e.votes, e.left);
   });
+}
+
+/** Co-op: time left to pick a level-up / stop the chest before a pick is made (the room keeps playing). */
+function coopTimer(v: Readonly<SimState>): void {
+  const on = !!v.coop && (v.phase === 'levelup' || v.phase === 'chest');
+  for (const id of ['lvTimer', 'chestTimer']) {
+    const el = $(id);
+    el.hidden = !on;
+    if (on) (el.firstElementChild as HTMLElement).style.width = Math.max(0, Math.min(100, (v.coop!.chooseT / v.cfg.coop.pickTime) * 100)) + '%';
+  }
 }
 
 /** Co-op: when this player goes down, offer the bought revive (the room keeps playing). */
@@ -386,6 +396,7 @@ function syncOverlays(): void {
     const prev = shownPhase;
     shownPhase = v.phase;
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
+    if (prev === 'chest' && v.phase !== 'chest') cancelChest(); // co-op: time ran out and the sim stopped the wheel
     if (prev === 'clear' && v.phase !== 'clear') hide('ovClear');
     if (prev === 'route' && v.phase !== 'route') hide('ovRoute');
     if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
@@ -446,7 +457,9 @@ function frame(now: number): void {
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
         acc -= DT;
         steps++;
-        if (v.phase !== 'play' && v.phase !== 'clearing') { acc = 0; break; }
+        // co-op: a level-up or chest never stops the world (the sim shields the choosing player)
+        const world = v.phase === 'play' || v.phase === 'clearing' || (!!coop && (v.phase === 'levelup' || v.phase === 'chest'));
+        if (!world) { acc = 0; break; }
       }
       if (steps >= 8) acc = 0;
       if (coop && steps === 0 && sim.view().phase !== 'play') { // menus: keep applying snapshots / presence
@@ -460,6 +473,7 @@ function frame(now: number): void {
       }
       syncOverlays();
       const v = sim.view();
+      coopTimer(v);
       showTip(tips.tick(rdt));
       stepVfx(rdt, rdt * (v.slowT > 0 ? 0.3 : 1) * (vfx.slowmo > 0 ? v.cfg.fx.slowmoScale : 1));
       if (v.phase === 'play') {
@@ -554,7 +568,10 @@ $('collBtn').addEventListener('click', () => { initAudio(); void openCollection(
 initCollection();
 initTitle();
 initLobby({ name: () => backend.account()?.nickname ?? 'Hero', pid: playerPid, onStart: (s, seed, cfg) => void startCoop(s, seed, cfg), onClosed: coopClosed });
-{ const j = new URLSearchParams(location.search).get('join'); if (j) setTimeout(() => openLobby(j), 300); } // invite link
+// invite link: join once the account (and its nickname) is ready, so the room shows the right name
+let inviteCode: string | null = new URLSearchParams(location.search).get('join');
+const openInvite = (): void => { if (inviteCode) { const j = inviteCode; inviteCode = null; openLobby(j); } };
+if (inviteCode) setTimeout(openInvite, 10_000); // the account never started (tab blocked…): join anyway
 $('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
 $('shopBack').addEventListener('click', closeShop);
 $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
@@ -645,7 +662,7 @@ onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
-initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); } });
+initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); } });
 void refreshLive();
 initLeaderboard();
 installTelemetry();

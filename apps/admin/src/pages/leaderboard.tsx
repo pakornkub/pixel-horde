@@ -23,7 +23,7 @@ export function Leaderboard({ api, initial }: { api: AdminApi; initial?: string 
                 <td class="row">
                   <button onClick={() => act(r.hidden ? 'แสดงคะแนนแล้ว' : 'ซ่อนคะแนนแล้ว', () => api.hideScore(r.userId, board, !r.hidden))}>{r.hidden ? 'แสดง' : 'ซ่อน'}</button>
                   {board === 'coop' && r.status === 'pending' && <button onClick={() => act('ยืนยันแล้ว', () => api.verifyCoop(r.userId))}>ยืนยัน</button>}
-                  <button class="danger" onClick={() => act(r.banned ? 'ปลดแบนแล้ว' : 'แบน 30 วันแล้ว', () => api.banPlayer(r.userId, r.banned ? null : new Date(Date.now() + 30 * 864e5).toISOString()))}>{r.banned ? 'ปลดแบน' : 'แบน'}</button>
+                  <button class="danger" onClick={() => act(r.banned ? 'เลิกซ่อนแล้ว' : 'ซ่อนจาก leaderboard 30 วันแล้ว (ยังเล่นได้)', () => api.banPlayer(r.userId, r.banned ? null : new Date(Date.now() + 30 * 864e5).toISOString()))}>{r.banned ? 'เลิกซ่อน' : 'ซ่อนจาก leaderboard'}</button>
                 </td>
               </tr>
             ))}

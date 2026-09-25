@@ -14,7 +14,7 @@ import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
-import { applyRemoteHits, applySnap, guestEnemies, hostStep, initCoop, setMates, smoothMates, teamWaiting } from './systems/coop';
+import { applyRemoteHits, applySnap, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates } from './systems/coop';
 
 
 export interface Sim {
@@ -191,7 +191,9 @@ export function createSim(opts: SimOptions): Sim {
   /** Co-op guest: own Hero and Skills against the host's mirrored world. */
   function guestUpdate(input: InputFrame): void {
     smoothMates(s, DT);
-    if (s.phase !== 'play' || s.coop!.hostPhase !== 'play') return; // menus, or the room is waiting / paused
+    // Stage-end menus, or the room is paused; a level-up / chest does not stop the world (shield bubble)
+    if ((s.phase !== 'play' && !choosing(s)) || s.coop!.hostPhase !== 'play') return;
+    const live = s.phase === 'play';
     if (s.hitstop > 0) { s.hitstop -= DT; return; }
     let dt = DT;
     if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
@@ -203,29 +205,33 @@ export function createSim(opts: SimOptions): Sim {
     if (!P.down) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
-    guestEnemies(s, dt, true);
-    if (s.phase !== 'play') return;
+    guestEnemies(s, dt, live);
+    if (s.phase !== 'play' && !choosing(s)) return;
+    chooseStep(s, dt);
     stepHz(s, dt);
     petStep(s, dt); cloneStep(s, dt);
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
     levelCheck(s);
+    if (s.phase !== 'play') return;
     if (s.chestQueue > 0) { s.chestQueue--; openChest(s); return; }
     if (s.pendingLv > 0 || s.pendingChest > 0) openLevelUp(s);
   }
 
   function update(input: InputFrame): void {
     if (s.coop?.role === 'guest') { guestUpdate(input); return; }
-    if (s.coop) { smoothMates(s, DT); if (s.phase === 'play' && teamWaiting(s)) return; } // the room waits for a choosing player
+    if (s.coop) smoothMates(s, DT);
     const phase: Phase = s.phase;
     const live = phase === 'play';
-    if (!live && phase !== 'clearing') return;
+    // co-op: the host picking a level-up or spinning a chest does not stop the room's world
+    const world = live || choosing(s);
+    if (!world && phase !== 'clearing') return;
     if (s.hitstop > 0) { s.hitstop -= DT; return; }
     let dt = DT;
     if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
 
     move(input, dt);
 
-    if (live) {
+    if (world) {
       s.stageTime += dt;
       s.totalTime += dt;
       // the Ultimate fills over time; kills may add at most killCap × this rate
@@ -267,17 +273,17 @@ export function createSim(opts: SimOptions): Sim {
         shake(s, 5);
       }
     }
-    if (live && !P.down) updSkills(s, dt);
+    if (world && !P.down) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
     const damp = exp(dt * knockbackLog(s.cfg));
     stepEnemies(s, dt, damp, live);
     if (s.phase === 'over') return;
-    if (live) stepHz(s, dt);
-    if (live) { petStep(s, dt); cloneStep(s, dt); }
-    if (live && s.coop) { hostStep(s, dt); if ((s.phase as Phase) === 'over') return; }
+    if (world) stepHz(s, dt);
+    if (world) { petStep(s, dt); cloneStep(s, dt); }
+    if (world && s.coop) { chooseStep(s, dt); hostStep(s, dt); if ((s.phase as Phase) === 'over') return; }
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
-    stepGems(s, dt);
+    if (s.coop) coopGems(s, dt); else stepGems(s, dt);
 
     if (s.phase === 'play') {
       // rewards first (a King killed in overtime still pays out its chest before the clear)

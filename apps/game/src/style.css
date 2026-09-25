@@ -63,15 +63,25 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .lb li.me{font-weight:700}
 .lrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 8px;background:var(--paper2);border-radius:4px;margin-bottom:6px;font-size:15px}
 .goldline{font-family:var(--pix);font-size:12px;color:#9a6a00;margin:0 0 12px}
-.opts{display:flex;flex-direction:column;gap:8px}
-.opt{display:grid;grid-template-columns:18px 40px 1fr;gap:10px;align-items:center;text-align:left;background:transparent;border:0;border-radius:4px;padding:8px 6px;cursor:pointer;font:inherit;color:inherit}
-.opt .cur{font-family:var(--pix);font-size:12px;visibility:hidden}
-.opt:hover .cur,.opt:focus-visible .cur{visibility:visible}
-.opt:hover,.opt:focus-visible{background:var(--paper2)}
+.opts{display:flex;flex-direction:column;gap:10px}
+/* one card per choice: number key, big icon, name + tag, what it does, its numbers, extra notes */
+.opt{position:relative;display:grid;grid-template-columns:auto 46px 1fr;gap:12px;align-items:center;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:6px;
+  padding:10px 12px;cursor:pointer;font:inherit;color:inherit;box-shadow:0 3px 0 var(--ink);transition:transform .06s}
+.opt:hover,.opt:focus-visible{background:#fff8d8;transform:translateY(-1px)}
+.opt:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.opt .key,.opt .cur{font-family:var(--pix);font-size:11px;background:var(--ink);color:var(--paper);border-radius:3px;padding:5px 6px;align-self:start;margin-top:2px}
 .ico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink)}
-.opt .nm{font-family:var(--pix);font-size:11px;display:block;margin-bottom:4px;line-height:1.5}
+.opt .ico{width:46px;height:46px;font-size:18px}
+.opt .body{display:flex;flex-direction:column;gap:3px;min-width:0}
+.opt .nm{font-family:var(--th);font-weight:700;font-size:18px;line-height:1.3;display:block}
 .opt .nm i{font-style:normal;color:#c2361f}
-.opt .ds{font-size:14px;line-height:1.4;display:block}
+.opt .ds{font-size:15px;line-height:1.45;display:block}
+.opt .st{font-size:13px;line-height:1.4;display:block;background:var(--paper2);border-radius:4px;padding:3px 8px;color:#3a3363;font-weight:700}
+.opt .nt{font-size:13px;line-height:1.4;display:block;color:#7a3fbf;font-weight:700}
+.tag{display:inline-block;font-family:var(--pix);font-weight:400;font-size:9px;line-height:1;padding:4px 6px;border-radius:3px;vertical-align:middle;margin-left:4px;white-space:nowrap}
+.tag.new{background:#c2361f;color:#fff}
+.tag.up{background:#3a7a2c;color:#fff}
+.tag.evo{background:var(--gold);color:var(--ink)}
 
 #ultBtn{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
   width:78px;height:78px;border-radius:50%;border:4px solid var(--ink);background:#3a3363;color:var(--paper);
@@ -84,13 +94,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
   width:36px;height:36px;border:3px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);font-family:var(--pix);font-size:10px;z-index:3;display:none;cursor:pointer;padding:0}
 @media (prefers-reduced-motion: reduce){#ultBtn.ready{animation:none;box-shadow:0 0 0 6px var(--gold)}}
 
-/* English uses the pixel font; Thai keeps Chakra Petch (ticket 06) */
-html[lang="en"] .box{font-family:var(--pix);font-size:10px;line-height:1.9}
-html[lang="en"] .btn,html[lang="en"] .buy{font-family:var(--pix);font-weight:400;font-size:11px;line-height:1.6}
-html[lang="en"] .opt .ds,html[lang="en"] .srow .ds,html[lang="en"] .chdesc,html[lang="en"] .keys,html[lang="en"] .slots{font-size:9px;line-height:1.8}
-html[lang="en"] .stats{font-size:10px}
-html[lang="en"] .ch .cc{font-size:8px}
-html[lang="en"] .chestTxt{font-size:11px}
+/* Both languages read body text in Chakra Petch (it has Latin too); the pixel font stays on titles,
+   numbers and tags — small pixel text was too hard to read (co-op test feedback). */
 
 /* settings (ticket 07) */
 .setlist{display:flex;flex-direction:column;gap:10px;margin:0 0 12px}
@@ -101,8 +106,7 @@ html[lang="en"] .chestTxt{font-size:11px}
 .seg button:focus-visible,.setrow input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .setrow input[type=range]{width:140px;accent-color:#3a3363}
 .setmsg{font-size:13px;min-height:1.4em;margin:0}
-html[lang="en"] .setrow{font-size:10px}
-html[lang="en"] .seg button{font-size:9px}
+
 
 /* account (ticket 08) */
 .field{width:100%;font:inherit;font-size:18px;padding:10px 12px;border:3px solid var(--ink);border-radius:4px;background:#fff;color:var(--ink);margin:0 0 6px}
@@ -127,7 +131,7 @@ html[lang="en"] .seg button{font-size:9px}
 .lb .unv{font-size:11px;color:#9a6a00;margin-left:4px}
 #boardMine:empty{display:none}
 #boardMine{border-top:3px solid var(--ink);margin-top:6px}
-html[lang="en"] .tabs button{font-size:9px}
+
 
 /* announcements (ticket 12) */
 .news{margin:12px 0 0;padding:10px 12px;background:#fff3b8;border:3px solid var(--ink);border-radius:4px;font-size:14px}
@@ -139,26 +143,40 @@ html[lang="en"] .tabs button{font-size:9px}
 .draft{background:#ff7a3d;color:#fff;border-radius:4px;padding:6px 10px;font-weight:700;margin:-6px 0 12px}
 .stats.score{border-bottom:2px solid currentColor;padding-bottom:10px}
 .stats.score .tot{font-family:var(--pix);font-size:14px;color:var(--gold)}
-.opt .route-meta{display:block;font-size:13px;opacity:.85;margin-top:2px}
-.bench{margin:0 0 14px;font-size:13px}
-.bench .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
-.bench .lbl{min-width:78px;font-weight:700}
-.bench button.sk{display:inline-flex;align-items:center;gap:4px;border:2px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;padding:3px 6px;cursor:pointer}
-.bench button.sk .ico{width:18px;height:18px;font-size:10px}
-.bench button.sk.sel{outline:3px solid var(--gold);outline-offset:1px}
+.opt .route-meta{display:block;font-size:14px;opacity:.85}
+.bench{margin:0 0 14px;font-size:15px;border:3px solid var(--ink);border-radius:6px;padding:10px 12px;background:#fff}
+.bench>.lbl{font-weight:700;margin-bottom:4px}
+.bench .step{font-size:14px;font-weight:700;background:#fff3b8;border-radius:4px;padding:4px 8px;margin:0 0 6px}
+.bench .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.bench .row>.lbl{flex-basis:100%;font-weight:700;font-size:13px;opacity:.8}
+.bench button.sk{display:inline-flex;align-items:center;gap:6px;border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;font-size:15px;padding:5px 8px;cursor:pointer;min-height:40px}
+.bench button.sk .ico{width:26px;height:26px;font-size:12px;border-width:2px}
+.bench button.sk .lv{font-family:var(--pix);font-weight:400;font-size:9px;background:var(--ink);color:var(--paper);border-radius:3px;padding:3px 4px}
+.bench button.sk.empty{border-style:dashed;opacity:.7;min-width:64px;justify-content:center}
+.bench button.sk.sel{background:var(--gold);outline:3px solid var(--ink);outline-offset:1px}
+.bench.picking .row:first-of-type button.sk:not(:disabled){box-shadow:0 0 0 3px #8fdcff;animation:pickme 1s steps(2) infinite}
+@keyframes pickme{50%{box-shadow:0 0 0 3px #3a7a2c}}
 .bench button.sk:disabled{opacity:.55;cursor:default}
-.bench .cost{margin-top:6px;opacity:.85}
+.bench .cost{margin-top:6px;font-size:13px;opacity:.85}
 .bench .warn{color:#e8434f;font-weight:700}
+@media (prefers-reduced-motion: reduce){.bench.picking .row:first-of-type button.sk:not(:disabled){animation:none}}
 .awaken{border:3px solid var(--gold);border-radius:6px;padding:10px 12px;margin:0 0 14px;background:#fff8d8}
 .awaken h3{margin:0 0 6px;font-family:var(--pix);font-size:13px}
 .awaken p{margin:0 0 10px;font-size:14px}
 .awaken .btn{margin:4px 0}
-.sptools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0;font-size:13px}
+.sptools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0;font-size:15px}
 .sptools .lbl{font-weight:700;margin-right:4px;flex-basis:100%}
-.sptools button{border:2px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;padding:3px 8px;cursor:pointer}
-.sptools button:disabled{opacity:.45;cursor:default}
-#spBox{margin:0 0 14px}
-.opt .ban{margin-left:auto;border:0;background:transparent;font:inherit;color:#e8434f;cursor:pointer;padding:2px 6px}
+.sptools button{border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;padding:5px 10px;cursor:pointer;min-height:38px}
+.sptools button:hover:not(:disabled){background:#fff3b8}
+.sptools button:disabled{opacity:.4;cursor:default;border-style:dashed}
+#spBox{margin:0 0 14px;border:3px solid var(--ink);border-radius:6px;padding:10px 12px;background:#fff}
+#spBox .buysp{background:var(--ink);color:var(--paper)}
+#spBox .buysp:hover:not(:disabled){background:#3a3363}
+#spBox .uprow{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;width:100%;text-align:left}
+#spBox .uprow .ico{width:28px;height:28px;font-size:12px;border-width:2px}
+#spBox .uprow .tag{margin:0}
+#spBox .uprow .cost{font-size:13px;opacity:.8}
+.opt .ban{position:absolute;top:4px;right:6px;border:0;background:transparent;font:inherit;font-size:16px;font-weight:700;color:#e8434f;cursor:pointer;padding:2px 6px}
 .weapons{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;font-size:13px}
 .weapons .lbl{flex-basis:100%;font-weight:700}
 .weapons button{border:2px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;padding:3px 8px;cursor:pointer}
@@ -201,6 +219,7 @@ html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);fo
 .tmenu button:hover:not(:disabled){background:#fff3b8}
 .tmenu button:disabled{opacity:.6;cursor:default}
 .tmenu button small{display:block;font-size:11px;font-weight:500}
+.tmenu button small[hidden]{display:none}
 .tmenu button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .tfoot{width:100%;background:rgba(244,247,228,.92);color:var(--ink);border:3px solid var(--ink);border-radius:4px;padding:6px 10px;font-family:var(--th)}
 .tfoot .best{margin-top:2px;opacity:1}
@@ -215,7 +234,8 @@ html[lang="en"] .tagline{font-size:10px}
   max-width:min(520px,calc(100% - 120px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--gold);border-radius:4px;
   padding:8px 12px;font-family:var(--th);font-weight:700;font-size:15px;line-height:1.45;text-align:center;animation:tipIn .25s ease-out}
 #tipBar[hidden]{display:none}
-html[lang="en"] #tipBar{font-family:var(--pix);font-weight:400;font-size:9px;line-height:1.8}
+/* over a menu the box ends above the hint, so the hint never covers the menu's buttons */
+body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 @keyframes tipIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion: reduce){#tipBar{animation:none}}
 
@@ -231,3 +251,8 @@ html[lang="en"] #tipBar{font-family:var(--pix);font-weight:400;font-size:9px;lin
 .cooplist .nm{flex:1;font-weight:700}
 .cooplist .st{font-family:var(--pix);font-size:9px}
 .cooplist .st.ok{color:#2c7a2c}
+.ctimer{position:relative;height:22px;border:3px solid var(--ink);border-radius:4px;background:var(--paper2);margin:-4px 0 12px;overflow:hidden}
+.ctimer[hidden]{display:none}
+.ctimer>div{position:absolute;inset:0 auto 0 0;background:#8fdcff;transition:width .1s linear}
+.ctimer span{position:relative;display:block;text-align:center;font-size:13px;font-weight:700;line-height:16px}
+#ovClear #nextBtn{position:sticky;bottom:-22px;margin-top:6px;box-shadow:0 -10px 12px var(--paper)}

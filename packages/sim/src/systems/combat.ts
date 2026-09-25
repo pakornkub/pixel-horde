@@ -136,7 +136,6 @@ export function killE(s: SimState, e: Enemy): void {
   }
   burst(s, e.x, e.y, DEATH_COL[e.type], e.boss ? 80 : e.elite ? 24 : 9, e.boss ? 110 : 60, e.boss ? 1 : 0.45);
   const v = e.xp;
-  if (isHost(s)) s.coop!.teamXp += v; // guests level from the team's kills
   if (e === s.dragonE || e.type === 'rival') {
     const isD = e === s.dragonE;
     if (isD) { s.dragonE = null; grantGuardian(s, s.dragonKind); if (isHost(s)) { s.coop!.guardians++; s.coop!.lastGuardian = s.dragonKind; } }

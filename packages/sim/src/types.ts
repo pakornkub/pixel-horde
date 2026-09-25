@@ -103,6 +103,8 @@ export type HostPhase = 'play' | 'wait' | 'pause' | 'clear' | 'route' | 'victory
 export interface MateWire {
   id: string; name?: string; x: number; y: number; hp: number; mh: number; lv: number;
   dn: boolean; fc: number; mv: boolean; hero: HeroId; sel: boolean; pet: CompanionKind | null;
+  /** Pickup radius (shared drops: the host collects gems for this player). */
+  pk?: number;
 }
 /** Another player in this Run (host: the guests; guest: everyone else, host included). */
 export interface Mate extends MateWire {
@@ -116,8 +118,12 @@ export interface HostSnap {
   ox: number; oy: number; e: string;
   /** Bosses: [role k|k2|d|r, enemy id, HP %]. */
   bs: [string, number, number][];
-  /** Team counters: EXP from kills, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
+  /** Team counters: EXP and Gold picked up by anyone, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
   xp: number; kc: number; bk: number; gd: number; gk: GuardianKind; rk: number;
+  /** Shared drops: Gold and chests picked up by anyone, heart healing (fraction of max HP) per player id. */
+  tg?: number; tc?: number; hl?: Record<string, number>;
+  /** Shared drops on the ground, packed 7 characters each (kind, x, y) relative to ox/oy. */
+  g?: string;
   /** Kings that escaped this Run (the Escape penalty applies to the whole team). */
   es?: number;
   hz: Hazard[]; sp: boolean; dark: boolean; ot: boolean; le: 'clear' | 'escape' | null;
@@ -135,6 +141,10 @@ export interface CoopState {
   mates: Mate[];
   // host
   teamXp: number; kingKills: number; guardians: number; lastGuardian: GuardianKind; rivals: number;
+  /** Shared drops: Gold (before Greed) and chests picked up by anyone; heart healing given per player id. */
+  teamGold: number; teamChests: number; healed: Record<string, number>;
+  /** Level-up / chest while the room keeps playing: seconds left before a pick is made for you. */
+  chooseT: number;
   /** Ally revive progress (s) per downed player id, and revives granted. */
   reviveT: Record<string, number>;
   revived: Record<string, number>;
@@ -144,8 +154,9 @@ export interface CoopState {
   hostPhase: HostPhase;
   /** Damage waiting to be sent to the host, per enemy id. */
   out: Record<number, number>;
-  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase };
-  goldAcc: number;
+  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number };
+  /** The host's drops on the ground (drawn only; the host decides pickups). */
+  drops: Gem[];
 }
 
 export type GuardianKind = 'inferno' | 'frost' | 'storm';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BalanceConfigError, DEFAULT_CONFIG, DEFAULT_FLAGS, FeatureFlagsSchema, listFields, parseBalanceConfig, resolveConfig, withOverrides,
+  BalanceConfigError, DEFAULT_CONFIG, DEFAULT_FLAGS, FIELD_TH, FeatureFlagsSchema, GROUP_TH, listFields, parseBalanceConfig, resolveConfig, withOverrides,
 } from './index';
 
 describe('Balance Config schema', () => {
@@ -53,6 +53,11 @@ describe('Balance Config schema', () => {
       expect(x.def, x.path).toBeGreaterThanOrEqual(x.min);
       expect(x.def, x.path).toBeLessThanOrEqual(x.max);
     }
+  });
+
+  it('every field has a Thai explanation for the Admin Console', () => {
+    const missing = listFields().flatMap((x) => [FIELD_TH[x.desc] ? '' : 'field: ' + x.desc, !x.parent || GROUP_TH[x.parent] ? '' : 'group: ' + x.parent, !x.group || GROUP_TH[x.group] ? '' : 'group: ' + x.group]).filter(Boolean);
+    expect([...new Set(missing)]).toEqual([]);
   });
 
   it('feature flags have defaults', () => {

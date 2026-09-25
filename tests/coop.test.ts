@@ -65,10 +65,9 @@ describe('co-op host / guest', () => {
     r.host.step({ mx: 0, my: 0 }, [{ type: 'remoteHits', hits: [target.id, 1e9] }]);
     expect(target.dead).toBe(true);
     expect(r.hs().kills).toBeGreaterThan(before);
-    // guests level up from the team's kills and earn Gold from them
+    // guests level up from the team's pickups
     expect(g.kills).toBeGreaterThan(0);
     expect(g.P.lv).toBeGreaterThan(1);
-    expect(g.runGold).toBeGreaterThan(0);
   });
 
   it('scales boss HP by 1 + 0.6 × extra players', () => {
@@ -82,17 +81,88 @@ describe('co-op host / guest', () => {
     expect(kingHp(2) / kingHp(0)).toBeCloseTo(2.2, 1);
   });
 
-  it('the room waits while a guest chooses a level-up', () => {
-    const r = room(1, { debug: { god: true } });
+  it('the room keeps playing while a guest chooses; the chooser is shielded and a pick is made in time', () => {
+    const r = room(1, { debug: { god: false } });
     r.step(60);
     const g = r.gs();
-    g.phase = 'levelup';
-    g.levelUp = { options: [], bonus: false } as never;
-    r.step(12, undefined, false);
-    const t0 = r.hs().stageTime;
+    g.P.xp = g.P.need; // next tick: level-up
+    r.step(2, undefined, false);
+    expect(r.gs().phase).toBe('levelup');
+    const t0 = r.hs().stageTime, hp0 = r.gs().P.hp;
+    // monsters on top of the choosing guest are pushed out and cannot hurt them
+    const gv = r.gs();
+    for (const e of gv.enemies.slice(0, 5)) { e.x = gv.P.x + 2; e.y = gv.P.y; }
     r.step(60, undefined, false);
-    expect(r.hs().stageTime).toBe(t0); // frozen for everyone
-    expect(hostSnapshot(r.hs()).ph).toBe('wait');
+    expect(r.hs().stageTime).toBeGreaterThan(t0 + 0.9); // not frozen for anyone
+    expect(hostSnapshot(r.hs()).ph).toBe('play');
+    expect(r.gs().P.hp).toBe(hp0);
+    for (const e of r.gs().enemies.filter((x) => !x.boss && x.tx === undefined)) expect(Math.hypot(e.x - gv.P.x, e.y - gv.P.y)).toBeGreaterThan(20);
+    // nobody picked: after pickTime (10 s) one is made
+    r.step(10 * 60, undefined, false);
+    expect(r.gs().P.lv).toBeGreaterThan(1);
+  });
+
+  it('the host choosing a level-up does not stop the world either', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(60);
+    r.hs().P.xp = r.hs().P.need;
+    r.step(2, undefined, false);
+    expect(r.hs().phase).toBe('levelup');
+    const t0 = r.hs().stageTime, k0 = r.hs().enemies.length + r.hs().kills;
+    r.step(120, undefined, false);
+    expect(r.hs().stageTime).toBeGreaterThan(t0 + 1.9);
+    expect(r.hs().enemies.length + r.hs().kills).toBeGreaterThan(k0); // still spawning
+    r.step(10 * 60, undefined, false);
+    expect(r.hs().phase).not.toBe('levelup');
+  });
+
+  it('drops are shared: guests see them, anyone picks them up and the whole team gets EXP, Gold and chests', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(30);
+    const h = r.hs(), g = r.gs();
+    g.P.x = h.P.x + 300; g.P.y = h.P.y; // far apart
+    r.step(12);
+    const hx = r.hs().P.xp + r.hs().P.lv * 1000, gx = r.gs().P.xp + r.gs().P.lv * 1000, hg = r.hs().runGold, gg = r.gs().runGold;
+    h.gems.push({ kind: 'xp', x: g.P.x + 3, y: g.P.y, v: 40, mag: false }, { kind: 'coin', x: g.P.x - 3, y: g.P.y, v: 10, mag: false },
+      { kind: 'chest', x: h.P.x + 150, y: h.P.y + 150, v: 0, mag: false });
+    r.step(4);
+    expect(r.gs().coop!.drops.some((d) => d.kind === 'chest')).toBe(true); // visible on the guest
+    r.step(20);
+    // the guest walked over them (host side): both players got the EXP and the Gold
+    expect(r.hs().gems.some((x) => x.kind === 'xp' && x.v === 40)).toBe(false);
+    expect(r.hs().P.xp + r.hs().P.lv * 1000).toBeGreaterThan(hx + 30);
+    expect(r.gs().P.xp + r.gs().P.lv * 1000).toBeGreaterThan(gx + 30); // (a level-up resets xp but adds 1000 here)
+    expect(r.hs().runGold).toBeGreaterThanOrEqual(hg + 10);
+    expect(r.gs().runGold).toBeGreaterThanOrEqual(gg + 10);
+  });
+
+  it('a heart heals the player who takes it and allies close by', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(30);
+    const h = r.hs(), g = r.gs();
+    g.P.x = h.P.x + 20; g.P.y = h.P.y;
+    h.P.hp = 10; g.P.hp = 10;
+    r.step(12);
+    h.gems.push({ kind: 'heart', x: h.P.x, y: h.P.y, v: 0.5, mag: false });
+    r.step(12);
+    expect(r.hs().P.hp).toBeGreaterThan(40);
+    expect(r.gs().P.hp).toBeGreaterThan(40);
+  });
+
+  it('Kings aim at a player who is still standing, not at a downed host', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { bossAt: 0.02 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    for (let i = 0; i < 60 * 30 && !r.hs().boss; i++) r.step(1);
+    const h = r.hs(), g = r.gs();
+    h.P.down = true;
+    g.P.x = h.P.x + 400; g.P.y = h.P.y;
+    r.step(6);
+    const before = r.hs().hz.length;
+    for (let i = 0; i < 60 * 12; i++) { r.hs().P.down = true; r.step(1); }
+    const aimed = r.hs().hz.slice(before).filter((z) => z.k === 'circ' && z.d);
+    const nearGuest = aimed.filter((z) => Math.hypot(z.x - r.gs().P.x, z.y - r.gs().P.y) < 120).length;
+    const nearHost = aimed.filter((z) => Math.hypot(z.x - r.hs().P.x, z.y - r.hs().P.y) < 60).length;
+    expect(nearGuest).toBeGreaterThanOrEqual(nearHost);
   });
 
   it('downed players get up after 3 s next to an ally; everyone down ends the Run', () => {

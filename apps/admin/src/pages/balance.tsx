@@ -1,7 +1,7 @@
 // Tuning lab (prototype variant C): search every Balance Config field (generated from the zod
 // schema), edit with range validation, impact chart + per-version history, staged changes with a
 // note, test live on this device, publish / roll back (always a new version).
-import { listFields, parseBalanceConfig, type FieldInfo } from '@pixel-horde/config';
+import { FIELD_TH, GROUP_TH, listFields, parseBalanceConfig, type FieldInfo } from '@pixel-horde/config';
 import { useMemo, useState } from 'preact/hooks';
 import { GAME_URL, type AdminApi, type ConfigRow } from '../api';
 import { Chart } from '../chart';
@@ -16,6 +16,15 @@ function set(o: Record<string, unknown>, path: string, v: number): void {
   cur[ks[ks.length - 1]] = v;
 }
 const label = (f: FieldInfo): string => f.path.replace(/^shared\./, '').replace(/^worlds\./, '');
+/** Thai explanation (Admin is for the owner): what the value is, in its context, and what raising it does. */
+const thGroup = (g: string): string => GROUP_TH[g] ?? g;
+function thai(f: FieldInfo): { name: string; context: string; up: string } {
+  const d = FIELD_TH[f.desc];
+  const context = f.parent && f.parent !== f.group ? thGroup(f.parent) : '';
+  return { name: d?.th ?? f.desc, context, up: d?.up ?? '' };
+}
+/** Short name for the list: "ดาเมจ · ค่าตั้งต้น" for a level-formula part, else the field's own name. */
+const shortName = (f: FieldInfo): string => { const x = thai(f); return x.context ? `${x.context} · ${x.name}` : x.name; };
 /** Base64url of the changed fields only — the game reads it from #draftcfg= (local test, never sent to the server). */
 function draftLink(changes: [string, number][]): string {
   const patch: Record<string, unknown> = {};
@@ -38,10 +47,11 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
   const changes = useMemo(() => (base && draft ? FIELDS.filter((f) => get(draft, f.path) !== get(base, f.path)).map((f) => [f.path, get(draft, f.path)!] as [string, number]) : []), [draft, base]);
   if (!cfgs.data || !base || !d) return <Loading error={cfgs.error} />;
   const F = FIELDS.find((f) => f.path === sel) ?? FIELDS[0];
+  const TH = thai(F);
   const cur = get(d, F.path), old = get(base, F.path);
   const groups = new Map<string, FieldInfo[]>();
   for (const f of FIELDS) {
-    if (q && !(f.path + ' ' + f.desc + ' ' + f.group).toLowerCase().includes(q.toLowerCase())) continue;
+    if (q && !(f.path + ' ' + f.desc + ' ' + f.group + ' ' + shortName(f) + ' ' + thGroup(f.group)).toLowerCase().includes(q.toLowerCase())) continue;
     const g = f.group || 'อื่นๆ';
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g)!.push(f);
@@ -79,11 +89,11 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
         <input type="search" placeholder={`ค้นหา ${FIELDS.length} ค่า เช่น bossAt, dragon, hp`} value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} aria-label="ค้นหาค่า" />
         {[...groups].map(([g, fs]) => (
           <div>
-            <div class="g">{g.toUpperCase()}</div>
+            <div class="g">{thGroup(g)} <span class="mut">· {g}</span></div>
             {fs.slice(0, q ? 200 : 40).map((f) => {
               const changed = get(d, f.path) !== get(base, f.path);
-              return <button class={'it' + (f.path === sel ? ' on' : '')} onClick={() => { setSel(f.path); setErr(''); }}>
-                <span>{label(f)}</span><span class={changed ? 'chgv' : 'mut small'}>{String(get(d, f.path))}</span>
+              return <button class={'it' + (f.path === sel ? ' on' : '')} onClick={() => { setSel(f.path); setErr(''); }} title={label(f)}>
+                <span><span class="thn">{shortName(f)}</span><span class="key">{label(f)}</span></span><span class={changed ? 'chgv' : 'mut small'}>{String(get(d, f.path))}</span>
               </button>;
             })}
             {!q && fs.length > 40 && <div class="small mut" style="padding:4px 8px">…อีก {fs.length - 40} ค่า (พิมพ์ค้นหา)</div>}
@@ -91,8 +101,14 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
         ))}
       </div>
       <div class="center">
-        <div class="small mut">{F.group} · <code>{F.path}</code></div>
-        <h2>{F.desc}</h2>
+        <div class="small mut">{thGroup(F.group)}{TH.context ? ' › ' + TH.context : ''} · <code>{F.path}</code></div>
+        <h2>{TH.context ? `${TH.context} · ${TH.name}` : TH.name}</h2>
+        <Card title="ค่านี้คืออะไร / ปรับแล้วเป็นอย่างไร">
+          <p class="explain"><b>คืออะไร:</b> {TH.context ? `${TH.name} ของ “${TH.context}” ในหมวด ${thGroup(F.group)}` : `${TH.name} (หมวด ${thGroup(F.group)})`}</p>
+          {TH.up && <p class="explain"><b>ปรับเพิ่ม ▲</b> {TH.up}</p>}
+          {TH.up && <p class="explain"><b>ปรับลด ▼</b> ได้ผลตรงข้าม</p>}
+          <p class="explain small mut">ค่าเริ่มต้น {F.def} · ปรับได้ {F.min} – {F.max} · มีผลกับผู้เล่นตอนเริ่มด่านถัดไปหลัง Publish · ต้นฉบับ: {F.desc}</p>
+        </Card>
         <div class="row"><span class="big">{String(cur)}</span><span class="mut">{cur !== old ? `เดิม ${old} (v${pub!.version})` : `= v${pub!.version}`}</span></div>
         <input type="range" min={F.min} max={F.max} step={Math.max((F.max - F.min) / 400, 0.001)} value={cur} onInput={(e) => edit((e.target as HTMLInputElement).value)} aria-label={F.desc} />
         <div class="row small mut between"><span>{F.min}</span><span>ค่าเริ่มต้น {F.def}</span><span>{F.max}</span></div>
@@ -110,7 +126,7 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
       </div>
       <div class="stage">
         <h3>รอ publish ({changes.length})</h3>
-        {changes.length ? changes.map(([p, v]) => <div class="row between chgrow"><span class="small">{p.replace(/^shared\./, '')}</span><span class="small"><s class="mut">{String(get(base, p))}</s> → <b>{String(v)}</b></span></div>) : <div class="small mut">ยังไม่มีค่าที่เปลี่ยน</div>}
+        {changes.length ? changes.map(([p, v]) => <div class="row between chgrow"><span class="small">{(() => { const f = FIELDS.find((x) => x.path === p); return f ? shortName(f) : ''; })()}<br /><span class="mut">{p.replace(/^shared\./, '')}</span></span><span class="small"><s class="mut">{String(get(base, p))}</s> → <b>{String(v)}</b></span></div>) : <div class="small mut">ยังไม่มีค่าที่เปลี่ยน</div>}
         <input placeholder="โน้ต (ทำไมถึงปรับ) จำเป็น" value={note} onInput={(e) => setNote((e.target as HTMLInputElement).value)} aria-label="โน้ต" />
         <a class={'btn' + (changes.length ? '' : ' disabled')} href={changes.length ? draftLink(changes) : undefined} target="_blank" rel="noopener">ทดสอบสดในเครื่องนี้</a>
         <div class="small mut">เปิดเกมในแท็บใหม่ด้วยค่าฉบับร่าง ผู้เล่นคนอื่นไม่ได้รับผล และรอบทดสอบไม่ส่งคะแนน</div>

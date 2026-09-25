@@ -37,7 +37,8 @@ npm run build && npm run preview
 ## Database (Supabase)
 
 The live project (`jqvgmkhzdhjreikjqhxt`) has every migration in `supabase/migrations/` applied,
-up to `20260925000011_hardening`. Migration 0004 went in without its large `config_schema` insert,
+up to `20260925000011_hardening` (`20260926000012_coop_feedback` — account suspension + refreshed
+config schema — must be applied before the game/admin build that uses it goes live). Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`
 in the project's migration history); the row is byte-identical to the one in the file.
 

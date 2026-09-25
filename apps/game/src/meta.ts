@@ -211,6 +211,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
   }
 
   function recordRun(result: RunResult, ticket: RunTicket | null, live: boolean): void {
+    if (backend.status() === 'suspended') return; // a suspended account's Runs are not credited
     queue = queue.filter((q) => !(q.kind === 'run' && q.result.clientRunId === result.clientRunId));
     queue.push({ kind: 'run', result, ticket: ticket ?? undefined, live });
     save();
