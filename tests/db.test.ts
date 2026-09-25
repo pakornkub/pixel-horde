@@ -46,11 +46,14 @@ describe('nickname rules agree between client and server', () => {
 });
 
 describe('server copy of the Balance Config', () => {
-  it('version 0 in the migrations equals the built-in defaults', async () => {
-    const { DEFAULT_CONFIG } = await import('@pixel-horde/config');
+  it('version 0 in the migrations, with later fields filled in, equals the built-in defaults', async () => {
+    const { DEFAULT_CONFIG, parseBalanceConfig } = await import('@pixel-horde/config');
     const db = await freshDb();
-    const r = await db.query<{ data: unknown }>('select data from public.balance_configs where version = 0');
-    expect(r.rows[0].data).toEqual(JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
+    const r = await db.query<{ data: Record<string, unknown> }>('select data from public.balance_configs where version = 0');
+    // published versions are immutable, so fields added after launch come from the client's defaults
+    const rest = { ...r.rows[0].data };
+    delete rest.version;
+    expect(JSON.parse(JSON.stringify({ ...parseBalanceConfig(rest), version: 0 }))).toEqual(JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
   });
 
   it('shop prices match the client', async () => {

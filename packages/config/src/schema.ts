@@ -238,6 +238,8 @@ const shared = obj({
   loot: obj({
     coinChance: frac(0.08, 'Coin drop chance'), coin: pos(1, 'Coin value'), eliteCoin: pos(5, 'Elite coin value'), bossCoin: pos(50, 'Boss coin value'),
     heartChance: frac(0.012, 'Heart drop chance'), heartSmall: frac(0.3, 'Small heart heal (× max HP)'), heartBig: frac(0.5, 'Boss heart heal (× max HP)'),
+    shieldChance: frac(0.004, 'Shield drop chance (normal monster)'), shieldElite: frac(0.15, 'Shield drop chance (elite monster)'),
+    shieldAbsorb: frac(0.3, 'Shield absorbs this much damage (× max HP)'), shieldDur: sec(10, 'Shield lasts (s)'),
     chestGold: pos(20, 'Gold when picking up a chest'), gemCap: int(380, 10, 5000, 'Gems on the ground before merging'),
     bossGems: int(14, 1, 100, 'XP gems a boss drops'), eventGems: int(10, 1, 100, 'XP gems a dragon/rival drops'),
     magnetAccel: pos(400, 'Gem pull acceleration'), magnetMax: pos(320, 'Gem pull max speed'),

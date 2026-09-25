@@ -2,10 +2,11 @@
 // schema), edit with range validation, impact chart + per-version history, staged changes with a
 // note, test live on this device, publish / roll back (always a new version).
 import { listFields, parseBalanceConfig, type FieldInfo } from '@pixel-horde/config';
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { GAME_URL, type AdminApi, type ConfigRow } from '../api';
 import { Chart } from '../chart';
 import { Card, Loading, Tag, toast, useData } from '../ui';
+import { AI_DRAFT_KEY } from './ai';
 
 const FIELDS: FieldInfo[] = listFields();
 const get = (o: unknown, path: string): number | undefined => path.split('.').reduce<unknown>((a, k) => (a as Record<string, unknown> | undefined)?.[k], o) as number | undefined;
@@ -33,7 +34,25 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
   const [note, setNote] = useState('');
   const pub: ConfigRow | undefined = cfgs.data?.find((c) => c.status === 'published');
   const stats = useData(() => api.stats(14, pub?.version ?? null, cfgs.data?.filter((c) => c.status === 'published')[1]?.version ?? null), [pub?.version]);
-  const base = pub?.data;
+  // older versions lack fields added later: show (and publish) them with the defaults the game uses
+  const base = useMemo(() => {
+    if (!pub) return undefined;
+    const rest = { ...pub.data };
+    delete rest.version;
+    return { ...(parseBalanceConfig(rest) as unknown as Record<string, unknown>), version: pub.version };
+  }, [pub?.version]);
+  // changes handed over from the AI page start a draft on top of the published version
+  useEffect(() => {
+    if (!base) return;
+    let raw: string | null = null;
+    try { raw = sessionStorage.getItem(AI_DRAFT_KEY); sessionStorage.removeItem(AI_DRAFT_KEY); } catch { /* storage blocked */ }
+    if (!raw) return;
+    const next = JSON.parse(JSON.stringify(base)) as Record<string, unknown>;
+    for (const [p, v] of JSON.parse(raw) as [string, number][]) { const f = FIELDS.find((x) => x.path === p); if (f && v >= f.min && v <= f.max) set(next, p, v); }
+    setDraft(next);
+    setNote('ตามคำแนะนำของผู้ช่วย AI');
+    toast('ใส่ค่าจากผู้ช่วย AI ในฉบับร่างแล้ว ตรวจก่อน publish');
+  }, [base]);
   const d = draft ?? base;
   const changes = useMemo(() => (base && draft ? FIELDS.filter((f) => get(draft, f.path) !== get(base, f.path)).map((f) => [f.path, get(draft, f.path)!] as [string, number]) : []), [draft, base]);
   if (!cfgs.data || !base || !d) return <Loading error={cfgs.error} />;
