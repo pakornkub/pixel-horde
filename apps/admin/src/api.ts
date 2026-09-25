@@ -19,6 +19,10 @@ export interface DailyRow { day: string; v: number; metric: string; key: string;
 export interface SurvivalRow { chapter: number; reached: number; runs: number }
 export interface Stats { daily: DailyRow[]; survivalA: SurvivalRow[]; survivalB: SurvivalRow[]; errors: { message: string; stack: string; count: number; last: string; build: number | null }[] }
 
+export interface AiMsg { role: 'user' | 'model'; text: string }
+export interface AiChange { path: string; value: number; why: string }
+export interface AiAnswer { reply: string; changes: AiChange[]; model?: string; version?: number }
+
 export interface SeasonReward { userId: string; name: string; kind: 'title' | 'badge'; reward: string; rank: number | null; board: string }
 export interface SeasonPreview { season: number; pendingCoop: number; rewards: SeasonReward[] }
 
@@ -46,6 +50,8 @@ export interface AdminApi {
   openSeason(name: string): Promise<number>;
   players(search: string): Promise<PlayerRow[]>;
   stats(days: number, a?: number | null, b?: number | null): Promise<Stats>;
+  /** Balance AI (Supabase Edge Function `balance-ai`, Gemini): proposes changes, never publishes. */
+  askAi(messages: AiMsg[], fields: [string, string, number, number, number][]): Promise<AiAnswer>;
 }
 
 const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? 'https://jqvgmkhzdhjreikjqhxt.supabase.co';
@@ -91,6 +97,15 @@ async function liveApi(): Promise<AdminApi> {
     openSeason: (name) => rpc('admin_open_season', { p_name: name }),
     players: (search) => rpc('admin_players', { p_search: search }),
     stats: (days, a, b) => rpc('admin_stats', { p_days: days, p_version_a: a ?? null, p_version_b: b ?? null }),
+    async askAi(messages, fields) {
+      const { data, error } = await sb.functions.invoke('balance-ai', { body: { messages, fields } });
+      if (error) {
+        let msg = error.message;
+        try { const b = await (error as { context?: Response }).context?.json(); if (b?.error) msg = b.error; } catch { /* keep the generic message */ }
+        throw new Error(msg);
+      }
+      return data as AiAnswer;
+    },
   };
 }
 
@@ -163,6 +178,14 @@ function demoApi(): AdminApi {
     },
     async openSeason(name) { note('open_season', 'seasons', { closed: season, name }); season++; return season; },
     players: async (q) => clone(players.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))),
+    askAi: async (msgs) => ({
+      reply: `(โหมดตัวอย่าง) รับคำขอ "${msgs[msgs.length - 1]?.text ?? ''}" แล้ว ตัวอย่างข้อเสนอ: ให้ท่าใหญ่ของบอสช่วง overtime ไม่ถี่ขึ้น และแรงขึ้นน้อยลง`,
+      changes: [
+        { path: 'shared.kings.overtimeUltMul', value: 1, why: 'ท่าใหญ่ช่วง overtime ทุก 10 วินาทีเท่าช่วงปกติ (0.5 → 1)' },
+        { path: 'shared.stage.enrageDmg', value: 1.15, why: 'ดาเมจบอสช่วง overtime ×1.3 → ×1.15' },
+      ],
+      model: 'demo',
+    }),
     stats: async (_d, _a, b) => ({ daily, survivalA: surv(0), survivalB: b == null ? [] : surv(-1.5), errors: [{ message: 'TypeError: e.st is undefined', stack: 'at dragonAI (events.ts:88)', count: 64, last: now(), build: 202609251200 }, { message: 'AudioContext was not allowed to start', stack: '', count: 12, last: now(), build: 202609251200 }] }),
   };
 }

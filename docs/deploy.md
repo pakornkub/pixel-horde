@@ -52,6 +52,17 @@ Keep-alive: `workers/keepalive` pings `get_live_state` once a day (03:17 UTC) so
 never paused for inactivity. The same workflow deploys it on every push to `main`; open its
 `workers.dev` URL once to trigger a ping by hand (`ok` = working).
 
+## Balance AI (Admin Console → ผู้ช่วย AI)
+
+Supabase Edge Function `supabase/functions/balance-ai` calls Gemini with the owner's API key.
+It only answers admins (it calls `admin_configs()` as the signed-in user) and never publishes:
+proposals go to the Tuning Lab draft, and the owner publishes from there.
+
+1. Supabase → **Edge Functions → Secrets** → add `GEMINI_API_KEY` (optional `GEMINI_MODEL`,
+   default `gemini-3.8-flash`).
+2. Deploy: `supabase functions deploy balance-ai` (or the Supabase MCP `deploy_edge_function`),
+   JWT verification on. Already deployed to the live project; redeploy after changing it.
+
 ## Admin Console
 
 `apps/admin` deploys to a second Pages project, `pixel-horde-admin` (same workflow).

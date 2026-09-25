@@ -198,6 +198,8 @@ export interface Player {
   /** Chilled: slower while > 0. */
   chill: number;
   shards: number;
+  /** Shield pickup: damage it still absorbs, and seconds left. */
+  guard: number; guardT: number;
 }
 
 export interface Enemy {
@@ -337,7 +339,7 @@ export interface Hazard {
 }
 
 export interface Gem {
-  kind: 'xp' | 'coin' | 'chest' | 'heart';
+  kind: 'xp' | 'coin' | 'chest' | 'heart' | 'shield';
   x: number; y: number;
   v: number;
   mag: boolean;

@@ -151,6 +151,11 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.fillStyle = '#c77d3a'; b.fillRect(x - 6, y - 5 + bob, 12, 3);
         b.fillStyle = '#ffd23f'; b.fillRect(x - 6, y - 2 + bob, 12, 1); b.fillRect(x - 1, y - 3 + bob, 2, 3);
         if (Math.floor(clock * 6) % 3 === 0) { b.fillStyle = '#fff'; b.fillRect(x + 4, y - 8 + bob, 1, 1); }
+      } else if (g.kind === 'shield') {
+        const bob = Math.round(Math.sin(clock * 4));
+        b.fillStyle = K; b.fillRect(x - 4, y - 4 + bob, 8, 7); b.fillRect(x - 3, y + 3 + bob, 6, 1); b.fillRect(x - 1, y + 4 + bob, 2, 1);
+        b.fillStyle = '#4fb4ff'; b.fillRect(x - 3, y - 3 + bob, 6, 6); b.fillRect(x - 2, y + 3 + bob, 4, 1);
+        b.fillStyle = '#bfe8ff'; b.fillRect(x - 2, y - 2 + bob, 2, 3); b.fillStyle = '#fff'; b.fillRect(x - 2, y - 2 + bob, 1, 1);
       } else {
         b.fillStyle = K; b.fillRect(x - 4, y - 3, 8, 6); b.fillStyle = '#ff4b5c';
         b.fillRect(x - 3, y - 3, 2, 1); b.fillRect(x + 1, y - 3, 2, 1); b.fillRect(x - 3, y - 2, 6, 2); b.fillRect(x - 2, y, 4, 1); b.fillRect(x - 1, y + 1, 2, 1);
@@ -206,6 +211,11 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if (P.clone) { const c = P.clone, dk = P.face < 0 ? CS2.dkl : CS2.dk; b.globalAlpha = 0.75; b.drawImage(dk[fr], Math.round(c.x + ox - 8), Math.round(c.y + oy - 9)); b.globalAlpha = 1; }
         if (hw && dir === 'up') b.drawImage(hw[0], hx + 1, hy - 9 + bob); // the Weapon on the back
         b.drawImage(img, Math.round(P.x + ox - 8), Math.round(P.y + oy - 9 + bob));
+        if (P.guardT > 0 && (P.guardT > 2 || Math.floor(clock * 8) & 1)) { // Shield pickup bubble (blinks in its last 2 s)
+          b.save(); b.globalAlpha = 0.22; b.fillStyle = '#7fd4ff';
+          b.beginPath(); b.arc(P.x + ox, P.y + oy - 1, 12, 0, TAU); b.fill();
+          b.globalAlpha = 0.8; b.strokeStyle = '#bfe8ff'; b.lineWidth = 1; b.stroke(); b.restore();
+        }
         if (hw && dir !== 'up') { // in the hand
           if (dir === 'down') b.drawImage(hw[0], hx + 4, hy - 4 + bob);
           else if (P.face < 0) b.drawImage(hw[1], hx - 10, hy - 5 + bob);
@@ -635,7 +645,8 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   outlined('LV ' + P.lv, left, top + 18 * D, 11 * D, '#ffffff');
   const hw = Math.min(150, VW * 0.32) * D;
   bar(left, top + 36 * D, hw, 10 * D, P.hp / P.maxHp, '#e8434f');
-  outlined(Math.ceil(P.hp) + '/' + P.maxHp, left, top + 52 * D, 8 * D, '#ffd9de');
+  outlined(Math.ceil(P.hp) + '/' + P.maxHp + (P.guardT > 0 ? '  +' + P.guard : ''), left, top + 52 * D, 8 * D, '#ffd9de');
+  if (P.guardT > 0) bar(left, top + 47 * D, hw * Math.min(1, P.guard / P.maxHp), 3 * D, P.guardT / v.cfg.loot.shieldDur, '#7fd4ff', '#2a5a80');
   ctx.textAlign = 'center';
   if (v.overtime) {
     const otLeft = v.stageDur + v.cfg.stage.overtime - v.stageTime;
