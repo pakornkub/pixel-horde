@@ -139,6 +139,18 @@ describe('co-op host / guest', () => {
     expect(snap.pl.map((p) => p.id)).toEqual(['H', 'G0']);
   });
 
+  it('a King escape costs guests the same Escape penalty as the host', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6, overtime: 3 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    for (let i = 0; i < 60 * 60 && r.hs().phase !== 'clear'; i++) r.step(1);
+    r.step(8);
+    expect(r.hs().lastEnd).toBe('escape');
+    expect(r.hs().escapes).toBe(1);
+    expect(r.gs().escapes).toBe(1);
+    r.step(20); // later snapshots do not count it again
+    expect(r.gs().escapes).toBe(1);
+  });
+
   it('runs 4 minutes with three guests without errors', () => {
     const r = room(3);
     for (let i = 0; i < 4 * 60 * 60; i++) {
