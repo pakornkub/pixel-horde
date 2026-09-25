@@ -374,7 +374,7 @@ function renderClear(v: Readonly<SimState>, denied = false): void {
     () => { cmd({ type: 'spCompanion' }); benchDirty = true; });
   renderWeaponSwitch(v, (id) => { cmd({ type: 'weapon', id }); benchDirty = true; });
   renderSp(v, (id) => { cmd({ type: 'spUpgrade', id }); benchDirty = true; });
-  renderBench(v, onSwap, denied);
+  renderBench(v, onSwap, denied, (i) => { cmd({ type: 'discard', bench: i }); benchDirty = true; });
 }
 
 /** Open/close overlays when the sim's phase changes. */

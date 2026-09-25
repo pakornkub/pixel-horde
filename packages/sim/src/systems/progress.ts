@@ -274,6 +274,13 @@ export function swapBench(s: SimState, bi: number, slot: SkillId | null): void {
   sfx(s, 'coin');
 }
 
+/** Stage-end screen: throw a Bench skill away, free (its levels are lost; it may be offered again). */
+export function discardBench(s: SimState, bi: number): void {
+  if (s.phase !== 'clear' || !s.P.bench[bi]) return;
+  s.P.bench.splice(bi, 1);
+  sfx(s, 'hit');
+}
+
 export function openLevelUp(s: SimState): void {
   s.phase = 'levelup';
   if (s.coop) s.coop.chooseT = s.cfg.coop.pickTime; // co-op: the room keeps playing; pick in time

@@ -829,5 +829,7 @@
  "kingMove.rMeteor": "อุกกาบาตเงา",
  "kingMove.rZap": "สายฟ้าเงา",
  "title.bestLabel": "สถิติดีที่สุด",
- "title.bestValue": "ถึงด่าน {stage} · KO {kills}"
+ "title.bestValue": "ถึงด่าน {stage} · KO {kills}",
+ "bench.discard": "ลบ {name} ออกจาก Bench",
+ "bench.discardAsk": "ลบ {name} (LV {lv}) ทิ้ง? เลเวลที่มีจะหาย แต่ช่อง Bench จะว่างให้สกิลใหม่"
 }

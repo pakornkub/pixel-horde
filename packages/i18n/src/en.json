@@ -829,5 +829,7 @@
  "kingMove.rMeteor": "Shadow Meteor",
  "kingMove.rZap": "Shadow Zap",
  "title.bestLabel": "Best run",
- "title.bestValue": "Chapter {stage} · KO {kills}"
+ "title.bestValue": "Chapter {stage} · KO {kills}",
+ "bench.discard": "Remove {name} from the Bench",
+ "bench.discardAsk": "Remove {name} (LV {lv})? Its levels are lost, and the Bench slot frees up for a new Skill."
 }

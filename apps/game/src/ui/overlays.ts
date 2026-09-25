@@ -411,7 +411,7 @@ export function renderAwaken(v: Readonly<SimState>, onAnswer: (accept: boolean) 
 
 /* ---------- Bench ↔ attack slots (clear screen) ---------- */
 let benchSel = -1;
-export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot: SkillId | null) => void, denied = false): void {
+export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot: SkillId | null) => void, denied = false, onDiscard?: (bench: number) => void): void {
   const P = v.P, box = $('benchBox');
   box.hidden = !P.bench.length;
   if (!P.bench.length) return;
@@ -442,8 +442,14 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
   P.bench.forEach((b, i) => {
     const bt = document.createElement('button'); bt.className = 'sk' + (i === benchSel ? ' sel' : '');
     bt.innerHTML = chip(b.id, b.lv, b.evo);
-    bt.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; renderBench(v, onSwap); });
+    bt.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; renderBench(v, onSwap, false, onDiscard); });
     bench.appendChild(bt);
+    if (onDiscard) { // free removal; frees the Bench slot for a new Skill
+      const x = document.createElement('button'); x.className = 'sk del'; x.textContent = '✕';
+      x.title = x.ariaLabel = t('bench.discard', { name: skillName(b.id) });
+      x.addEventListener('click', () => { if (confirm(t('bench.discardAsk', { name: skillName(b.id), lv: b.lv }))) { benchSel = -1; onDiscard(i); } });
+      bench.appendChild(x);
+    }
   });
   const c = document.createElement('div'); c.className = 'cost' + (afford ? '' : ' warn');
   c.textContent = denied || !afford ? t('bench.short') + ' — ' + t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun }) : t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun });

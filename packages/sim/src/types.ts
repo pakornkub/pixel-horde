@@ -43,6 +43,7 @@ export type Command =
   | { type: 'giveUp' } // down: end the Run
   | { type: 'awaken'; accept: boolean } // clear screen: answer the Awakening prompt
   | { type: 'swap'; bench: number; slot: SkillId | null } // clear screen: Bench skill ↔ attack slot (null = empty slot)
+  | { type: 'discard'; bench: number } // clear screen: remove a Bench skill for free (its levels are lost)
   | { type: 'ult' }
   | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
   | { type: 'setConfig'; config: ResolvedConfig } // new Balance Config: applies at the next Stage start
