@@ -8,6 +8,7 @@ import { wsConnect, type Connect } from '../net/transport';
 import { META } from '../meta';
 import { live } from '../live';
 import { active } from '../config';
+import { backend } from '../net';
 import { $, charImg, hide, show } from './overlays';
 import { openHero, renderTitleSel } from './title';
 import { heroName } from './text';
@@ -30,7 +31,7 @@ export const currentSession = (): Session | null => session;
 export function setConnect(c: Connect): void { connect = c; }
 
 const msg = (txt: string): void => { $('coopMsg').textContent = txt; };
-export const coopAvailable = (): boolean => !!connect && live.flags().coop !== false;
+export const coopAvailable = (): boolean => !!connect && live.flags().coop !== false && backend.status() !== 'suspended';
 
 function renderRoom(players: LobbyPlayer[]): void {
   if (!session) return;
@@ -91,6 +92,9 @@ function join(raw: string): void {
   open('guest', code);
 }
 
+/** The player's nickname is known or changed: update it in the room. */
+export function refreshLobbyName(): void { session?.setName(hooks.name()); }
+
 /** Leave the room (lobby or Run). */
 export function leaveRoom(): void {
   const s = session;
@@ -105,7 +109,7 @@ export function openLobby(code?: string): void {
   $('coopEntry').hidden = !!session; $('coopRoom').hidden = !session;
   ($('coopCreate') as HTMLButtonElement).disabled = !ready;
   ($('coopJoin') as HTMLButtonElement).disabled = !ready;
-  msg(!connect ? t('coop.notSetUp') : live.flags().coop === false ? t('coop.off') : '');
+  msg(!connect ? t('coop.notSetUp') : backend.status() === 'suspended' ? t('coop.suspended') : live.flags().coop === false ? t('coop.off') : '');
   if (code) { ($('coopCode') as HTMLInputElement).value = code; if (ready && !session) join(code); }
 }
 
@@ -130,7 +134,6 @@ export function initLobby(h: LobbyHooks): void {
     const url = location.origin + location.pathname + '?join=' + session.code;
     void navigator.clipboard?.writeText(url).then(() => msg(t('coop.copied')), () => msg(url));
   });
-  const btn = $('coopBtn') as HTMLButtonElement;
-  btn.disabled = !connect;
-  btn.querySelector('small')!.hidden = !!connect;
+  // always clickable: when co-op is not available the lobby says why (a disabled grey button did not)
+  $('coopBtn').querySelector('small')!.hidden = !!connect;
 }

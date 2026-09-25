@@ -28,7 +28,7 @@
     <button class="btn play big" id="startBtn" data-i18n="title.start"></button>
     <div class="tmenu">
       <button id="heroBtn" data-i18n="title.hero"></button>
-      <button id="coopBtn" disabled><span data-i18n="title.coop"></span> <small data-i18n="title.soon"></small></button>
+      <button id="coopBtn"><span data-i18n="title.coop"></span> <small data-i18n="title.soon"></small></button>
       <button id="boardBtn" data-i18n="board.open"></button>
       <button id="shopBtn1" data-i18n="title.shop"></button>
       <button id="collBtn" data-i18n="coll.open"></button>
@@ -56,6 +56,7 @@
 
 <div class="overlay" id="ovLevel"><div class="box">
   <h2 id="lvTitle">LEVEL UP!</h2>
+  <div class="ctimer" id="lvTimer" hidden><div></div><span data-i18n="coop.shielded"></span></div>
   <p class="slots" id="lvSlots"></p>
   <div class="opts" id="opts"></div>
   <div class="sptools" id="lvTools"></div>
@@ -125,6 +126,7 @@
 
 <div class="overlay" id="ovChest"><div class="box">
   <h2 data-i18n="chest.title"></h2>
+  <div class="ctimer" id="chestTimer" hidden><div></div><span data-i18n="coop.shielded"></span></div>
   <div class="wheel" id="wheel"></div>
   <p class="chestTxt" id="chestTxt"></p>
 </div></div>
@@ -215,6 +217,12 @@
   <h2 id="tabTitle"></h2>
   <p id="tabText"></p>
   <button class="btn" id="tabBtn" data-i18n="tab.useHere"></button>
+</div></div>
+
+<div class="overlay" id="ovSuspended"><div class="box">
+  <h2 data-i18n="suspended.title"></h2>
+  <p id="suspendedText"></p>
+  <button class="btn" id="suspendedBtn" data-i18n="suspended.ok"></button>
 </div></div>
 
 <div class="overlay" id="ovReplaced"><div class="box">

@@ -20,7 +20,7 @@ export function startStage(s: SimState, n: number): void {
   if (n > 1 && s.pending.events) s.eventSwitches = s.pending.events;
   s.pending = {};
   const P = s.P, G = s.cfg.stage;
-  if (s.specialStage) s.chestQueue++;
+  s.pickReturn = null;
   rollStage(s, n);
   if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * G.reviveHp); P.inv = 2; }
   s.stage = n;
@@ -32,7 +32,7 @@ export function startStage(s: SimState, n: number): void {
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
   s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
   s.enemies = []; s.bolts = []; s.effects = [];
-  for (const g of s.gems) if (g.kind === 'xp') P.xp += g.v;
+  for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v; if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
   s.gems = [];
   levelCheck(s);
   s.streak = 0; s.streakT = 0;
@@ -87,6 +87,7 @@ export function answerAwaken(s: SimState, accept: boolean): void {
 
 export function stageClear(s: SimState, escaped = false): void {
   s.phase = 'clearing';
+  if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest, opened with the Stage-end rewards
   updateLinks(s);
   s.fuseOffer = canFuse(s);
   s.clearT = s.cfg.stage.clearDelay;
@@ -275,6 +276,7 @@ export function swapBench(s: SimState, bi: number, slot: SkillId | null): void {
 
 export function openLevelUp(s: SimState): void {
   s.phase = 'levelup';
+  if (s.coop) s.coop.chooseT = s.cfg.coop.pickTime; // co-op: the room keeps playing; pick in time
   sfx(s, 'lv');
   s.levelUp = { options: buildOptions(s), chest: s.pendingChest > 0, lv: s.P.lv - s.pendingLv + 1 };
 }
@@ -301,12 +303,31 @@ export function choose(s: SimState, index: number): void {
   else s.pendingLv--;
   s.levelUp = null;
   if (s.pendingLv > 0 || s.pendingChest > 0) openLevelUp(s);
-  else s.phase = 'play';
+  else afterRewards(s);
+}
+
+/** A level-up / chest is done: back to play, or at the Stage end to the next waiting reward. */
+function afterRewards(s: SimState): void {
+  const back = s.pickReturn;
+  if (!back) { s.phase = 'play'; return; }
+  if (!stageEndRewards(s, back)) s.phase = back;
+}
+
+/**
+ * Stage end: open the next reward still waiting (chest wheel first, then level-ups and chest picks)
+ * so none spills into the next Stage. Returns false when nothing is left.
+ */
+export function stageEndRewards(s: SimState, back: 'clearing' | 'clear'): boolean {
+  if (s.chestQueue > 0) { s.chestQueue--; s.pickReturn = back; openChest(s); return true; }
+  if (s.pendingLv > 0 || s.pendingChest > 0) { s.pickReturn = back; openLevelUp(s); return true; }
+  s.pickReturn = null;
+  return false;
 }
 
 export function openChest(s: SimState): void {
   const R = s.rng.loot;
   s.phase = 'chest';
+  if (s.coop) s.coop.chooseT = s.cfg.coop.pickTime;
   const W = s.cfg.chest, r = R.next(), res = r < W.p1 ? 1 : r < W.p1 + W.p2 ? 2 : 3;
   const cells: number[] = [];
   [1, 2, 1, 3, 1, 2, 1, 2].forEach((v, i) => { if (v === res) cells.push(i); });
@@ -320,7 +341,7 @@ export function chestStop(s: SimState): void {
   if (s.phase !== 'chest' || !s.chest) return;
   s.pendingChest += s.chest.res;
   s.chest = null;
-  s.phase = 'play';
+  afterRewards(s);
 }
 
 export function stepGems(s: SimState, dt: number): void {

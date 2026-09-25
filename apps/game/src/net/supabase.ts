@@ -11,7 +11,8 @@ const readLink = (): LinkState | null => { try { return JSON.parse(localStorage.
 const writeLink = (s: LinkState | null): void => { try { if (s) localStorage.setItem(K_LINK, JSON.stringify(s)); else localStorage.removeItem(K_LINK); } catch { /* ignore */ } };
 const here = (): string => location.origin + location.pathname;
 
-interface ProfileRow { id: string; nickname: string; role: 'player' | 'admin' }
+interface ProfileRow { id: string; nickname: string; role: 'player' | 'admin'; suspended_until?: string | null }
+const isSuspended = (a: Account | null): boolean => !!a?.suspendedUntil && Date.parse(a.suspendedUntil) > Date.now();
 
 export function createSupabaseBackend(): Backend {
   const status = new StatusBox();
@@ -26,7 +27,7 @@ export function createSupabaseBackend(): Backend {
     sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'pixelhorde-auth' } });
     return sb;
   };
-  const toAccount = (p: ProfileRow, anonymous: boolean): Account => ({ id: p.id, nickname: p.nickname, anonymous, role: p.role });
+  const toAccount = (p: ProfileRow, anonymous: boolean): Account => ({ id: p.id, nickname: p.nickname, anonymous, role: p.role, suspendedUntil: p.suspended_until ?? null });
 
   async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
     const c = await client();
@@ -34,12 +35,20 @@ export function createSupabaseBackend(): Backend {
     if (error) {
       const e = toBackendError(error);
       if (e.code === 'SESSION_REPLACED') status.set('replaced');
+      if (e.code === 'ACCOUNT_SUSPENDED') {
+        const until = (error as { hint?: string }).hint;
+        if (acc && until) acc = { ...acc, suspendedUntil: until };
+        status.set('suspended');
+      }
       throw e;
     }
     return data as T;
   }
 
-  const online = (): void => { if (status.get() !== 'online') throw new BackendError(status.get() === 'replaced' ? 'SESSION_REPLACED' : 'OFFLINE'); };
+  const online = (): void => {
+    const st = status.get();
+    if (st !== 'online') throw new BackendError(st === 'replaced' ? 'SESSION_REPLACED' : st === 'suspended' ? 'ACCOUNT_SUSPENDED' : 'OFFLINE');
+  };
 
   return {
     kind: 'supabase',
@@ -70,7 +79,7 @@ export function createSupabaseBackend(): Backend {
         } else if (step.do === 'clear') { if (readLink()) linkOutcome = acc.anonymous ? null : 'linked'; writeLink(null); }
         else if (step.do === 'failed') { linkOutcome = 'failed:' + step.reason; writeLink(null); }
         if (linkOutcome) history.replaceState(null, '', here());
-        status.set('online');
+        status.set(isSuspended(acc) ? 'suspended' : 'online');
         return acc;
       } catch (e) {
         // Server down, anonymous sign-in disabled, migrations missing…: keep playing offline.
@@ -94,14 +103,14 @@ export function createSupabaseBackend(): Backend {
         status.set('online');
         return true;
       } catch (e) {
-        if (e instanceof BackendError && e.code === 'SESSION_REPLACED') return false;
+        if (e instanceof BackendError && (e.code === 'SESSION_REPLACED' || e.code === 'ACCOUNT_SUSPENDED')) return false;
         return true; // network hiccup: do not interrupt play
       }
     },
     async reclaim() {
       const row = await rpc<ProfileRow>('claim_session');
       acc = toAccount(row, acc?.anonymous ?? true);
-      status.set('online');
+      status.set(isSuspended(acc) ? 'suspended' : 'online');
     },
     async getMeta() { online(); return rpc<ServerMeta>('get_meta'); },
     async startRun(hero, mode = 'solo', weapon = 'judgement') {

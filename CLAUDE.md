@@ -54,8 +54,11 @@ golden replay → backend/admin/co-op → new features.
 
 ## State machine
 `title → play ⇄ (levelup | chest | pause) → clearing → clear → play(next stage) … → over`
-(+ `joining` for co-op guests). Level-up and chest ALWAYS pause the sim; in co-op the whole room
-waits while anyone is choosing (host phase `wait`).
+(+ `joining` for co-op guests). Solo: level-up and chest pause the sim. Co-op: they never stop the
+room — the choosing player stands in a shield bubble (no damage, monsters pushed out) and a pick is
+made for them after `coop.pickTime` (10 s). Rewards still waiting when a Stage ends (the King's
+vacuumed chest, the Blood Moon bonus chest, pending level-ups) open during `clearing`, before the
+clear screen — never at the next Stage start.
 
 ## Core rules & balance (current values)
 - Render: low-res buffer (≈190 px on short side, integer scale), world tiles 16×16, UI/HUD and
@@ -90,8 +93,12 @@ waits while anyone is choosing (host phase `wait`).
   team XP + kill counters, boss/dragon/rival HP %, hazard list, and packed enemies:
   11 chars each = id(3) type(1) flags(1: elite=1, armor=2) x(3) y(3) in base64 relative to host pos.
 - Guests: interpolate enemies, run their OWN skills locally, send aggregated damage `[id, dmg, …]`
-  every 150 ms; take contact/hazard damage locally; gain team XP/kills/gold from deltas.
-- Guest presence: position, hp, lv, down, facing, char, `sel` (choosing upgrade), pet.
+  every 150 ms; take contact/hazard damage locally; gain team XP/kills/gold/chests from deltas.
+- Drops are shared ("help each other collect"): the host owns them and sends them packed in the
+  snapshot (7 chars each); anyone standing picks them up (guests at their reported position);
+  EXP, Gold and chests go to the whole team; a heart heals and a Shield pickup guards the picker + allies within `coop.heartShare`.
+- Kings aim their moves at the nearest standing player (never at a downed host).
+- Guest presence: position, hp, lv, down, facing, char, `sel` (choosing upgrade), pet, `pk` (pickup radius).
 
 ## Testing
 The original was verified with a headless Node harness (stubbed DOM/canvas, fake room hub for two

@@ -3,7 +3,7 @@ import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stepGems, levelCheck } from './systems/progress';
+import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stageEndRewards, stepGems, levelCheck } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, spawnRival, stepHz } from './systems/events';
@@ -14,7 +14,7 @@ import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
-import { applyRemoteHits, applySnap, guestEnemies, hostStep, initCoop, setMates, smoothMates, teamWaiting } from './systems/coop';
+import { applyRemoteHits, applySnap, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates } from './systems/coop';
 
 
 export interface Sim {
@@ -35,7 +35,7 @@ export interface Sim {
 /** A Stage-start snapshot. `hash` identifies it on the server (single use). */
 export interface Checkpoint { chapter: number; configVersion: number; hash: string; data: string }
 
-const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile', 'coop']); // mobile: the resuming device decides
+const SKIP = new Set(['cfg', 'events', 'rng', 'seen', 'pending', 'levelUp', 'chest', 'mobile', 'coop', 'pickReturn']); // mobile: the resuming device decides
 
 /** Serialize the state at a Stage start (no live monsters, effects or menus). */
 function snapshotOf(s: SimState): Checkpoint {
@@ -97,7 +97,7 @@ export function createSim(opts: SimOptions): Sim {
     chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
-    pendingLv: 0, pendingChest: 0, chestQueue: 0, levelUp: null, chest: null,
+    pendingLv: 0, pendingChest: 0, chestQueue: 0, pickReturn: null, levelUp: null, chest: null,
     totalTime: 0, clearT: 0, slowT: 0, hitstop: 0, frostT: 0, runGold: 0,
     P, enemies: [], bolts: [], gems: [], effects: [], hz: [], hzId: 1,
     dir: { v: cfg.director.start, lastHurt: 0 }, run: { spPity: 0, drPity: 0 },
@@ -192,7 +192,9 @@ export function createSim(opts: SimOptions): Sim {
   /** Co-op guest: own Hero and Skills against the host's mirrored world. */
   function guestUpdate(input: InputFrame): void {
     smoothMates(s, DT);
-    if (s.phase !== 'play' || s.coop!.hostPhase !== 'play') return; // menus, or the room is waiting / paused
+    // Stage-end menus, or the room is paused; a level-up / chest does not stop the world (shield bubble)
+    if ((s.phase !== 'play' && !choosing(s)) || s.coop!.hostPhase !== 'play') return;
+    const live = s.phase === 'play';
     if (s.hitstop > 0) { s.hitstop -= DT; return; }
     let dt = DT;
     if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
@@ -204,29 +206,33 @@ export function createSim(opts: SimOptions): Sim {
     if (!P.down) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
-    guestEnemies(s, dt, true);
-    if (s.phase !== 'play') return;
+    guestEnemies(s, dt, live);
+    if (s.phase !== 'play' && !choosing(s)) return;
+    chooseStep(s, dt);
     stepHz(s, dt);
     petStep(s, dt); cloneStep(s, dt);
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
     levelCheck(s);
+    if (s.phase !== 'play') return;
     if (s.chestQueue > 0) { s.chestQueue--; openChest(s); return; }
     if (s.pendingLv > 0 || s.pendingChest > 0) openLevelUp(s);
   }
 
   function update(input: InputFrame): void {
     if (s.coop?.role === 'guest') { guestUpdate(input); return; }
-    if (s.coop) { smoothMates(s, DT); if (s.phase === 'play' && teamWaiting(s)) return; } // the room waits for a choosing player
+    if (s.coop) smoothMates(s, DT);
     const phase: Phase = s.phase;
     const live = phase === 'play';
-    if (!live && phase !== 'clearing') return;
+    // co-op: the host picking a level-up or spinning a chest does not stop the room's world
+    const world = live || choosing(s);
+    if (!world && phase !== 'clearing') return;
     if (s.hitstop > 0) { s.hitstop -= DT; return; }
     let dt = DT;
     if (s.slowT > 0) { s.slowT -= DT; dt *= 0.3; }
 
     move(input, dt);
 
-    if (live) {
+    if (world) {
       s.stageTime += dt;
       s.totalTime += dt;
       // the Ultimate fills over time; kills may add at most killCap × this rate
@@ -268,17 +274,17 @@ export function createSim(opts: SimOptions): Sim {
         shake(s, 5);
       }
     }
-    if (live && !P.down) updSkills(s, dt);
+    if (world && !P.down) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
     const damp = exp(dt * knockbackLog(s.cfg));
     stepEnemies(s, dt, damp, live);
     if (s.phase === 'over') return;
-    if (live) stepHz(s, dt);
-    if (live) { petStep(s, dt); cloneStep(s, dt); }
-    if (live && s.coop) { hostStep(s, dt); if ((s.phase as Phase) === 'over') return; }
+    if (world) stepHz(s, dt);
+    if (world) { petStep(s, dt); cloneStep(s, dt); }
+    if (world && s.coop) { chooseStep(s, dt); hostStep(s, dt); if ((s.phase as Phase) === 'over') return; }
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
-    stepGems(s, dt);
+    if (s.coop) coopGems(s, dt); else stepGems(s, dt);
 
     if (s.phase === 'play') {
       // rewards first (a King killed in overtime still pays out its chest before the clear)
@@ -301,7 +307,10 @@ export function createSim(opts: SimOptions): Sim {
       }
     } else if (s.phase === 'clearing') {
       s.clearT -= DT;
-      if (s.clearT <= 0) {
+      // let the end-of-Stage vacuum finish (a King's chest may still be flying in), then open every
+      // reward still waiting — chests, level-ups, the Blood Moon chest — before the Stage-end screen
+      if (s.clearT <= 0 && (s.gems.length === 0 || s.clearT < -s.cfg.stage.clearDelay * 2)) {
+        if (stageEndRewards(s, 'clearing')) return;
         if (s.victory && !s.endless && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) {
           // the main Score is final now; the player may continue in Endless
           s.main = scoreBreakdown(s);

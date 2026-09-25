@@ -136,7 +136,6 @@ export function killE(s: SimState, e: Enemy): void {
   }
   burst(s, e.x, e.y, DEATH_COL[e.type], e.boss ? 80 : e.elite ? 24 : 9, e.boss ? 110 : 60, e.boss ? 1 : 0.45);
   const v = e.xp;
-  if (isHost(s)) s.coop!.teamXp += v; // guests level from the team's kills
   if (e === s.dragonE || e.type === 'rival') {
     const isD = e === s.dragonE;
     if (isD) { s.dragonE = null; grantGuardian(s, s.dragonKind); if (isHost(s)) { s.coop!.guardians++; s.coop!.lastGuardian = s.dragonKind; } }
@@ -189,7 +188,7 @@ export function killE(s: SimState, e: Enemy): void {
 /** ALL damage to the player goes through here. */
 export function hurtP(s: SimState, d: number): void {
   const P = s.P;
-  if (P.down || P.inv > 0 || s.phase !== 'play') return;
+  if (P.down || P.inv > 0 || s.phase !== 'play' || (s.coop && s.coop.shieldT > 0)) return; // co-op: shield after a level-up
   s.dir.lastHurt = s.clock;
   if (s.debug.god) return;
   const hv = s.cfg.scaling.hitVariance;

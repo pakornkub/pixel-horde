@@ -58,9 +58,11 @@ function tagged(s: SimState, k: KingMove, f: () => void): void {
   tagSince(s, n, k);
 }
 
-function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
+/** `tx, ty`: the player the King aims at (co-op: the nearest one still standing, never a downed body). */
+function doMove(s: SimState, e: Enemy, k: KingMove, mul: number, tx: number, ty: number): void {
   const K = s.cfg.kings, R = s.rng.ai, P = s.P, kg = e.kg!;
-  const tx = P.x, ty = P.y, a = atan2(ty - e.y, tx - e.x), D = e.dmg * mul, W = K.ultWarn;
+  const a = atan2(ty - e.y, tx - e.x), D = e.dmg * mul, W = K.ultWarn;
+  const lead = tx === P.x && ty === P.y ? 1 : 0; // only the local Hero's velocity is known
   switch (k) {
     case 'shadowBolts': {
       const U = s.cfg.umbra;
@@ -222,7 +224,7 @@ function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
       const c = K.trail;
       for (let i = 0; i < c.n; i++) {
         const ahead = c.lead * i * 0.5;
-        addHz(s, { k: 'circ', x: tx + P.vx * ahead, y: ty + P.vy * ahead, r: c.r, te: c.warn + i * c.gap, d: D * c.dmg, c: 2 });
+        addHz(s, { k: 'circ', x: tx + P.vx * ahead * lead, y: ty + P.vy * ahead * lead, r: c.r, te: c.warn + i * c.gap, d: D * c.dmg, c: 2 });
       }
       kg.lock = 0.4;
       break;
@@ -292,7 +294,7 @@ function doMove(s: SimState, e: Enemy, k: KingMove, mul: number): void {
     }
     case 'swap': {
       const c = K.swap, near = s.enemies.filter((m) => !m.dead && !m.boss && Math.abs(m.x - tx) < s.viewport.w / 2 && Math.abs(m.y - ty) < s.viewport.h / 2);
-      if (!near.length) { doMove(s, e, 'soulSpiral', mul); break; }
+      if (!near.length) { doMove(s, e, 'soulSpiral', mul, tx, ty); break; }
       const m = near[R.int(near.length)];
       addHz(s, { k: 'circ', x: m.x, y: m.y, r: c.r, te: c.warn, d: D * c.dmg, c: 1 });
       kg.land = [m.x, m.y]; m.x = e.x; m.y = e.y; e.hide = true;
@@ -376,6 +378,6 @@ export function kingAI(s: SimState, e: Enemy, dt: number, tx: number, ty: number
     const u = e.type === 'umbra' ? umbraUlt(s) : { k: kit.ult, mul: 1 };
     flash(s, 0.2, '#ffffff');
     sfx(s, 'ult');
-    tagged(s, u.k, () => doMove(s, e, u.k, u.mul));
-  } else { const k = kit.moves[R.int(2)]; tagged(s, k, () => doMove(s, e, k, 1)); }
+    tagged(s, u.k, () => doMove(s, e, u.k, u.mul, tx, ty));
+  } else { const k = kit.moves[R.int(2)]; tagged(s, k, () => doMove(s, e, k, 1, tx, ty)); }
 }

@@ -3,6 +3,7 @@ import { BalanceConfigSchema, type BalanceConfig, type BalanceConfigInput, type 
 
 export * from './schema';
 export * from './flags';
+export { FIELD_TH, GROUP_TH } from './desc-th';
 
 export class BalanceConfigError extends Error {
   constructor(public issues: { path: string; message: string }[]) {
@@ -41,10 +42,14 @@ export function withOverrides(base: BalanceConfig, patch: BalanceConfigInput): B
 }
 
 /** Flat list of every tunable field (path, default, min, max, description) for Admin forms. */
-export interface FieldInfo { path: string; def: number; min: number; max: number; desc: string; group: string }
+export interface FieldInfo {
+  path: string; def: number; min: number; max: number; desc: string; group: string;
+  /** Description of the closest object around this field (e.g. "Damage" for `bolt.dmg.base`). */
+  parent: string;
+}
 export function listFields(): FieldInfo[] {
   const out: FieldInfo[] = [];
-  const walk = (schema: z.ZodType, path: string[], group: string): void => {
+  const walk = (schema: z.ZodType, path: string[], group: string, parent = ''): void => {
     let s: z.ZodType = schema;
     let desc = s.description || '';
     // unwrap default/prefault/pipe wrappers
@@ -56,14 +61,14 @@ export function listFields(): FieldInfo[] {
     }
     if (s instanceof z.ZodObject) {
       const g = path.length <= 2 ? (desc || group) : group;
-      for (const [k, v] of Object.entries(s.shape)) walk(v as z.ZodType, [...path, k], g);
+      for (const [k, v] of Object.entries(s.shape)) walk(v as z.ZodType, [...path, k], g, desc || parent);
       return;
     }
     if (s instanceof z.ZodNumber) {
       const p = path.join('.');
       const value = path.reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], DEFAULT_CONFIG);
       if (typeof value !== 'number') return; // unset optional limit
-      out.push({ path: p, def: value, min: s.minValue ?? -Infinity, max: s.maxValue ?? Infinity, desc, group });
+      out.push({ path: p, def: value, min: s.minValue ?? -Infinity, max: s.maxValue ?? Infinity, desc, group, parent });
     }
   };
   walk(BalanceConfigSchema, [], '');

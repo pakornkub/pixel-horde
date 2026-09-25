@@ -56,7 +56,10 @@ main.solo{display:grid;place-items:center;min-height:100vh;padding:16px}
 .lab .tree .g{font-size:11px;color:var(--mut);margin:12px 8px 4px;letter-spacing:.04em}
 .lab .tree .it{display:flex;justify-content:space-between;gap:6px;width:100%;border:0;background:none;text-align:left;padding:4px 8px;border-radius:6px;font-size:12px}
 .lab .tree .it.on{background:var(--soft);font-weight:600}
-.lab .tree .it span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lab .tree .it>span:first-child{overflow:hidden;min-width:0;display:flex;flex-direction:column}
+.lab .tree .it .thn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.lab .tree .it .key{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--mut)}
+.lab .explain{margin:0 0 6px;line-height:1.6}
 .chgv{color:var(--warn);font-weight:600;font-size:12px}
 .lab .center{overflow:auto;padding:18px 22px 60px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .lab .stage{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;max-height:100vh;position:sticky;top:0}

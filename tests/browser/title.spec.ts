@@ -8,7 +8,8 @@ for (const [name, viewport] of [['landscape', { width: 1280, height: 720 }], ['p
     await page.addInitScript(() => localStorage.setItem('pixelhorde-named', '1'));
     await page.goto('/');
     for (const id of ['#startBtn', '#heroBtn', '#boardBtn', '#shopBtn1', '#collBtn', '#settingsBtn1']) await expect(page.locator(id)).toBeInViewport();
-    await expect(page.locator('#coopBtn')).toBeDisabled();
+    // without a room server the button still opens the lobby, which says why co-op is unavailable
+    await expect(page.locator('#coopBtn small')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     expect(overflow).toBe(false);
     await expect(page.locator('#titleSel')).toContainText('Judgement');

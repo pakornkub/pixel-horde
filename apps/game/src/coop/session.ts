@@ -9,7 +9,7 @@ export interface LobbyPlayer { id: string; name: string; hero: HeroId; weapon: W
 
 export type Msg =
   // guest → host
-  | { k: 'hello'; hero: HeroId; weapon: WeaponId; ready: boolean }
+  | { k: 'hello'; hero: HeroId; weapon: WeaponId; ready: boolean; name?: string }
   | { k: 'me'; p: MateWire; d: number[] }
   | { k: 'ready'; on: boolean } // Stage end: this player is done
   | { k: 'vote'; i: number } // route vote
@@ -32,6 +32,7 @@ export type SessionEvent =
 export interface SessionOptions { role: Role; code: string; name: string; pid: string; hero: HeroId; weapon: WeaponId }
 
 export const SNAP_EVERY = 1 / 15, ME_EVERY = 1 / 10;
+const cleanName = (n: unknown): string => (typeof n === 'string' ? n.trim().slice(0, 24) : '');
 
 export function createSession(connect: Connect, o: SessionOptions) {
   const tr: Transport = connect({ code: o.code, role: o.role, name: o.name, pid: o.pid });
@@ -57,9 +58,11 @@ export function createSession(connect: Connect, o: SessionOptions) {
     }
     return out.sort((a, c) => (a.host ? -1 : c.host ? 1 : 0));
   };
-  const names = (): Record<string, string> => Object.fromEntries(peers.map((p) => [p.id, p.name]));
+  /** The latest name of each player (a nickname set after joining replaces the one sent on connect). */
+  const nameOf = (id: string, fallback: string): string => (id === selfId ? me.name : lobby.get(id)?.name) || fallback;
+  const names = (): Record<string, string> => Object.fromEntries(peers.map((p) => [p.id, nameOf(p.id, p.name)]));
   const pushLobby = (): void => { if (o.role === 'host' && open) tr.send({ k: 'lobby', players: players() } satisfies Msg); emit({ t: 'lobby', players: players() }); };
-  const hello = (): void => { if (o.role === 'guest' && open) tr.send({ k: 'hello', hero: me.hero, weapon: me.weapon, ready: me.ready } satisfies Msg); };
+  const hello = (): void => { if (o.role === 'guest' && open) tr.send({ k: 'hello', hero: me.hero, weapon: me.weapon, ready: me.ready, name: me.name } satisfies Msg); };
 
   tr.onEvent((e) => {
     if (e.t === 'open') { open = true; selfId = e.id; me.id = e.id; hostId = e.host; peers = e.peers; hello(); pushLobby(); return; }
@@ -78,9 +81,9 @@ export function createSession(connect: Connect, o: SessionOptions) {
     if (o.role === 'host') {
       const p = peers.find((x) => x.id === e.from);
       if (!p) return;
-      if (m.k === 'hello') { lobby.set(e.from, { id: e.from, name: p.name, hero: m.hero, weapon: m.weapon, ready: !!m.ready, host: false }); pushLobby(); }
+      if (m.k === 'hello') { lobby.set(e.from, { id: e.from, name: cleanName(m.name) || p.name, hero: m.hero, weapon: m.weapon, ready: !!m.ready, host: false }); pushLobby(); }
       else if (m.k === 'me' && m.p) {
-        presence.set(e.from, { ...m.p, id: e.from, name: p.name });
+        presence.set(e.from, { ...m.p, id: e.from, name: nameOf(e.from, p.name) });
         matesDirty = true;
         if (Array.isArray(m.d) && m.d.length) hits.push(...m.d.slice(0, 1200));
       }
@@ -106,6 +109,8 @@ export function createSession(connect: Connect, o: SessionOptions) {
     on(fn: (e: SessionEvent) => void): () => void { fns.add(fn); return () => fns.delete(fn); },
     /** Lobby: my Hero/Weapon and ready flag. */
     setMe(hero: HeroId, weapon: WeaponId, ready = me.ready): void { me.hero = hero; me.weapon = weapon; me.ready = o.role === 'host' || ready; hello(); pushLobby(); },
+    /** My nickname changed (set after joining, or renamed): tell the room. */
+    setName(name: string): void { const n = cleanName(name); if (!n || n === me.name) return; me.name = n; hello(); pushLobby(); },
     /** Host: everyone (but the host) ready? */
     allReady: (): boolean => players().every((p) => p.ready),
     start(seed: number, cfg: number): void {

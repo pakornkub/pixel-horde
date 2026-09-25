@@ -121,7 +121,7 @@ export function stepHz(s: SimState, dt: number): void {
     } else if (h.k === 'pull') {
       if (h.t >= h.te! && h.t < h.te! + h.du!) {
         const dx = h.x - P.x, dy = h.y - P.y, l = hypot(dx, dy);
-        if (l < h.r! && l > 1 && !P.down) { P.x += (dx / l) * h.sp! * dt; P.y += (dy / l) * h.sp! * dt; }
+        if (l < h.r! && l > 1 && !P.down && s.phase === 'play') { P.x += (dx / l) * h.sp! * dt; P.y += (dy / l) * h.sp! * dt; }
         h.tk = (h.tk || 0) - dt;
         if (h.tk <= 0) { h.tk = 0.4; if (l < h.w! + 5) hurtP(s, h.d!); }
       }

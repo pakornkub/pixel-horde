@@ -13,7 +13,13 @@ export interface Overview {
 export interface AuditRow { id: number; at: string; actor: string; action: string; target: string; detail: unknown }
 export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown> }
 export interface BoardRow { userId: string; name: string; score: number; chapter: number; hero: string; weapon: string | null; hidden: boolean; banned: boolean; at: string; status: 'verified' | 'pending' | 'suspicious' }
-export interface PlayerRow { id: string; name: string; role: string; gold: number; linked: boolean; banned: boolean; lastSeen: string }
+export interface PlayerRow {
+  id: string; name: string; role: string; gold: number; linked: boolean; lastSeen: string;
+  /** Hidden from leaderboards (still plays). */
+  banned: boolean; bannedUntil?: string | null;
+  /** Account suspended: no online play, Gold or scores. */
+  suspended?: boolean; suspendedUntil?: string | null;
+}
 export interface Announcement { id?: number; title_th: string; title_en: string; body_th: string; body_en: string; starts_at?: string; ends_at?: string | null }
 export interface DailyRow { day: string; v: number; metric: string; key: string; value: number }
 export interface SurvivalRow { chapter: number; reached: number; runs: number }
@@ -45,6 +51,7 @@ export interface AdminApi {
   leaderboard(board: string): Promise<BoardRow[]>;
   hideScore(userId: string, board: string, hidden: boolean): Promise<void>;
   banPlayer(userId: string, until: string | null): Promise<void>;
+  suspendPlayer(userId: string, until: string | null): Promise<void>;
   verifyCoop(userId: string): Promise<void>;
   seasonPreview(): Promise<SeasonPreview>;
   openSeason(name: string): Promise<number>;
@@ -92,6 +99,7 @@ async function liveApi(): Promise<AdminApi> {
     leaderboard: (board) => rpc('admin_leaderboard', { p_board: board }),
     hideScore: (userId, board, hidden) => rpc('hide_score', { p_user: userId, p_board: board, p_hidden: hidden }),
     banPlayer: (userId, until) => rpc('ban_player', { p_user: userId, p_until: until }),
+    suspendPlayer: (userId, until) => rpc('suspend_player', { p_user: userId, p_until: until }),
     verifyCoop: (userId) => rpc('verify_coop', { p_user: userId }),
     seasonPreview: () => rpc('admin_season_rewards_preview'),
     openSeason: (name) => rpc('admin_open_season', { p_name: name }),
@@ -127,7 +135,7 @@ function demoApi(): AdminApi {
   const names = ['KitMain', 'lyra_th', 'speedyyy', 'bramfan', 'ด.ช.มอนเยอะ', 'Pim', 'Hero#4821'];
   const board: BoardRow[] = names.map((n, i) => ({ userId: 'u' + i, name: n, score: 80900 - i * 7000, chapter: 8 - (i >> 1), hero: ['kit', 'lyra', 'bram', 'vex'][i % 4], weapon: null, hidden: false, banned: false, at: now(), status: i === 2 ? 'suspicious' : i === 3 ? 'pending' : 'verified' }));
   let season = 1;
-  const players: PlayerRow[] = names.map((n, i) => ({ id: 'u' + i, name: n, role: 'player', gold: i === 2 ? 98000 : 3000 - i * 300, linked: i % 2 === 0, banned: false, lastSeen: now() }));
+  const players: PlayerRow[] = names.map((n, i) => ({ id: 'u' + i, name: n, role: 'player', gold: i === 2 ? 98000 : 3000 - i * 300, linked: i % 2 === 0, banned: false, suspended: false, lastSeen: now() }));
   let ann: Announcement[] = [{ id: 1, title_th: 'Blood Moon สุดสัปดาห์', title_en: 'Blood Moon weekend', body_th: 'เหรียญ ×2', body_en: 'Gold ×2', starts_at: now(), ends_at: null }];
   const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10));
   const daily: DailyRow[] = days.flatMap((d, i) => [
@@ -168,6 +176,7 @@ function demoApi(): AdminApi {
     async deleteAnnouncement(id) { ann = ann.filter((a) => a.id !== id); note('delete', 'announcements', { id }); },
     leaderboard: async () => clone(board),
     async hideScore(u, b, h) { const r = board.find((x) => x.userId === u); if (r) r.hidden = h; note('update', 'leaderboard', { user: u, board: b, hidden: h }); },
+    async suspendPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) { p.suspended = !!until; p.suspendedUntil = until; } note('update', 'profiles', { user: u, suspended_until: until }); },
     async banPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) p.banned = !!until; const r = board.find((x) => x.userId === u); if (r) r.banned = !!until; note('update', 'profiles', { user: u, banned_until: until }); },
     async verifyCoop(u) { const r = board.find((x) => x.userId === u); if (r) r.status = 'verified'; note('verify', 'leaderboard', { user: u }); },
     async seasonPreview() {

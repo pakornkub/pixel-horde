@@ -7,12 +7,12 @@
 import { ENEMY_IDS, type EnemyId } from '../data/enemies';
 import { exp, hypot } from '../core/fmath';
 import { REALMS } from '../content/lumora/realms';
-import type { CoopRole, CoopState, Enemy, Hazard, HostPhase, HostSnap, MateWire, SimState } from '../types';
+import type { CoopRole, CoopState, Enemy, Gem, Hazard, HostPhase, HostSnap, MateWire, SimState } from '../types';
 import { hit, hurtP, rollKingWeapon } from './combat';
 import { grantShadow } from './events';
 import { grantGuardian } from './guardians';
 import { banner, burst, flash, sfx } from './fx';
-import { gameOver, startStage } from './progress';
+import { choose, chestStop, gameOver, levelCheck, stageEndRewards, startStage } from './progress';
 import { spawnEnemy } from './spawner';
 import { stepStatuses } from './combos';
 import { U } from './player';
@@ -20,8 +20,9 @@ import { U } from './player';
 export function initCoop(role: CoopRole, self: string): CoopState {
   return {
     role, self, mates: [], teamXp: 0, kingKills: 0, guardians: 0, lastGuardian: 'inferno', rivals: 0,
+    teamGold: 0, teamChests: 0, healed: {}, guarded: {}, chooseT: 0, shieldT: 0, wasChoosing: false,
     reviveT: {}, revived: {}, revivedStage: [], hostPhase: 'play', out: {},
-    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play' }, goldAcc: 0,
+    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0, sg: 0 }, drops: [],
   };
 }
 
@@ -61,12 +62,112 @@ export function unpackEnemies(str: string, ox: number, oy: number): PackedEnemy[
   return out;
 }
 
+/* ---------- shared drops: 7 chars = kind(1) x(3) y(3), relative to the host ---------- */
+const GEM_KINDS: Gem['kind'][] = ['xp', 'coin', 'chest', 'heart', 'shield']; // append only: the index is the wire code
+/** Drops per snapshot (the ones closest to a player first). */
+export const SNAP_GEMS = 150;
+
+function packGems(s: SimState, ox: number, oy: number): string {
+  let list = s.gems;
+  if (list.length > SNAP_GEMS) {
+    const ps = [s.P, ...s.coop!.mates];
+    const near = (g: Gem): number => Math.min(...ps.map((p) => Math.abs(p.x - g.x) + Math.abs(p.y - g.y)));
+    list = [...list].sort((a, b) => near(a) - near(b)).slice(0, SNAP_GEMS);
+  }
+  let out = '';
+  for (const g of list) {
+    const k = GEM_KINDS.indexOf(g.kind);
+    if (k < 0) continue; // a drop kind this build does not share yet
+    const x = Math.max(0, Math.min(MAXC, Math.round(g.x - ox) + OFF)), y = Math.max(0, Math.min(MAXC, Math.round(g.y - oy) + OFF));
+    out += A64[k] + enc(x, 3) + enc(y, 3);
+  }
+  return out;
+}
+
+export function unpackGems(str: unknown, ox: number, oy: number): Gem[] {
+  const out: Gem[] = [];
+  if (typeof str !== 'string' || str.length > SNAP_GEMS * 7) return out;
+  for (let i = 0; i + 7 <= str.length; i += 7) {
+    const kind = GEM_KINDS[AI[str[i]]], x = dec(str, i + 1, 3), y = dec(str, i + 4, 3);
+    if (!kind || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+    out.push({ kind, x: ox + x - OFF, y: oy + y - OFF, v: 0, mag: false });
+  }
+  return out;
+}
+
+/** A Shield pickup on this player (same as solo: the stronger absorb wins, the timer restarts). */
+function giveGuard(s: SimState, v: number): void {
+  const P = s.P;
+  P.guard = Math.max(P.guard, Math.round(P.maxHp * v));
+  P.guardT = s.cfg.loot.shieldDur;
+  sfx(s, 'lv');
+  s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + P.guard, col: '#7fd4ff', cr: false });
+}
+
+const roundHeal = (h: Record<string, number>): Record<string, number> => Object.fromEntries(Object.entries(h).map(([k, v]) => [k, Math.round(v * 1000) / 1000]));
+
+/**
+ * Host, every tick (replaces stepGems in co-op): the drops are shared. Any standing player picks
+ * them up (guests at their last reported position); EXP, Gold and chests go to the whole team,
+ * a heart heals — and a Shield guards — the player who took it and allies close by.
+ */
+export function coopGems(s: SimState, dt: number): void {
+  const c = s.coop!, P = s.P, L = s.cfg.loot, sh = s.cfg.shop, C = s.cfg.coop;
+  const players = [
+    { id: c.self, x: P.x, y: P.y, pick: P.pick, dn: P.down },
+    ...c.mates.map((m) => ({ id: m.id, x: m.x, y: m.y, pick: m.pk || s.cfg.player.pick, dn: m.dn })),
+  ].filter((p) => !p.dn);
+  if (!players.length) return;
+  for (const g of s.gems) {
+    // fly to the closest player (the vacuum at the end of a Stage pulls everything to someone)
+    let best = players[0], bd = Infinity;
+    for (const p of players) { const d = hypot(p.x - g.x, p.y - g.y); if (d < bd) { bd = d; best = p; } }
+    if (bd < best.pick) g.mag = true;
+    if (g.mag) {
+      const sp = Math.min(L.magnetMax, (g.sp = (g.sp || 60) + L.magnetAccel * dt)), l = bd || 1;
+      g.x += ((best.x - g.x) / l) * sp * dt;
+      g.y += ((best.y - g.y) / l) * sp * dt;
+    }
+    if (bd >= 7) continue;
+    g.got = true;
+    if (g.kind === 'xp') { c.teamXp += g.v; P.xp += g.v * (1 + sh.wisdom.per * U(s, 'wisdom')); sfx(s, 'gem'); }
+    else if (g.kind === 'coin') {
+      c.teamGold += g.v;
+      const gg = Math.max(1, Math.round(g.v * (1 + sh.greed.per * U(s, 'greed'))));
+      s.runGold += gg;
+      sfx(s, 'coin');
+      if (g.v >= 5) s.events.push({ t: 'text', x: g.x, y: g.y - 8, v: '+' + gg + 'G', col: '#ffd23f', cr: false });
+    } else if (g.kind === 'chest') { c.teamChests++; s.chestQueue++; s.runGold += L.chestGold; }
+    else if (g.kind === 'heart') {
+      for (const p of players) {
+        if (p !== best && hypot(p.x - best.x, p.y - best.y) > C.heartShare) continue;
+        if (p.id === c.self) {
+          const h = Math.round(P.maxHp * g.v);
+          P.hp = Math.min(P.maxHp, P.hp + h);
+          s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + h, col: '#6fe36a', cr: false });
+        } else c.healed[p.id] = (c.healed[p.id] || 0) + g.v;
+      }
+      burst(s, g.x, g.y, '#6fe36a', 8, 40, 0.35);
+    } else if (g.kind === 'shield') {
+      for (const p of players) {
+        if (p !== best && hypot(p.x - best.x, p.y - best.y) > C.heartShare) continue;
+        if (p.id === c.self) giveGuard(s, g.v);
+        else c.guarded[p.id] = (c.guarded[p.id] || 0) + 1;
+      }
+      burst(s, g.x, g.y, '#7fd4ff', 8, 40, 0.35);
+    }
+  }
+  s.gems = s.gems.filter((g) => !g.got);
+  levelCheck(s);
+}
+
 /* ---------- players ---------- */
 export function selfWire(s: SimState, name?: string): MateWire {
   const P = s.P;
   return {
     id: s.coop?.self ?? '', name, x: Math.round(P.x), y: Math.round(P.y), hp: Math.ceil(Math.max(0, P.hp)), mh: P.maxHp, lv: P.lv,
     dn: P.down, fc: P.face, mv: P.moving, hero: P.ch, sel: s.phase === 'levelup' || s.phase === 'chest', pet: P.pet?.kind ?? null,
+    pk: Math.round(P.pick), sh: (s.coop?.shieldT ?? 0) > 0, gt: P.guardT > 0 && P.guard > 0,
   };
 }
 
@@ -99,8 +200,36 @@ export const aliveMates = (s: SimState): number => (isHost(s) ? s.coop!.mates.fi
 /** Boss / Guardian / Umbra HP multiplier for the team size. */
 export const coopBossMul = (s: SimState): number => 1 + s.cfg.coop.bossHpPerMate * extraPlayers(s);
 
-/** Host: the whole room waits while anyone chooses a level-up or opens a chest. */
-export const teamWaiting = (s: SimState): boolean => isHost(s) && s.coop!.mates.some((m) => m.sel);
+/* ---------- level-up / chest while the room keeps playing ---------- */
+/** Co-op: this player is picking a level-up or spinning a chest during play (the world does not stop). */
+export const choosing = (s: SimState): boolean => !!s.coop && (s.phase === 'levelup' || s.phase === 'chest') && !s.pickReturn;
+
+/** Shield bubble on this player: picking right now, or the few seconds after (to get moving again). */
+export const shielded = (s: SimState): boolean => choosing(s) || (!!s.coop && s.coop.shieldT > 0);
+
+/**
+ * Every tick in co-op: while choosing, the Hero stands still inside a shield bubble (no damage —
+ * hurtP only hurts in 'play' — and monsters are pushed out) and a pick is made for them when time
+ * runs out. The bubble stays `coop.shieldAfter` s after the choice (moving, still no damage).
+ */
+export function chooseStep(s: SimState, dt: number): void {
+  const c = s.coop!, C = s.cfg.coop, P = s.P, now = choosing(s);
+  if (c.wasChoosing && !now) c.shieldT = C.shieldAfter;
+  c.wasChoosing = now;
+  if (!now && c.shieldT > 0) c.shieldT = Math.max(0, c.shieldT - dt);
+  if (!shielded(s)) return;
+  for (const e of s.enemies) {
+    if (e.dead || e.boss) continue;
+    const dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1;
+    if (l < C.shieldR + e.r) { const k = Math.min(C.shieldR + e.r - l, C.shieldPush * dt); e.x += (dx / l) * k; e.y += (dy / l) * k; }
+  }
+  if (!now) return;
+  c.chooseT -= dt;
+  if (c.chooseT > 0) return;
+  c.chooseT = C.pickTime;
+  if (s.phase === 'chest') chestStop(s);
+  else if (s.levelUp) choose(s, s.rng.levelup.int(s.levelUp.options.length));
+}
 
 /* ---------- host ---------- */
 export function applyRemoteHits(s: SimState, hits: readonly number[]): void {
@@ -116,7 +245,7 @@ export function applyRemoteHits(s: SimState, hits: readonly number[]): void {
 
 /** Host, every tick: ally revives and the all-down end. */
 export function hostStep(s: SimState, dt: number): void {
-  if (!isHost(s) || s.phase !== 'play') return;
+  if (!isHost(s) || (s.phase !== 'play' && !choosing(s))) return;
   const c = s.coop!, C = s.cfg.coop, P = s.P;
   const everyone = [{ id: c.self, x: P.x, y: P.y, dn: P.down }, ...c.mates.map((m) => ({ id: m.id, x: m.x, y: m.y, dn: m.dn }))];
   if (everyone.every((p) => p.dn)) { gameOver(s); return; }
@@ -151,8 +280,9 @@ export function hostPhaseOf(s: SimState): HostPhase {
     case 'route': return 'route';
     case 'victory': return 'victory';
     case 'pause': return 'pause';
-    case 'levelup': case 'chest': case 'revive': return 'wait';
-    default: return teamWaiting(s) ? 'wait' : 'play';
+    case 'revive': return 'wait';
+    case 'levelup': case 'chest': return s.pickReturn ? 'clear' : 'play'; // Stage-end rewards happen on the clear screen
+    default: return 'play'; // level-ups and chests never stop the room
   }
 }
 
@@ -174,8 +304,9 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
     st: s.stage, realm: s.realm, t: Math.round(s.stageTime * 10), dur: s.stageDur, ph: hostPhaseOf(s), ox, oy,
     e: packEnemies(s.enemies, ox, oy), bs,
     xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
+    tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), sg: { ...c.guarded }, g: packGems(s, ox, oy),
     hz: s.hz.slice(0, 60).map(cleanHz), sp: s.specialStage, dark: s.darkness, ot: s.overtime, le: s.lastEnd,
-    pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, pet: m.pet }))],
+    pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, sh: m.sh, gt: m.gt, pet: m.pet }))],
     rv: { ...c.revived }, route: s.phase === 'route' ? s.route : null, victory: s.victory,
   };
 }
@@ -225,11 +356,31 @@ export function applySnap(s: SimState, h: HostSnap): void {
   if (dk > 0 && dk < 5000) {
     s.kills += dk; s.stageKills += dk; s.streak += dk; s.streakT = s.cfg.streak.window;
     if (s.streak > s.maxStreak) s.maxStreak = s.streak;
-    c.goldAcc += dk * s.cfg.coop.goldPerKill;
-    const g = Math.floor(c.goldAcc);
-    if (g > 0) { c.goldAcc -= g; s.runGold += Math.max(1, Math.round(g * (1 + s.cfg.shop.greed.per * U(s, 'greed')))); }
   }
   L.kc = h.kc;
+  // shared drops: whoever picked them up, the whole team gets the Gold, the chests and its share of hearts
+  const tg = typeof h.tg === 'number' ? h.tg : L.tg, dg = tg - L.tg;
+  if (dg > 0 && dg < 1e6) {
+    const gg = Math.max(1, Math.round(dg * (1 + s.cfg.shop.greed.per * U(s, 'greed'))));
+    s.runGold += gg;
+    sfx(s, 'coin');
+    if (dg >= 5) s.events.push({ t: 'text', x: P.x, y: P.y - 16, v: '+' + gg + 'G', col: '#ffd23f', cr: false });
+  }
+  L.tg = tg;
+  const tc = typeof h.tc === 'number' ? h.tc : L.tc;
+  for (let k = L.tc; k < tc && k - L.tc < 5; k++) { s.chestQueue++; s.runGold += s.cfg.loot.chestGold; }
+  L.tc = tc;
+  const hl = h.hl && typeof h.hl[c.self] === 'number' ? h.hl[c.self] : L.hl, dh = hl - L.hl;
+  if (dh > 0 && dh < 50 && !P.down) {
+    const add = Math.round(P.maxHp * dh);
+    P.hp = Math.min(P.maxHp, P.hp + add);
+    s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + add, col: '#6fe36a', cr: false });
+  }
+  L.hl = hl;
+  const sg = h.sg && typeof h.sg[c.self] === 'number' ? h.sg[c.self] : L.sg;
+  if (sg > L.sg && sg - L.sg < 20 && !P.down) giveGuard(s, s.cfg.loot.shieldAbsorb);
+  L.sg = sg;
+  c.drops = unpackGems(h.g, h.ox, h.oy);
   for (let k = L.bk; k < h.bk && k - L.bk < 10; k++) {
     s.kingsKilled.push(s.stage);
     s.sp += E.kingSkillPoints;
@@ -265,8 +416,12 @@ export function applySnap(s: SimState, h: HostSnap): void {
     if (h.le === 'clear') s.chaptersCleared.push(s.stage);
     s.lastEnd = h.le;
     s.hz = []; s.enemies = []; s.boss = s.boss2 = s.dragonE = s.rivalE = null;
-    if (s.phase === 'play') { s.phase = 'clear'; banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear'); }
-  }
+    if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest
+    if (s.phase === 'play') {
+      banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear');
+      if (!stageEndRewards(s, 'clear')) s.phase = 'clear'; // waiting chests / level-ups first
+    }
+  } else if (h.ph === 'clear' && s.phase === 'play' && !stageEndRewards(s, 'clear')) s.phase = 'clear'; // finished a level-up after the host cleared
   if (h.ph === 'route') { s.route = h.route; if (s.phase === 'clear' || s.phase === 'play') s.phase = 'route'; }
   if (h.ph === 'victory' && s.phase !== 'victory') { s.victory = true; if (s.phase === 'clear' || s.phase === 'play' || s.phase === 'route') s.phase = 'victory'; }
   if (h.ph === 'play' && (s.phase === 'clear' || s.phase === 'route' || s.phase === 'victory')) s.phase = 'play';

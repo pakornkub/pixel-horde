@@ -56,7 +56,7 @@ export function Home({ api, go }: { api: AdminApi; go: (page: string, arg?: stri
                 {a.kind === 'dropoff' && <button onClick={() => go('balance', 'scaling')}>ปรับความยาก</button>}
                 {a.kind === 'dropoff' && <button onClick={() => go('stats')}>ดูสถิติ</button>}
                 {(a.kind === 'suspicious' || a.kind === 'gold') && <button onClick={() => act('ซ่อนคะแนนแล้ว', () => api.hideScore(String(a.userId), 'solo', true))}>ซ่อนคะแนน</button>}
-                {(a.kind === 'suspicious' || a.kind === 'gold') && <button class="danger" onClick={() => act('แบนจาก leaderboard 30 วันแล้ว', () => api.banPlayer(String(a.userId), new Date(Date.now() + 30 * 864e5).toISOString()))}>แบน 30 วัน</button>}
+                {(a.kind === 'suspicious' || a.kind === 'gold') && <button class="danger" onClick={() => act('ซ่อนจาก leaderboard 30 วันแล้ว (ยังเล่นได้)', () => api.banPlayer(String(a.userId), new Date(Date.now() + 30 * 864e5).toISOString()))}>ซ่อนจาก leaderboard 30 วัน</button>}
                 {a.kind === 'error' && <button onClick={() => go('stats')}>ดู error</button>}
                 {a.kind === 'error' && <button onClick={() => act('ปิดมังกรชั่วคราวแล้ว', () => api.setFlag('dragon', false))}>ปิดมังกรชั่วคราว</button>}
                 {a.kind === 'coop_review' && <button onClick={() => go('leaderboard', 'coop')}>ตรวจ co-op</button>}

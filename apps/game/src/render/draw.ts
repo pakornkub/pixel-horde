@@ -137,8 +137,8 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       b.globalAlpha = 0.6; b.strokeStyle = '#e6f6ff'; b.lineWidth = 1; b.setLineDash([2, 3]); b.lineDashOffset = clock * 10; b.stroke(); b.restore();
       if (R() < 0.5) { const a = R() * TAU, d = R() * s.r; vfx.fx.push({ x: P.x + Math.cos(a) * d, y: P.y + Math.sin(a) * d * 0.85, vx: 0, vy: -8, t: 0, life: 0.5, col: '#ffffff', sz: 1 }); }
     }
-    // gems
-    for (const g of v.gems) {
+    // gems (co-op guests draw the host's shared drops)
+    for (const g of v.coop?.role === 'guest' ? v.coop.drops : v.gems) {
       const x = Math.round(g.x + ox), y = Math.round(g.y + oy);
       if (x < -4 || y < -4 || x > LW + 4 || y > LH + 4) continue;
       if (g.kind === 'xp') {
@@ -187,6 +187,19 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       }
     }
     drawHz(v, clock);
+    // co-op: shield bubbles around players picking a level-up / spinning a chest (the room keeps playing)
+    if (v.coop) {
+      const bubble = (x: number, y: number, fade = 1): void => {
+        const r = v.cfg.coop.shieldR * (0.92 + 0.05 * Math.sin(clock * 5));
+        b.save(); b.globalAlpha = 0.16 * fade; b.fillStyle = '#8fdcff';
+        b.beginPath(); b.arc(Math.round(x + ox), Math.round(y + oy), r, 0, TAU); b.fill();
+        b.globalAlpha = 0.75 * fade; b.strokeStyle = '#e6f6ff'; b.lineWidth = 1; b.setLineDash([3, 2]); b.lineDashOffset = -clock * 12; b.stroke(); b.restore();
+      };
+      const after = v.coop.shieldT; // the bubble stays a few seconds after choosing; it blinks in the last one
+      if ((v.phase === 'levelup' || v.phase === 'chest') && !v.pickReturn) bubble(P.x, P.y);
+      else if (after > 0 && (after > 1 || Math.floor(clock * 8) & 1)) bubble(P.x, P.y, Math.min(1, 0.5 + after / 2));
+      for (const m of v.coop.mates) if ((m.sel || m.sh) && !m.dn) bubble(m.rx, m.ry);
+    }
     // co-op mates (under the entities; they never block)
     for (const m of v.coop?.mates ?? []) {
       const CS3 = HERO_SPR[m.hero] || HERO_SPR.mage, fr = m.mv ? Math.floor(clock * 8) & 1 : 0;
@@ -195,6 +208,11 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       b.globalAlpha = m.dn ? 0.4 : 1;
       b.drawImage(m.fc < 0 ? CS3.l[fr] : CS3.r[fr], mx - 8, my - 9);
       b.globalAlpha = 1;
+      if (m.gt && !m.dn) { // an ally's Shield pickup, same bubble as the local Hero's
+        b.save(); b.globalAlpha = 0.22; b.fillStyle = '#7fd4ff';
+        b.beginPath(); b.arc(mx, my - 1, 12, 0, TAU); b.fill();
+        b.globalAlpha = 0.8; b.strokeStyle = '#bfe8ff'; b.lineWidth = 1; b.stroke(); b.restore();
+      }
     }
     // entities sorted by y
     const ents: (Enemy | null)[] = v.enemies.slice();
@@ -537,30 +555,38 @@ function thaiText(txt: string, x: number, y: number, px: number, col: string, lw
   ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
 
+/** A screen-edge arrow pointing at (sx, sy) (hi-res pixels); returns where it was drawn. */
+function edgeArrow(sx: number, sy: number, mg: number, sz: number, col: string): { ax: number; ay: number; a: number } {
+  const D = screen.DPR, W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
+  const k = Math.min((W / 2 - mg) / Math.max(1e-6, Math.abs(dx)), (H / 2 - mg) / Math.max(1e-6, Math.abs(dy)));
+  const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.translate(ax, ay); ctx.rotate(a);
+  ctx.beginPath(); ctx.moveTo(sz * 1.7, 0); ctx.lineTo(sz * 0.3, -sz * 1.1); ctx.lineTo(sz * 0.3, sz * 1.1); ctx.closePath();
+  ctx.fillStyle = col; ctx.strokeStyle = INK; ctx.lineWidth = 3 * D; ctx.stroke(); ctx.fill();
+  ctx.restore();
+  return { ax, ay, a };
+}
+
 /** Off-screen arrows with the boss icon (Kings, dragon, Shadow Rival, Umbra). Always on. */
 function drawArrows(v: Readonly<SimState>, clock: number): void {
-  const { S, DPR: D, LW, LH } = screen, W = cv.width, H = cv.height, m = 26 * D;
+  const { S, DPR: D, LW, LH } = screen, m = 34 * D;
   for (const e of [v.boss, v.boss2, v.dragonE, v.rivalE]) {
     if (!e || e.dead) continue;
     const sx = e.x + ox, sy = e.y + oy;
     if (sx > 0 && sy > 0 && sx < LW && sy < LH) continue;
-    const cx = W / 2, cy = H / 2, dx = sx * S - cx, dy = sy * S - cy;
-    const k = Math.min((W / 2 - m) / Math.max(1e-6, Math.abs(dx)), (H / 2 - m) / Math.max(1e-6, Math.abs(dy)));
-    const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx);
     const near = Math.hypot(sx - LW / 2, sy - LH / 2) < Math.max(LW, LH) * 0.9;
     if (v.clock - e.born < 2 && Math.floor(clock * 8) & 1) continue; // blink right after the spawn
-    const sz = (near ? 1.3 : 1) * 9 * D, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
-    ctx.save();
-    ctx.translate(ax, ay); ctx.rotate(a);
-    ctx.beginPath(); ctx.moveTo(sz * 1.6, 0); ctx.lineTo(sz * 0.4, -sz); ctx.lineTo(sz * 0.4, sz); ctx.closePath();
-    ctx.fillStyle = col; ctx.strokeStyle = INK; ctx.lineWidth = 2 * D; ctx.stroke(); ctx.fill();
-    ctx.restore();
+    const pulse = 1 + 0.08 * Math.sin(clock * 6);
+    const sz = (near ? 1.25 : 1) * 14 * D * pulse, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
+    const { ax, ay, a } = edgeArrow(sx * S, sy * S, m, sz, col);
     const im = ENEMY_SPR[e.type]?.[0]?.n;
     if (im) {
-      const isz = 16 * D, r = isz * 0.75;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ax - Math.cos(a) * sz * 0.6, ay - Math.sin(a) * sz * 0.6, r, 0, TAU); ctx.fill();
+      const isz = 26 * D, r = isz * 0.72, ix = ax - Math.cos(a) * sz * 0.9, iy = ay - Math.sin(a) * sz * 0.9;
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ix, iy, r, 0, TAU); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 2 * D; ctx.stroke();
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(im, ax - Math.cos(a) * sz * 0.6 - isz / 2, ay - Math.sin(a) * sz * 0.6 - isz / 2, isz, isz);
+      ctx.drawImage(im, ix - isz / 2, iy - isz / 2, isz, isz);
     }
   }
 }
@@ -588,29 +614,29 @@ function drawBubbles(v: Readonly<SimState>): void {
   }
 }
 
-/** Co-op: names and HP over teammates, arrows to downed allies off screen. */
+/** Co-op: names and HP over teammates; arrows (with the name) to teammates off screen — downed ones blink red. */
 function drawMates(v: Readonly<SimState>, clock: number): void {
   const mates = v.coop?.mates;
   if (!mates?.length) return;
-  const { DPR: D, LW, LH } = screen, W = cv.width, H = cv.height;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  const { DPR: D, LW, LH } = screen;
   for (const m of mates) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     const [x, y] = toScreen(m.rx, m.ry - 12);
     const on = m.rx + ox > 0 && m.rx + ox < LW && m.ry + oy > 0 && m.ry + oy < LH;
+    const label = (m.name || 'P') + (m.dn ? ' · ' + t('coop.down') : m.sel ? ' · ' + t('coop.choosing') : '');
     if (on) {
-      outlined((m.name || 'P') + (m.dn ? ' · ' + t('coop.down') : ''), x, y - 6 * D, 7 * D, m.dn ? '#ff8a8a' : '#8fdcff');
+      outlined(label, x, y - 6 * D, 7 * D, m.dn ? '#ff8a8a' : '#8fdcff');
       const bw = 26 * D;
       ctx.fillStyle = INK; ctx.fillRect(x - bw / 2 - D, y - 4 * D, bw + 2 * D, 4 * D);
       ctx.fillStyle = '#e8434f'; ctx.fillRect(x - bw / 2, y - 3 * D, bw * clamp(m.hp / (m.mh || 1), 0, 1), 2 * D);
-    } else if (m.dn && Math.floor(clock * 3) & 1) {
-      const cx = W / 2, cy = H / 2, dx = x - cx, dy = y - cy, mg = 30 * D;
-      const k = Math.min((W / 2 - mg) / Math.max(1e-6, Math.abs(dx)), (H / 2 - mg) / Math.max(1e-6, Math.abs(dy)));
-      const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx), sz = 9 * D;
-      ctx.save(); ctx.translate(ax, ay); ctx.rotate(a);
-      ctx.beginPath(); ctx.moveTo(sz * 1.6, 0); ctx.lineTo(sz * 0.4, -sz); ctx.lineTo(sz * 0.4, sz); ctx.closePath();
-      ctx.fillStyle = '#8fdcff'; ctx.strokeStyle = INK; ctx.lineWidth = 2 * D; ctx.stroke(); ctx.fill();
-      ctx.restore();
+      continue;
     }
+    const blink = m.dn && Math.floor(clock * 4) & 1;
+    const { ax, ay, a } = edgeArrow(x, y, 30 * D, (m.dn ? 13 : 11) * D, m.dn ? (blink ? '#ff4b5c' : '#ffd9de') : '#8fdcff');
+    // the name sits on the inner side of the arrow
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = Math.cos(a) > 0.5 ? 'right' : Math.cos(a) < -0.5 ? 'left' : 'center';
+    outlined(label, ax - Math.cos(a) * 26 * D, ay - Math.sin(a) * 24 * D, 9 * D, m.dn ? '#ff8a8a' : '#8fdcff');
   }
 }
 
@@ -694,9 +720,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   if (v.coop) {
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     outlined(t('coop.hud', { n: v.coop.mates.length + 1 }), left, top + 66 * D, 8 * D, '#8fdcff');
-    const choosing = v.coop.mates.find((m) => m.sel);
-    const msg = v.coop.role === 'guest' && v.coop.hostPhase === 'pause' ? t('coop.hostPaused')
-      : choosing && v.phase === 'play' ? t('coop.waitFor', { name: choosing.name || 'P' }) : '';
+    const msg = v.coop.role === 'guest' && v.coop.hostPhase === 'pause' ? t('coop.hostPaused') : '';
     if (msg) { ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; outlined(msg, W / 2, cv.height * 0.45, 12 * D, '#ffffff'); }
     ctx.textBaseline = 'top';
   }

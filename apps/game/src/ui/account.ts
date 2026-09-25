@@ -15,6 +15,8 @@ export interface AccountHooks {
   pauseGame(): void;
   /** Server numbers arrived: re-render wallet, heroes, shop. */
   onMetaChanged(): void;
+  /** The account is ready (signed in or offline), or its nickname changed. */
+  onAccount?(): void;
 }
 
 let hooks: AccountHooks;
@@ -33,16 +35,32 @@ export function noteRunFinished(victory = false): void {
 const runsDone = (): number => { try { return Number(localStorage.getItem(RUNS)) || 0; } catch { return 0; } };
 const hasWon = (): boolean => { try { return localStorage.getItem(WON) === '1'; } catch { return false; } };
 
+/** Say why linking failed (the server setting "Allow manual linking" is the usual culprit). */
+function linkFailText(reason: string): string {
+  if (/manual.?linking/i.test(reason)) return t('link.failed.manual_linking_disabled');
+  const r = reason.trim().slice(0, 60);
+  return r ? t('link.failed.reason', { reason: r }) : t('link.failed');
+}
+
 export function renderAccountLine(): void {
   const a = backend.account();
   const canLink = !!a && a.anonymous && backend.status() === 'online';
   $('linkRow').hidden = !canLink;
   $('linkBtn2').hidden = !(canLink && (runsDone() >= 3 || hasWon())); // suggested after the 3rd Run and the first victory
   const res = backend.linkResult();
-  if (res) $('linkTxt').textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : t('link.failed');
+  if (res) $('linkTxt').textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : linkFailText(res.replace(/^failed:/, ''));
   if (res && !res.startsWith('failed')) $('linkRow').hidden = false;
-  $('acctTxt').textContent = a ? t('account.as', { name: a.nickname }) + (backend.status() === 'offline' ? t('account.offline') : '') : '';
+  $('acctTxt').textContent = a ? t('account.as', { name: a.nickname }) + (backend.status() === 'offline' ? t('account.offline') : backend.status() === 'suspended' ? t('account.suspended') : '') : '';
   $('renameBtn').hidden = !a;
+}
+
+/** An admin suspended this account: say until when (the player may still play offline, uncredited). */
+function showSuspended(): void {
+  const until = backend.account()?.suspendedUntil;
+  const d = until ? new Date(until) : null;
+  $('suspendedText').textContent = t('suspended.text', { until: d && !Number.isNaN(d.getTime()) ? d.toLocaleString(document.documentElement.lang === 'th' ? 'th-TH' : 'en-GB') : '-' });
+  hooks.pauseGame();
+  show('ovSuspended');
 }
 
 function askName(initial: string, onDone: (nick: string | null) => Promise<void>): void {
@@ -81,6 +99,7 @@ async function startAccount(): Promise<void> {
       markNamed();
       await backend.start({ nickname: nick ?? undefined });
       started = true;
+      hooks.onAccount?.();
       await afterStart();
     });
     return;
@@ -88,6 +107,7 @@ async function startAccount(): Promise<void> {
   await backend.start({});
   started = true;
   renderAccountLine();
+  hooks.onAccount?.();
   await afterStart();
 }
 
@@ -101,16 +121,24 @@ export function initAccount(h: AccountHooks): void {
   backend.onStatus((s) => {
     renderAccountLine();
     if (s === 'replaced') { hooks.pauseGame(); show('ovReplaced'); }
+    if (s === 'suspended') showSuspended();
   });
   $('replacedBtn').addEventListener('click', async () => {
     try { await backend.reclaim(); hide('ovReplaced'); } catch { /* stays open */ }
   });
   $('renameBtn').addEventListener('click', () => {
     const a: Account | null = backend.account();
-    askName(a?.nickname ?? '', async (nick) => { if (nick) await backend.setNickname(nick); });
+    askName(a?.nickname ?? '', async (nick) => { if (nick) { await backend.setNickname(nick); hooks.onAccount?.(); } });
   });
   $('tabBtn').addEventListener('click', () => { takeOver(); });
-  const link = (): void => { void backend.linkGoogle().catch(() => { $('linkTxt').textContent = t('link.failed'); }); };
+  $('suspendedBtn').addEventListener('click', () => hide('ovSuspended'));
+  const link = (): void => {
+    void backend.linkGoogle().catch((e: unknown) => {
+      const err = e as { code?: string; message?: string };
+      $('linkRow').hidden = false;
+      $('linkTxt').textContent = linkFailText(String(err?.message || err?.code || ''));
+    });
+  };
   $('linkBtn').addEventListener('click', link);
   $('linkBtn2').addEventListener('click', link);
   void guardTab({

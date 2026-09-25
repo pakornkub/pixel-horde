@@ -37,15 +37,19 @@ npm run build && npm run preview
 ## Database (Supabase)
 
 The live project (`jqvgmkhzdhjreikjqhxt`) has every migration in `supabase/migrations/` applied,
-up to `20260925000011_hardening`. Migration 0004 went in without its large `config_schema` insert,
+through `20260925000012_shield_pickup` (patches `shared.loot`) and `20260926000012_coop_feedback`
+(account suspension + the `shared.coop` part of the config schema; applied as `coop_feedback`).
+Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`
 in the project's migration history); the row is byte-identical to the one in the file.
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
 - When the Balance Config schema (`packages/config`) gains or changes fields, update the live copy
-  in a new migration, otherwise `publish_config` rejects the new fields:
-  `update public.config_schema set schema = $schema$<npx tsx scripts/config-json.ts schema>$schema$::jsonb where id = 1;`
+  in a new migration, otherwise `publish_config` rejects the new fields. Patch only the object you
+  changed (so parallel branches do not overwrite each other), taking it from
+  `npx tsx scripts/config-json.ts schema`:
+  `update public.config_schema set schema = jsonb_set(schema, '{properties,shared,properties,<object>}', $j$<its JSON>$j$::jsonb) where id = 1;`
   New defaults for players are then published from the Admin Console as a new config version.
 
 Keep-alive: `workers/keepalive` pings `get_live_state` once a day (03:17 UTC) so the Free project is

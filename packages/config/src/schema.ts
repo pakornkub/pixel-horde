@@ -222,7 +222,12 @@ const shared = obj({
   streak: obj({ window: sec(2.2, 'Seconds between kills to keep the Kill Streak'), popupEvery: int(25, 5, 1000, 'Show a "×N KO!" popup every N kills of a streak') }, 'Kill Streak'),
   coop: obj({
     bossHpPerMate: frac(0.6, 'Boss / Guardian / Umbra HP + per extra player'),
-    goldPerKill: frac(0.1, 'Guests: Gold per team kill (before their own Greed)'),
+    goldPerKill: frac(0.1, 'Not used any more (guests pick up shared Gold drops); kept so older versions stay valid'),
+    heartShare: pos(60, 'Shared drops: a heart also heals allies this close to the player who took it'),
+    pickTime: sec(10, 'Level-up / chest: seconds to choose before a pick is made for you (the room keeps playing)'),
+    shieldR: pos(40, 'Shield bubble radius while choosing (monsters are pushed out)'),
+    shieldPush: pos(220, 'Shield bubble push speed'),
+    shieldAfter: sec(5, 'Shield stays this long after choosing (s): time to get moving again, still no damage'),
     reviveTime: sec(3, 'Seconds standing next to a downed ally to revive them'), reviveRange: pos(22, 'Ally revive distance'),
     reviveHp: frac(0.3, 'HP after an ally revive'),
     voteTime: sec(15, 'Route vote time (s); the host breaks ties'), clearWait: sec(30, 'Stage-end: wait for everyone to be ready at most (s)'),
