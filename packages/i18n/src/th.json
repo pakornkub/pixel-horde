@@ -276,8 +276,8 @@
  "update.text": "เกมมีการอัปเดต โหลดหน้าใหม่เพื่อเล่นเวอร์ชันล่าสุด",
  "update.reload": "โหลดใหม่",
  "set.stats": "ส่งสถิติการเล่น (ไม่ระบุตัวตน)",
- "link.button": "ผูกบัญชี Google",
- "link.hint": "ผูก Google เพื่อเก็บเซฟและเล่นต่อได้ทุกเครื่อง",
+ "link.button": "ดำเนินการต่อด้วย Google",
+ "link.hint": "ผูกบัญชี Google เพื่อเก็บเซฟและเล่นต่อได้ทุกเครื่อง",
  "link.merged": "รวมเซฟเข้ากับบัญชี Google แล้ว",
  "link.linked": "ผูก Google แล้ว เซฟของคุณปลอดภัย",
  "link.failed": "ผูก Google ไม่สำเร็จ ลองใหม่อีกครั้ง",
@@ -828,5 +828,7 @@
  "kingMove.rLance": "หอกเงา",
  "kingMove.rNova": "ระเบิดเงา",
  "kingMove.rMeteor": "อุกกาบาตเงา",
- "kingMove.rZap": "สายฟ้าเงา"
+ "kingMove.rZap": "สายฟ้าเงา",
+ "title.bestLabel": "สถิติดีที่สุด",
+ "title.bestValue": "ถึงด่าน {stage} · KO {kills}"
 }

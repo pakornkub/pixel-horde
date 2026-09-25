@@ -276,7 +276,7 @@
  "update.text": "The game was updated. Reload to get the latest version.",
  "update.reload": "Reload",
  "set.stats": "Send anonymous play statistics",
- "link.button": "Link Google account",
+ "link.button": "Continue with Google",
  "link.hint": "Link Google to keep your save on every device",
  "link.merged": "Your save was merged into your Google account",
  "link.linked": "Google linked. Your save is safe",
@@ -828,5 +828,7 @@
  "kingMove.rLance": "Shadow Lance",
  "kingMove.rNova": "Shadow Nova",
  "kingMove.rMeteor": "Shadow Meteor",
- "kingMove.rZap": "Shadow Zap"
+ "kingMove.rZap": "Shadow Zap",
+ "title.bestLabel": "Best run",
+ "title.bestValue": "Chapter {stage} · KO {kills}"
 }

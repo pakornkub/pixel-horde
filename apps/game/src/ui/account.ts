@@ -48,8 +48,11 @@ export function renderAccountLine(): void {
   $('linkRow').hidden = !canLink;
   $('linkBtn2').hidden = !(canLink && (runsDone() >= 3 || hasWon())); // suggested after the 3rd Run and the first victory
   const res = backend.linkResult();
-  if (res) $('linkTxt').textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : linkFailText(res.replace(/^failed:/, ''));
+  const txt = $('linkTxt');
+  txt.textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : res ? linkFailText(res.replace(/^failed:/, '')) : t('link.hint');
+  txt.className = 'linkhint' + (res ? (res.startsWith('failed') ? ' bad' : ' ok') : '');
   if (res && !res.startsWith('failed')) $('linkRow').hidden = false;
+  $('linkBtn').hidden = !canLink;
   $('acctTxt').textContent = a ? t('account.as', { name: a.nickname }) + (backend.status() === 'offline' ? t('account.offline') : backend.status() === 'suspended' ? t('account.suspended') : '') : '';
   $('renameBtn').hidden = !a;
 }
