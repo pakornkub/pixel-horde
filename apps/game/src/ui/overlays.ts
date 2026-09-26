@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -334,13 +334,13 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   focusSoon('nextBtn');
 }
 
-/* ---------- Weapons found this Run (clear screen) ---------- */
+/* ---------- Weapons (clear screen): shown once a Weapon was found this Run; any owned one can be equipped ---------- */
 export function renderWeaponSwitch(v: Readonly<SimState>, onUse: (id: WeaponId) => void): void {
-  const box = $('weaponBox'), found = v.foundWeapons.filter((w) => w !== v.weapon);
-  box.hidden = !found.length;
-  if (!found.length) return;
+  const box = $('weaponBox'), others = usableWeapons(v).filter((w) => w !== v.weapon);
+  box.hidden = !v.foundWeapons.length || !others.length;
+  if (box.hidden) return;
   box.innerHTML = `<span class="lbl">${t('weapon.using', { weapon: t(`weapon.${v.weapon}.name`) })}</span>`;
-  for (const w of found) {
+  for (const w of others) {
     const bt = document.createElement('button');
     bt.textContent = t('weapon.use', { weapon: t(`weapon.${w}.name`) });
     bt.title = t(`weapon.${w}.desc`);

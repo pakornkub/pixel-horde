@@ -12,6 +12,7 @@ import { banner, shake } from './systems/fx';
 import { directionOf, initKing } from './systems/kings';
 import { REALMS } from './content/lumora/realms';
 import { isWeapon } from './data/weapons';
+import { usableWeapons } from './systems/combat';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
 import { applyRemoteHits, applySnap, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates } from './systems/coop';
@@ -140,7 +141,7 @@ export function createSim(opts: SimOptions): Sim {
       case 'swap': swapBench(s, c.bench, c.slot); break;
       case 'discard': discardBench(s, c.bench); break;
       case 'awaken': answerAwaken(s, c.accept); break;
-      case 'weapon': if (s.phase === 'clear' && s.foundWeapons.includes(c.id)) s.weapon = c.id; break;
+      case 'weapon': if (s.phase === 'clear' && usableWeapons(s).includes(c.id)) s.weapon = c.id; break;
       case 'endless': chooseEndless(s, c.go); break;
       case 'companion': swapCompanion(s, c.index); break;
       case 'fuse': answerFuse(s, c.accept); break;

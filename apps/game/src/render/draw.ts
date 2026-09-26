@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { REALMS, WEAPONS, benchSize, signatureOf, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
+import { REALMS, WEAPONS, benchSize, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
@@ -143,6 +143,145 @@ function heroRing(x: number, y: number, clock: number): void {
   b.globalAlpha = 0.55; b.strokeStyle = K; b.lineWidth = 3;
   b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.stroke();
   b.globalAlpha = 0.8 + 0.2 * Math.sin(clock * 6); b.strokeStyle = '#7df9ff'; b.lineWidth = 1; b.stroke();
+  b.restore();
+}
+
+/* ---------- Ultimate: one look per Weapon form (presentation only) ---------- */
+type UltForm = Weapon['form'];
+/** Stable 0..1 per target, so shapes do not jump between frames. */
+const seed01 = (i: number, j = 0): number => (((i * 2654435761) ^ (j * 40503)) >>> 0) / 4294967296;
+const ULT_TINT: Partial<Record<UltForm, string>> = { freeze: '#9fd8ff', plague: '#6b8a3a', shock: '#10142a', reap: '#1e1b33', harvest: '#2a1640' };
+
+function drawUlt(f: Effect, px: number, py: number, form: UltForm, delay: number, clock: number): void {
+  const { LW, LH } = screen, col = f.col || '#fff35c', T = f.targets!;
+  b.save();
+  if (!f.fired) { // telegraph: a ring closing in on the Hero, and a mark on every target
+    const c = Math.min(1, f.t / delay), r = (1 - c) * LW * 0.6 + 8;
+    b.globalAlpha = 0.5; b.strokeStyle = col; b.lineWidth = 2;
+    b.beginPath(); b.ellipse(px, py, r, r * 0.85, 0, 0, TAU); b.stroke();
+    b.globalAlpha = 1;
+    T.forEach((o, i) => {
+      const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
+      if (form === 'judgement') { b.fillStyle = 'rgba(255,243,92,.8)'; b.fillRect(x - 1, 0, 2, y); }
+      else if (form === 'crash') { // meteors on their way down
+        const mx = Math.round(x + 46 * (1 - c)), my = Math.round(y - 90 * (1 - c));
+        b.strokeStyle = '#ff8a3d'; b.lineWidth = 2; b.beginPath(); b.moveTo(mx + 10, my - 18); b.lineTo(mx, my); b.stroke();
+        b.fillStyle = K; b.fillRect(mx - 3, my - 3, 6, 6); b.fillStyle = '#d8342c'; b.fillRect(mx - 2, my - 2, 4, 4); b.fillStyle = '#ffd23f'; b.fillRect(mx - 1, my - 2, 1, 1);
+      } else if (form === 'shock') { // storm cloud gathering above each target
+        b.fillStyle = '#3a4260'; b.globalAlpha = 0.7 * c; b.beginPath(); b.ellipse(x, y - 40, 9, 4, 0, 0, TAU); b.fill(); b.globalAlpha = 1;
+      } else if (Math.floor(clock * 20 + i) & 1) { // blinking reticle
+        b.fillStyle = col; b.fillRect(x - 4, y, 3, 1); b.fillRect(x + 2, y, 3, 1); b.fillRect(x, y - 4, 1, 3); b.fillRect(x, y + 2, 1, 3);
+      }
+    });
+    if (form === 'burn') { b.globalAlpha = c; b.fillStyle = '#ffd23f'; b.beginPath(); b.arc(px, py - 26, 3 + c * 5, 0, TAU); b.fill(); b.fillStyle = '#fff8c0'; b.beginPath(); b.arc(px, py - 26, 2 + c * 2, 0, TAU); b.fill(); }
+    b.restore();
+    return;
+  }
+  const k = Math.min(1, Math.max(0, (f.t - delay) / Math.max(0.01, f.dur - delay))), fade = 1 - k;
+  const tint = ULT_TINT[form];
+  if (tint) { b.globalAlpha = 0.28 * fade; b.fillStyle = tint; b.fillRect(0, 0, LW, LH); }
+  b.globalAlpha = fade;
+  // Hero-centred waves
+  if (form === 'burn' || form === 'push') {
+    const r = 10 + k * LW * 0.75;
+    b.strokeStyle = form === 'burn' ? '#ff8a3d' : col; b.lineWidth = 7 * fade + 1; b.beginPath(); b.ellipse(px, py, r, r * 0.8, 0, 0, TAU); b.stroke();
+    b.strokeStyle = form === 'burn' ? '#ffd23f' : '#9ff0f0'; b.lineWidth = 3 * fade + 1; b.beginPath(); b.ellipse(px, py, r - 3, (r - 3) * 0.8, 0, 0, TAU); b.stroke();
+    if (form === 'push') { b.fillStyle = '#ffffff'; for (let j = 0; j < 20; j++) { const a = (j / 20) * TAU + seed01(j) * 0.3; b.fillRect(Math.round(px + Math.cos(a) * (r + 3)), Math.round(py + Math.sin(a) * (r + 3) * 0.8), 2, 2); } }
+  } else if (form === 'reap') { // a giant scythe sweeping round the Hero
+    const R0 = LW * 0.42, a = -Math.PI / 2 + k * TAU * 1.2;
+    for (let j = 3; j >= 0; j--) {
+      b.globalAlpha = fade * (1 - j * 0.22); b.strokeStyle = j ? col : '#ffffff'; b.lineWidth = j ? 5 : 2;
+      b.beginPath(); b.ellipse(px, py, R0, R0 * 0.8, 0, a - 0.5 - j * 0.35, a - j * 0.35); b.stroke();
+    }
+    b.globalAlpha = fade;
+  } else if (form === 'turret') { // a spinning cog
+    const r = 16 + k * 10, rot = clock * 6;
+    b.strokeStyle = '#8a94a8'; b.lineWidth = 4; b.beginPath(); b.ellipse(px, py, r, r * 0.8, 0, 0, TAU); b.stroke();
+    for (let j = 0; j < 10; j++) { const a = rot + (j / 10) * TAU; b.fillStyle = j & 1 ? '#c7ced9' : '#8a94a8'; b.fillRect(Math.round(px + Math.cos(a) * (r + 3)) - 2, Math.round(py + Math.sin(a) * (r + 3) * 0.8) - 2, 4, 4); }
+  } else if (form === 'harvest') {
+    b.strokeStyle = col; b.lineWidth = 2; b.setLineDash([3, 3]); b.lineDashOffset = -clock * 30;
+    b.beginPath(); b.ellipse(px, py, 14 + 4 * Math.sin(clock * 12), 11, 0, 0, TAU); b.stroke(); b.setLineDash([]);
+  } else if (form === 'freeze') { // snow drifting across the screen
+    b.fillStyle = '#ffffff';
+    for (let j = 0; j < 40; j++) b.fillRect(Math.round((seed01(j) * LW + clock * 14) % LW), Math.round((seed01(j, 1) * LH + clock * 34) % LH), 1, 1);
+  }
+  T.forEach((o, i) => {
+    const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
+    if (x < -30 || x > LW + 30 || y < -30 || y > LH + 40) return;
+    switch (form) {
+      case 'judgement':
+        b.fillStyle = '#ffd23f'; b.fillRect(x - 5, 0, 10, y); b.fillStyle = '#fff8c0'; b.fillRect(x - 3, 0, 6, y); b.fillStyle = '#fff'; b.fillRect(x - 1, 0, 2, y);
+        b.fillStyle = '#fff8c0'; b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.fill();
+        break;
+      case 'root': { // thorns burst out of the ground
+        b.strokeStyle = '#5a3a1a'; b.lineWidth = 2; b.beginPath(); b.ellipse(x, y + 2, 10, 4, 0, 0, TAU); b.stroke();
+        const grow = Math.min(1, k * 6);
+        for (let j = 0; j < 4; j++) {
+          const dx = -7 + j * 4.5, h = (9 + seed01(i, j) * 7) * grow, lean = (seed01(j, i) - 0.5) * 6;
+          b.fillStyle = K; b.beginPath(); b.moveTo(x + dx - 3, y + 3); b.lineTo(x + dx + 3, y + 3); b.lineTo(x + dx + lean, y + 2 - h - 1); b.fill();
+          b.fillStyle = j & 1 ? '#6fb553' : '#3f8a3a'; b.beginPath(); b.moveTo(x + dx - 2, y + 2); b.lineTo(x + dx + 2, y + 2); b.lineTo(x + dx + lean, y + 2 - h); b.fill();
+        }
+        break;
+      }
+      case 'burn': // flames licking up
+        for (let j = 0; j < 3; j++) {
+          const h = 6 + Math.abs(Math.sin(clock * 22 + i * 1.7 + j * 2.1)) * 9, dx = -4 + j * 4;
+          b.fillStyle = '#d8342c'; b.fillRect(x + dx - 2, y - h, 4, h); b.fillStyle = '#ff8a3d'; b.fillRect(x + dx - 1, y - h * 0.75, 3, h * 0.75); b.fillStyle = '#ffd23f'; b.fillRect(x + dx, y - h * 0.4, 1, h * 0.4);
+        }
+        break;
+      case 'reap': // cross slash
+        if (k < 0.5) { b.strokeStyle = '#ffffff'; b.lineWidth = 2; b.beginPath(); b.moveTo(x - 7, y - 11); b.lineTo(x + 7, y + 1); b.moveTo(x + 7, y - 11); b.lineTo(x - 7, y + 1); b.stroke(); }
+        break;
+      case 'freeze': { // ice crystal around the target
+        const s = Math.min(1, k * 5);
+        const shard = (cx: number, h: number, w: number): void => {
+          b.fillStyle = K; b.beginPath(); b.moveTo(cx, y - h - 1); b.lineTo(cx + w + 1, y - h * 0.4); b.lineTo(cx, y + 2); b.lineTo(cx - w - 1, y - h * 0.4); b.fill();
+          b.fillStyle = col; b.beginPath(); b.moveTo(cx, y - h); b.lineTo(cx + w, y - h * 0.4); b.lineTo(cx, y + 1); b.lineTo(cx - w, y - h * 0.4); b.fill();
+          b.fillStyle = '#ffffff'; b.fillRect(cx - 1, y - h + 2, 1, Math.max(1, h * 0.4));
+        };
+        shard(x - 6, 8 * s, 3); shard(x + 6, 9 * s, 3); shard(x, 15 * s, 5);
+        break;
+      }
+      case 'crash': { // crater with lava cracks
+        b.fillStyle = '#3a1a10'; b.beginPath(); b.ellipse(x, y, 12, 6, 0, 0, TAU); b.fill();
+        b.strokeStyle = '#ff8a3d'; b.lineWidth = 1;
+        for (let j = 0; j < 5; j++) { const a = (j / 5) * TAU + seed01(i, j); b.beginPath(); b.moveTo(x, y); b.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 7); b.stroke(); }
+        b.strokeStyle = '#d8342c'; b.lineWidth = 3; const r = 6 + k * 22; b.beginPath(); b.ellipse(x, y, r, r * 0.5, 0, 0, TAU); b.stroke();
+        break;
+      }
+      case 'plague': // toxic cloud with rising bubbles
+        for (let j = 0; j < 4; j++) {
+          const a = seed01(i, j) * TAU, d = 5 + k * 5, r = 5 + k * 7;
+          b.globalAlpha = 0.45 * fade; b.fillStyle = j & 1 ? '#6b8a3a' : col; b.beginPath(); b.arc(x + Math.cos(a) * d, y - 4 + Math.sin(a) * d * 0.6, r, 0, TAU); b.fill();
+        }
+        b.globalAlpha = fade; b.fillStyle = '#e6ffb0';
+        for (let j = 0; j < 3; j++) b.fillRect(Math.round(x - 5 + j * 5), Math.round(y - 4 - ((k * 30 + seed01(j, i) * 10) % 18)), 2, 2);
+        break;
+      case 'shock': { // jagged lightning from the sky (re-drawn every frame so it flickers)
+        if (k < 0.6 || Math.floor(clock * 30) & 1) {
+          const pts: [number, number][] = [[x + (R() - 0.5) * 16, y - 44]];
+          for (let j = 1; j < 6; j++) pts.push([x + (R() - 0.5) * 12, y - 44 + (44 * j) / 6]);
+          pts.push([x, y]);
+          for (const [w, c] of [[4, col], [1, '#ffffff']] as const) { b.strokeStyle = c; b.lineWidth = w; b.beginPath(); pts.forEach(([a, d], j) => (j ? b.lineTo(a, d) : b.moveTo(a, d))); b.stroke(); }
+        }
+        b.strokeStyle = col; b.lineWidth = 1; b.beginPath(); b.ellipse(x, y, 5 + k * 10, 2 + k * 5, 0, 0, TAU); b.stroke();
+        break;
+      }
+      case 'push': // splash
+        b.strokeStyle = '#ffffff'; b.lineWidth = 1; b.beginPath(); b.arc(x - 3, y, 4 + k * 5, Math.PI, TAU); b.arc(x + 4, y, 3 + k * 4, Math.PI, TAU); b.stroke();
+        break;
+      case 'turret': // tracer + spark
+        if (k < 0.4) { b.strokeStyle = '#ffd23f'; b.lineWidth = 1; b.beginPath(); b.moveTo(px, py - 6); b.lineTo(x, y - 3); b.stroke(); }
+        b.fillStyle = '#ffd23f'; b.fillRect(x - 3, y - 3, 7, 1); b.fillRect(x, y - 6, 1, 7);
+        break;
+      case 'harvest': { // souls fly from each target back to the Hero
+        const e = k * k, sx = Math.round(x + (px - x) * e), sy = Math.round(y - 6 + (py - 6 - (y - 6)) * e - Math.sin(k * Math.PI) * 14);
+        b.fillStyle = '#5a3f8a'; b.fillRect(sx - 1, sy + 2, 3, 3);
+        b.fillStyle = col; b.fillRect(sx - 2, sy - 2, 5, 5); b.fillStyle = '#ffffff'; b.fillRect(sx - 1, sy - 1, 2, 2);
+        break;
+      }
+    }
+  });
   b.restore();
 }
 
@@ -528,20 +667,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if (Math.floor(clock * 12) & 1) { b.fillStyle = '#ffd23f'; b.fillRect(x - 1, y - 7, 2, 1); }
         b.restore();
       } else if (f.type === 'judge') {
-        if (!f.fired) {
-          b.save(); b.globalAlpha = 0.5; b.strokeStyle = f.col || '#fff35c'; b.lineWidth = 2;
-          const r = (1 - f.t / 0.3) * LW * 0.6 + 8;
-          b.beginPath(); b.ellipse(P.x + ox, P.y + oy, r, r * 0.85, 0, 0, TAU); b.stroke(); b.restore();
-          for (const o of f.targets!) { b.fillStyle = 'rgba(255,243,92,.8)'; b.fillRect(Math.round(o.x + ox) - 1, 0, 2, Math.round(o.y + oy)); }
-        } else {
-          b.save(); b.globalAlpha = Math.max(0, 1 - (f.t - 0.3) / 0.7);
-          for (const o of f.targets!) {
-            const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
-            b.fillStyle = f.col && f.col !== '#fff35c' ? f.col : '#ffd23f'; b.fillRect(x - 5, 0, 10, y); b.fillStyle = '#fff8c0'; b.fillRect(x - 3, 0, 6, y); b.fillStyle = '#fff'; b.fillRect(x - 1, 0, 2, y);
-            b.fillStyle = '#fff8c0'; b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.fill();
-          }
-          b.restore();
-        }
+        drawUlt(f, P.x + ox, P.y + oy, WEAPONS[v.weapon].form, v.cfg.ult.delay, clock);
       }
     }
     if (self && covered) { // x-ray: the Hero's outline and a ghost of it show through monsters in front
