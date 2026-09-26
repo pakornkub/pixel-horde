@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RESOLVED, PRESETS, PRESET_IDS, applyPreset, isPreset, parseBalanceConfig, type ResolvedConfig } from './index';
+import { DEFAULT_RESOLVED, PRESET_IDS, applyPreset, effectivePreset, isPreset, isRanked, offeredPresets, parseBalanceConfig, resolveConfig, withOverrides, DEFAULT_CONFIG, type ResolvedConfig } from './index';
 
 /** Back from the resolved shape to a Balance Config, to re-validate every range. */
 function validate(c: ResolvedConfig): void {
@@ -11,7 +11,7 @@ function validate(c: ResolvedConfig): void {
 describe('difficulty presets', () => {
   it('balanced is the published config itself and the only ranked preset', () => {
     expect(applyPreset(DEFAULT_RESOLVED, 'balanced')).toBe(DEFAULT_RESOLVED);
-    expect(PRESET_IDS.filter((id) => PRESETS[id].ranked)).toEqual(['balanced']);
+    expect(PRESET_IDS.filter(isRanked)).toEqual(['balanced']);
     expect(isPreset('hard')).toBe(true);
     expect(isPreset('nope')).toBe(false);
   });
@@ -32,6 +32,15 @@ describe('difficulty presets', () => {
     expect(hard.enemies.umbra.hp).toBeGreaterThan(d.enemies.umbra.hp);
     expect(hard.kings.ultWarn).toBeLessThan(d.kings.ultWarn);
     expect(hard.loot.heartChance).toBeLessThan(d.loot.heartChance);
+  });
+
+  it('the Balance Config holds the knobs: the admin retunes or hides a preset', () => {
+    const cfg = resolveConfig(withOverrides(DEFAULT_CONFIG, { shared: { presets: { easy: { mobHp: 0.5 }, blitz: { on: 0 } } } }));
+    expect(applyPreset(cfg, 'easy').enemies.slime.hp).toBeCloseTo(cfg.enemies.slime.hp * 0.5, 5);
+    expect(offeredPresets(cfg)).not.toContain('blitz');
+    expect(effectivePreset(cfg, 'blitz')).toBe('balanced');
+    expect(applyPreset(cfg, 'blitz')).toBe(cfg); // a hidden preset plays as Balanced
+    expect(offeredPresets(DEFAULT_RESOLVED)).toEqual([...PRESET_IDS]);
   });
 
   it('blitz shortens Stages and speeds up levels', () => {

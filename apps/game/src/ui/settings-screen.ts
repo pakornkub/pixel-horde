@@ -1,6 +1,7 @@
 // Settings overlay (ticket 07): every option applies immediately and persists on the device.
 import { t } from '@pixel-horde/i18n';
-import { PRESETS, PRESET_IDS, type PresetId } from '@pixel-horde/config';
+import { effectivePreset, isRanked, offeredPresets, presetKnobs, type PresetId } from '@pixel-horde/config';
+import { active } from '../config';
 import { metaSync } from '../meta';
 import { applyLang, canVibrate, saveSettings, settings, type Settings } from '../settings';
 import { $, hide, show } from './overlays';
@@ -48,7 +49,7 @@ const onOff = (v: boolean): string => t(v ? 'set.opt.on' : 'set.opt.off');
 
 /** "×0.7" style change of one knob, or null when unchanged. */
 function knobLine(id: PresetId): string {
-  const k = PRESETS[id].knobs, out: string[] = [];
+  const k = presetKnobs(active.cfg, id), out: string[] = [];
   const pct = (v: number): string => (v > 1 ? '+' : '−') + Math.round(Math.abs(v - 1) * 100) + '%';
   const add = (key: string, v: number): void => { if (Math.abs(v - 1) > 0.001) out.push(t(`preset.k.${key}`, { v: pct(v) })); };
   add('mob', (k.mobHp + k.mobDmg) / 2);
@@ -74,11 +75,13 @@ function presetBox(): HTMLElement {
   grid.className = 'presetgrid';
   grid.setAttribute('role', 'radiogroup');
   grid.setAttribute('aria-label', t('preset.title'));
-  for (const id of PRESET_IDS) {
+  // the published Balance Config decides each preset's numbers and which ones are offered
+  const cur = effectivePreset(active.cfg, settings.preset);
+  for (const id of offeredPresets(active.cfg)) {
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('role', 'radio');
-    b.setAttribute('aria-checked', String(settings.preset === id));
+    b.setAttribute('aria-checked', String(cur === id));
     b.className = 'preset p-' + id;
     b.innerHTML = '<b></b><small></small>';
     b.querySelector('b')!.textContent = t(`preset.${id}`);
@@ -86,14 +89,14 @@ function presetBox(): HTMLElement {
     b.addEventListener('click', () => { settings.preset = id; saveSettings(); render(); });
     grid.appendChild(b);
   }
-  const p = PRESETS[settings.preset];
+  const ranked = isRanked(cur);
   const info = document.createElement('p');
   info.className = 'presetinfo';
-  const knobs = knobLine(p.id);
-  info.textContent = t(`preset.${p.id}.desc`) + (knobs ? ' — ' + knobs : '');
+  const knobs = knobLine(cur);
+  info.textContent = t(`preset.${cur}.desc`) + (knobs ? ' — ' + knobs : '');
   const note = document.createElement('p');
-  note.className = 'presetnote' + (p.ranked ? '' : ' unranked');
-  note.textContent = t(p.ranked ? 'preset.ranked' : 'preset.unranked') + ' ' + t('preset.nextRun');
+  note.className = 'presetnote' + (ranked ? '' : ' unranked');
+  note.textContent = t(ranked ? 'preset.ranked' : 'preset.unranked') + ' ' + t('preset.nextRun');
   box.append(head, grid, info, note);
   return box;
 }

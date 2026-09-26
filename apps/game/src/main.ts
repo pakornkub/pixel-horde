@@ -3,7 +3,7 @@ import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState,
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, onSettingsChange, saveSettings, settings } from './settings';
-import { PRESETS, applyPreset, type PresetId } from '@pixel-horde/config';
+import { applyPreset, effectivePreset, isPreset, isRanked, type PresetId } from '@pixel-horde/config';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { closeFeedback, feedbackOpen, initFeedback, openFeedback } from './ui/feedback';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
@@ -115,10 +115,10 @@ async function newRun(): Promise<void> {
   clearSave();
   starting = true;
   initAudio();
-  runPreset = settings.preset;
+  runPreset = effectivePreset(active.cfg, settings.preset); // a preset the admin hid falls back to Balanced
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
   // Presets other than Balanced are unranked: no ticket, the Run is submitted like an offline one.
-  ticket = !PRESETS[runPreset].ranked ? null
+  ticket = !isRanked(runPreset) ? null
     : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
@@ -331,7 +331,7 @@ async function continueRun(): Promise<void> {
     if (!pick) return;
     const base = await configFor(pick.configVersion);
     if (!base) { showMsg(t('save.noConfig')); return; }
-    runPreset = pick.preset && PRESETS[pick.preset] ? pick.preset : 'balanced';
+    runPreset = isPreset(pick.preset) ? pick.preset : 'balanced';
     const config = applyPreset(base, runPreset);
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
@@ -657,6 +657,7 @@ async function refreshLive(): Promise<void> {
     onTooOld: () => { pause(); show('ovUpdate'); },
     onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: applyPreset(cfg, runPreset) }); },
   });
+  renderModeBadge(); // the new config may hide or change a preset
   const f = live.flags();
   if (sim) cmd({ type: 'setEvents', events: { bloodMoon: f.bloodMoon, dragon: f.dragon, rival: f.rival } });
 }
@@ -691,8 +692,9 @@ $('draftBadge').hidden = !DRAFT;
 /** Title: a reminder when a non-standard (unranked) difficulty is selected; tap to change it. */
 function renderModeBadge(): void {
   const b = $('modeBadge');
-  b.hidden = settings.preset === 'balanced';
-  b.textContent = t('preset.badge', { name: t(`preset.${settings.preset}`) });
+  const id = effectivePreset(active.cfg, settings.preset);
+  b.hidden = id === 'balanced';
+  b.textContent = t('preset.badge', { name: t(`preset.${id}`) });
 }
 $('modeBadge').addEventListener('click', () => openSettings('ovTitle'));
 onSettingsChange(renderModeBadge);
