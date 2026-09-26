@@ -95,6 +95,8 @@ export interface BoardView { board: BoardId; season: number; top: BoardRow[]; me
 
 export interface Announcement { id: number; title: { th: string; en: string }; body: { th: string; en: string }; endsAt: string | null }
 export interface LiveState { flags: Record<string, unknown>; configVersion: number; announcements: Announcement[]; serverTime?: string }
+/** The newest public patch note (details are read on the website's updates page). */
+export interface UpdateNote { id: number; at: string; titleTh: string; titleEn: string }
 
 export type FeedbackCategory = 'bug' | 'balance' | 'idea' | 'other';
 /** A player's feedback message; context = build, device, screen and (from a Run) Chapter / Hero. */
@@ -137,6 +139,8 @@ export interface Backend {
   /** Flags + config version + announcements in one cheap REST call (works signed out too). */
   getLive(): Promise<LiveState>;
   getConfig(version: number): Promise<{ version: number; data: unknown } | null>;
+  /** Newest public patch note, or null (title screen "new update" notice). */
+  latestUpdate(): Promise<UpdateNote | null>;
   /** Fire-and-forget uploads (errors, samples). keepalive=true survives the tab closing. */
   report(fn: 'report_errors' | 'report_telemetry', payload: unknown, keepalive?: boolean): Promise<boolean>;
   /** Start linking Google (redirects away). Only for anonymous online accounts. */

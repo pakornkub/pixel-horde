@@ -569,11 +569,11 @@ export function updEffects(s: SimState, dt: number): void {
         f.fired = true;
         flash(s, 0.45, '#ffffff', false, true); shake(s, 11);
         s.hitstop = 0.08;
-        const heal = { left: s.P.maxHp * s.cfg.weapons.harvestHealMax };
+        const heal = { left: s.P.maxHp * s.cfg.weapons.harvestHealMax }, spark = s.weapon === 'judgement' ? '#fff8c0' : WEAPONS[s.weapon].col;
         if (WEAPONS[s.weapon].form === 'turret') s.effects.push({ type: 'gturret', x: s.P.x, y: s.P.y - 6, t: 0, dur: s.cfg.weapons.turretDur, dmg: f.dmg * s.cfg.weapons.turretDmg, tick: 0 });
         for (const o of f.targets!) {
           if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; ultStrike(s, o.e, f.dmg, heal); }
-          burst(s, o.x, o.y, '#fff8c0', 8, 80, 0.6);
+          burst(s, o.x, o.y, spark, 8, 80, 0.6);
         }
         sfx(s, 'boom');
       }

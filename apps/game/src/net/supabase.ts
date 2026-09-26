@@ -1,6 +1,6 @@
 // Supabase adapter. Loaded lazily so offline play never downloads supabase-js.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BackendError, StatusBox, toBackendError, type Account, type Backend, type BoardView, type LiveState, type RunTicket, type Collection, type ServerCheckpoint, type ServerMeta, type SubmitOutcome } from './backend';
+import { BackendError, StatusBox, toBackendError, type Account, type Backend, type BoardView, type LiveState, type RunTicket, type Collection, type ServerCheckpoint, type ServerMeta, type SubmitOutcome, type UpdateNote } from './backend';
 import { SUPABASE_KEY, SUPABASE_URL, TURNSTILE_SITE_KEY } from './config';
 import { createOfflineBackend } from './offline';
 import { getCaptchaToken } from './turnstile';
@@ -141,6 +141,7 @@ export function createSupabaseBackend(): Backend {
     async getLeaderboard(board, hero) { online(); return rpc<BoardView>('get_leaderboard', { p_board: board, p_hero: hero ?? null }); },
     async getLive() { return rpc<LiveState>('get_live_state'); },
     async getConfig(version) { return rpc<{ version: number; data: unknown } | null>('get_config', { p_version: version }); },
+    async latestUpdate() { return (await rpc<UpdateNote[] | null>('get_changelog', { p_limit: 1 }))?.[0] ?? null; },
     async linkGoogle() {
       online();
       if (!acc?.anonymous) return;

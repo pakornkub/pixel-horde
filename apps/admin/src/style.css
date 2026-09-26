@@ -86,3 +86,15 @@ main.solo{display:grid;place-items:center;min-height:100vh;padding:16px}
   .grid2{grid-template-columns:1fr}
   .alert{grid-template-columns:34px 1fr}.alert .row{grid-column:1/-1}
 }
+/* balance reports */
+.report{display:flex;flex-direction:column;gap:12px}
+.report ul{margin:0;padding-left:18px}
+.finding{padding:6px 0;border-bottom:1px solid var(--line)}
+.finding:last-child{border-bottom:0}
+.finding .explain{margin:4px 0 0}
+.verrow{border-bottom:1px solid var(--line);padding:4px 0;flex-wrap:nowrap}
+/* changelog */
+.clitem{display:grid;grid-template-columns:150px 1fr 1fr auto;gap:6px;margin-bottom:6px}
+.clgroup{margin-top:8px}.clgroup ul{margin:2px 0 0;padding-left:18px}
+@media (max-width:900px){.clitem{grid-template-columns:1fr}}
+.clprev{border:1px solid var(--line);border-radius:6px;padding:6px 8px}.clprev ul{margin:4px 0;padding-left:16px}.clprev input{width:100%;margin-top:6px}

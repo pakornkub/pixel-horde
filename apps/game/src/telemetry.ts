@@ -22,6 +22,13 @@ export function fingerprint(s: string): string {
 /** FPS histogram buckets: <30, 30–45, 45–55, ≥55 frames per second. */
 export function fpsBucket(fps: number): number { return fps < 30 ? 0 : fps < 45 ? 1 : fps < 55 ? 2 : 3; }
 
+/** Browser noise that is not a game bug: WebKit rejects pending promises when the page is closed or left. */
+const NOISE = [/browsing context is going away/i];
+export const isNoise = (message: string): boolean => NOISE.some((re) => re.test(message));
+
+/** Errors from a dev server or a local build are not players' errors: keep them out of the live list. */
+export const isLocalHost = (host: string): boolean => /^(localhost|127\.0\.0\.1|\[::1\])$|\.localhost$|\.test$/.test(host);
+
 /** 5% of players (stable per account) send detail events. */
 export function inSample(accountId: string): boolean { return parseInt(fingerprint('sample:' + accountId), 36) % 100 < 5; }
 
@@ -35,7 +42,7 @@ export function createTelemetry(b: Backend, store: KeyValue, enabled: () => bool
 
   return {
     recordError(message: string, stack = ''): void {
-      if (!enabled()) return;
+      if (!enabled() || isNoise(message)) return;
       const top = stack.split('\n').slice(0, 2).join('\n');
       const fp = fingerprint(message + '|' + top);
       const e = out.errors.find((x) => x.fingerprint === fp);
@@ -74,7 +81,7 @@ export function createTelemetry(b: Backend, store: KeyValue, enabled: () => bool
   };
 }
 
-export const telemetry = createTelemetry(backend, browserStore, () => settings.stats);
+export const telemetry = createTelemetry(backend, browserStore, () => settings.stats && !import.meta.env.DEV && !isLocalHost(location.hostname));
 
 /** Global error capture + periodic / on-hide flushing. */
 export function installTelemetry(): void {

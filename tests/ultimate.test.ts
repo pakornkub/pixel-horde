@@ -111,6 +111,12 @@ describe('Weapons', () => {
     expect(s.weapon).toBe('thornwhip');
     step(1, [{ type: 'weapon', id: 'sunblade' }]); // not found this Run
     expect(s.weapon).toBe('thornwhip');
+    step(1, [{ type: 'weapon', id: 'judgement' }]); // back to the default
+    expect(s.weapon).toBe('judgement');
+    const col = fresh({ meta: { up: {}, weapons: [weaponKey('sunblade')] } });
+    col.s.foundWeapons = ['thornwhip']; col.s.phase = 'clear';
+    col.step(1, [{ type: 'weapon', id: 'sunblade' }]); // from the collection
+    expect(col.s.weapon).toBe('sunblade');
   });
 
   it('beating Umbra always gives a missing Weapon, or 500 Gold when the collection is complete', () => {

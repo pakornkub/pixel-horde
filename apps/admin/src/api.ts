@@ -1,6 +1,6 @@
 // Admin data access. Live = Supabase RPCs (every one checks the admin role server-side).
 // Demo (?demo) = in-memory fake data so the console can be tried before the backend is live.
-import { DEFAULT_CONFIG } from '@pixel-horde/config';
+import { DEFAULT_CONFIG, type BalanceReport, type ChangeEntry } from '@pixel-horde/config';
 
 export interface Attention { kind: string; level: 'bad' | 'warn' | 'info'; [k: string]: unknown }
 export interface Overview {
@@ -11,7 +11,7 @@ export interface Overview {
   attention: Attention[];
 }
 export interface AuditRow { id: number; at: string; actor: string; action: string; target: string; detail: unknown }
-export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown> }
+export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown>; report?: BalanceReport | null }
 export interface BoardRow { userId: string; name: string; score: number; chapter: number; hero: string; weapon: string | null; hidden: boolean; banned: boolean; at: string; status: 'verified' | 'pending' | 'suspicious' }
 export interface PlayerRow {
   id: string; name: string; role: string; gold: number; linked: boolean; lastSeen: string;
@@ -36,6 +36,19 @@ export type FeedbackStatus = 'new' | 'read' | 'done';
 export type FeedbackCategory = 'bug' | 'balance' | 'idea' | 'other';
 export interface FeedbackRow { id: number; userId: string | null; name: string | null; category: FeedbackCategory; message: string; context: Record<string, string>; status: FeedbackStatus; at: string }
 
+export type WorkStatus = 'todo' | 'in_progress' | 'needs_decision' | 'pr_open' | 'shipped' | 'wontfix';
+export type WorkKind = 'bug' | 'ux' | 'balance' | 'idea' | 'infra' | 'other';
+export interface WorkOption { key: string; label: string; detail?: string }
+export interface WorkRef { type: 'feedback' | 'error' | string; id?: number; fingerprint?: string }
+export interface WorkLog { at: string; by: 'agent' | 'owner' | string; status?: WorkStatus; note?: string }
+/** A fix in progress (daily triage routine or the owner): Admin → งานแก้ไข. */
+export interface WorkItem {
+  id: number; kind: WorkKind; source: 'error' | 'feedback' | 'owner' | 'agent'; refs: WorkRef[]; title: string; summary: string; status: WorkStatus;
+  decision: { question: string; options: WorkOption[]; recommended?: string } | null;
+  answer: { option: string | null; note: string; at: string; by: string | null } | null;
+  prUrl: string | null; branch: string | null; log: WorkLog[]; at: string; updated: string;
+}
+
 export interface AdminApi {
   mode: 'live' | 'demo';
   whoami(): Promise<{ email: string; isAdmin: boolean } | null>;
@@ -45,7 +58,12 @@ export interface AdminApi {
   overview(): Promise<Overview>;
   audit(limit?: number): Promise<AuditRow[]>;
   configs(): Promise<ConfigRow[]>;
-  publishConfig(data: unknown, note: string): Promise<number>;
+  /** `report` is stored with the new version and shown in its history. */
+  publishConfig(data: unknown, note: string, report?: BalanceReport | null, changelog?: Pick<ChangeEntry, 'titleTh' | 'titleEn' | 'items'> | null): Promise<number>;
+  /** Changelog (patch notes), newest first, with admin notes. */
+  changelog(): Promise<ChangeEntry[]>;
+  upsertChangelog(e: ChangeEntry): Promise<number>;
+  deleteChangelog(id: number): Promise<void>;
   rollbackConfig(version: number): Promise<number>;
   flags(): Promise<Record<string, unknown>>;
   setFlag(key: string, value: unknown): Promise<void>;
@@ -64,6 +82,11 @@ export interface AdminApi {
   /** Player feedback from the game's Feedback button, newest first. */
   feedback(status: FeedbackStatus | '', category: FeedbackCategory | ''): Promise<FeedbackRow[]>;
   setFeedbackStatus(id: number, status: FeedbackStatus): Promise<void>;
+  /** Work items: `open` = everything not shipped / wontfix. */
+  workItems(status: WorkStatus | 'open' | ''): Promise<WorkItem[]>;
+  /** Answer a needs_decision item (an option key and/or a note); the next routine run carries it out. */
+  answerWork(id: number, option: string, note: string): Promise<void>;
+  setWorkStatus(id: number, status: 'todo' | 'shipped' | 'wontfix', note?: string): Promise<void>;
   /** Balance AI (Supabase Edge Function `balance-ai`, Gemini): proposes changes, never publishes. */
   askAi(messages: AiMsg[], fields: [string, string, number, number, number][]): Promise<AiAnswer>;
 }
@@ -96,7 +119,10 @@ async function liveApi(): Promise<AdminApi> {
     overview: () => rpc('admin_overview'),
     audit: (limit = 200) => rpc('admin_audit', { p_limit: limit }),
     configs: () => rpc('admin_configs'),
-    publishConfig: (data, note) => rpc('publish_config', { p_data: data, p_note: note }),
+    publishConfig: (data, note, report, changelog) => rpc('publish_config', { p_data: data, p_note: note, p_report: report ?? null, p_changelog: changelog ?? null }),
+    changelog: () => rpc('admin_changelog'),
+    upsertChangelog: (e) => rpc('upsert_changelog', { p: e }),
+    deleteChangelog: (id) => rpc('delete_changelog', { p_id: id }),
     rollbackConfig: (version) => rpc('rollback_config', { p_version: version }),
     async flags() { const s = await rpc<{ flags: Record<string, unknown> }>('get_live_state'); return s.flags; },
     setFlag: (key, value) => rpc('set_flag', { p_key: key, p_value: value }),
@@ -114,6 +140,9 @@ async function liveApi(): Promise<AdminApi> {
     stats: (days, a, b) => rpc('admin_stats', { p_days: days, p_version_a: a ?? null, p_version_b: b ?? null }),
     feedback: (status, category) => rpc('admin_feedback', { p_status: status, p_category: category }),
     setFeedbackStatus: (id, status) => rpc('set_feedback_status', { p_id: id, p_status: status }),
+    workItems: (status) => rpc('admin_work_items', { p_status: status }),
+    answerWork: (id, option, note) => rpc('answer_work_item', { p_id: id, p_option: option, p_note: note }),
+    setWorkStatus: (id, status, note = '') => rpc('set_work_item_status', { p_id: id, p_status: status, p_note: note }),
     async askAi(messages, fields) {
       const { data, error } = await sb.functions.invoke('balance-ai', { body: { messages, fields } });
       if (error) {
@@ -145,10 +174,31 @@ function demoApi(): AdminApi {
   const board: BoardRow[] = names.map((n, i) => ({ userId: 'u' + i, name: n, score: 80900 - i * 7000, chapter: 8 - (i >> 1), hero: ['kit', 'lyra', 'bram', 'vex'][i % 4], weapon: null, hidden: false, banned: false, at: now(), status: i === 2 ? 'suspicious' : i === 3 ? 'pending' : 'verified' }));
   let season = 1;
   const players: PlayerRow[] = names.map((n, i) => ({ id: 'u' + i, name: n, role: 'player', gold: i === 2 ? 98000 : 3000 - i * 300, linked: i % 2 === 0, banned: false, suspended: false, lastSeen: now() }));
+  const log: ChangeEntry[] = [
+    { id: 2, at: now(), kind: 'feature', titleTh: 'ปุ่มเลือกความยาก', titleEn: 'Difficulty presets', items: [{ cat: 'difficulty', th: 'เลือกความยากได้ 6 แบบในหน้าตั้งค่า', en: 'Six difficulty presets in Settings' }], note: 'PR #15', public: true },
+    { id: 1, at: now(), kind: 'balance', configVersion: 2, titleTh: 'ด่าน 1 สั้นลง', titleEn: 'Shorter Chapter 1', items: [{ cat: 'difficulty', th: 'ความยาวด่าน 1: 60 → 55 วินาที', en: 'Chapter 1 length: 60 → 55 s' }], note: '', public: true },
+  ];
   const fb: FeedbackRow[] = [
     { id: 3, userId: 'u5', name: 'Pim', category: 'bug', message: 'บอสตายแล้วค้าง คับ', context: { build: '202609261200', device: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', screen: '390x844@3', lang: 'th', chapter: '3', hero: 'alchemist', realm: 'deepdark', mode: 'solo', phase: 'overtime' }, status: 'new', at: now() },
     { id: 2, userId: 'u1', name: 'lyra_th', category: 'balance', message: 'ปรับตัว vex ปาขวด เท่าที่เล่นคือปามัว ทำให้เล่นยาก และเวลามีบอสปาโดนบอสน้อยมาก', context: { build: '202609261200', device: 'Android 15; Pixel 8', screen: '412x915@2.63', lang: 'th' }, status: 'read', at: now() },
     { id: 1, userId: 'u0', name: 'KitMain', category: 'idea', message: 'อยากให้มีโหมดฝึกสกิล', context: { build: '202609251200', device: 'Windows NT 10.0', screen: '1920x1080@1', lang: 'th' }, status: 'done', at: now() },
+  ];
+  const ago = (h: number): string => new Date(Date.now() - h * 36e5).toISOString();
+  const work: WorkItem[] = [
+    { id: 3, kind: 'balance', source: 'feedback', refs: [{ type: 'feedback', id: 2 }], title: 'Vex: ขวดปาไม่ค่อยโดนบอส', status: 'needs_decision',
+      summary: 'Volatile Flask สุ่มเป้าในรัศมี ทำให้โดนบอสน้อย (บอท 20 รอบ: โดนบอส 31% ของขวด)',
+      decision: { question: 'จะให้ขวดเล็งแบบไหน?', recommended: 'a', options: [
+        { key: 'a', label: 'เล็งศัตรูที่ใกล้ที่สุด (บอสก่อนถ้ามี)', detail: 'โดนบอสราว 70% ดาเมจรวมไม่เปลี่ยน' },
+        { key: 'b', label: 'สุ่มเหมือนเดิม แต่ขวดใหญ่ขึ้น 25%', detail: 'ยังสุ่ม แต่กระจายโดนมากขึ้น' },
+        { key: 'c', label: 'ไม่เปลี่ยน' }] },
+      answer: null, prUrl: null, branch: null, at: ago(20), updated: ago(20), log: [{ at: ago(20), by: 'agent', status: 'needs_decision', note: 'วิเคราะห์ด้วย playtest bot แล้ว รอเจ้าของเลือก' }] },
+    { id: 2, kind: 'ux', source: 'feedback', refs: [{ type: 'feedback', id: 3 }], title: 'หน้าแรกบนมือถือต้องเลื่อนถึงเห็นปุ่มผูกบัญชี', status: 'pr_open',
+      summary: 'จอ 377×648 เนื้อหาสูง 666px ปุ่ม Google ตกขอบ; ย่อหน้าแรกสำหรับจอสูง ≤720px + ใน Facebook/LINE ให้เปิดใน Safari/Chrome แทน',
+      decision: null, answer: null, prUrl: 'https://github.com/pakornkub/pixel-horde/pull/18', branch: 'fix/title-fit-inapp-telemetry-worklog', at: ago(30), updated: ago(2),
+      log: [{ at: ago(30), by: 'agent', status: 'in_progress', note: 'ทำซ้ำได้ที่ 377×648' }, { at: ago(2), by: 'agent', status: 'pr_open' }] },
+    { id: 1, kind: 'bug', source: 'error', refs: [{ type: 'error', fingerprint: 'sqre4r' }], title: 'drawImage: canvas กว้าง/สูง 0', status: 'shipped',
+      summary: 'หน้าต่างถูกซ่อน (0×0) ทำให้ buffer เป็น 0 และ render loop หยุด; แก้ให้ buffer ≥ 1px', decision: null, answer: null,
+      prUrl: 'https://github.com/pakornkub/pixel-horde/pull/14', branch: 'camera-zoom', at: ago(48), updated: ago(40), log: [{ at: ago(48), by: 'agent', status: 'shipped', note: 'แก้แล้วใน 7ff4de5' }] },
   ];
   let ann: Announcement[] = [{ id: 1, title_th: 'Blood Moon สุดสัปดาห์', title_en: 'Blood Moon weekend', body_th: 'เหรียญ ×2', body_en: 'Gold ×2', starts_at: now(), ends_at: null }];
   const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10));
@@ -181,7 +231,8 @@ function demoApi(): AdminApi {
     }),
     audit: async () => clone(audit),
     configs: async () => clone(configs),
-    async publishConfig(data, n) { const v = configs[0].version + 1; configs.unshift({ version: v, status: 'published', note: n, at: now(), by: 'Owner (demo)', data: { ...(data as object), version: v } }); note('insert', 'balance_configs', { version: v, note: n }); return v; },
+    async publishConfig(data, n, report, cl) { const v = configs[0].version + 1; configs.unshift({ version: v, status: 'published', note: n, at: now(), by: 'Owner (demo)', data: { ...(data as object), version: v }, report: report ?? null });
+      log.unshift({ id: log.length + 1, at: now(), kind: 'balance', configVersion: v, titleTh: cl?.titleTh || `ปรับสมดุลเกม (v${v})`, titleEn: cl?.titleEn || `Balance update (v${v})`, items: cl?.items ?? [], note: n, public: true }); note('insert', 'balance_configs', { version: v, note: n }); return v; },
     async rollbackConfig(version) { const src = configs.find((c) => c.version === version)!; return this.publishConfig(clone(src.data), 'rollback to v' + version); },
     flags: async () => clone(flags),
     async setFlag(k, v) { note('update', 'feature_flags', { old: { key: k, value: flags[k] }, new: { key: k, value: v } }); flags[k] = v; },
@@ -200,8 +251,20 @@ function demoApi(): AdminApi {
         : [{ userId: r.userId, name: r.name, kind: 'badge' as const, reward: i < 10 ? 'champion' : 'top100', rank: i + 1, board: 'solo' }]) };
     },
     async openSeason(name) { note('open_season', 'seasons', { closed: season, name }); season++; return season; },
+    changelog: async () => clone(log),
+    async upsertChangelog(e) { const i = log.findIndex((x) => x.id === e.id); const row = { ...e, id: e.id ?? log.length + 100, at: e.at || now() }; if (i >= 0) log[i] = row; else log.unshift(row); return row.id!; },
+    async deleteChangelog(id) { const i = log.findIndex((x) => x.id === id); if (i >= 0) log.splice(i, 1); },
     feedback: async (st, c) => clone(fb.filter((f) => (!st || f.status === st) && (!c || f.category === c))),
     async setFeedbackStatus(id, st) { const f = fb.find((x) => x.id === id); if (f) f.status = st; },
+    workItems: async (st) => clone(work.filter((w) => !st || w.status === st || (st === 'open' && w.status !== 'shipped' && w.status !== 'wontfix'))
+      .sort((a, b) => Number(b.status === 'needs_decision') - Number(a.status === 'needs_decision'))),
+    async answerWork(id, option, n) {
+      const w = work.find((x) => x.id === id);
+      if (!w || w.status !== 'needs_decision') throw new Error('NOT_WAITING');
+      w.answer = { option: option || null, note: n, at: now(), by: 'Owner (demo)' }; w.status = 'todo'; w.updated = now();
+      w.log.push({ at: now(), by: 'owner', status: 'todo', note: 'ตอบ: ' + (option || '-') + (n ? ' — ' + n : '') });
+    },
+    async setWorkStatus(id, st, n) { const w = work.find((x) => x.id === id); if (w) { w.status = st; w.updated = now(); w.log.push({ at: now(), by: 'owner', status: st, note: n || undefined }); } },
     players: async (q) => clone(players.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))),
     askAi: async (msgs) => ({
       reply: `(โหมดตัวอย่าง) รับคำขอ "${msgs[msgs.length - 1]?.text ?? ''}" แล้ว ตัวอย่างข้อเสนอ: ให้ท่าใหญ่ของบอสช่วง overtime ไม่ถี่ขึ้น และแรงขึ้นน้อยลง`,

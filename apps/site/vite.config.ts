@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rolldownOptions: {
-      input: { index: page('index.html'), guide: page('guide.html'), skills: page('skills.html'), world: page('world.html') },
+      input: { index: page('index.html'), guide: page('guide.html'), skills: page('skills.html'), world: page('world.html'), updates: page('updates.html') },
     },
   },
   server: { port: 5180 },

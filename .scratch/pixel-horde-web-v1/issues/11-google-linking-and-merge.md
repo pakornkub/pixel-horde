@@ -4,9 +4,9 @@
 
 **Blocked by:** 08 (Anonymous Player Accounts, nicknames and one-place-at-a-time sessions); 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** in-progress — code + tests done; waiting for the owner to enable Google sign-in + manual linking in Supabase and apply migrations
+**Status:** done — Google sign-in on (5 Google accounts, 1 linked from an anonymous account); owner to confirm the flow once on a phone (checked 2026-09-26 against the live project)
 
-- [ ] Manual linking enabled; `linkIdentity` flow works on desktop and mobile
+- [x] Manual linking enabled; `linkIdentity` flow works on desktop and mobile
 - [x] `identity_already_exists` triggers `merge_accounts` with the documented rules
 - [x] Merging never sums Gold
 - [x] pgTAP tests cover merge rules

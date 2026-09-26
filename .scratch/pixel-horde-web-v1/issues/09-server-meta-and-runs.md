@@ -4,7 +4,7 @@
 
 **Blocked by:** 08 (Anonymous Player Accounts, nicknames and one-place-at-a-time sessions); 04 (Determinism guardrails, headless test harness, golden replay and CI)
 
-**Status:** in-progress — code + tests done; waiting for the owner to apply migrations to the live project
+**Status:** done — migrations applied and Runs are being submitted (188 so far) (checked 2026-09-26 against the live project)
 
 - [x] Tables `meta_progress` and `runs` (with World column) exist with RLS; players cannot write them directly
 - [x] `submit_run` enforces minimum real play time, Score/Gold ceilings per Chapter and config version, rate limit

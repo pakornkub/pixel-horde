@@ -11,6 +11,7 @@ export * from './data/themes';
 export * from './data/weapons';
 export * from './data/achievements';
 export { xpNeed } from './systems/player';
+export { usableWeapons } from './systems/combat';
 export { GUARDIANS, canFuse } from './systems/guardians';
 export { KING_KITS, ULTS } from './systems/kings';
 export { attackSlots, awakenEligible, benchSize, qualifiedLinks, reviveCost, swapCost } from './systems/progress';

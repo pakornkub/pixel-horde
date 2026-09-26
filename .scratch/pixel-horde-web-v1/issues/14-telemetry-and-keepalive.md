@@ -4,12 +4,12 @@
 
 **Blocked by:** 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** in-progress — code + tests done; waiting for the owner to apply migrations and deploy the keep-alive Worker
+**Status:** done — migrations applied; `pixel-horde-keepalive` Worker deployed by the Deploy workflow (checked 2026-09-26 against the live project)
 
 - [x] Tables `player_days`, `telemetry_samples`, `client_errors`, `stats_daily`; retention jobs per the spec
 - [x] Outbox in localStorage + sendBeacon on tab hide
 - [x] pg_cron nightly rollup and retention cleanup; anonymous-account cleanup (unlinked, inactive 90 days)
-- [ ] Keep-alive Worker cron deployed
+- [x] Keep-alive Worker cron deployed
 - [x] pgTAP tests for rollup correctness on fixture data
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

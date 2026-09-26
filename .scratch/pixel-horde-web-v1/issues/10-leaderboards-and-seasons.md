@@ -4,7 +4,7 @@
 
 **Blocked by:** 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** in-progress — code + tests done; waiting for the owner to apply migrations to the live project
+**Status:** done — migrations applied; leaderboard and seasons live (checked 2026-09-26 against the live project)
 
 - [x] `leaderboard` and `seasons` tables; ties ordered by earliest achievement
 - [x] Leaderboard screen with board tabs, my-rank row and Hero filter

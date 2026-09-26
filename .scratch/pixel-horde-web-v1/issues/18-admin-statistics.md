@@ -4,7 +4,7 @@
 
 **Blocked by:** 14 (Run statistics, error reporting, nightly rollups and keep-alive); 15 (Admin Console shell, admin login, audit log and control-room home)
 
-**Status:** in-progress — code + tests done; waiting for the owner to apply migrations, deploy the Admin site and put it behind Cloudflare Access (docs/deploy.md)
+**Status:** in-progress — live: migrations applied and the Admin is deployed to Cloudflare Pages (`pixel-horde-admin`) and in use. Only open item: confirm Cloudflare Access sits in front of it (docs/deploy.md) (checked 2026-09-26 against the live project)
 
 - [x] Charts with uPlot from `stats_daily`
 - [x] Survival-by-Chapter chart can compare two config versions

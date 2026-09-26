@@ -12,8 +12,8 @@ single self-contained HTML file (`pixel-horde.html`, ~1,750 lines, vanilla JS + 
   → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/`. The code for all 44 is in; most wait for an
   owner playtest / review or an owner-only setup step (see each ticket's **Status**). New work gets new tickets.
 - Player-facing docs: the official website `apps/site` (served at `/`, the game at `/play/`) and `README.md` /
-  `README.th.md`. When gameplay changes, check the site's own sentences in `apps/site/src/text.ts` (numbers, names and
-  sprites come from the code automatically) and re-take screenshots with `npm run shots` if the look changed.
+  `README.th.md`. When gameplay changes, check the site's own sentences in `apps/site/src/text.ts` (names and sprites come
+  from the code; numbers from the live Balance Config via `apps/site/src/backend.ts`, built-in defaults when offline) and re-take screenshots with `npm run shots` if the look changed.
 
 ## Goals of the migration
 1. Split the single file into a typed, modular codebase (Vite + TypeScript, no framework).
@@ -73,6 +73,8 @@ clear screen — never at the next Stage start.
 ## Core rules & balance (current values)
 - Render: low-res buffer (≈190 px on short side, integer scale), world tiles 16×16, UI/HUD and
   damage numbers drawn on the hi-res canvas with "Press Start 2P" (+ "Chakra Petch" for Thai).
+  Settings "Camera distance" (×1 / 1.25 / 1.5) only zooms the picture out: the sim always gets the zoom-1 view
+  (`screen.RW × RH`), so auto-aim "on screen", Ultimate reach and spawn distance never change with it.
 - Stage duration: `min(150, 60 + 20*(stage-1))` s. King at 55% of the stage.
 - A Run = 8 Chapters (one Stage each): Greenvale → pick 1 of 2 Realms (Chapters 2–7) → Heart Crater (Umbra).
   11 Realms (`packages/sim/src/content/lumora/realms.ts`): own tiles, 3 mobs, King, traits and a resisted element (−50%).
@@ -90,7 +92,7 @@ clear screen — never at the next Stage start.
   cooldown reduction cap 40% (Haste 8%/lv, Vex 8%); crit 8% base + Keen Eye 7%/lv, cap 50%; critMul 2.0 + 0.2/lv.
 - XP to next level: `5 + 4lv + 0.5lv² + 1.4·max(0, lv-8)²`.
 - Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening).
-  4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4). 6 passives,
+  4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
   16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
   version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
@@ -117,7 +119,7 @@ clear screen — never at the next Stage start.
   `economy.kingChest`); it drops no chest item (its Gold rides on the King coin). Skill Points come only
   from Kings — they are not sold for Gold at the Stage end. Bench skills can be removed for free at the
   Stage end. Owner switches in the Admin bring the old rules back: `loot.kingChestItem` (1 = the chest
-  item too), `economy.spShop` (1 = buy Skill Points), `bench.discard` (0 = no removing).
+  item too), `economy.spShop` (1 = buy Skill Points), `bench.discard` (0 = no removing), `bench.passives` (0 = no new passives once the slots are full).
 
 ## Co-op protocol (host-authoritative)
 - Host simulates everything and broadcasts ~15 Hz: stage, time, phase (`play|wait|pause|clear|route|victory|over`),
@@ -137,13 +139,22 @@ clear screen — never at the next Stage start.
 drives the built game and Admin in Chromium/Firefox/WebKit (golden replay, title, save, route, co-op, Admin draft…). Game URL flags: `?offline` (no backend) and
 `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events.
 Balance passes: `npm run playtest` (scripts/playtest, a human-like bot with damage/death attribution; see its README).
-Recommended tuning lives in `packages/config/src/balance-pass.ts` and is published from Admin → Balance, never by
+Recommended tuning lives in `packages/config/src/balance-pass.ts` (patch + Thai report; the report is stored with the
+published version in `config_reports` and shown in Admin → Balance → รายงาน) and is published from Admin → Balance, never by
 changing built-in defaults (version 0 must equal the migration seed). Difficulty presets (`packages/config/src/presets.ts`)
-scale the published config for solo Runs; only `balanced` is ranked.
+scale the published config for solo Runs; their multipliers (and whether each is offered) are Balance Config fields
+`shared.presets.*`, tuned from Admin → Balance; only `balanced` is ranked.
+Changelog (patch notes, `packages/config/src/changelog.ts`, table `changelog`): every config publish writes a `balance`
+entry (player-facing lines from the pass's `changelog`, else auto-generated from the diff); every code release that players
+would notice gets an entry in Admin → อัปเดตเกม (kind feature/fix/content/system, lines per category, Thai + English).
+The website's `updates.html` reads public entries via `get_changelog`.
 
 ## Backlog
 Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").
 The in-game meter (press **I**: DPS, TTK, multipliers, director, mob count) stays useful for balance passes.
+A daily cloud routine triages the live error list + player feedback (`docs/agents/triage-routine.md`): clear bugs →
+PR, owner decisions → Admin → งานแก้ไข (`public.work_items`, written only via `agent_report`). Client errors are not
+recorded from dev / local hosts; known browser noise is filtered in `apps/game/src/telemetry.ts`.
 
 ## Agent skills
 

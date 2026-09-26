@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { REALMS, WEAPONS, attackSlots, benchSize, signatureOf, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
+import { REALMS, WEAPONS, attackSlots, benchSize, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
@@ -119,6 +119,172 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
   }
 }
 
+/** Seconds a new monster takes to fade in. */
+const SPAWN_FADE = 0.35;
+
+/** 1-px white rim around a sprite's silhouette (cached per sprite canvas), drawn at (x − 1, y − 1). */
+const rims = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>();
+function rim(img: HTMLCanvasElement): HTMLCanvasElement {
+  let o = rims.get(img);
+  if (o) return o;
+  o = document.createElement('canvas');
+  o.width = img.width + 2; o.height = img.height + 2;
+  const x = o.getContext('2d')!;
+  for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) x.drawImage(img, dx, dy);
+  x.globalCompositeOperation = 'source-in'; x.fillStyle = '#ffffff'; x.fillRect(0, 0, o.width, o.height);
+  x.globalCompositeOperation = 'destination-out'; x.drawImage(img, 1, 1);
+  rims.set(img, o);
+  return o;
+}
+
+/** Pulsing ring under the Hero's feet so the player finds themselves in a crowd. */
+function heroRing(x: number, y: number, clock: number): void {
+  b.save();
+  b.globalAlpha = 0.55; b.strokeStyle = K; b.lineWidth = 3;
+  b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.stroke();
+  b.globalAlpha = 0.8 + 0.2 * Math.sin(clock * 6); b.strokeStyle = '#7df9ff'; b.lineWidth = 1; b.stroke();
+  b.restore();
+}
+
+/* ---------- Ultimate: one look per Weapon form (presentation only) ---------- */
+type UltForm = Weapon['form'];
+/** Stable 0..1 per target, so shapes do not jump between frames. */
+const seed01 = (i: number, j = 0): number => (((i * 2654435761) ^ (j * 40503)) >>> 0) / 4294967296;
+const ULT_TINT: Partial<Record<UltForm, string>> = { freeze: '#9fd8ff', plague: '#6b8a3a', shock: '#10142a', reap: '#1e1b33', harvest: '#2a1640' };
+
+function drawUlt(f: Effect, px: number, py: number, form: UltForm, delay: number, clock: number): void {
+  const { LW, LH } = screen, col = f.col || '#fff35c', T = f.targets!;
+  b.save();
+  if (!f.fired) { // telegraph: a ring closing in on the Hero, and a mark on every target
+    const c = Math.min(1, f.t / delay), r = (1 - c) * LW * 0.6 + 8;
+    b.globalAlpha = 0.5; b.strokeStyle = col; b.lineWidth = 2;
+    b.beginPath(); b.ellipse(px, py, r, r * 0.85, 0, 0, TAU); b.stroke();
+    b.globalAlpha = 1;
+    T.forEach((o, i) => {
+      const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
+      if (form === 'judgement') { b.fillStyle = 'rgba(255,243,92,.8)'; b.fillRect(x - 1, 0, 2, y); }
+      else if (form === 'crash') { // meteors on their way down
+        const mx = Math.round(x + 46 * (1 - c)), my = Math.round(y - 90 * (1 - c));
+        b.strokeStyle = '#ff8a3d'; b.lineWidth = 2; b.beginPath(); b.moveTo(mx + 10, my - 18); b.lineTo(mx, my); b.stroke();
+        b.fillStyle = K; b.fillRect(mx - 3, my - 3, 6, 6); b.fillStyle = '#d8342c'; b.fillRect(mx - 2, my - 2, 4, 4); b.fillStyle = '#ffd23f'; b.fillRect(mx - 1, my - 2, 1, 1);
+      } else if (form === 'shock') { // storm cloud gathering above each target
+        b.fillStyle = '#3a4260'; b.globalAlpha = 0.7 * c; b.beginPath(); b.ellipse(x, y - 40, 9, 4, 0, 0, TAU); b.fill(); b.globalAlpha = 1;
+      } else if (Math.floor(clock * 20 + i) & 1) { // blinking reticle
+        b.fillStyle = col; b.fillRect(x - 4, y, 3, 1); b.fillRect(x + 2, y, 3, 1); b.fillRect(x, y - 4, 1, 3); b.fillRect(x, y + 2, 1, 3);
+      }
+    });
+    if (form === 'burn') { b.globalAlpha = c; b.fillStyle = '#ffd23f'; b.beginPath(); b.arc(px, py - 26, 3 + c * 5, 0, TAU); b.fill(); b.fillStyle = '#fff8c0'; b.beginPath(); b.arc(px, py - 26, 2 + c * 2, 0, TAU); b.fill(); }
+    b.restore();
+    return;
+  }
+  const k = Math.min(1, Math.max(0, (f.t - delay) / Math.max(0.01, f.dur - delay))), fade = 1 - k;
+  const tint = ULT_TINT[form];
+  if (tint) { b.globalAlpha = 0.28 * fade; b.fillStyle = tint; b.fillRect(0, 0, LW, LH); }
+  b.globalAlpha = fade;
+  // Hero-centred waves
+  if (form === 'burn' || form === 'push') {
+    const r = 10 + k * LW * 0.75;
+    b.strokeStyle = form === 'burn' ? '#ff8a3d' : col; b.lineWidth = 7 * fade + 1; b.beginPath(); b.ellipse(px, py, r, r * 0.8, 0, 0, TAU); b.stroke();
+    b.strokeStyle = form === 'burn' ? '#ffd23f' : '#9ff0f0'; b.lineWidth = 3 * fade + 1; b.beginPath(); b.ellipse(px, py, r - 3, (r - 3) * 0.8, 0, 0, TAU); b.stroke();
+    if (form === 'push') { b.fillStyle = '#ffffff'; for (let j = 0; j < 20; j++) { const a = (j / 20) * TAU + seed01(j) * 0.3; b.fillRect(Math.round(px + Math.cos(a) * (r + 3)), Math.round(py + Math.sin(a) * (r + 3) * 0.8), 2, 2); } }
+  } else if (form === 'reap') { // a giant scythe sweeping round the Hero
+    const R0 = LW * 0.42, a = -Math.PI / 2 + k * TAU * 1.2;
+    for (let j = 3; j >= 0; j--) {
+      b.globalAlpha = fade * (1 - j * 0.22); b.strokeStyle = j ? col : '#ffffff'; b.lineWidth = j ? 5 : 2;
+      b.beginPath(); b.ellipse(px, py, R0, R0 * 0.8, 0, a - 0.5 - j * 0.35, a - j * 0.35); b.stroke();
+    }
+    b.globalAlpha = fade;
+  } else if (form === 'turret') { // a spinning cog
+    const r = 16 + k * 10, rot = clock * 6;
+    b.strokeStyle = '#8a94a8'; b.lineWidth = 4; b.beginPath(); b.ellipse(px, py, r, r * 0.8, 0, 0, TAU); b.stroke();
+    for (let j = 0; j < 10; j++) { const a = rot + (j / 10) * TAU; b.fillStyle = j & 1 ? '#c7ced9' : '#8a94a8'; b.fillRect(Math.round(px + Math.cos(a) * (r + 3)) - 2, Math.round(py + Math.sin(a) * (r + 3) * 0.8) - 2, 4, 4); }
+  } else if (form === 'harvest') {
+    b.strokeStyle = col; b.lineWidth = 2; b.setLineDash([3, 3]); b.lineDashOffset = -clock * 30;
+    b.beginPath(); b.ellipse(px, py, 14 + 4 * Math.sin(clock * 12), 11, 0, 0, TAU); b.stroke(); b.setLineDash([]);
+  } else if (form === 'freeze') { // snow drifting across the screen
+    b.fillStyle = '#ffffff';
+    for (let j = 0; j < 40; j++) b.fillRect(Math.round((seed01(j) * LW + clock * 14) % LW), Math.round((seed01(j, 1) * LH + clock * 34) % LH), 1, 1);
+  }
+  T.forEach((o, i) => {
+    const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
+    if (x < -30 || x > LW + 30 || y < -30 || y > LH + 40) return;
+    switch (form) {
+      case 'judgement':
+        b.fillStyle = '#ffd23f'; b.fillRect(x - 5, 0, 10, y); b.fillStyle = '#fff8c0'; b.fillRect(x - 3, 0, 6, y); b.fillStyle = '#fff'; b.fillRect(x - 1, 0, 2, y);
+        b.fillStyle = '#fff8c0'; b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.fill();
+        break;
+      case 'root': { // thorns burst out of the ground
+        b.strokeStyle = '#5a3a1a'; b.lineWidth = 2; b.beginPath(); b.ellipse(x, y + 2, 10, 4, 0, 0, TAU); b.stroke();
+        const grow = Math.min(1, k * 6);
+        for (let j = 0; j < 4; j++) {
+          const dx = -7 + j * 4.5, h = (9 + seed01(i, j) * 7) * grow, lean = (seed01(j, i) - 0.5) * 6;
+          b.fillStyle = K; b.beginPath(); b.moveTo(x + dx - 3, y + 3); b.lineTo(x + dx + 3, y + 3); b.lineTo(x + dx + lean, y + 2 - h - 1); b.fill();
+          b.fillStyle = j & 1 ? '#6fb553' : '#3f8a3a'; b.beginPath(); b.moveTo(x + dx - 2, y + 2); b.lineTo(x + dx + 2, y + 2); b.lineTo(x + dx + lean, y + 2 - h); b.fill();
+        }
+        break;
+      }
+      case 'burn': // flames licking up
+        for (let j = 0; j < 3; j++) {
+          const h = 6 + Math.abs(Math.sin(clock * 22 + i * 1.7 + j * 2.1)) * 9, dx = -4 + j * 4;
+          b.fillStyle = '#d8342c'; b.fillRect(x + dx - 2, y - h, 4, h); b.fillStyle = '#ff8a3d'; b.fillRect(x + dx - 1, y - h * 0.75, 3, h * 0.75); b.fillStyle = '#ffd23f'; b.fillRect(x + dx, y - h * 0.4, 1, h * 0.4);
+        }
+        break;
+      case 'reap': // cross slash
+        if (k < 0.5) { b.strokeStyle = '#ffffff'; b.lineWidth = 2; b.beginPath(); b.moveTo(x - 7, y - 11); b.lineTo(x + 7, y + 1); b.moveTo(x + 7, y - 11); b.lineTo(x - 7, y + 1); b.stroke(); }
+        break;
+      case 'freeze': { // ice crystal around the target
+        const s = Math.min(1, k * 5);
+        const shard = (cx: number, h: number, w: number): void => {
+          b.fillStyle = K; b.beginPath(); b.moveTo(cx, y - h - 1); b.lineTo(cx + w + 1, y - h * 0.4); b.lineTo(cx, y + 2); b.lineTo(cx - w - 1, y - h * 0.4); b.fill();
+          b.fillStyle = col; b.beginPath(); b.moveTo(cx, y - h); b.lineTo(cx + w, y - h * 0.4); b.lineTo(cx, y + 1); b.lineTo(cx - w, y - h * 0.4); b.fill();
+          b.fillStyle = '#ffffff'; b.fillRect(cx - 1, y - h + 2, 1, Math.max(1, h * 0.4));
+        };
+        shard(x - 6, 8 * s, 3); shard(x + 6, 9 * s, 3); shard(x, 15 * s, 5);
+        break;
+      }
+      case 'crash': { // crater with lava cracks
+        b.fillStyle = '#3a1a10'; b.beginPath(); b.ellipse(x, y, 12, 6, 0, 0, TAU); b.fill();
+        b.strokeStyle = '#ff8a3d'; b.lineWidth = 1;
+        for (let j = 0; j < 5; j++) { const a = (j / 5) * TAU + seed01(i, j); b.beginPath(); b.moveTo(x, y); b.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 7); b.stroke(); }
+        b.strokeStyle = '#d8342c'; b.lineWidth = 3; const r = 6 + k * 22; b.beginPath(); b.ellipse(x, y, r, r * 0.5, 0, 0, TAU); b.stroke();
+        break;
+      }
+      case 'plague': // toxic cloud with rising bubbles
+        for (let j = 0; j < 4; j++) {
+          const a = seed01(i, j) * TAU, d = 5 + k * 5, r = 5 + k * 7;
+          b.globalAlpha = 0.45 * fade; b.fillStyle = j & 1 ? '#6b8a3a' : col; b.beginPath(); b.arc(x + Math.cos(a) * d, y - 4 + Math.sin(a) * d * 0.6, r, 0, TAU); b.fill();
+        }
+        b.globalAlpha = fade; b.fillStyle = '#e6ffb0';
+        for (let j = 0; j < 3; j++) b.fillRect(Math.round(x - 5 + j * 5), Math.round(y - 4 - ((k * 30 + seed01(j, i) * 10) % 18)), 2, 2);
+        break;
+      case 'shock': { // jagged lightning from the sky (re-drawn every frame so it flickers)
+        if (k < 0.6 || Math.floor(clock * 30) & 1) {
+          const pts: [number, number][] = [[x + (R() - 0.5) * 16, y - 44]];
+          for (let j = 1; j < 6; j++) pts.push([x + (R() - 0.5) * 12, y - 44 + (44 * j) / 6]);
+          pts.push([x, y]);
+          for (const [w, c] of [[4, col], [1, '#ffffff']] as const) { b.strokeStyle = c; b.lineWidth = w; b.beginPath(); pts.forEach(([a, d], j) => (j ? b.lineTo(a, d) : b.moveTo(a, d))); b.stroke(); }
+        }
+        b.strokeStyle = col; b.lineWidth = 1; b.beginPath(); b.ellipse(x, y, 5 + k * 10, 2 + k * 5, 0, 0, TAU); b.stroke();
+        break;
+      }
+      case 'push': // splash
+        b.strokeStyle = '#ffffff'; b.lineWidth = 1; b.beginPath(); b.arc(x - 3, y, 4 + k * 5, Math.PI, TAU); b.arc(x + 4, y, 3 + k * 4, Math.PI, TAU); b.stroke();
+        break;
+      case 'turret': // tracer + spark
+        if (k < 0.4) { b.strokeStyle = '#ffd23f'; b.lineWidth = 1; b.beginPath(); b.moveTo(px, py - 6); b.lineTo(x, y - 3); b.stroke(); }
+        b.fillStyle = '#ffd23f'; b.fillRect(x - 3, y - 3, 7, 1); b.fillRect(x, y - 6, 1, 7);
+        break;
+      case 'harvest': { // souls fly from each target back to the Hero
+        const e = k * k, sx = Math.round(x + (px - x) * e), sy = Math.round(y - 6 + (py - 6 - (y - 6)) * e - Math.sin(k * Math.PI) * 14);
+        b.fillStyle = '#5a3f8a'; b.fillRect(sx - 1, sy + 2, 3, 3);
+        b.fillStyle = col; b.fillRect(sx - 2, sy - 2, 5, 5); b.fillStyle = '#ffffff'; b.fillRect(sx - 1, sy - 1, 2, 2);
+        break;
+      }
+    }
+  });
+  b.restore();
+}
+
 export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSelf: boolean): void {
   const { LW, LH, S } = screen;
   const P = v?.P;
@@ -143,7 +309,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       const x = Math.round(g.x + ox), y = Math.round(g.y + oy);
       if (x < -4 || y < -4 || x > LW + 4 || y > LH + 4) continue;
       if (g.kind === 'xp') {
-        const c = g.v >= 20 ? '#ff5cf4' : g.v >= 5 ? '#ffd23f' : '#4fc3ff';
+        const c = g.v >= 20 ? '#ff5cf4' : g.v >= 5 ? '#4dff88' : '#4fc3ff'; // mid gem green: gold is for coins
         b.fillStyle = K; b.fillRect(x - 2, y - 3, 4, 6); b.fillRect(x - 3, y - 2, 6, 4);
         b.fillStyle = c; b.fillRect(x - 1, y - 2, 2, 4); b.fillRect(x - 2, y - 1, 4, 2); b.fillStyle = '#fff'; b.fillRect(x - 1, y - 2, 1, 1);
       } else if (g.kind === 'coin') {
@@ -219,6 +385,8 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     const ents: (Enemy | null)[] = v.enemies.slice();
     ents.push(null); // null = the player
     ents.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
+    // the Hero's sprite this frame; `covered` once a monster drawn after it overlaps it (x-ray on top later)
+    let self: { img: HTMLCanvasElement; x: number; y: number } | null = null, covered = false;
     for (const e of ents) {
       if (!e) {
         if (hideSelf) continue;
@@ -231,9 +399,12 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         const hw = HELD_SPR[v.weapon], hx = Math.round(P.x + ox), hy = Math.round(P.y + oy);
         const bob = P.moving ? (fr ? -1 : 0) : 0;
         b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(P.x + ox, P.y + oy + 7, 5, 2, 0, 0, TAU); b.fill();
+        heroRing(P.x + ox, P.y + oy + 7, clock);
         if (P.clone) { const c = P.clone, dk = P.face < 0 ? CS2.dkl : CS2.dk; b.globalAlpha = 0.75; b.drawImage(dk[fr], Math.round(c.x + ox - 8), Math.round(c.y + oy - 9)); b.globalAlpha = 1; }
         if (hw && dir === 'up') b.drawImage(hw[0], hx + 1, hy - 9 + bob); // the Weapon on the back
-        b.drawImage(img, Math.round(P.x + ox - 8), Math.round(P.y + oy - 9 + bob));
+        self = { img, x: Math.round(P.x + ox - 8), y: Math.round(P.y + oy - 9 + bob) };
+        b.drawImage(rim(img), self.x - 1, self.y - 1);
+        b.drawImage(img, self.x, self.y);
         if (P.guardT > 0 && (P.guardT > 2 || Math.floor(clock * 8) & 1)) { // Shield pickup bubble (blinks in its last 2 s)
           b.save(); b.globalAlpha = 0.22; b.fillStyle = '#7fd4ff';
           b.beginPath(); b.arc(P.x + ox, P.y + oy - 1, 12, 0, TAU); b.fill();
@@ -268,8 +439,12 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       const w = im.width * e.sc, h = im.height * e.sc, x = Math.round(e.x + ox - w / 2);
       const y = Math.round(e.y + oy - h / 2 + (e.type === 'bat' ? 0 : Math.sin(e.ph * 0.5) * (e.sc > 1 ? 1 : 0.5)));
       if (x < -w || y < -h || x > LW + w || y > LH + h) continue;
+      if (self && !covered && x < self.x + 14 && x + w > self.x + 2 && y < self.y + 15 && y + h > self.y + 2) covered = true;
+      // fade in right after spawning: with the camera zoomed out, the spawn ring can be inside the view
+      const age = v.clock - e.born, fade = !e.boss && age < SPAWN_FADE ? Math.max(0, age) / SPAWN_FADE : 1;
+      b.globalAlpha = fade;
       b.fillStyle = 'rgba(30,27,51,.3)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + h / 2, w * 0.35, Math.max(1.5, h * 0.12), 0, 0, TAU); b.fill();
-      if (e.type === 'ghost') b.globalAlpha = 0.85;
+      if (e.type === 'ghost') b.globalAlpha = 0.85 * fade;
       b.drawImage(im, x, y, w, h);
       b.globalAlpha = 1;
       if (e.slowT > 0) { b.fillStyle = 'rgba(159,216,255,.45)'; b.fillRect(x, y + h - 3, w, 3); }
@@ -492,21 +667,12 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if (Math.floor(clock * 12) & 1) { b.fillStyle = '#ffd23f'; b.fillRect(x - 1, y - 7, 2, 1); }
         b.restore();
       } else if (f.type === 'judge') {
-        if (!f.fired) {
-          b.save(); b.globalAlpha = 0.5; b.strokeStyle = f.col || '#fff35c'; b.lineWidth = 2;
-          const r = (1 - f.t / 0.3) * LW * 0.6 + 8;
-          b.beginPath(); b.ellipse(P.x + ox, P.y + oy, r, r * 0.85, 0, 0, TAU); b.stroke(); b.restore();
-          for (const o of f.targets!) { b.fillStyle = 'rgba(255,243,92,.8)'; b.fillRect(Math.round(o.x + ox) - 1, 0, 2, Math.round(o.y + oy)); }
-        } else {
-          b.save(); b.globalAlpha = Math.max(0, 1 - (f.t - 0.3) / 0.7);
-          for (const o of f.targets!) {
-            const x = Math.round(o.x + ox), y = Math.round(o.y + oy);
-            b.fillStyle = f.col && f.col !== '#fff35c' ? f.col : '#ffd23f'; b.fillRect(x - 5, 0, 10, y); b.fillStyle = '#fff8c0'; b.fillRect(x - 3, 0, 6, y); b.fillStyle = '#fff'; b.fillRect(x - 1, 0, 2, y);
-            b.fillStyle = '#fff8c0'; b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.fill();
-          }
-          b.restore();
-        }
+        drawUlt(f, P.x + ox, P.y + oy, WEAPONS[v.weapon].form, v.cfg.ult.delay, clock);
       }
+    }
+    if (self && covered) { // x-ray: the Hero's outline and a ghost of it show through monsters in front
+      b.drawImage(rim(self.img), self.x - 1, self.y - 1);
+      b.globalAlpha = 0.45; b.drawImage(self.img, self.x, self.y); b.globalAlpha = 1;
     }
     if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.22)'; b.fillRect(0, 0, LW, LH); }
     if (v.darkness) {
@@ -665,10 +831,10 @@ function drawMates(v: Readonly<SimState>, clock: number): void {
 }
 
 export function drawTexts(clock: number): void {
-  const { CS, DPR } = screen;
+  const { CS0, DPR } = screen;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const base = CS * DPR;
+  const base = CS0 * DPR; // same size at every camera distance
   for (const t of vfx.texts) {
     const k = t.t / t.life, pop = 1 + (t.cr || t.big ? 1.1 : 0.6) * Math.max(0, 1 - t.t / 0.12);
     let px = (t.big ? 3.6 : t.cr ? 4.4 : 2.9) * base;
@@ -846,13 +1012,14 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     thaiText(t('intro.kingOf', { realm: t(`realm.${it.realm}.short`) }), cx + 56 * D, cy + 38 * D, 12 * D, '#ffffff', 3 * D);
     ctx.textBaseline = 'top';
   }
-  // Kill Streak popup
+  // Kill Streak popup: under the pause button (#pauseBtn in style.css: top 64 + size 36 HUD px) and
+  // growing downwards only, so the pop never reaches the button or the KO/Gold counters above it
   const st = vfx.streak;
   if (st) {
     const pop = 1 + 0.8 * Math.max(0, 1 - st.t / 0.15), a = st.t > 1.1 ? (1.4 - st.t) / 0.3 : 1;
-    ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    outlined('×' + st.n + ' KO!', right, top + 96 * D, 14 * D * pop, st.n >= 100 ? '#ff5cf4' : '#ffd23f');
-    ctx.globalAlpha = 1; ctx.textBaseline = 'top';
+    ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    outlined('×' + st.n + ' KO!', right, top + (64 + 36 + 8) * D, 14 * D * pop, st.n >= 100 ? '#ff5cf4' : '#ffd23f');
+    ctx.globalAlpha = 1;
   }
   // stats meter
   if (MET.on) {
@@ -992,9 +1159,10 @@ function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, max
     for (let i = 0; i < bSize; i++) {
       const x = gx + i * (ps + pg), bk = P.bench[i];
       if (!bk) { panelSlot(x, yP, ps, false); continue; }
-      ctx.globalAlpha = 0.5; panelIcon(x, yP, ps, SKILL_ICON[bk.id].col, SKILL_ICON[bk.id].g, false, bk.id); ctx.globalAlpha = 1;
+      const ic = bk.pas ? PASSIVE_ICON[bk.id] : SKILL_ICON[bk.id];
+      ctx.globalAlpha = 0.5; panelIcon(x, yP, ps, ic.col, ic.g, !!bk.pas, bk.id); ctx.globalAlpha = 1;
       ctx.save(); ctx.setLineDash([2 * D, 2 * D]); ctx.strokeStyle = '#e8e4f4'; ctx.lineWidth = D; ctx.strokeRect(x - 3 * D, yP - 3 * D, ps + 6 * D, ps + 6 * D); ctx.restore();
-      panelLv(x, yP, ps, bk.lv, cfg.skills[bk.id].max);
+      panelLv(x, yP, ps, bk.lv, bk.pas ? cfg.passives.max[bk.id] : cfg.skills[bk.id].max);
     }
     gx += benchW + 12 * D;
   }

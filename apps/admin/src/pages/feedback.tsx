@@ -1,6 +1,7 @@
 // Player feedback from the game's Feedback button (title footer + Settings): read, filter, mark done.
 import { useState } from 'preact/hooks';
 import type { AdminApi, FeedbackCategory, FeedbackRow, FeedbackStatus } from '../api';
+import { WORK_STATUS } from './work';
 import { Card, Loading, Tag, fmtTime, toast, useData } from '../ui';
 
 const CAT: Record<FeedbackCategory, [string, string]> = { bug: ['บั๊ก', 'bad'], balance: ['ความสมดุล', 'warn'], idea: ['ไอเดีย', 'info'], other: ['อื่น ๆ', ''] };
@@ -17,10 +18,12 @@ function Context({ c }: { c: FeedbackRow['context'] }) {
   );
 }
 
-export function Feedback({ api }: { api: AdminApi }) {
+export function Feedback({ api, go }: { api: AdminApi; go: (page: string) => void }) {
   const [status, setStatus] = useState<FeedbackStatus | ''>('new');
   const [cat, setCat] = useState<FeedbackCategory | ''>('');
   const list = useData(() => api.feedback(status, cat), [status, cat]);
+  const work = useData(() => api.workItems(''));
+  const itemOf = (id: number) => work.data?.find((w) => w.refs.some((r) => r.type === 'feedback' && r.id === id));
   const mark = async (f: FeedbackRow, s: FeedbackStatus): Promise<void> => {
     try { await api.setFeedbackStatus(f.id, s); list.reload(); } catch (e) { toast('ไม่สำเร็จ: ' + (e as Error).message); }
   };
@@ -45,7 +48,7 @@ export function Feedback({ api }: { api: AdminApi }) {
                 <td class="small">{fmtTime(f.at)}<br />{f.name ?? <span class="mut">(ลบบัญชีแล้ว)</span>}</td>
                 <td><Tag kind={CAT[f.category][1]}>{CAT[f.category][0]}</Tag></td>
                 <td style="max-width:520px;white-space:pre-wrap;overflow-wrap:anywhere">{f.message}<br /><Context c={f.context} /></td>
-                <td><Tag kind={STATUS[f.status][1]}>{STATUS[f.status][0]}</Tag></td>
+                <td><Tag kind={STATUS[f.status][1]}>{STATUS[f.status][0]}</Tag>{(() => { const w = itemOf(f.id); return w && <><br /><a class="small" href="#/work" onClick={(e) => { e.preventDefault(); go('work'); }}>งาน #{w.id}: {WORK_STATUS[w.status][0]}</a></>; })()}</td>
                 <td class="row">
                   {f.status !== 'read' && <button onClick={() => mark(f, 'read')}>อ่านแล้ว</button>}
                   {f.status !== 'done' && <button class="pri" onClick={() => mark(f, 'done')}>จัดการแล้ว</button>}

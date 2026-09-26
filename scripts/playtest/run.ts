@@ -66,9 +66,10 @@ function tagName(tag: HitTag | undefined): string {
 }
 
 export function runOne(job: Job): RunMetrics {
-  const upTo = job.pass === true || job.pass === '1' ? BALANCE_PASSES.length : BALANCE_PASSES.findIndex((p) => p.id === job.pass) + 1;
+  const passes = [...BALANCE_PASSES].reverse(); // oldest first
+  const upTo = job.pass === true || job.pass === '1' ? passes.length : passes.findIndex((p) => p.id === job.pass) + 1;
   if (job.pass && !upTo) throw new Error(`unknown balance pass ${job.pass}`);
-  const base = BALANCE_PASSES.slice(0, job.pass ? upTo : 0).reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
+  const base = passes.slice(0, job.pass ? upTo : 0).reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
   const cfg = applyPreset(resolveConfig(withOverrides(base, job.patch ?? {})), job.preset ?? 'balanced');
   const profile = { ...DEFAULT_PROFILE, ...job.profile };
   const sim = createSim({ seed: job.seed, hero: job.hero, meta: { up: { ...job.shop } }, viewport: { w: 338, h: 190 }, config: cfg });

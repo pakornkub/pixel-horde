@@ -10,6 +10,7 @@ export const TXT = {
   'nav.guide': { th: 'วิธีเล่น', en: 'How to Play' },
   'nav.skills': { th: 'สกิล & คอมโบ', en: 'Skills & Combos' },
   'nav.world': { th: 'โลก Lumora', en: 'World' },
+  'nav.updates': { th: 'อัปเดต', en: 'Updates' },
   'nav.play': { th: 'เล่นเลย', en: 'PLAY' },
   'nav.menu': { th: 'เมนู', en: 'Menu' },
   'nav.lang': { th: 'EN', en: 'ไทย' },
@@ -145,7 +146,7 @@ export const TXT = {
   'g.slots.pas': { th: 'ช่องพาสซีฟ', en: 'Passive slots' },
   'g.slots.bench': { th: 'Bench', en: 'Bench' },
   'g.slots.lock': { th: 'ล็อก', en: 'locked' },
-  'g.slots.benchp': { th: 'สกิลใน Bench ไม่ยิง และไม่ถูกเสนอให้อัป ตอนจบด่านสลับเข้าช่องโจมตีได้ (จ่าย Gold) หรือลบทิ้งฟรี Bench เริ่มที่ 1 ช่อง และ +1 หลังผ่าน Chapter 2 และ 4', en: 'Bench skills do not fire and are not offered for upgrades. At a Stage end you can swap one into an attack slot (costs Gold) or remove it for free. The Bench starts with 1 slot, +1 after Chapters 2 and 4.' },
+  'g.slots.benchp': { th: 'สกิลใน Bench ไม่ยิง และไม่ถูกเสนอให้อัป ตอนจบด่านสลับเข้าช่องโจมตีได้ (จ่าย Gold) หรือลบทิ้งฟรี พอช่องพาสซีฟเต็ม พาสซีฟใหม่ก็มาพักใน Bench แล้วสลับกับช่องพาสซีฟได้เหมือนกัน Bench เริ่มที่ 1 ช่อง และ +1 หลังผ่าน Chapter 2 และ 4', en: 'Bench skills do not fire and are not offered for upgrades. At a Stage end you can swap one into an attack slot (costs Gold) or remove it for free. Once the passive slots are full, new passives wait on the Bench too and swap into a passive slot the same way. The Bench starts with 1 slot, +1 after Chapters 2 and 4.' },
 
   'g.evo.h': { th: 'วิวัฒน์ (Evolution)', en: 'Evolution' },
   'g.evo.p': { th: 'อัปสกิลจน <b>เต็มเลเวล</b> + มี <b>พาสซีฟคู่ของมัน</b> อย่างน้อย 1 เลเวล → ตอนเลเวลอัปจะมีการ์ด <b>EVOLVE!</b> ให้เลือก สกิลกลายร่างเป็นเวอร์ชันแรงกว่ามาก', en: 'Max out a skill + own <b>its paired passive</b> (any level) → an <b>EVOLVE!</b> card shows up on level-up. The skill turns into a much stronger form.' },
@@ -311,6 +312,16 @@ export const TXT = {
 
   // ── world page ─────────────────────────────────────────
   'w.title': { th: 'โลก Lumora — Pixel Horde', en: 'The World of Lumora — Pixel Horde' },
+  // ── updates (changelog) ──
+  'up.title': { th: 'อัปเดต — Pixel Horde', en: 'Updates — Pixel Horde' },
+  'up.h': { th: 'อัปเดตเกม', en: 'Game Updates' },
+  'up.p': { th: 'ทุกครั้งที่เกมเปลี่ยน อ่านได้ที่นี่ ทั้งของใหม่ การแก้บั๊ก และการปรับสมดุล แยกตามหมวดให้ดูง่าย', en: 'Every change to the game: new things, fixes and balance updates, sorted by topic.' },
+  'up.all': { th: 'ทั้งหมด', en: 'All' },
+  'up.loading': { th: 'กำลังโหลด…', en: 'Loading…' },
+  'up.error': { th: 'โหลดรายการอัปเดตไม่ได้ ลองรีเฟรชอีกครั้ง', en: "Couldn't load the updates. Try refreshing." },
+  'up.empty': { th: 'ยังไม่มีอัปเดตในหมวดนี้', en: 'No updates of this kind yet.' },
+  'up.config': { th: 'ค่าสมดุล v{v}', en: 'Balance v{v}' },
+  'up.small': { th: 'ปรับค่าเล็กน้อย', en: 'Small adjustments' },
   'w.h': { th: 'โลก Lumora', en: 'The World of Lumora' },
   'w.p': { th: 'ฮีโร่ ดินแดน ราชา มังกร และมอนสเตอร์ทุกตัว', en: 'Heroes, Realms, Kings, dragons and every monster.' },
   'w.story.h': { th: 'เรื่องราว', en: 'The story' },

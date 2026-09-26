@@ -232,12 +232,15 @@ export function buildOptions(s: SimState): LevelOption[] {
       c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * (isLine(id) ? s.cfg.awaken.wLine : 1) });
     } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
   }
-  const pasOwned = Object.keys(P.pas).length;
+  const pasFree = Object.keys(P.pas).length < s.cfg.passiveSlots, pasBench = !!s.cfg.bench.passives && benchFree;
   for (const id of PASSIVE_IDS) {
     const lv = P.pas[id] || 0;
     if (lv >= s.cfg.passives.max[id] || s.banished.includes(id)) continue;
-    if (!lv && pasOwned >= s.cfg.passiveSlots) continue;
-    c.push({ o: { kind: 'pas', id }, w: L.wPassive });
+    if (!lv) {
+      if (P.bench.some((b) => b.id === id)) continue;
+      if (!pasFree && !pasBench) continue;
+      c.push({ o: pasFree ? { kind: 'pas', id } : { kind: 'pas', id, toBench: true }, w: L.wPassive });
+    } else c.push({ o: { kind: 'pas', id }, w: L.wPassive });
   }
   if (P.pet && P.pet.lv < s.cfg.companion.maxLv) c.push({ o: { kind: 'comp' }, w: s.cfg.companion.wLevel });
   while (out.length < L.offers && c.length) {
@@ -266,18 +269,33 @@ export function spendGold(s: SimState, cost: number): boolean {
   return true;
 }
 
-/** Clear screen: move Bench skill `bi` into an attack slot, swapping out `slot` (never the Signature). */
-export function swapBench(s: SimState, bi: number, slot: SkillId | null): void {
+/** Clear screen: move Bench entry `bi` into a slot of its kind, swapping out `slot` (never the Signature).
+ *  An evolved Skill stays evolved when its paired passive is benched (Evolution is only checked when offered). */
+export function swapBench(s: SimState, bi: number, slot: SkillId | PassiveId | null): void {
   const P = s.P, b = P.bench[bi];
   if (s.phase !== 'clear' || !b) return;
-  if (slot === signatureOf(P.ch)) return;
-  if (slot ? !P.skills[slot] : Object.keys(P.skills).length >= attackSlots(s)) return;
+  if (b.pas) {
+    const out = slot as PassiveId | null;
+    if (out ? !P.pas[out] : Object.keys(P.pas).length >= s.cfg.passiveSlots) return;
+    if (!spendGold(s, swapCost(s))) { s.events.push({ t: 'swapDenied' }); return; }
+    s.swaps++;
+    P.bench.splice(bi, 1);
+    if (out) { P.bench.splice(bi, 0, { id: out, lv: P.pas[out]!, evo: false, pas: true }); delete P.pas[out]; }
+    P.pas[b.id] = b.lv;
+    recompute(s);
+    P.hp = Math.min(P.hp, P.maxHp); // Vitality out: max HP drops
+    sfx(s, 'coin');
+    return;
+  }
+  const out = slot as SkillId | null;
+  if (out === signatureOf(P.ch)) return;
+  if (out ? !P.skills[out] : Object.keys(P.skills).length >= attackSlots(s)) return;
   if (!spendGold(s, swapCost(s))) { s.events.push({ t: 'swapDenied' }); return; }
   s.swaps++;
   P.bench.splice(bi, 1);
-  if (slot) {
-    P.bench.splice(bi, 0, { id: slot, lv: P.skills[slot]!, evo: !!P.evo[slot] });
-    delete P.skills[slot]; delete P.evo[slot]; delete P.cds[slot];
+  if (out) {
+    P.bench.splice(bi, 0, { id: out, lv: P.skills[out]!, evo: !!P.evo[out] });
+    delete P.skills[out]; delete P.evo[out]; delete P.cds[out];
   }
   P.skills[b.id] = b.lv;
   if (b.evo) P.evo[b.id] = true;
@@ -308,6 +326,7 @@ export function choose(s: SimState, index: number): void {
     if (o.toBench) P.bench.push({ id: o.id, lv: 1, evo: false });
     else P.skills[o.id] = (P.skills[o.id] || 0) + 1;
   }
+  else if (o.kind === 'pas' && o.toBench) P.bench.push({ id: o.id, lv: 1, evo: false, pas: true });
   else if (o.kind === 'pas') {
     P.pas[o.id as PassiveId] = (P.pas[o.id] || 0) + 1;
     recompute(s);

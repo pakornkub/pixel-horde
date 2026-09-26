@@ -1,9 +1,9 @@
 import './style.css';
-import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
+import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState, type SkillId, type PassiveId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, onSettingsChange, saveSettings, settings } from './settings';
-import { PRESETS, applyPreset, type PresetId } from '@pixel-horde/config';
+import { applyPreset, effectivePreset, isPreset, isRanked, type PresetId } from '@pixel-horde/config';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { closeFeedback, feedbackOpen, initFeedback, openFeedback } from './ui/feedback';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
@@ -26,8 +26,9 @@ import type { Session } from './coop/session';
 import type { CloseReason } from '@pixel-horde/coop';
 import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
-import { cv, onResize, screen } from './platform/screen';
+import { cv, onResize, screen, syncViewZoom } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
+import { refreshUpdateNote, renderUpdateNote } from './ui/update-note';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
   $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
@@ -115,10 +116,10 @@ async function newRun(): Promise<void> {
   clearSave();
   starting = true;
   initAudio();
-  runPreset = settings.preset;
+  runPreset = effectivePreset(active.cfg, settings.preset); // a preset the admin hid falls back to Balanced
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
   // Presets other than Balanced are unranked: no ticket, the Run is submitted like an offline one.
-  ticket = !PRESETS[runPreset].ranked ? null
+  ticket = !isRanked(runPreset) ? null
     : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
@@ -131,7 +132,7 @@ async function newRun(): Promise<void> {
     crack: Math.min(META.crack, META.crackMax),
     firstRun: !META.tips.includes('first'), // the account's very first Greenvale is a little easier
     meta: simMeta(),
-    viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
+    viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
     config: applyPreset(active.cfg, runPreset),
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
@@ -169,7 +170,7 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
     seed: s.role === 'host' ? seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
-    meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(), config,
+    meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(), config,
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     coop: { role: s.role, self: s.selfId },
   }));
@@ -331,11 +332,11 @@ async function continueRun(): Promise<void> {
     if (!pick) return;
     const base = await configFor(pick.configVersion);
     if (!base) { showMsg(t('save.noConfig')); return; }
-    runPreset = pick.preset && PRESETS[pick.preset] ? pick.preset : 'balanced';
+    runPreset = isPreset(pick.preset) ? pick.preset : 'balanced';
     const config = applyPreset(base, runPreset);
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
-    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
+    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
       config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
     clearSave();
     usedHash = s.checkpoint().hash;
@@ -371,10 +372,11 @@ function toTitle(): void {
   renderTitleStats();
   show('ovTitle');
   void refreshContinue();
+  void refreshUpdateNote($('updNote'));
 }
 
 let benchDirty = false;
-function onSwap(bench: number, slot: SkillId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
+function onSwap(bench: number, slot: SkillId | PassiveId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
 function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benchDirty = true; }
 function renderClear(v: Readonly<SimState>, denied = false): void {
   showClear(v, v.runGold);
@@ -505,7 +507,8 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
-onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.LW, h: screen.LH }); });
+onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.RW, h: screen.RH }); });
+onSettingsChange(syncViewZoom);
 
 /* ---------- input ---------- */
 let leaveArmed = false;
@@ -657,6 +660,7 @@ async function refreshLive(): Promise<void> {
     onTooOld: () => { pause(); show('ovUpdate'); },
     onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: applyPreset(cfg, runPreset) }); },
   });
+  renderModeBadge(); // the new config may hide or change a preset
   const f = live.flags();
   if (sim) cmd({ type: 'setEvents', events: { bloodMoon: f.bloodMoon, dragon: f.dragon, rival: f.rival } });
 }
@@ -678,21 +682,24 @@ function refreshText(): void {
   renderTitleStats();
   renderAccountLine();
   renderNews();
+  renderUpdateNote($('updNote'));
 }
 onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
-initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); } });
+initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); void refreshUpdateNote($('updNote')); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); } });
 void refreshLive();
+void refreshUpdateNote($('updNote'));
 initLeaderboard();
 installTelemetry();
 $('draftBadge').hidden = !DRAFT;
 /** Title: a reminder when a non-standard (unranked) difficulty is selected; tap to change it. */
 function renderModeBadge(): void {
   const b = $('modeBadge');
-  b.hidden = settings.preset === 'balanced';
-  b.textContent = t('preset.badge', { name: t(`preset.${settings.preset}`) });
+  const id = effectivePreset(active.cfg, settings.preset);
+  b.hidden = id === 'balanced';
+  b.textContent = t('preset.badge', { name: t(`preset.${id}`) });
 }
 $('modeBadge').addEventListener('click', () => openSettings('ovTitle'));
 onSettingsChange(renderModeBadge);

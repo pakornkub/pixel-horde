@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** in-progress — code done; live deploy waits for the owner to add Cloudflare secrets (docs/deploy.md)
+**Status:** done — the Deploy workflow publishes the site + game (`pixel-horde`) and the Admin (`pixel-horde-admin`) to Cloudflare Pages on every push, with a preview per branch (checked 2026-09-26 against the live project)
 
 - [x] Workspace layout matches `CLAUDE.md` → Structure (game app, admin app, sim/config/i18n packages, room worker, supabase folder), even if some are empty stubs
 - [x] `npm run dev` serves the game locally; `npm run build` produces a static bundle
-- [ ] The build deploys to a Cloudflare Pages project with preview deploys per branch
+- [x] The build deploys to a Cloudflare Pages project with preview deploys per branch
 - [x] Gameplay, sprites, sound, meta progression (localStorage) behave as in `pixel-horde.html`
 - [x] No console errors when `window.claude` is absent
 

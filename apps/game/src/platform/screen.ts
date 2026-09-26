@@ -1,4 +1,8 @@
 // Canvas setup: low-res world buffer (≈190 px on the short side, integer scale) + hi-res canvas for text/HUD.
+// The camera setting (`settings.view`) zooms the buffer out so more of the world shows; the sim's rules
+// (auto-aim "on screen", Ultimate reach, spawn/despawn distance) keep the zoom-1 view RW × RH.
+import { settings, viewZoom } from '../settings';
+
 const $ = (id: string) => document.getElementById(id)!;
 
 export const cv = $('c') as HTMLCanvasElement;
@@ -8,6 +12,12 @@ export const b = buf.getContext('2d')!;
 
 export const screen = {
   DPR: 1, CS: 3, S: 3, LW: 320, LH: 180, VW: 0, VH: 0,
+  /** CSS px per world px at zoom 1 (damage numbers keep this size when the camera zooms out). */
+  CS0: 3,
+  /** The sim's view in world px at zoom 1: what "on screen" means for the rules. */
+  RW: 320, RH: 180,
+  /** Camera zoom-out factor from the settings (1 = normal). */
+  Z: 1,
   /** HUD scale: grows with the screen's short side like the world does (phones 1, big screens up to 2.5). */
   UI: 1,
   /** One HUD pixel in canvas pixels (DPR × UI). */
@@ -25,9 +35,13 @@ export function resize(): void {
   s.VH = innerHeight;
   cv.width = Math.round(s.VW * s.DPR);
   cv.height = Math.round(s.VH * s.DPR);
-  s.CS = Math.max(2, Math.round(Math.min(s.VW, s.VH) / 190));
-  s.LW = Math.ceil(s.VW / s.CS);
-  s.LH = Math.ceil(s.VH / s.CS);
+  s.CS0 = Math.max(2, Math.round(Math.min(s.VW, s.VH) / 190));
+  s.RW = Math.max(1, Math.ceil(s.VW / s.CS0)); // ≥ 1: a hidden frame can report a 0 × 0 window
+  s.RH = Math.max(1, Math.ceil(s.VH / s.CS0));
+  s.Z = viewZoom(settings.view);
+  s.CS = s.CS0 / s.Z;
+  s.LW = Math.max(1, Math.ceil(s.VW / s.CS));
+  s.LH = Math.max(1, Math.ceil(s.VH / s.CS));
   s.S = s.CS * s.DPR;
   s.UI = Math.max(1, Math.min(2.5, Math.min(s.VW, s.VH) / 420));
   s.HD = s.DPR * s.UI;
@@ -43,3 +57,6 @@ export function resize(): void {
 }
 addEventListener('resize', resize);
 resize();
+
+/** Re-layout when the camera setting changed. */
+export function syncViewZoom(): void { if (viewZoom(settings.view) !== screen.Z) resize(); }
