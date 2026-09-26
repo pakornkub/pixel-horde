@@ -1,6 +1,6 @@
 // Admin data access. Live = Supabase RPCs (every one checks the admin role server-side).
 // Demo (?demo) = in-memory fake data so the console can be tried before the backend is live.
-import { DEFAULT_CONFIG } from '@pixel-horde/config';
+import { DEFAULT_CONFIG, type BalanceReport, type ChangeEntry } from '@pixel-horde/config';
 
 export interface Attention { kind: string; level: 'bad' | 'warn' | 'info'; [k: string]: unknown }
 export interface Overview {
@@ -11,7 +11,7 @@ export interface Overview {
   attention: Attention[];
 }
 export interface AuditRow { id: number; at: string; actor: string; action: string; target: string; detail: unknown }
-export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown> }
+export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown>; report?: BalanceReport | null }
 export interface BoardRow { userId: string; name: string; score: number; chapter: number; hero: string; weapon: string | null; hidden: boolean; banned: boolean; at: string; status: 'verified' | 'pending' | 'suspicious' }
 export interface PlayerRow {
   id: string; name: string; role: string; gold: number; linked: boolean; lastSeen: string;
@@ -45,7 +45,12 @@ export interface AdminApi {
   overview(): Promise<Overview>;
   audit(limit?: number): Promise<AuditRow[]>;
   configs(): Promise<ConfigRow[]>;
-  publishConfig(data: unknown, note: string): Promise<number>;
+  /** `report` is stored with the new version and shown in its history. */
+  publishConfig(data: unknown, note: string, report?: BalanceReport | null, changelog?: Pick<ChangeEntry, 'titleTh' | 'titleEn' | 'items'> | null): Promise<number>;
+  /** Changelog (patch notes), newest first, with admin notes. */
+  changelog(): Promise<ChangeEntry[]>;
+  upsertChangelog(e: ChangeEntry): Promise<number>;
+  deleteChangelog(id: number): Promise<void>;
   rollbackConfig(version: number): Promise<number>;
   flags(): Promise<Record<string, unknown>>;
   setFlag(key: string, value: unknown): Promise<void>;
@@ -96,7 +101,10 @@ async function liveApi(): Promise<AdminApi> {
     overview: () => rpc('admin_overview'),
     audit: (limit = 200) => rpc('admin_audit', { p_limit: limit }),
     configs: () => rpc('admin_configs'),
-    publishConfig: (data, note) => rpc('publish_config', { p_data: data, p_note: note }),
+    publishConfig: (data, note, report, changelog) => rpc('publish_config', { p_data: data, p_note: note, p_report: report ?? null, p_changelog: changelog ?? null }),
+    changelog: () => rpc('admin_changelog'),
+    upsertChangelog: (e) => rpc('upsert_changelog', { p: e }),
+    deleteChangelog: (id) => rpc('delete_changelog', { p_id: id }),
     rollbackConfig: (version) => rpc('rollback_config', { p_version: version }),
     async flags() { const s = await rpc<{ flags: Record<string, unknown> }>('get_live_state'); return s.flags; },
     setFlag: (key, value) => rpc('set_flag', { p_key: key, p_value: value }),
@@ -145,6 +153,10 @@ function demoApi(): AdminApi {
   const board: BoardRow[] = names.map((n, i) => ({ userId: 'u' + i, name: n, score: 80900 - i * 7000, chapter: 8 - (i >> 1), hero: ['kit', 'lyra', 'bram', 'vex'][i % 4], weapon: null, hidden: false, banned: false, at: now(), status: i === 2 ? 'suspicious' : i === 3 ? 'pending' : 'verified' }));
   let season = 1;
   const players: PlayerRow[] = names.map((n, i) => ({ id: 'u' + i, name: n, role: 'player', gold: i === 2 ? 98000 : 3000 - i * 300, linked: i % 2 === 0, banned: false, suspended: false, lastSeen: now() }));
+  const log: ChangeEntry[] = [
+    { id: 2, at: now(), kind: 'feature', titleTh: 'ปุ่มเลือกความยาก', titleEn: 'Difficulty presets', items: [{ cat: 'difficulty', th: 'เลือกความยากได้ 6 แบบในหน้าตั้งค่า', en: 'Six difficulty presets in Settings' }], note: 'PR #15', public: true },
+    { id: 1, at: now(), kind: 'balance', configVersion: 2, titleTh: 'ด่าน 1 สั้นลง', titleEn: 'Shorter Chapter 1', items: [{ cat: 'difficulty', th: 'ความยาวด่าน 1: 60 → 55 วินาที', en: 'Chapter 1 length: 60 → 55 s' }], note: '', public: true },
+  ];
   const fb: FeedbackRow[] = [
     { id: 3, userId: 'u5', name: 'Pim', category: 'bug', message: 'บอสตายแล้วค้าง คับ', context: { build: '202609261200', device: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', screen: '390x844@3', lang: 'th', chapter: '3', hero: 'alchemist', realm: 'deepdark', mode: 'solo', phase: 'overtime' }, status: 'new', at: now() },
     { id: 2, userId: 'u1', name: 'lyra_th', category: 'balance', message: 'ปรับตัว vex ปาขวด เท่าที่เล่นคือปามัว ทำให้เล่นยาก และเวลามีบอสปาโดนบอสน้อยมาก', context: { build: '202609261200', device: 'Android 15; Pixel 8', screen: '412x915@2.63', lang: 'th' }, status: 'read', at: now() },
@@ -181,7 +193,8 @@ function demoApi(): AdminApi {
     }),
     audit: async () => clone(audit),
     configs: async () => clone(configs),
-    async publishConfig(data, n) { const v = configs[0].version + 1; configs.unshift({ version: v, status: 'published', note: n, at: now(), by: 'Owner (demo)', data: { ...(data as object), version: v } }); note('insert', 'balance_configs', { version: v, note: n }); return v; },
+    async publishConfig(data, n, report, cl) { const v = configs[0].version + 1; configs.unshift({ version: v, status: 'published', note: n, at: now(), by: 'Owner (demo)', data: { ...(data as object), version: v }, report: report ?? null });
+      log.unshift({ id: log.length + 1, at: now(), kind: 'balance', configVersion: v, titleTh: cl?.titleTh || `ปรับสมดุลเกม (v${v})`, titleEn: cl?.titleEn || `Balance update (v${v})`, items: cl?.items ?? [], note: n, public: true }); note('insert', 'balance_configs', { version: v, note: n }); return v; },
     async rollbackConfig(version) { const src = configs.find((c) => c.version === version)!; return this.publishConfig(clone(src.data), 'rollback to v' + version); },
     flags: async () => clone(flags),
     async setFlag(k, v) { note('update', 'feature_flags', { old: { key: k, value: flags[k] }, new: { key: k, value: v } }); flags[k] = v; },
@@ -200,6 +213,9 @@ function demoApi(): AdminApi {
         : [{ userId: r.userId, name: r.name, kind: 'badge' as const, reward: i < 10 ? 'champion' : 'top100', rank: i + 1, board: 'solo' }]) };
     },
     async openSeason(name) { note('open_season', 'seasons', { closed: season, name }); season++; return season; },
+    changelog: async () => clone(log),
+    async upsertChangelog(e) { const i = log.findIndex((x) => x.id === e.id); const row = { ...e, id: e.id ?? log.length + 100, at: e.at || now() }; if (i >= 0) log[i] = row; else log.unshift(row); return row.id!; },
+    async deleteChangelog(id) { const i = log.findIndex((x) => x.id === id); if (i >= 0) log.splice(i, 1); },
     feedback: async (st, c) => clone(fb.filter((f) => (!st || f.status === st) && (!c || f.category === c))),
     async setFeedbackStatus(id, st) { const f = fb.find((x) => x.id === id); if (f) f.status = st; },
     players: async (q) => clone(players.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))),

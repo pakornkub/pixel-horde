@@ -21,7 +21,7 @@ test('admin: control room, tuning lab publish, flags, leaderboard', async ({ pag
   await expect(page.locator('.stage a.btn')).toHaveAttribute('href', /#draftcfg=/);
   await page.click('.stage button.pri');
   await expect(page.locator('#toast')).toContainText('โน้ต');
-  await page.fill('.stage input', 'boss a bit later');
+  await page.fill('.stage input[aria-label="โน้ต"]', 'boss a bit later');
   await page.click('.stage button.pri');
   await expect(page.locator('#toast')).toContainText('Publish v3');
 
@@ -52,5 +52,5 @@ test('admin: AI assistant proposes changes that land in the tuning lab draft', a
   await page.getByRole('button', { name: /ส่งเข้าฉบับร่าง/ }).click();
   await expect(page.locator('.stage')).toContainText('รอ publish (2)');
   await expect(page.locator('.stage')).toContainText('overtimeUltMul');
-  await expect(page.locator('.stage input')).toHaveValue('ตามคำแนะนำของผู้ช่วย AI');
+  await expect(page.locator('.stage input[aria-label="โน้ต"]')).toHaveValue('ตามคำแนะนำของผู้ช่วย AI');
 });

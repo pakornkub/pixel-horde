@@ -8,12 +8,13 @@ import './style.css';
 export const PLAY_URL: string = import.meta.env.DEV ? 'http://localhost:5173/' : './play/';
 export const REPO_URL = 'https://github.com/pakornkub/pixel-horde';
 
-type Page = 'home' | 'guide' | 'skills' | 'world';
+type Page = 'home' | 'guide' | 'skills' | 'world' | 'updates';
 const LINKS: [Page, string, TextKey][] = [
   ['home', './', 'nav.home'],
   ['guide', './guide.html', 'nav.guide'],
   ['skills', './skills.html', 'nav.skills'],
   ['world', './world.html', 'nav.world'],
+  ['updates', './updates.html', 'nav.updates'],
 ];
 
 export function shell(page: Page): void {

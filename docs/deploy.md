@@ -70,6 +70,10 @@ in the project's migration history); the row is byte-identical to the one in the
 `balance_pass_fields`; the 2026-09 balance pass (`packages/config/src/balance-pass.ts`) is published as config v4
 (v3 + those changes).
 `20260927000017_preset_knobs` (difficulty presets in `shared.presets`) is applied as `preset_knobs`.
+`20260927000018_config_reports` (a report per config version; `publish_config(p_data, p_note, p_report)`) is applied as
+`config_reports`; v4 carries the 2026-09 report.
+`20260927000019_changelog` (patch notes: `changelog` table, `get_changelog` for the website, Admin RPCs; `publish_config`
+gains `p_changelog` and always writes a `balance` entry) is applied as `changelog`, backfilled with 18 entries (PR #1–#15, config v1–v4).
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
