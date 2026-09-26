@@ -194,6 +194,7 @@ const difficulty = obj({
   warn: mul(1.4, 'Boss move warning time ×'), kingPace: mul(1.35, 'Pause between King moves ×'),
   hp: mul(1.3, 'Player max HP ×'), hearts: mul(2, 'Heart drop chance ×'),
   ultFill: mul(0.8, 'Ultimate charge time ×'), director: mul(0.75, 'Director maximum ×'),
+  gold: mul(0.2, 'Gold earned in a Run × (coins, chests, Kings, Rival, Gold bags, Umbra bonus)'),
 }, 'Base difficulty: multipliers on the numbers in this config (1 = as written)');
 
 const shared = obj({

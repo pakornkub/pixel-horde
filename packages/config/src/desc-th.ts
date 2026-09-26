@@ -55,6 +55,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Player max HP ×': { th: 'คูณเลือดสูงสุดของผู้เล่น', up: 'ผู้เล่นทนขึ้น' },
   'Heart drop chance ×': { th: 'คูณโอกาสดรอปหัวใจ', up: 'ได้ฮีลบ่อยขึ้น' },
   'Ultimate charge time ×': { th: 'คูณเวลาชาร์จท่าไม้ตาย', up: 'ชาร์จช้าลง ใช้ท่าไม้ตายได้น้อยลง' },
+  'Gold earned in a Run × (coins, chests, Kings, Rival, Gold bags, Umbra bonus)': { th: 'คูณทองที่ได้ในรอบ (เหรียญ หีบ ราชา Rival ถุงทอง โบนัส Umbra)', up: 'ได้ทองมากขึ้น ซื้อของร้านถาวรครบเร็วขึ้น' },
   'Director maximum ×': { th: 'คูณเพดานของ Director', up: 'เกมเร่งความกดดันได้สูงขึ้นเมื่อผู้เล่นเล่นสบาย' },
   'Awakened Signature Skill damage ×': { th: 'ดาเมจ Signature Skill หลัง Awakening (คูณ)', up: 'หลัง Awakening ตีแรงขึ้น' },
   'Skill Line skills given right away when Awakening (in listed order, into free attack slots)': { th: 'จำนวนสกิลสายที่ได้ทันทีตอน Awakening (ใส่ในช่องที่ว่าง)', up: 'Awakening แล้วได้สกิลสายทันทีมากขึ้น ไม่ต้องรอสุ่มเจอ' },
