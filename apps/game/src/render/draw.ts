@@ -13,6 +13,8 @@ const K = INK;
 const R = fxRng.next;
 const clamp = (v: number, a: number, c: number): number => (v < a ? a : v > c ? c : v);
 let ox = 0, oy = 0;
+/** Reused every frame for the Y-sorted entity pass, instead of allocating a new ~320-element array each tick. */
+const entScratch: (Enemy | null)[] = [];
 /** World (low-res buffer) → hi-res canvas, following the zoom moment around the screen centre. */
 function toScreen(x: number, y: number): [number, number] {
   const { S } = screen, z = zoomK(), W = cv.width, H = cv.height;
@@ -381,13 +383,15 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.globalAlpha = 0.8; b.strokeStyle = '#bfe8ff'; b.lineWidth = 1; b.stroke(); b.restore();
       }
     }
-    // entities sorted by y
-    const ents: (Enemy | null)[] = v.enemies.slice();
-    ents.push(null); // null = the player
-    ents.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
+    // entities sorted by y (reuses entScratch instead of allocating a new array every frame)
+    let entN = 0;
+    for (const e of v.enemies) entScratch[entN++] = e;
+    entScratch[entN++] = null; // the player
+    entScratch.length = entN;
+    entScratch.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
     // the Hero's sprite this frame; `covered` once a monster drawn after it overlaps it (x-ray on top later)
     let self: { img: HTMLCanvasElement; x: number; y: number } | null = null, covered = false;
-    for (const e of ents) {
+    for (const e of entScratch) {
       if (!e) {
         if (hideSelf) continue;
         const CS2 = HERO_SPR[P.ch] || HERO_SPR.mage;
