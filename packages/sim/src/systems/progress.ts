@@ -29,6 +29,7 @@ export function startStage(s: SimState, n: number): void {
   s.awakenOffer = false;
   s.darkness = false;
   P.linkStart = maxLinks(s);
+  P.mark = null; P.bashT = 0;
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
   s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.front.t = 0; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
   const D = s.cfg.director;
@@ -64,8 +65,9 @@ export function awakenEligible(s: SimState): boolean {
   return !P.awakened && !P.awakenDeclined && !!P.evo[signatureOf(P.ch)] && qualifiedLinks(s).length >= s.cfg.awaken.links;
 }
 
-/** Stage end: count full Stages each Link spent maxed and equipped, then maybe offer Awakening. */
-function updateLinks(s: SimState): void {
+/** Stage end: count full Stages each Link spent maxed and equipped, then maybe offer Awakening.
+ *  Also run by co-op guests when the host clears a Stage (they never run stageClear). */
+export function updateLinks(s: SimState): void {
   const P = s.P, now = maxLinks(s);
   for (const id of SKILL_LINES[P.ch]) {
     if (now.includes(id) && P.linkStart.includes(id)) P.linkStages[id] = (P.linkStages[id] || 0) + 1;

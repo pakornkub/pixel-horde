@@ -72,6 +72,7 @@ const skills = obj({
     max: int(7, 1, 20, 'Max level'),
     dmg: lin(40, 18, 'Damage'), cd: lin(1.7, -0.13, 'Cooldown (s)', 0.6), n: step(1, 3, 0, 'Lances per cast'),
     range: pos(220, 'Trigger range'), speed: pos(280, 'Projectile speed'), life: sec(0.9, 'Projectile life (s)'), spread: n(0.22, 0, 3, 'Fan spread (rad)'), kb: pos(20, 'Knockback'),
+    aim: n(0, 0, 200, 'Aim at the thickest crowd (monsters within this radius of each other) in range; 0 = the way the Hero faces'),
     evo: evo({ nAdd: pos(2, 'Extra lances'), dmgMul: mul(1.5, 'Damage multiplier') }),
   }),
   boomer: obj({
@@ -109,12 +110,30 @@ const skills = obj({
     dmg: lin(9, 5, 'Damage per tick'), cd: lin(3.2, -0.2, 'Cooldown (s)', 1.6), r: lin(34, 4, 'Radius'), dur: lin(2.6, 0.2, 'Lasts (s)'),
     tick: sec(0.35, 'Damage interval (s)'),
     evo: evo({ rMul: mul(1.35, 'Radius multiplier'), n: int(2, 1, 5, 'Sigils per cast') }),
+    awk: obj({
+      nAdd: int(0, 0, 4, 'Extra sigils per cast'), rMul: mul(1, 'Radius ×'), durMul: mul(1, 'Lasts ×'),
+      spd: pos(30, 'Drift speed toward the thickest crowd'), pull: pos(22, 'Pull speed toward the sigil centre (Gathered)'),
+      trail: sec(0.3, 'Leaves a trail mark every (s)'), trailDur: sec(1.4, 'Trail mark lasts (s)'),
+      trailR: frac(0.35, 'Trail mark radius × sigil radius'), trailMul: frac(0.5, 'Trail mark damage × sigil damage'),
+      echo: frac(0.5, 'Mana Nova also bursts from each sigil at this damage ×'),
+      warpChill: frac(1, 'Time Warp: chance each tick adds a frost stack to a monster inside (3 stacks = Frozen)'),
+    }, 'Archmage (Awakened, awaken.form 1): Wandering Sigils; Starfall aims at them, Time Warp freezes'),
   }, 'Lyra: Arcane Sigil'),
   shield: obj({
     max: int(6, 1, 20, 'Max level'),
     dmg: lin(8, 5, 'Bash damage'), n: lin(1, 0.4, 'Shields', 1, 3), r: lin(24, 1.5, 'Orbit radius'), spd: lin(2.2, 0.2, 'Turn speed'),
     hitCd: sec(0.4, 'Hit interval per enemy (s)'), kb: pos(90, 'Knockback'), block: pos(7, 'Projectile block radius'),
+    size: pos(6, 'Hit size of a shield (added to the monster radius)'),
+    bashCd: sec(0, 'Shield Bash: every this many seconds the shields swing out and back (0 = never)'),
+    bashMul: mul(2, 'Shield Bash: orbit radius × at the widest'), bashDur: sec(0.6, 'Shield Bash: out-and-back time (s)'),
     evo: evo({ n: int(3, 1, 6, 'Shields'), heal: pos(3, 'HP healed per blocked projectile'), absorb: frac(0.15, 'Damage taken × (1 − this)') }),
+    awk: obj({
+      n: int(3, 1, 8, 'Outer shields'), rMul: mul(1.7, 'Outer ring radius × the inner ring'),
+      cd: sec(3, 'The outer shields are thrown every (s)'), flight: sec(0.3, 'Flight time each way (s)'),
+      dmgMul: mul(3, 'Slam damage × Bash damage'), r: pos(30, 'Slam radius'), pull: pos(16, 'A slam pulls monsters this far toward its centre (Gathered)'),
+      hold: sec(2.5, 'Monsters a slam gathers stay Gathered this long (s)'),
+      domeMul: mul(2, 'Aegis Dome shield burst damage × Bash damage'), domeR: pos(80, 'Aegis Dome shield burst radius'),
+    }, 'Paladin (Awakened, awaken.form 1): Judgement Shields; Sacred Blades aim at crowds, Judgement Pillar burns on the slam'),
   }, 'Bram: Holy Shield'),
   hawk: obj({
     max: int(7, 1, 20, 'Max level'),
@@ -123,11 +142,22 @@ const skills = obj({
     guardN: int(0, 0, 50, 'Monsters this close to Kit that make the Hawk defend: it dives the nearest one instead of the biggest (0 = never)'),
     guardR: pos(40, 'Hawk defend radius around Kit'),
     evo: evo({ n: int(2, 1, 4, 'Hawks'), stun: sec(0.8, 'Stun (s); bosses are slowed') }),
+    awk: obj({
+      n: int(5, 1, 12, 'Hawks in the flock'), dmgMul: mul(0.6, 'Damage × per hawk'), r: pos(16, 'Splash radius of each dive'),
+      galePull: pos(40, 'Gale Step blades pull monsters toward them (Gathered)'),
+      shockMul: mul(1.5, 'Thunder Hawk damage × on Shocked monsters'), shockJump: mul(1.6, 'Thunder Hawk jump range × toward Shocked monsters'),
+    }, 'Stormhunter (Awakened, awaken.form 1): Hawk Flock; Arrow Rain turns to fire arrows on its prey'),
   }, 'Kit: Hawk Companion'),
   flask: obj({
     max: int(7, 1, 20, 'Max level'),
     dmg: lin(22, 11, 'Splash damage'), cd: lin(2.6, -0.16, 'Cooldown (s)', 1.1), r: lin(22, 2, 'Splash radius'), flight: sec(0.45, 'Throw time (s)'), range: pos(190, 'Throw range'),
     evo: evo({ n: int(2, 1, 4, 'Flasks per throw'), dmgMul: mul(1.2, 'Damage multiplier') }),
+    awk: obj({
+      rMul: mul(1.6, 'Giant flask splash radius ×'), dmgMul: mul(1.5, 'Giant flask damage ×'),
+      shards: int(6, 1, 16, 'Small flasks it bursts into'), spread: pos(36, 'How far the small flasks fly'), shardFlight: sec(0.35, 'Small flask flight (s)'),
+      shardR: frac(0.7, 'Small flask radius ×'), shardMul: frac(0.5, 'Small flask damage ×'),
+      spreadR: pos(40, 'Transmute: a monster dying with a Status in the circle passes it to others this close'),
+    }, 'Grand Alchemist (Awakened, awaken.form 1): Giant Flask; the Cauldron lands on it, Elixir Rain readies the next'),
   }, 'Vex: Volatile Flask'),
   // Skill Line skills (tickets 24–25): unlocked by Awakening, no Evolution, stronger than general Skills
   manaNova: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(26, 13, 'Damage'), cd: lin(1.6, -0.08, 'Cooldown (s)', 0.8), r: lin(60, 6, 'Wave radius'), dur: sec(0.5, 'Wave time (s)'), kb: pos(50, 'Knockback') }, 'Lyra line: Mana Nova'),
@@ -420,6 +450,8 @@ const shared = obj({
     wLine: mul(1, 'Level-up offer weight × for Skill Line skills after Awakening'),
     keep: int(0, 0, 1, 'Awakening keeps the Links equipped (1) or consumes them (0)'),
     slots: int(0, 0, 2, 'Extra attack slots after Awakening'),
+    form: int(0, 0, 1, 'Awakened Signature takes a new form and the Skill Line skills combo with it (1), or it only hits harder (0)'),
+    mark: sec(1.5, 'Skill Line skills aim at the Awakened Signature\'s latest strike when it is this recent (s)'),
   }, 'Awakening'),
   kings: obj({
     firstCd: sec(1.6, 'First move after a King arrives (s)'),

@@ -76,8 +76,8 @@ export interface SimOptions {
   world?: 'lumora';
   /** Resolved Balance Config; defaults to the built-in one. */
   config?: ResolvedConfig;
-  /** `realm`: start Chapter 1 in this Realm (art review / playtests). */
-  debug?: { event?: DebugEvent; god?: boolean; realm?: RealmId };
+  /** `realm`: start Chapter 1 in this Realm (art review / playtests); `awaken`: start Awakened (Signature maxed and evolved, Skill Line skills level 3). */
+  debug?: { event?: DebugEvent; god?: boolean; realm?: RealmId; awaken?: boolean };
   /** Event feature flags at Run start (default: all on). */
   events?: EventSwitches;
   /** Run mode; the daily challenge disables the bought revive. */
@@ -210,6 +210,12 @@ export interface Player {
   statusMul: number;
   /** Holy Shield rotation. */
   shieldA: number;
+  /** Shield Bash: seconds into the current swing out and back (0 = none). */
+  bashT?: number;
+  /** Awakened form timer (Paladin: next shield throw). */
+  awkT?: number;
+  /** The Awakened Signature's latest strike (Skill Line skills aim there while it is recent). */
+  mark?: { x: number; y: number; t: number } | null;
   /** Benched skills keep their level and Evolution but do not fire and are not offered upgrades. */
   bench: BenchSkill[];
   /** Limit Break picks this Run (optional: older checkpoints have none). */
@@ -310,7 +316,7 @@ export interface Bolt {
 }
 
 export type EffectType = 'gturret' | 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask'
-  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir' | 'icewall';
+  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir' | 'icewall' | 'sshield';
 
 export interface Effect {
   type: EffectType;
@@ -334,6 +340,10 @@ export interface Effect {
   el?: 'fire' | 'ice' | 'poison';
   /** Twin Hawks stun. */
   stun?: boolean;
+  /** Awakened form: wandering sigil, giant flask. */
+  awk?: boolean;
+  /** Drawn faint (a wandering sigil's trail marks). */
+  faint?: boolean;
 }
 
 /**
@@ -462,7 +472,7 @@ export interface SimState {
   coop: CoopState | null;
   /** The account's very first Run (easier Chapter 1). */
   firstRun: boolean;
-  debug: { event?: DebugEvent; god?: boolean; realm?: RealmId };
+  debug: { event?: DebugEvent; god?: boolean; realm?: RealmId; awaken?: boolean };
 
   /** Chapter number (difficulty follows it). */
   stage: number;

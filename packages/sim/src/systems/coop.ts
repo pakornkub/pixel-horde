@@ -12,7 +12,7 @@ import { hit, hurtP, rollKingWeapon } from './combat';
 import { grantShadow } from './events';
 import { grantGuardian } from './guardians';
 import { banner, burst, flash, sfx } from './fx';
-import { choose, chestStop, gameOver, levelCheck, stageEndRewards, startStage } from './progress';
+import { choose, chestStop, gameOver, levelCheck, stageEndRewards, startStage, updateLinks } from './progress';
 import { spawnEnemy } from './spawner';
 import { stepStatuses } from './combos';
 import { U } from './player';
@@ -416,6 +416,7 @@ export function applySnap(s: SimState, h: HostSnap): void {
     if (h.le === 'clear') s.chaptersCleared.push(s.stage);
     s.lastEnd = h.le;
     s.hz = []; s.enemies = []; s.boss = s.boss2 = s.dragonE = s.rivalE = null;
+    updateLinks(s); // Links count and the Awakening offer, as the host's own stageClear does
     if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest
     if (s.phase === 'play') {
       banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear');

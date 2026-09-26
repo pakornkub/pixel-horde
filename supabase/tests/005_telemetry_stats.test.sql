@@ -1,16 +1,19 @@
 -- Ticket 14: player days, error grouping, rollup correctness on fixture data, retention.
 begin;
 select plan(14);
+-- "yesterday" pinned to noon Thai time: runs started a few minutes before it stay on the same Thai day even when
+-- the test runs just after Thai midnight (the old now() - 1 day - 10 min crossed the day boundary then).
+create function pg_temp.y() returns timestamptz language sql as $$ select ((public.thai_day() - 1) + time '12:00') at time zone 'Asia/Bangkok' $$;
 
 insert into auth.users (id, raw_user_meta_data) values ('11111111-1111-1111-1111-111111111111', '{"nickname":"Alice"}'), ('22222222-2222-2222-2222-222222222222', '{"nickname":"Bob"}');
 -- fixture: three finished Runs yesterday (Thai time), one rejected, one older than 30 days
 insert into public.runs (user_id, hero, status, result, chapter, config_version, started_at, ended_at, paused_ms, summary) values
-  ('11111111-1111-1111-1111-111111111111', 'mage', 'submitted', 'dead', 2, 3, now() - interval '1 day' - interval '10 min', now() - interval '1 day', 60000,
+  ('11111111-1111-1111-1111-111111111111', 'mage', 'submitted', 'dead', 2, 3, pg_temp.y() - interval '10 min', pg_temp.y(), 60000,
      '{"skills":{"bolt":5,"nova":2},"fps":[0,1,2,30]}'),
-  ('22222222-2222-2222-2222-222222222222', 'knight', 'submitted', 'dead', 2, 3, now() - interval '1 day' - interval '5 min', now() - interval '1 day', 0,
+  ('22222222-2222-2222-2222-222222222222', 'knight', 'submitted', 'dead', 2, 3, pg_temp.y() - interval '5 min', pg_temp.y(), 0,
      '{"skills":{"orbit":4,"nova":3},"fps":[1,0,0,20]}'),
-  ('22222222-2222-2222-2222-222222222222', 'knight', 'offline', 'quit', 4, 3, now() - interval '1 day' - interval '8 min', now() - interval '1 day', 0, '{"skills":{"orbit":6}}'),
-  ('11111111-1111-1111-1111-111111111111', 'mage', 'rejected', 'dead', 9, 3, now() - interval '1 day' - interval '1 min', now() - interval '1 day', 0, '{"skills":{"bolt":8}}'),
+  ('22222222-2222-2222-2222-222222222222', 'knight', 'offline', 'quit', 4, 3, pg_temp.y() - interval '8 min', pg_temp.y(), 0, '{"skills":{"orbit":6}}'),
+  ('11111111-1111-1111-1111-111111111111', 'mage', 'rejected', 'dead', 9, 3, pg_temp.y() - interval '1 min', pg_temp.y(), 0, '{"skills":{"bolt":8}}'),
   ('11111111-1111-1111-1111-111111111111', 'mage', 'submitted', 'dead', 1, 0, now() - interval '40 days', now() - interval '40 days', 0, '{}');
 
 select is((select count(*)::int from public.player_days where day = public.thai_day(now() - interval '1 day')), 2, 'Run starts mark player days (Thai time)');

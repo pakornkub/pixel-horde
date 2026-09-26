@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE_PASSES, BALANCE_PASS_2026_09, BALANCE_PASS_2026_09B, DEFAULT_CONFIG, listFields, withOverrides } from './index';
+import { BALANCE_PASSES, BALANCE_PASS_2026_09, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
 
 describe('balance pass 2026-09', () => {
   it('is a valid patch whose every value is inside its field range and differs from version 0', () => {
@@ -18,7 +18,18 @@ describe('balance pass 2026-09', () => {
     const changed = listFields().filter((f) => get(c, f.path) !== get(v4, f.path)).map((f) => f.path);
     expect(changed.sort()).toEqual(['shared.awaken.keep', 'shared.awaken.slots', 'shared.heroes.ranger.hp', 'shared.scaling.lvCapBase', 'shared.scaling.lvCapPerCh', 'shared.skills.hawk.guardN'].sort());
     for (const p of changed) expect(get(v4, p)).toBe(get(DEFAULT_CONFIG, p));
-    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09c', '2026-09b', '2026-09']); // newest first
+    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
+  });
+});
+
+describe('balance pass 2026-09d', () => {
+  it('turns on the awakened forms, Lance aim and Shield Bash on top of v5', () => {
+    const v5 = [BALANCE_PASS_2026_09, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C].reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
+    const c = withOverrides(v5, BALANCE_PASS_2026_09D.patch);
+    expect([v5.shared.awaken.form, v5.shared.skills.lance.aim, v5.shared.skills.shield.bashCd]).toEqual([0, 0, 0]); // off until this pass
+    expect(c.shared.awaken.form).toBe(1);
+    expect(c.shared.skills.lance.aim).toBeGreaterThan(0);
+    expect(c.shared.skills.shield.bashCd).toBeGreaterThan(0);
   });
 });
 
