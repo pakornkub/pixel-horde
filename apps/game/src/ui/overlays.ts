@@ -334,10 +334,15 @@ export function renderWeaponSwitch(v: Readonly<SimState>, onUse: (id: WeaponId) 
 
 /* ---------- Skill Points (clear screen) ---------- */
 /** Stage end: spend Skill Points on +1 level (Skill Points are no longer sold for Gold). */
-export function renderSp(v: Readonly<SimState>, onUp: (id: SkillId) => void): void {
-  const box = $('spBox'), E = v.cfg.economy, P = v.P;
-  box.hidden = v.sp <= 0; // nothing to spend (Skill Points come from Kings)
+export function renderSp(v: Readonly<SimState>, onUp: (id: SkillId) => void, onBuy?: () => void): void {
+  const box = $('spBox'), E = v.cfg.economy, P = v.P, shop = !!E.spShop && !!onBuy;
+  box.hidden = v.sp <= 0 && !shop; // nothing to spend (Skill Points come from Kings, or the shop when it is on)
   box.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
+  if (shop) {
+    const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
+    buy.addEventListener('click', onBuy!);
+    box.appendChild(buy);
+  }
   for (const id of Object.keys(P.skills) as SkillId[]) {
     const lv = P.skills[id]!;
     if (lv >= v.cfg.skills[id].max) continue;
@@ -444,7 +449,7 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
     bt.innerHTML = chip(b.id, b.lv, b.evo);
     bt.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; renderBench(v, onSwap, false, onDiscard); });
     bench.appendChild(bt);
-    if (onDiscard) { // free removal; frees the Bench slot for a new Skill
+    if (onDiscard && v.cfg.bench.discard) { // free removal; frees the Bench slot for a new Skill
       const x = document.createElement('button'); x.className = 'sk del'; x.textContent = '✕';
       x.title = x.ariaLabel = t('bench.discard', { name: skillName(b.id) });
       x.addEventListener('click', () => { if (confirm(t('bench.discardAsk', { name: skillName(b.id), lv: b.lv }))) { benchSel = -1; onDiscard(i); } });

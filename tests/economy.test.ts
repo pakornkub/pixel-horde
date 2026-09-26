@@ -69,8 +69,9 @@ describe('Skill Points', () => {
     expect(s.sp).toBe(3);
   });
 
-  it('Gold buys Skill Points at 30 × Chapter at Stage end', () => {
+  it('with the shop on (economy.spShop = 1), Gold buys Skill Points at 30 × Chapter at Stage end', () => {
     const { s, step } = fresh({ meta: { up: {}, wallet: 100 } });
+    s.cfg = { ...s.cfg, economy: { ...s.cfg.economy, spShop: 1 } };
     s.phase = 'clear';
     s.stage = 2;
     s.runGold = 40;
@@ -127,3 +128,38 @@ describe('Bought revive', () => {
     expect(s.phase).toBe('over');
   });
 });
+
+describe('owner switches (Admin)', () => {
+  it('loot.kingChestItem = 1 brings back the King chest item (two chests per King)', () => {
+    const { s } = fresh();
+    s.cfg = { ...s.cfg, loot: { ...s.cfg.loot, kingChestItem: 1 } };
+    s.stage = 2;
+    const k = spawnEnemy(s, 'boss', 30, 0, false);
+    s.boss = k;
+    const gems = s.gems.length;
+    killE(s, k);
+    expect(s.chestQueue).toBe(1);
+    expect(s.gems.slice(gems).some((g) => g.kind === 'chest')).toBe(true);
+    expect(s.gems.slice(gems).find((g) => g.kind === 'coin')?.v).toBe(50 * 2);
+  });
+
+  it('economy.spShop = 1 brings back buying Skill Points at the Stage end (off by default)', () => {
+    const { s, step } = fresh();
+    s.phase = 'clear'; s.runGold = 500;
+    step([{ type: 'buySp' }]);
+    expect(s.sp).toBe(0);
+    s.cfg = { ...s.cfg, economy: { ...s.cfg.economy, spShop: 1 } };
+    step([{ type: 'buySp' }]);
+    expect(s.sp).toBe(1);
+  });
+
+  it('bench.discard = 0 turns off removing Bench skills', () => {
+    const { s, step } = fresh();
+    s.phase = 'clear';
+    s.P.bench = [{ id: 'frost', lv: 2, evo: false }];
+    s.cfg = { ...s.cfg, bench: { ...s.cfg.bench, discard: 0 } };
+    step([{ type: 'discard', bench: 0 }]);
+    expect(s.P.bench.length).toBe(1);
+  });
+});
+

@@ -276,7 +276,7 @@ export function swapBench(s: SimState, bi: number, slot: SkillId | null): void {
 
 /** Stage-end screen: throw a Bench skill away, free (its levels are lost; it may be offered again). */
 export function discardBench(s: SimState, bi: number): void {
-  if (s.phase !== 'clear' || !s.P.bench[bi]) return;
+  if (s.phase !== 'clear' || !s.P.bench[bi] || !s.cfg.bench.discard) return;
   s.P.bench.splice(bi, 1);
   sfx(s, 'hit');
 }
@@ -422,7 +422,7 @@ export function spUpgrade(s: SimState, id: SkillId): void {
 
 /** Clear screen: Gold (this Run's first, then the wallet) → 1 Skill Point. */
 export function buySp(s: SimState): void {
-  if (s.phase !== 'clear') return;
+  if (s.phase !== 'clear' || !s.cfg.economy.spShop) return; // the Skill Point shop is switched off by default
   if (!spendGold(s, Math.round(s.cfg.economy.spCost * s.stage))) { s.events.push({ t: 'swapDenied' }); return; }
   s.sp++;
   s.events.push({ t: 'spent', what: 'buySp' });

@@ -831,5 +831,6 @@
  "title.bestLabel": "Best run",
  "title.bestValue": "Chapter {stage} · KO {kills}",
  "bench.discard": "Remove {name} from the Bench",
- "bench.discardAsk": "Remove {name} (LV {lv})? Its levels are lost, and the Bench slot frees up for a new Skill."
+ "bench.discardAsk": "Remove {name} (LV {lv})? Its levels are lost, and the Bench slot frees up for a new Skill.",
+ "sp.buy": "Buy 1 SP ({cost}G)"
 }
