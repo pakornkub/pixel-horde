@@ -886,13 +886,14 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     thaiText(t('intro.kingOf', { realm: t(`realm.${it.realm}.short`) }), cx + 56 * D, cy + 38 * D, 12 * D, '#ffffff', 3 * D);
     ctx.textBaseline = 'top';
   }
-  // Kill Streak popup
+  // Kill Streak popup: under the pause button (#pauseBtn in style.css: top 64 + size 36 HUD px) and
+  // growing downwards only, so the pop never reaches the button or the KO/Gold counters above it
   const st = vfx.streak;
   if (st) {
     const pop = 1 + 0.8 * Math.max(0, 1 - st.t / 0.15), a = st.t > 1.1 ? (1.4 - st.t) / 0.3 : 1;
-    ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    outlined('×' + st.n + ' KO!', right, top + 96 * D, 14 * D * pop, st.n >= 100 ? '#ff5cf4' : '#ffd23f');
-    ctx.globalAlpha = 1; ctx.textBaseline = 'top';
+    ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    outlined('×' + st.n + ' KO!', right, top + (64 + 36 + 8) * D, 14 * D * pop, st.n >= 100 ? '#ff5cf4' : '#ffd23f');
+    ctx.globalAlpha = 1;
   }
   // stats meter
   if (MET.on) {
