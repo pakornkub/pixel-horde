@@ -2,6 +2,10 @@
 import { detectLang, setLang, type Lang } from '@pixel-horde/i18n';
 
 export type Level3 = 'off' | 'some' | 'all';
+export const VIEWS = ['near', 'far', 'farthest'] as const;
+export type View = (typeof VIEWS)[number];
+/** Camera zoom-out factor for a camera distance. */
+export const viewZoom = (v: View): number => (v === 'farthest' ? 1.5 : v === 'far' ? 1.25 : 1);
 export interface Settings {
   lang: Lang;
   /** 0..1 */
@@ -13,6 +17,8 @@ export interface Settings {
   ultFlash: boolean;
   effects: Level3;
   numbers: Level3;
+  /** Camera distance: zooms the view out (visual only — the rules keep the normal view). */
+  view: View;
   tips: boolean;
   /** Tip ids already shown (ticket 44). */
   tipsSeen: string[];
@@ -35,6 +41,7 @@ export function parseSettings(raw: unknown, browserLangs: readonly string[]): Se
     ultFlash: typeof s.ultFlash === 'boolean' ? s.ultFlash : true,
     effects: pick(s.effects, ['off', 'some', 'all'] as const, 'all'),
     numbers: pick(s.numbers, ['off', 'some', 'all'] as const, 'all'),
+    view: pick(s.view, VIEWS, 'near'),
     tips: typeof s.tips === 'boolean' ? s.tips : true,
     tipsSeen: Array.isArray(s.tipsSeen) ? s.tipsSeen.filter((x): x is string => typeof x === 'string') : [],
     stats: typeof s.stats === 'boolean' ? s.stats : true,
