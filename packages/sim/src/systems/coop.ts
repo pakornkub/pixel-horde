@@ -21,8 +21,8 @@ export function initCoop(role: CoopRole, self: string): CoopState {
   return {
     role, self, mates: [], teamXp: 0, kingKills: 0, guardians: 0, lastGuardian: 'inferno', rivals: 0,
     teamGold: 0, teamChests: 0, healed: {}, guarded: {}, chooseT: 0, shieldT: 0, wasChoosing: false,
-    reviveT: {}, revived: {}, revivedStage: [], acks: {}, hostPhase: 'play', out: {}, outU: {}, pend: [], seq: 0,
-    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0, sg: 0 }, drops: [],
+    reviveT: {}, revived: {}, revivedStage: [], acks: {}, pot: {}, chestsTo: {}, splitDone: false, split: null, hostPhase: 'play', out: {}, outU: {}, pend: [], seq: 0,
+    last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0, sg: 0, gp: 0, cp: 0, gs: 0 }, drops: [],
   };
 }
 
@@ -163,13 +163,19 @@ export function coopGems(s: SimState, dt: number): void {
     if (bd >= 7) continue;
     g.got = true;
     if (g.kind === 'xp') { c.teamXp += g.v; P.xp += g.v * (1 + sh.wisdom.per * U(s, 'wisdom')) * xpShare(s); sfx(s, 'gem'); }
-    else if (g.kind === 'coin') {
-      c.teamGold += g.v;
+    else if (g.kind === 'coin' && C.goldSplit && !g.king) {
+      // team pot: whoever picks it up, it is split evenly at the Stage end (splitGold)
+      c.pot[best.id] = (c.pot[best.id] || 0) + g.v;
+      sfx(s, 'coin');
+      s.events.push({ t: 'text', x: best.x, y: best.y - 16, v: '+' + Math.round(g.v) + 'G', col: '#ffe98a', cr: false });
+    } else if (g.kind === 'coin') {
+      if (!g.king) c.teamGold += g.v; // guests get a King's Gold with the King kill (bk), not twice
       const gg = Math.max(1, Math.round(g.v * (1 + sh.greed.per * U(s, 'greed'))));
       s.runGold += gg;
       sfx(s, 'coin');
       if (g.v >= 5) s.events.push({ t: 'text', x: g.x, y: g.y - 8, v: '+' + gg + 'G', col: '#ffd23f', cr: false });
-    } else if (g.kind === 'chest') { c.teamChests++; s.chestQueue++; s.runGold += L.chestGold; }
+    } else if (g.kind === 'chest' && C.goldSplit && best.id !== c.self) c.chestsTo[best.id] = (c.chestsTo[best.id] || 0) + 1; // the picker's chest
+    else if (g.kind === 'chest') { if (!C.goldSplit) c.teamChests++; s.chestQueue++; s.runGold += L.chestGold; }
     else if (g.kind === 'heart') {
       for (const p of players) {
         if (p !== best && hypot(p.x - best.x, p.y - best.y) > C.heartShare) continue;
@@ -281,12 +287,29 @@ export function applyRemoteHits(s: SimState, hits: readonly number[], from?: str
   }
 }
 
+/** Host, once per Stage (`coop.goldSplit`): when the Stage-end vacuum is done (or the Run ends), everyone in the room
+ *  gets an even share of the Gold the team picked up, with their own Greed. Guests apply the same split from `gs`. */
+export function splitGold(s: SimState): void {
+  const c = s.coop;
+  if (!c || c.role !== 'host' || !s.cfg.coop.goldSplit || c.splitDone) return;
+  c.splitDone = true;
+  const total = Object.values(c.pot).reduce((a, v) => a + v, 0), players = 1 + c.mates.length;
+  applySplit(s, (c.split?.n ?? 0) + 1, s.stage, total, players, c.pot[c.self] || 0);
+}
+
+function applySplit(s: SimState, n: number, st: number, total: number, players: number, mine: number): void {
+  const got = total > 0 ? Math.max(1, Math.round((total / players) * (1 + s.cfg.shop.greed.per * U(s, 'greed')))) : 0;
+  s.runGold += got;
+  s.coop!.split = { n, st, total, players, mine, got };
+  if (got > 0) { sfx(s, 'coin'); s.events.push({ t: 'text', x: s.P.x, y: s.P.y - 16, v: '+' + got + 'G', col: '#ffd23f', cr: true }); }
+}
+
 /** Host, every tick: ally revives and the all-down end. */
 export function hostStep(s: SimState, dt: number): void {
   if (!isHost(s) || (s.phase !== 'play' && !choosing(s))) return;
   const c = s.coop!, C = s.cfg.coop, P = s.P;
   const everyone = [{ id: c.self, x: P.x, y: P.y, dn: P.down }, ...c.mates.map((m) => ({ id: m.id, x: m.x, y: m.y, dn: m.dn }))];
-  if (everyone.every((p) => p.dn)) { gameOver(s); return; }
+  if (everyone.every((p) => p.dn)) { splitGold(s); gameOver(s); return; }
   for (const d of everyone) {
     if (!d.dn || c.revivedStage.includes(d.id)) { delete c.reviveT[d.id]; continue; }
     const helper = everyone.some((a) => !a.dn && a.id !== d.id && hypot(a.x - d.x, a.y - d.y) < C.reviveRange);
@@ -343,6 +366,7 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
     e: packEnemies(s.enemies, ox, oy), eh: packEnemyHp(s.enemies), ak: { ...c.acks }, bs,
     xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
     tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), sg: { ...c.guarded }, g: packGems(s, ox, oy),
+    ...(s.cfg.coop.goldSplit ? { gp: { ...c.pot }, cp: { ...c.chestsTo }, gs: c.split ? [c.split.n, c.split.st, c.split.total, c.split.players] as [number, number, number, number] : undefined } : {}),
     hz: s.hz.slice(0, 60).map(cleanHz), sp: s.specialStage, dark: s.darkness, ot: s.overtime, le: s.lastEnd,
     pl: [{ ...selfWire(s, names[c.self]) }, ...c.mates.map((m) => ({ id: m.id, name: names[m.id] ?? m.name, x: m.x, y: m.y, hp: m.hp, mh: m.mh, lv: m.lv, dn: m.dn, fc: m.fc, mv: m.mv, hero: m.hero, sel: m.sel, sh: m.sh, gt: m.gt, pet: m.pet }))],
     rv: { ...c.revived }, route: s.phase === 'route' ? s.route : null, victory: s.victory,
@@ -385,7 +409,7 @@ export function ghostKill(s: SimState, e: Enemy): void {
 
 export function applySnap(s: SimState, h: HostSnap): void {
   if (!isGuest(s) || !h || typeof h !== 'object') return;
-  const c = s.coop!, L = c.last, P = s.P, E = s.cfg.economy;
+  const c = s.coop!, L = c.last, P = s.P, E = s.cfg.economy, first = !L.st;
   if (s.phase === 'over') return;
   // the host continued into Endless: so does this guest (Endless Score from here)
   if (s.phase === 'victory' && h.ph !== 'victory' && h.ph !== 'over') { s.endless = true; s.endlessFrom = { kills: s.kills, combos: s.combos, escapes: s.escapes }; s.phase = 'clear'; }
@@ -404,6 +428,13 @@ export function applySnap(s: SimState, h: HostSnap): void {
   s.specialStage = !!h.sp; s.darkness = !!h.dark;
   if (h.ot && !s.overtime) banner(s, 'overtime', 2, true);
   s.overtime = !!h.ot;
+  if (first) {
+    // this guest's first snapshot (Run start, or joined / came back mid-Run): what the team earned before is not
+    // this player's — kills, Gold, chests, King / Guardian / Rival rewards, escapes. Team EXP is: a late player catches up.
+    L.kc = h.kc; L.bk = h.bk; L.gd = h.gd; L.rk = h.rk; L.es = h.es ?? 0; L.tg = h.tg ?? 0; L.tc = h.tc ?? 0;
+    L.rv = h.rv?.[c.self] ?? 0; L.hl = h.hl?.[c.self] ?? 0; L.sg = h.sg?.[c.self] ?? 0; L.cp = h.cp?.[c.self] ?? 0; L.gp = h.gp?.[c.self] ?? 0;
+    if (Array.isArray(h.gs)) L.gs = h.gs[0];
+  }
   // team counters → this player's own rewards
   const dx = h.xp - L.xp;
   if (dx > 0 && dx < 1e7) P.xp += dx * (1 + s.cfg.shop.wisdom.per * U(s, 'wisdom')) * xpShare(s);
@@ -426,6 +457,20 @@ export function applySnap(s: SimState, h: HostSnap): void {
   const tc = typeof h.tc === 'number' ? h.tc : L.tc;
   for (let k = L.tc; k < tc && k - L.tc < 5; k++) { s.chestQueue++; s.runGold += s.cfg.loot.chestGold; }
   L.tc = tc;
+  // coop.goldSplit: the team pot (my pickups show at once, the Gold comes with the Stage-end split) and my own chests
+  if (h.gp && typeof h.gp === 'object') {
+    c.pot = { ...h.gp };
+    const gp = typeof h.gp[c.self] === 'number' ? h.gp[c.self] : 0;
+    if (gp > L.gp && gp - L.gp < 1e6) { sfx(s, 'coin'); s.events.push({ t: 'text', x: P.x, y: P.y - 16, v: '+' + Math.round(gp - L.gp) + 'G', col: '#ffe98a', cr: false }); }
+    L.gp = gp; // a new Stage starts the pot again
+  }
+  const cp = h.cp && typeof h.cp[c.self] === 'number' ? h.cp[c.self] : 0;
+  for (let k = L.cp; k < cp && k - L.cp < 5; k++) { s.chestQueue++; s.runGold += s.cfg.loot.chestGold; }
+  L.cp = cp;
+  if (Array.isArray(h.gs) && h.gs[0] > L.gs && h.gs[3] > 0) {
+    L.gs = h.gs[0];
+    applySplit(s, h.gs[0], h.gs[1], Math.max(0, Math.min(1e7, h.gs[2])), h.gs[3], L.gp);
+  }
   const hl = h.hl && typeof h.hl[c.self] === 'number' ? h.hl[c.self] : L.hl, dh = hl - L.hl;
   if (dh > 0 && dh < 50 && !P.down) {
     const add = Math.round(P.maxHp * dh);

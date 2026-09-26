@@ -131,6 +131,9 @@ export interface HostSnap {
   xp: number; kc: number; bk: number; gd: number; gk: GuardianKind; rk: number;
   /** Shared drops: Gold and chests picked up by anyone, heart healing (fraction of max HP) per player id. */
   tg?: number; tc?: number; hl?: Record<string, number>;
+  /** `coop.goldSplit`: Gold each player picked up this Stage (the team pot), dropped chests taken per guest id,
+   *  and the last Stage-end split [split number, Stage, pot total, players]. */
+  gp?: Record<string, number>; cp?: Record<string, number>; gs?: [number, number, number, number];
   /** Shared drops: Shield pickups granted per player id (the picker and allies close by). */
   sg?: Record<string, number>;
   /** Shared drops on the ground, packed 7 characters each (kind, x, y) relative to ox/oy. */
@@ -165,6 +168,12 @@ export interface CoopState {
   revivedStage: string[];
   /** Last damage batch applied per guest id (sent back as `ak`). */
   acks: Record<string, number>;
+  /** `coop.goldSplit`: Gold (before Greed) each player picked up this Stage, and dropped chests taken per guest id. */
+  pot: Record<string, number>; chestsTo: Record<string, number>;
+  /** Host: this Stage's pot was split (once per Stage). */
+  splitDone: boolean;
+  /** The last Stage-end split (both roles; the clear screen shows it). `got` = this player's Gold after Greed. */
+  split: CoopSplit | null;
   // guest
   hostPhase: HostPhase;
   /** Damage waiting to be sent to the host, per enemy id (Ultimate hits apart: the host caps them on bosses). */
@@ -172,10 +181,13 @@ export interface CoopState {
   /** Damage batches sent but not yet acknowledged by the host (`seq` = the last batch number). */
   pend: { q: number; d: Record<number, number> }[];
   seq: number;
-  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number; sg: number };
+  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number; sg: number; gp: number; cp: number; gs: number };
   /** The host's drops on the ground (drawn only; the host decides pickups). */
   drops: Gem[];
 }
+
+/** A Stage-end Gold split (`coop.goldSplit`): `n` counts splits this Run. */
+export interface CoopSplit { n: number; st: number; total: number; players: number; mine: number; got: number }
 
 export type GuardianKind = 'inferno' | 'frost' | 'storm';
 export type CompanionKind = GuardianKind | 'tri';
@@ -398,6 +410,8 @@ export interface Gem {
   mag: boolean;
   sp?: number;
   got?: boolean;
+  /** A King's coin (co-op: every player already gets the King's Gold, so it never goes to the team). */
+  king?: boolean;
 }
 
 export type LevelOption =

@@ -348,7 +348,9 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   const escaped = v.lastEnd === 'escape';
   $('clearTitle').textContent = escaped ? t('clear.escapedTitle') : t('clear.title', { n: v.stage });
   $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
-  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  const sp = v.coop?.split, split: [string, string][] = sp && sp.st === v.stage && sp.total > 0
+    ? [[t('stat.teamGold'), t('coop.split', { total: Math.round(sp.total), n: sp.players, mine: Math.round(sp.mine), got: sp.got })]] : [];
+  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
