@@ -1,7 +1,7 @@
 // Settings overlay (ticket 07): every option applies immediately and persists on the device.
 import { t } from '@pixel-horde/i18n';
 import { metaSync } from '../meta';
-import { applyLang, canVibrate, saveSettings, settings, type Settings } from '../settings';
+import { VIEWS, applyLang, canVibrate, saveSettings, settings, type Settings } from '../settings';
 import { $, hide, show } from './overlays';
 
 let from = 'ovTitle';
@@ -59,6 +59,7 @@ function render(): void {
     row('set.ultFlash', seg('ultFlash', [false, true] as const, onOff)),
     row('set.effects', seg('effects', ['off', 'some', 'all'] as const, (v) => t(`set.opt.${v}`))),
     row('set.numbers', seg('numbers', ['off', 'some', 'all'] as const, (v) => t(`set.opt.${v}`))),
+    row('set.view', seg('view', VIEWS, (v) => t(`set.opt.${v}`))),
     row('set.tips', seg('tips', [false, true] as const, onOff)),
     row('set.stats', seg('stats', [false, true] as const, onOff)),
   );

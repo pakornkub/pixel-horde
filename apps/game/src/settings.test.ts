@@ -4,7 +4,7 @@ import { parseSettings } from './settings';
 describe('device settings', () => {
   it('defaults from the browser language and sensible values', () => {
     const s = parseSettings(null, ['en-US']);
-    expect(s).toMatchObject({ lang: 'en', shake: 'full', vibrate: true, ultFlash: true, effects: 'all', numbers: 'all', tips: true });
+    expect(s).toMatchObject({ lang: 'en', shake: 'full', vibrate: true, ultFlash: true, effects: 'all', numbers: 'all', view: 'near', tips: true });
     expect(parseSettings({}, ['th']).lang).toBe('th');
   });
   it('keeps valid stored values and repairs invalid ones', () => {
@@ -15,5 +15,7 @@ describe('device settings', () => {
     expect(s.shake).toBe('light');
     expect(s.effects).toBe('all');
     expect(s.tipsSeen).toEqual(['move']);
+    expect(parseSettings({ view: 'farthest' }, ['en']).view).toBe('farthest');
+    expect(parseSettings({ view: 3 }, ['en']).view).toBe('near');
   });
 });
