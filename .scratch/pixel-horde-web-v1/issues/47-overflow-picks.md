@@ -22,7 +22,7 @@ pool of fillers — **Limit Break** (small stacking Run bonuses), **train a Benc
 - [x] Recover is only offered while HP is not full
 - [x] Level-up / chest cards (`overlays.ts`): Limit Break shows the stat, picks `n → n+1 / max` and borrows the matching
       passive's picture; train shows the Bench entry's picture, `BENCH LV a → b` and its next-level stats
-- [x] Migration `20260928000025_overflow_picks.sql` (live `config_schema`)
+- [x] Migration `20260929000027_overflow_picks.sql` (live `config_schema`)
 - [x] Tests `tests/overflow.test.ts`; golden replays unchanged (fillers draw only when an offer would have been short)
 - [x] Playtest bot scores the new cards; telemetry pick ids `lb:dmg`, `train:frost`, `gold`, `heal`
 - [ ] Owner playtest of a long Run (Chapter 5+ / Endless) → tune `overflow.*` from Admin → Balance if too strong

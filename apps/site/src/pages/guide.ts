@@ -2,7 +2,9 @@ import {
   AWAKENING, HERO_IDS, REALMS, ROUTE_REALMS, SHOP_IDS, SKILL_LINES, WEAPONS, WEAPON_IDS, WHEEL,
   adviceFor, signatureOf, xpNeed, type HeroId, type RealmId, type SkillId,
 } from '@pixel-horde/sim';
+import { isRanked, offeredPresets } from '@pixel-horde/config';
 import { ENEMY_SPR } from '../../../game/src/render/sprites';
+import { VIEWS, viewZoom } from '../../../game/src/settings';
 import { el, enemy, hero, passiveIcon, pickup, pix, shopIcon, skillIcon, weaponIcon } from '../art';
 import { siteConfig } from '../backend';
 import { g, onLang, s } from '../lang';
@@ -18,7 +20,7 @@ const main = document.getElementById('main')!;
 const SECS: [string, TextKey][] = [
   ['controls', 'g.controls.h'], ['goal', 'g.goal.h'], ['stage', 'g.stage.h'], ['exp', 'g.exp.h'], ['slots', 'g.slots.h'],
   ['evolve', 'g.evo.h'], ['combos', 'g.combo.h'], ['ultimate', 'g.ult.h'], ['chest', 'g.chest.h'], ['kings', 'g.kings.h'],
-  ['events', 'g.events.h'], ['skill-points', 'g.sp.h'], ['awakening', 'g.awaken.h'], ['gold', 'g.gold.h'], ['coop', 'g.coop.h'], ['tips', 'g.tips.h'],
+  ['events', 'g.events.h'], ['skill-points', 'g.sp.h'], ['awakening', 'g.awaken.h'], ['gold', 'g.gold.h'], ['coop', 'g.coop.h'], ['settings', 'g.set.h'], ['tips', 'g.tips.h'],
 ];
 
 const toc = el('nav.toc', { 'aria-labelledby': 'tocH' }, T('guide.toc', undefined, 'p'), el('ol', null, ...SECS.map(([id, key]) => el('li', null, el('a', { href: '#' + id }, T(key))))));
@@ -36,6 +38,17 @@ function sec(id: string, h: TextKey, ...kids: (Node | null)[]): void {
 }
 const tryTag = (): HTMLElement => T('guide.try', undefined, 'span', 'try');
 const note = (key: TextKey, cls = '', args?: Record<string, string | number>): HTMLElement => { const d = T(key, args, 'div', 'note ' + cls); return d; };
+type Part = [TextKey, Record<string, string | number>?] | false;
+/** Sentences joined into one element; parts that are `false` (a rule switched off in the Balance Config) are left out. */
+const parts = (tag: 'div' | 'p', cls: string, ...ps: Part[]): HTMLElement => {
+  const e = el(tag);
+  if (cls) e.className = cls;
+  ps.filter((p): p is [TextKey, Record<string, string | number>?] => !!p).forEach(([k, a], i) => { if (i) e.append(' '); e.append(T(k, a)); });
+  return e;
+};
+const pct = (x: number): number => Math.round(x * 100);
+/** English plural ending for a count (Thai text ignores it). */
+const pl = (n: number): string => (n === 1 ? '' : 's');
 /** The Ultimate's name for a Weapon, on the Weapon's own colour (like the in-game ULT button). */
 const ultChip = (id: keyof typeof WEAPONS): HTMLElement => { const c = G(`weapon.${id}.ult`, undefined, 'span', 'chip'); c.style.cssText = `background:${WEAPONS[id].col};color:var(--ink)`; return c; };
 const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null, skillIcon(id, 'sm'), G(`${evo ? 'evo' : 'skill'}.${id}.name`));
@@ -115,7 +128,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
       el('dl.kv', null,
         el('dt', null, T('w.king')), el('dd', null, G(`realm.${r}.king`)),
         el('dt', null, T('w.traits')), el('dd', null, ...traits),
-        el('dt', null, T('w.resist')), el('dd', null, resist),
+        el('dt', null, T('w.resist', { p: Math.round((1 - C.realms.resist) * 100) })), el('dd', null, resist),
         adv.length ? el('dt', null, T('w.advice')) : null, adv.length ? el('dd', null, ...adv.map((id) => skname(id as SkillId))) : null,
         w ? el('dt', null, T('w.weapon')) : null, w ? el('dd', null, weaponIcon(w.id, 3), G(`weapon.${w.id}.name`)) : null)));
   };
@@ -129,35 +142,38 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   const route = el('div.route');
   const first = realmBtn('greenvale', true);
   route.append(el('div.node', null, el('span.ch', null, 'CH 1'), first), el('span.arrow', null, '▶'));
-  for (let ch = 2; ch <= 7; ch++) {
+  const last = C.stage.chapters;
+  for (let ch = 2; ch < last; ch++) {
     const a = pool[(ch * 2) % pool.length], b = pool[(ch * 2 + 1) % pool.length];
     route.append(el('div.node', null, el('span.ch', null, `CH ${ch}`), el('div.pair', null, realmBtn(a), T('g.goal.pick', undefined, 'span', 'or'), realmBtn(b))), el('span.arrow', null, '▶'));
   }
-  route.append(el('div.node', null, el('span.ch', null, 'CH 8'), realmBtn('crater', true)), el('span.arrow', null, '▶'),
+  route.append(el('div.node', null, el('span.ch', null, `CH ${last}`), realmBtn('crater', true)), el('span.arrow', null, '▶'),
     el('div.node', null, el('span.ch', null, 'BOSS'), groundBg(el('div.realm.fixed', { style: 'width:84px;height:84px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center' }, enemy('umbra', 2)), 4, 6, 5, 3)));
   showRealm('greenvale', first);
-  sec('goal', 'g.goal.h', T('g.goal.p', undefined, 'p'),
+  sec('goal', 'g.goal.h', T('g.goal.p', { n: last }, 'p'),
     el('p', null, tryTag(), T('g.goal.click')), el('div.panel', { style: 'padding:12px' }, route), el('div.demo', null, info),
     note('g.goal.note'), note('g.goal.end', 'good'), note('g.goal.lost', 'warn'));
 }
 
 // ── 3. a Stage: timeline ────────────────────────────────
 {
-  const sel = el('select', { 'aria-label': 'Chapter' }, ...[1, 2, 3, 4, 5, 6, 7, 8].map((c) => el('option', { value: String(c) }, `CH ${c}`)));
+  const P = C.stage, SP = C.spawn, boss = pct(P.bossAt);
+  const sel = el('select', { 'aria-label': 'Chapter' }, ...Array.from({ length: P.chapters }, (_, i) => el('option', { value: String(i + 1) }, `CH ${i + 1}`)));
   const len = el('b');
-  const bar = el('div.tbar', null, el('div.ot'), el('span.mark', { style: 'left:55%' }, '👑 55%'), el('span.mark', { style: 'left:100%' }, '⏱'), el('div.cursor'));
+  const bar = el('div.tbar', { style: `background:linear-gradient(90deg,#5fae4b 0 ${boss}%,#ff8a3d ${boss}% 100%)` }, el('div.ot'), el('span.mark', { style: `left:${boss}%` }, `👑 ${boss}%`), el('span.mark', { style: 'left:100%' }, '⏱'), el('div.cursor'));
   const range = el('input', { type: 'range', min: '0', max: '130', value: '10', 'aria-label': 'time' });
   const pic = el('div.pic');
   const say = el('div');
-  const P = C.stage;
   const stageLen = (ch: number): number => Math.min(P.durMax, P.durBase + P.durPerStage * (ch - 1));
-  const phases: [number, TextKey, () => Node][] = [
-    [25, 't0' as TextKey, () => el('div', { style: 'display:flex;gap:4px;align-items:end' }, hero('mage', 3), pickup('gem', 3))],
-    [55, 't1' as TextKey, () => el('div', { style: 'display:flex;gap:2px;align-items:end' }, enemy('bat', 2), hero('mage', 2), enemy('slime', 2), enemy('mush', 2))],
-    [75, 't2' as TextKey, () => enemy('boss', 3)],
-    [100, 't3' as TextKey, () => el('div', { style: 'position:relative' }, enemy('boss', 3), el('span', { style: 'position:absolute;top:-6px;right:-10px;font:400 16px var(--pix);color:#ff2a3a' }, '!'))],
-    [115, 't4' as TextKey, () => el('div', { style: 'display:flex;gap:2px;align-items:end;filter:saturate(1.6) hue-rotate(-20deg)' }, enemy('boss', 3), enemy('slime', 2), enemy('slime', 2))],
-    [131, 't5' as TextKey, () => el('div', { style: 'opacity:.55;transform:translateX(24px)' }, enemy('boss', 3))],
+  // The swarm: a full ring, or (spawn.pincer) two arcs on normal Stages; wave fronts only when spawn.frontShare is on.
+  const swarm: Part[] = [[SP.pincer ? 'g.stage.t1p' : 'g.stage.t1', { s: SP.swarmEvery, b: SP.swarmEveryBloodMoon }], SP.frontShare > 0 && ['g.stage.front', { s: SP.frontEvery }]];
+  const phases: [number, Part[], () => Node][] = [
+    [Math.round(boss * 0.45), [['g.stage.t0']], () => el('div', { style: 'display:flex;gap:4px;align-items:end' }, hero('mage', 3), pickup('gem', 3))],
+    [boss, swarm, () => el('div', { style: 'display:flex;gap:2px;align-items:end' }, enemy('bat', 2), hero('mage', 2), enemy('slime', 2), enemy('mush', 2))],
+    [Math.round(boss + (100 - boss) * 0.45), [['g.stage.t2', { p: boss }]], () => enemy('boss', 3)],
+    [100, [['g.stage.t3', { p: pct(C.kings.phaseAt), s: C.kings.ultWarn }]], () => el('div', { style: 'position:relative' }, enemy('boss', 3), el('span', { style: 'position:absolute;top:-6px;right:-10px;font:400 16px var(--pix);color:#ff2a3a' }, '!'))],
+    [115, [['g.stage.t4', { s: P.overtime }]], () => el('div', { style: 'display:flex;gap:2px;align-items:end;filter:saturate(1.6) hue-rotate(-20deg)' }, enemy('boss', 3), enemy('slime', 2), enemy('slime', 2))],
+    [131, [['g.stage.t5'], P.escapeRepicks > 0 && ['g.stage.t5r', { n: P.escapeRepicks }]], () => el('div', { style: 'opacity:.55;transform:translateX(24px)' }, enemy('boss', 3))],
   ];
   let shown = -1;
   const update = (): void => {
@@ -169,9 +185,9 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
     const i = phases.findIndex(([end]) => v < end);
     if (i !== shown) {
       shown = i;
-      const [, k, art] = phases[i];
+      const [, text, art] = phases[i];
       pic.replaceChildren(art());
-      say.replaceChildren(T(('g.stage.' + k) as TextKey, undefined, 'p'));
+      say.replaceChildren(parts('p', '', ...text));
     }
   };
   sel.addEventListener('change', update);
@@ -182,7 +198,8 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
     el('div.tl-row', null, T('g.stage.ch', undefined, 'b'), sel, len),
     el('div.timeline', { style: 'margin-top:44px' }, bar, range),
     el('div.tl-say', null, pic, say));
-  sec('stage', 'g.stage.h', el('p', null, tryTag(), T('g.stage.p')), box, note('g.stage.win', 'good'));
+  sec('stage', 'g.stage.h', el('p', null, tryTag(), T('g.stage.p')), box,
+    note('g.stage.win', 'good', { c: C.economy.kingChest, cs: pl(C.economy.kingChest), sp: C.economy.kingSkillPoints, ps: pl(C.economy.kingSkillPoints), hp: pct(P.clearHeal) }));
 }
 
 // ── 4. EXP and level up ─────────────────────────────────
@@ -215,23 +232,31 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   let mx = 0;
   const vals = Array.from({ length: 30 }, (_, i) => { const v = xpNeed(C, i + 1); mx = Math.max(mx, v); return v; });
   vals.forEach((v, i) => bars.append(el('div.bar', { style: `height:${(v / mx) * 100}%`, tabindex: '0' }, el('span', null, `LV${i + 1}: ${v}`))));
-  sec('exp', 'g.exp.h', T('g.exp.p', undefined, 'p'),
+  sec('exp', 'g.exp.h', T('g.exp.p', { n: C.levelup.offers }, 'p'),
     el('h3.subh', null, T('g.exp.drops')), drops,
     el('div.grid.g2.demo', { style: 'align-items:start' },
       el('div', null, el('p', null, tryTag(), T('g.exp.try')), box),
-      el('div', null, el('h3', null, T('g.exp.curve')), bars, el('div.axis', null, el('span', null, 'LV1'), el('span', null, 'LV15'), el('span', null, 'LV30')))));
+      el('div', null, el('h3', null, T('g.exp.curve')), bars, el('div.axis', null, el('span', null, 'LV1'), el('span', null, 'LV15'), el('span', null, 'LV30')))),
+    note('g.exp.cards'));
 }
 
 // ── 5. slots ────────────────────────────────────────────
 {
   const slot = (inner: Node | null, lock = false): HTMLElement => el(`div.slot${inner ? '' : '.empty'}`, null, inner, lock ? T('g.slots.lock', undefined, 'span', 'lock') : null);
-  const b = C.bench;
-  sec('slots', 'g.slots.h', T('g.slots.p', undefined, 'p'),
+  const b = C.bench, aw = C.awaken.slots;
+  /** A slot that opens later (a Chapter or Awakening). */
+  const later = (label: Node): HTMLElement => el('div.slot.empty', { style: 'opacity:.5' }, el('span.lock', { style: 'background:var(--night3)' }, label));
+  const fill = <X>(items: X[], n: number): (X | null)[] => Array.from({ length: n }, (_, i) => items[i] ?? null);
+  const atk = fill([skillIcon('sigil'), skillIcon('bolt'), skillIcon('frost')], C.maxAttackSlots).map((x, i) => slot(x, i === 0));
+  const pas = fill([passiveIcon('haste'), passiveIcon('might')], C.passiveSlots).map((x) => slot(x));
+  const bench = fill([skillIcon('toxic')], b.start).map((x) => slot(x));
+  sec('slots', 'g.slots.h', parts('p', '', ['g.slots.p', { a: C.maxAttackSlots, p: C.passiveSlots }], aw > 0 && ['g.slots.awp', { n: aw, ss: pl(aw) }]),
     el('div.slots.demo', null,
-      el('div.slotgrp', null, T('g.slots.atk', undefined, 'p'), el('div.slotrow', null, slot(skillIcon('sigil'), true), slot(skillIcon('bolt')), slot(skillIcon('frost')), slot(null))),
-      el('div.slotgrp', null, T('g.slots.pas', undefined, 'p'), el('div.slotrow', null, slot(passiveIcon('haste')), slot(passiveIcon('might')), slot(null))),
-      el('div.slotgrp', null, T('g.slots.bench', undefined, 'p'), el('div.slotrow', null, slot(skillIcon('toxic')), el('div.slot.empty', { style: 'opacity:.5' }, el('span.lock', { style: 'background:var(--night3)' }, `CH${b.growAt1}+`)), el('div.slot.empty', { style: 'opacity:.5' }, el('span.lock', { style: 'background:var(--night3)' }, `CH${b.growAt2}+`))))),
-    note('g.slots.benchp'));
+      el('div.slotgrp', null, T('g.slots.atk', undefined, 'p'), el('div.slotrow', null, ...atk, ...Array.from({ length: aw }, () => later(T('g.slots.aw'))))),
+      el('div.slotgrp', null, T('g.slots.pas', undefined, 'p'), el('div.slotrow', null, ...pas)),
+      el('div.slotgrp', null, T('g.slots.bench', undefined, 'p'), el('div.slotrow', null, ...bench, later(document.createTextNode(`CH${b.growAt1}+`)), later(document.createTextNode(`CH${b.growAt2}+`))))),
+    parts('div', 'note', ['g.slots.benchp'], !!b.discard && ['g.slots.benchDel'], [b.passives ? 'g.slots.benchPas' : 'g.slots.benchNoPas'],
+      ['g.slots.benchGrow', { n: b.start, ss: pl(b.start), a: b.growAt1, b: b.growAt2 }]));
 }
 
 // ── 6. evolution ────────────────────────────────────────
@@ -265,7 +290,10 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   setInterval(() => { t = (t + 2) % 110; fill.style.width = Math.min(100, t) + '%'; fill.style.background = t >= 100 ? '#fff35c' : 'var(--gold)'; }, 100);
   const weps = el('div.grid.g4', { style: 'gap:10px' }, ...WEAPON_IDS.map((id) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:10px' },
     weaponIcon(id, 5), el('div', null, G(`weapon.${id}.name`, undefined, 'b'), el('br'), ultChip(id), el('br'), G(`weapon.${id}.desc`, undefined, 'span', 'muted')))));
-  sec('ultimate', 'g.ult.h', T('g.ult.p', undefined, 'p'), el('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, gauge, el('span.key.wide', null, 'SPACE')), T('g.ult.w', undefined, 'p'),
+  // kills add at most `killCap` × the time rate, so the fastest fill is fill / (1 + killCap)
+  const U = C.ult;
+  sec('ultimate', 'g.ult.h', T('g.ult.p', { s: U.fill, m: Math.round(U.fill / (1 + U.killCap)) }, 'p'), el('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, gauge, el('span.key.wide', null, 'SPACE')),
+    T('g.ult.w', { p: pct(C.weapons.drop) }, 'p'),
     el('div.demo', null, el('div', { style: 'display:flex;gap:10px;align-items:end;margin-bottom:14px' }, ...HERO_IDS.map((h) => hero(h, 3, 'down'))), weps));
 }
 
@@ -306,7 +334,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   const pc = (x: number): number => Math.round(x * 100);
   const a = pc(C.chest.p1), b = pc(C.chest.p2), c = 100 - a - b;
   const odds = el('div.odds', null, el('div', { style: `width:${a}%;background:var(--paper2)` }, '×1'), el('div', { style: `width:${b}%;background:#ffd23f` }, '×2'), el('div', { style: `width:${c}%;background:#ff5cf4` }, '×3'));
-  sec('chest', 'g.chest.h', T('g.chest.p', undefined, 'p'),
+  sec('chest', 'g.chest.h', T('g.chest.p', { n: C.economy.kingChest, ss: pl(C.economy.kingChest) }, 'p'),
     el('div.panel.demo', { style: 'display:flex;gap:26px;flex-wrap:wrap;align-items:center' },
       el('div', null, pickup('chest', 6), wheel, btn, result, count),
       el('div', { style: 'flex:1;min-width:240px' }, T('g.chest.odds', { a, b, c }, 'p'), odds)));
@@ -350,7 +378,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   msg.append(start);
   start.addEventListener('click', (e) => { e.stopPropagation(); round(); });
   const quote = (id: string, key: string): HTMLElement => el('div.quote', null, enemy(id, 3), el('div.bubble', null, G(key)));
-  sec('kings', 'g.kings.h', T('g.kings.p', undefined, 'p'),
+  sec('kings', 'g.kings.h', T('g.kings.p', { p: pct(C.kings.phaseAt) }, 'p'),
     el('div.grid.g2.demo', { style: 'align-items:start' },
       el('div', null, el('p', null, tryTag(), T('g.kings.warn')), field),
       el('div', null, T('g.kings.say', undefined, 'h3'), el('div.quotes', null, quote('boss', 'king.boss.arrive'), quote('bossE', 'king.bossE.arrive'), quote('bossG', 'king.bossG.half'), quote('bossL', 'king.bossL.arrive')))));
@@ -360,17 +388,21 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
 {
   const card = (pic: HTMLElement, h: TextKey, p: TextKey, args?: Record<string, string | number>): HTMLElement => el('div.panel.ev', null, pic, el('div', null, T(h, undefined, 'h3'), T(p, args, 'p')));
   const E = C.events;
-  sec('events', 'g.events.h', T('g.events.p', undefined, 'p'),
+  sec('events', 'g.events.h', T('g.events.p', { a: E.bloodMoonFrom, b: Math.min(E.lastChapter, C.stage.chapters - 1) }, 'p'),
     el('div.grid.g2.demo', null,
       card(groundBg(el('div.pic.moon', null, el('div', { style: 'display:flex;gap:2px' }, enemy('slime', 2), enemy('bat', 2), enemy('slime', 2))), 0, 6, 6, 8), 'g.ev.moon.h', 'g.ev.moon.p', { s: E.bloodMoonSpawn, c: E.bloodMoonCoin }),
-      card(groundBg(el('div.pic', null, enemy('dragon', 1)), 5, 6, 6, 1), 'g.ev.dragon.h', 'g.ev.dragon.p'),
-      card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:6px' }, hero('mage', 3), enemy('rival', 3))), 2, 6, 6, 2), 'g.ev.rival.h', 'g.ev.rival.p'),
-      card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:4px' }, enemy('bossE', 2), enemy('bossS', 2))), 3, 6, 6, 5), 'g.ev.double.h', 'g.ev.double.p')));
+      card(groundBg(el('div.pic', null, enemy('dragon', 1)), 5, 6, 6, 1), 'g.ev.dragon.h', 'g.ev.dragon.p', { ch: Math.max(E.dragonFrom, E.bloodMoonFrom), k: 1 + C.companion.stored }),
+      card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:6px' }, hero('mage', 3), enemy('rival', 3))), 2, 6, 6, 2), 'g.ev.rival.h', 'g.ev.rival.p', { s: C.rival.life, n: C.rival.shards }),
+      card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:4px' }, enemy('bossE', 2), enemy('bossS', 2))), 3, 6, 6, 5), 'g.ev.double.h', 'g.ev.double.p', { ch: E.doubleKingFrom, hp: pct(E.doubleKingHp) })));
 }
 
 // ── 12. Skill Points ───────────────────────────────────
-sec('skill-points', 'g.sp.h', T('g.sp.p', undefined, 'p'),
-  el('div.panel.demo', null, el('ul', { style: 'margin:0;padding-left:20px;display:grid;gap:8px' }, T('g.sp.reroll', undefined, 'li'), T('g.sp.banish', undefined, 'li'), T('g.sp.up', undefined, 'li'))));
+{
+  const EC = C.economy;
+  sec('skill-points', 'g.sp.h', T(EC.spShop ? 'g.sp.p2' : 'g.sp.p', undefined, 'p'),
+    el('div.panel.demo', null, el('ul', { style: 'margin:0;padding-left:20px;display:grid;gap:8px' },
+      T('g.sp.reroll', { n: EC.reroll }, 'li'), T('g.sp.banish', { n: EC.banish }, 'li'), T('g.sp.up', { n: EC.upgrade }, 'li'))));
+}
 
 // ── 13. Awakening ──────────────────────────────────────
 {
@@ -381,7 +413,16 @@ sec('skill-points', 'g.sp.h', T('g.sp.p', undefined, 'p'),
         skillIcon(sig, 'sm'), el('span', null, '+'), ...SKILL_LINES[h].map((id) => skillIcon(id, 'sm')), el('span', null, '→'),
         G(`form.${A.form}`, undefined, 'b', 'chip line'))));
   }));
-  sec('awakening', 'g.awaken.h', T('g.awaken.p', undefined, 'p'), lines, note('g.awaken.rule'), el('p', null, el('a', { href: './skills.html#lines' }, T('g.awaken.more'))));
+  // The rule follows the Balance Config: awaken.keep (Links stay or are used up), awaken.slots, awaken.grant/grantLv.
+  const A = C.awaken, nLine = AWAKENING.mage.line.length;
+  const rule = parts('div', 'note',
+    ['g.awaken.need', { n: A.links, of: SKILL_LINES.mage.length, st: A.stages, ss: pl(A.stages) }],
+    ['g.awaken.accept', { d: A.sigDmg }],
+    A.keep ? ['g.awaken.keep1'] : ['g.awaken.keep0', { n: A.links }],
+    A.slots > 0 && ['g.awaken.slots', { n: A.slots, ss: pl(A.slots) }],
+    A.grant > 0 ? ['g.awaken.grant', { g: Math.min(A.grant, nLine), lv: A.grantLv }] : ['g.awaken.nogrant', { k: nLine }],
+    ['g.awaken.decline']);
+  sec('awakening', 'g.awaken.h', T('g.awaken.p', undefined, 'p'), lines, rule, el('p', null, el('a', { href: './skills.html#lines' }, T('g.awaken.more'))));
 }
 
 // ── 14. Gold & shop ────────────────────────────────────
@@ -390,7 +431,7 @@ sec('skill-points', 'g.sp.h', T('g.sp.p', undefined, 'p'),
     el('div', null, G(`shop.${id}.name`, undefined, 'b'), el('br'), G(`shop.${id}.desc`, undefined, 'span', 'muted'), el('div', { style: 'margin-top:4px' }, el('span.chip.gold', null, `${C.shop[id].base}G+`), ' ', el('span.chip', null, `MAX ${C.shop[id].max}`))))));
   const heroes = el('div.grid.g4', null, ...HERO_IDS.map((h) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:12px' }, hero(h, 3), el('div', null, G(`hero.${h}.name`, undefined, 'b'), el('br'), el('span.chip.gold', null, C.heroes[h].cost ? `${C.heroes[h].cost}G` : s('home.free'))))));
   sec('gold', 'g.gold.h', T('g.gold.p', undefined, 'p'),
-    el('h3.subh', null, T('g.gold.shop')), shop, el('h3.subh', null, T('g.gold.heroes')), heroes, note('g.gold.run'));
+    el('h3.subh', null, T('g.gold.shop')), shop, el('h3.subh', null, T('g.gold.heroes')), heroes, note('g.gold.run', '', { p: pct(C.score.revivePenalty) }));
 }
 
 // ── 15. co-op ──────────────────────────────────────────
@@ -399,11 +440,25 @@ sec('skill-points', 'g.sp.h', T('g.sp.p', undefined, 'p'),
   sec('coop', 'g.coop.h', T('g.coop.p', undefined, 'p'),
     el('div.grid.g2.demo', { style: 'align-items:start' },
       el('div.panel', null, el('ol.coop-steps', { style: 'padding:0;margin:0' }, T('g.coop.1', undefined, 'li'), T('g.coop.2', undefined, 'li'), T('g.coop.3', undefined, 'li')), el('div', { style: 'margin-top:14px' }, code)),
-      el('div', null, T('g.coop.rules', undefined, 'h3'), el('ul', { style: 'display:grid;gap:8px;padding-left:20px' }, T('g.coop.r1', undefined, 'li'), T('g.coop.r2', undefined, 'li'), T('g.coop.r3', undefined, 'li'), T('g.coop.r4', undefined, 'li')),
+      el('div', null, T('g.coop.rules', undefined, 'h3'), el('ul', { style: 'display:grid;gap:8px;padding-left:20px' }, T('g.coop.r1', undefined, 'li'), T('g.coop.r2', { s: C.coop.pickTime }, 'li'), T('g.coop.r3', { s: C.coop.reviveTime }, 'li'), T('g.coop.r4', undefined, 'li')),
         el('div', { style: 'display:flex;gap:6px;align-items:end;margin-top:10px' }, ...HERO_IDS.map((h) => hero(h, 3)), pickup('heart', 3)))));
 }
 
-// ── 16. tips ───────────────────────────────────────────
+// ── 16. screen, settings & difficulty ──────────────────
+{
+  // Difficulty presets offered right now (an admin can hide some); ★ = the ranked one.
+  const presets = el('div.grid.g3', { style: 'gap:10px' }, ...offeredPresets(C).map((id) => el('div.panel', { style: 'padding:10px 12px' },
+    G(`preset.${id}`, undefined, 'b'), isRanked(id) ? el('b', { style: 'color:var(--gold)' }, ' ★') : null, el('br'), G(`preset.${id}.tag`, undefined, 'span', 'muted'))));
+  sec('settings', 'g.set.h',
+    T('g.set.hud', undefined, 'p'),
+    T('g.set.streak', { s: C.streak.window, n: C.streak.popupEvery }, 'p'),
+    T('g.set.diff', undefined, 'p'), presets,
+    T('g.set.view', { z: VIEWS.map((v) => `×${viewZoom(v)}`).join(' / ') }, 'p'),
+    T('g.set.fb', undefined, 'p'),
+    T('g.set.news', undefined, 'p'));
+}
+
+// ── 17. tips ───────────────────────────────────────────
 {
   const tips: [TextKey, () => Node][] = [
     ['g.tip.1', () => hero('ranger', 2, 'r')], ['g.tip.2', () => pickup('gem', 3)], ['g.tip.3', () => skillIcon('frost', 'sm')],

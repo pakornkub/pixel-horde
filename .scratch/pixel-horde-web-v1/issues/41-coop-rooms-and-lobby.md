@@ -4,7 +4,7 @@
 
 **Blocked by:** 08 (Anonymous Player Accounts, nicknames and one-place-at-a-time sessions); 03 (Move special events, hazards, dragon, rival and pet into the sim)
 
-**Status:** done (awaiting owner: deploy secrets + ROOM_URL, and a real-network playtest)
+**Status:** done — room worker `pixel-horde-room` deployed by the Deploy workflow on every push to `main`, repo variable `ROOM_URL` set, deploy smoke test passing; awaiting the owner's real-network playtest (checked 2026-09-26)
 
 - [x] Transport interface with a WebSocket adapter and an in-memory adapter
 - [x] Room worker deployed; codes avoid ambiguous characters
@@ -21,5 +21,7 @@
 - Lobby UI (`#ovCoop`, `apps/game/src/ui/lobby.ts`): create / join by code, invite link `?join=CODE`, player list, Ready / Start, clear messages for off / not set up / full / started / host left. The co-op flag is respected.
 - PeerJS fallback adapter is not built (the DO relay covers every network; add it only if playtests show a need).
 - Tests: `apps/game/src/net/transport.test.ts`, `apps/game/src/coop/session.test.ts`, `tests/coop.test.ts` (incl. snapshot size, host drop), `tests/browser/coop.spec.ts` (two browsers against `wrangler dev`, also in CI).
+
+**Update 2026-09-26:** the deploy smoke test failed on 2 of the last 15 `main` deploys (PR #20: host-left not seen; PR #23: no relay either way) and passed on the next push — most likely its fixed 300 ms waits against the real network; worth hardening `scripts/room-smoke.mjs`.
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

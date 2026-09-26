@@ -3,6 +3,8 @@ import {
   AWAKENING, COMBO_IDS, EVO_PASSIVE, FLASK_TAGS, HERO_IDS, HOLE_BOOM, LINE_IDS, SIGNATURE_IDS, SKILL_IDS, SKILL_LINES, SKILL_STATUS, SKILL_TAGS,
   comboOf, signatureOf, type ComboId, type HeroId, type HitTag, type SkillId, type StatusId,
 } from '@pixel-horde/sim';
+import type { ResolvedConfig } from '@pixel-horde/config';
+import type { TextKey } from './text';
 
 export type Kind = 'general' | 'signature' | 'line';
 export const ALL: SkillId[] = [...SKILL_IDS, ...SIGNATURE_IDS, ...LINE_IDS];
@@ -74,3 +76,20 @@ export function ownerOf(id: SkillId): { hero: HeroId; how: 'sig' | 'link' | 'awa
 }
 
 export const evoPassive = (id: SkillId) => EVO_PASSIVE[id];
+
+const pct = (x: number): number => Math.round(x * 100);
+/** A Hero's bonus lines with numbers from the Balance Config (the game's `hero.*.desc` text has fixed numbers). */
+export function heroBonus(h: HeroId, C: ResolvedConfig): [TextKey, Record<string, number>][] {
+  const H = C.heroes;
+  switch (h) {
+    case 'mage': return [['hero.b.mage', { d: pct(H.mage.dmg) }]];
+    case 'knight': return [['hero.b.knight', { hp: H.knight.hp, s: pct(H.knight.spd) }]];
+    case 'alchemist': return [['hero.b.alchemist', { c: pct(H.alchemist.cd), st: pct(H.alchemist.status) }]];
+    case 'ranger': {
+      const out: [TextKey, Record<string, number>][] = [['hero.b.ranger', { s: pct(H.ranger.spd), p: pct(H.ranger.pick) }]];
+      if (H.ranger.hp) out.push(['hero.b.rangerHp', { hp: H.ranger.hp }]);
+      if (C.skills.hawk.guardN) out.push(['hero.b.rangerGuard', { n: C.skills.hawk.guardN }]);
+      return out;
+    }
+  }
+}
