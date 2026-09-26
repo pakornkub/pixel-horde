@@ -20,4 +20,6 @@
 - Test: `tests/browser/title.spec.ts` (landscape + portrait, no horizontal scroll, Hero panel).
 - **Owner:** generate several 16:9 and 9:16 pixel-art backgrounds (Gemini), choose one of each, export WebP ≤ ~300 KB.
 
+**Update 2026-09-26:** the title fits small phones (a `max-height: 720px` step), shows a "New update! {date}" notice with the latest patch note linking to the website Updates page (`apps/game/src/ui/update-note.ts`), has a Feedback button, and in in-app browsers explains that Google sign-in is blocked (Open in Chrome / Copy game link, `apps/game/src/platform/inapp.ts`). `TITLE_BG` is still empty, so the backgrounds are still with the owner.
+
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

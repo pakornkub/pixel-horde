@@ -308,7 +308,8 @@ renderLab();
 // ── hero lines ─────────────────────────────────────────
 {
   const box = (label: TextKey, ...kids: Node[]): HTMLElement => el('div.box', null, T(label, undefined, 'b'), el('div.row', null, ...kids));
-  panes.lines.append(el('h2', null, T('lines.h')), T('lines.p', undefined, 'p', 'lead'), el('div.grid', null, ...HERO_IDS.map((h) => {
+  const linesArgs = { n: C.awaken.links, of: SKILL_LINES.mage.length, k: AWAKENING.mage.line.length };
+  panes.lines.append(el('h2', null, T('lines.h')), T('lines.p', linesArgs, 'p', 'lead'), el('div.grid', null, ...HERO_IDS.map((h) => {
     const sig = signatureOf(h), A = AWAKENING[h];
     return el('div.panel.line-card', null,
       el('div.who', null, hero(h, 5), G(`hero.${h}.name`, undefined, 'b', 'pixh'), G(`hero.${h}.role`, undefined, 'span', 'muted')),

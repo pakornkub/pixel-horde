@@ -4,7 +4,7 @@
 
 **Blocked by:** 10 (Leaderboards and Seasons); 15 (Admin Console shell, admin login, audit log and control-room home)
 
-**Status:** in-progress — live: migrations applied and the Admin is deployed to Cloudflare Pages (`pixel-horde-admin`) and in use. Only open item: confirm Cloudflare Access sits in front of it (docs/deploy.md) (checked 2026-09-26 against the live project)
+**Status:** in-progress — live: migrations applied and the Admin is deployed to Cloudflare Pages (`pixel-horde-admin`) and in use. Only open item: Cloudflare Access is **not** in front of it yet — an anonymous request to `pixel-horde-admin.pages.dev` gets the Admin page (the database still checks the admin role on every call); owner to add the Access application (docs/deploy.md) (checked 2026-09-26 against the live project)
 
 - [x] Flags page shows "instant" badges and applies immediately
 - [x] Leaderboard page with board tabs and status tags (verified / pending / suspicious)

@@ -1,6 +1,7 @@
-import { DEFAULT_RESOLVED, HERO_IDS, REALMS, REALM_IDS, signatureOf, type HeroId } from '@pixel-horde/sim';
+import { DEFAULT_RESOLVED, HERO_IDS, REALMS, REALM_IDS, WEAPON_IDS, signatureOf, type HeroId } from '@pixel-horde/sim';
 import { el, enemy, groundURL, hero, pickup, skillIcon, weaponIcon } from '../art';
 import { siteConfig } from '../backend';
+import { heroBonus } from '../data';
 import { heroScene } from '../hero-scene';
 import { g, s } from '../lang';
 import { live, reveals, shell } from '../shell';
@@ -8,6 +9,18 @@ import type { TextKey } from '../text';
 
 shell('home');
 heroScene(document.querySelector<HTMLCanvasElement>('canvas.scene')!);
+// Numbers start from the built-in defaults and follow the live Balance Config once it arrives.
+let CF = DEFAULT_RESOLVED;
+const onConfig: (() => void)[] = [];
+void siteConfig().then((c) => { CF = c; onConfig.forEach((fn) => fn()); });
+
+// Static text that carries config numbers.
+{
+  const how3 = document.querySelector<HTMLElement>('[data-t="home.how.3p"]');
+  const setArgs = (): void => { if (how3) { how3.dataset.args = JSON.stringify({ n: CF.levelup.offers }); how3.innerHTML = s('home.how.3p', { n: CF.levelup.offers }); } };
+  setArgs();
+  onConfig.push(setArgs);
+}
 
 // Section backgrounds painted with the game's own tiles.
 document.querySelectorAll<HTMLElement>('[data-ground]').forEach((sec, i) => {
@@ -48,29 +61,32 @@ const SHOTS: [string, TextKey, boolean?][] = [
 const lightbox = document.getElementById('lightbox')!;
 lightbox.addEventListener('click', () => { lightbox.hidden = true; });
 addEventListener('keydown', (e) => { if (e.key === 'Escape') lightbox.hidden = true; });
-live(() => {
+const drawShots = (): void => {
   const grid = document.getElementById('shotGrid')!;
+  const moon = { s: CF.events.bloodMoonSpawn, c: CF.events.bloodMoonCoin };
   grid.replaceChildren(...SHOTS.map(([f, key, feature]) => {
-    const img = el('img', { src: `./shots/${f}.png`, alt: s(key), loading: 'lazy', width: '1280', height: '720' });
-    const fig = el(`figure.shot${feature ? '.feature' : ''}.reveal.in`, { tabindex: '0' }, img, el('figcaption', null, s(key)));
+    const cap = s(key, key === 'shot.moon' ? moon : key === 'shot.level' ? { n: CF.levelup.offers } : undefined);
+    const img = el('img', { src: `./shots/${f}.png`, alt: cap, loading: 'lazy', width: '1280', height: '720' });
+    const fig = el(`figure.shot${feature ? '.feature' : ''}.reveal.in`, { tabindex: '0' }, img, el('figcaption', null, cap));
     const open = (): void => {
       lightbox.querySelector('img')!.src = img.src;
-      lightbox.querySelector('img')!.alt = s(key);
-      lightbox.querySelector('p')!.textContent = s(key);
+      lightbox.querySelector('img')!.alt = cap;
+      lightbox.querySelector('p')!.textContent = cap;
       lightbox.hidden = false;
     };
     fig.addEventListener('click', open);
     fig.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
     return fig;
   }));
-});
+};
+live(drawShots);
+onConfig.push(drawShots);
 
 // ── heroes ──
 const HERO_GROUND: Record<HeroId, number> = { mage: 2, knight: 0, ranger: 7, alchemist: 6 };
-let H = DEFAULT_RESOLVED.heroes; // prices follow the live Balance Config once it arrives
 const drawHeroes = (): void => {
   document.getElementById('heroGrid')!.replaceChildren(...HERO_IDS.map((id) => {
-    const cost = H[id].cost;
+    const cost = CF.heroes[id].cost;
     const stage = el('div.stage', null, hero(id, 6));
     stage.style.backgroundImage = `url(${groundURL(HERO_GROUND[id], 8, 6, 1)})`;
     const sig = signatureOf(id);
@@ -80,31 +96,36 @@ const drawHeroes = (): void => {
       el('p.name', null, g(`hero.${id}.name`)),
       el('p.role', null, g(`hero.${id}.role`)),
       el('div.sigrow', null, skillIcon(sig, 'sm'), el('span', null, `${s('home.sig')}: ${g(`skill.${sig}.name`)}`)),
-      el('p.muted', { style: 'font-size:14px' }, g(`hero.${id}.desc`)));
+      el('p.muted', { style: 'font-size:14px' }, // stat bonuses only; the Hawk's guard rule is on the World page
+      heroBonus(id, CF).filter(([k]) => k !== 'hero.b.rangerGuard').map(([k, a]) => s(k, a)).join(' · ')));
   }));
 };
 live(drawHeroes);
-void siteConfig().then((c) => { H = c.heroes; drawHeroes(); });
+onConfig.push(drawHeroes);
 
 // ── features ──
 type Feat = [TextKey, TextKey, () => Node, number];
 const FEATS: Feat[] = [
   ['home.f.combo.h', 'home.f.combo.p', () => el('div', { style: 'display:flex;gap:4px' }, skillIcon('frost', 'sm'), skillIcon('meteor', 'sm')), 3],
   ['home.f.kings.h', 'home.f.kings.p', () => enemy('boss', 2), 0],
-  ['home.f.route.h', 'home.f.route.p', () => el('span', { style: 'font:400 22px var(--pix);color:var(--gold)' }, '8'), 1],
+  ['home.f.route.h', 'home.f.route.p', () => el('span', { style: 'font:400 22px var(--pix);color:var(--gold)' }, String(CF.stage.chapters)), 1],
   ['home.f.moon.h', 'home.f.moon.p', () => enemy('dragon', 1), 5],
   ['home.f.coop.h', 'home.f.coop.p', () => el('div', { style: 'display:flex' }, hero('ranger', 2), hero('alchemist', 2)), 7],
   ['home.f.weapon.h', 'home.f.weapon.p', () => weaponIcon('glacierLance', 6), 3],
   ['home.f.board.h', 'home.f.board.p', () => pickup('coin', 5), 1],
   ['home.f.save.h', 'home.f.save.p', () => pickup('chest', 4), 0],
 ];
-live(() => {
+const featArgs = (p: TextKey): Record<string, number> | undefined =>
+  p === 'home.f.route.p' ? { n: CF.stage.chapters } : p === 'home.f.moon.p' ? { c: CF.events.bloodMoonCoin } : p === 'home.f.weapon.p' ? { n: WEAPON_IDS.length } : undefined;
+const drawFeats = (): void => {
   document.getElementById('featGrid')!.replaceChildren(...FEATS.map(([h, p, art, th]) => {
     const box = el('div.fart', null, art());
     box.style.backgroundImage = `url(${groundURL(th, 4, 4, 9)})`;
-    return el('div.feat.reveal.in', null, box, el('div', null, el('h3', null, s(h)), el('p', null, s(p))));
+    return el('div.feat.reveal.in', null, box, el('div', null, el('h3', null, s(h)), el('p', null, s(p, featArgs(p)))));
   }));
-});
+};
+live(drawFeats);
+onConfig.push(drawFeats);
 
 // ── realms strip ──
 live(() => {

@@ -81,8 +81,10 @@ is applied as `work_items`. Number 0020 is unused.
 `shared.skills.hawk.{guardN,guardR}`, `shared.heroes.ranger.hp`) is applied as `balance_followup_fields` (it shows
 twice in the migration history: two sessions applied the same idempotent SQL 25 s apart; the schema is identical).
 `20260928000024_spawn_wave_fronts` (new `shared.spawn.front*` / `lull*` / `pincer*` and `shared.director.stageReset`)
-is **not applied yet**; the owner applies it before publishing any of those fields (pass 2026-09c alone needs no migration).
-Config v5 = load "รอบจูน 2026-09b" then "2026-09c" onto one draft in Admin → Balance (loads stack) and publish it.
+is applied via the SQL editor (not in the migration history); the live `config_schema` has those fields. Their defaults
+are neutral, so wave fronts stay off until a config version sets them.
+Published configs: v4 = pass 2026-09, v5 = pass 2026-09b, v6 = pass 2026-09c (Director max 1.6, rise 0.04). Passes are
+loaded onto one draft in Admin → Balance (they stack, oldest first) and published from there.
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
@@ -96,6 +98,10 @@ Config v5 = load "รอบจูน 2026-09b" then "2026-09c" onto one draft in
 Keep-alive: `workers/keepalive` pings `get_live_state` once a day (03:17 UTC) so the Free project is
 never paused for inactivity. The same workflow deploys it on every push to `main`; open its
 `workers.dev` URL once to trigger a ping by hand (`ok` = working).
+
+Daily triage: a Claude Code cloud routine reads `client_errors` and player `feedback` every morning, opens
+`triage/<date>-<slug>` PRs for clear bugs and reports to Admin → งานแก้ไข (`work_items`, via `agent_report`).
+Its instructions are [docs/agents/triage-routine.md](agents/triage-routine.md).
 
 ## Balance AI (Admin Console → ผู้ช่วย AI)
 

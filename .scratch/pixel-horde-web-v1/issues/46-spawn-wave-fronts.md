@@ -9,18 +9,18 @@ Everything is a Balance Config field whose default keeps today's behaviour; the 
 
 **Blocked by:** —
 
-**Status:** ready-for-human (owner playtest of the preview build with the draft link, then publish from Admin)
+**Status:** ready-for-human — code merged (PR #23) and migration 0024 applied to live via the Supabase SQL editor (so it is not in the migration history); every wave-front field is still at its neutral default (off). Pass 2026-09c (Director) published as v6. Waiting for the owner: playtest wave values with a draft link from Admin → Balance, then publish them as a balance pass (v7 or later) (2026-09-26)
 
-- [x] Pass 2026-09c (config only, works on the live build): `director.max` 2.4 → 1.6, `director.rise` 0.06 → 0.04
+- [x] Pass 2026-09c (config only, works on the live build): `director.max` 2.4 → 1.6, `director.rise` 0.06 → 0.04 — published as v6
 - [x] `spawn.frontShare / frontArc / frontEvery / frontTurn` — wave front
 - [x] `spawn.lull / lullSpawn` — quiet seconds when the front moves
 - [x] `spawn.frontRecycle` — monsters left far behind reappear on the front, not ahead of a fleeing player
 - [x] `spawn.pincer / pincerArc` — swarms as two arcs on the front's sides (Blood Moon keeps the full ring)
 - [x] `director.stageReset` — share of the way back to `director.start` at each new Stage
-- [x] Migration `20260928000024_spawn_wave_fronts.sql` (live `config_schema`), Thai field help in `desc-th.ts`
+- [x] Migration `20260928000024_spawn_wave_fronts.sql` (live `config_schema`; applied via the SQL editor 2026-09-26, not in the migration history), Thai field help in `desc-th.ts`
 - [x] Tests `tests/spawn-front.test.ts`; golden replays unchanged (defaults draw no extra random numbers)
 - [x] Playtest crowd metrics (`crowd` per Chapter in `scripts/playtest/run.ts`: monsters alive, Director, blocked directions)
-- [ ] Owner playtest → recommended wave values as a balance pass → publish
+- [ ] Owner playtest → recommended wave values as a balance pass → publish (v7 or later)
 - [ ] When published: site text `g.stage.t1` ("every 18 s … a ring") in `apps/site/src/text.ts`
 
 ## Notes (implementation)
