@@ -368,6 +368,29 @@ describe('co-op host / guest', () => {
     expect(r.gs().escapes).toBe(1);
   });
 
+  it('a guest who joins mid-Run is not paid what the team earned before (EXP catches up)', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    for (let i = 0; i < 60 * 60 && r.hs().phase !== 'clear'; i++) {
+      const hh = r.hs();
+      r.host.step({ mx: 0, my: 0 }, hh.boss ? [{ type: 'remoteHits', hits: [hh.boss.id, 1e9] }] : []);
+      r.step(1);
+    }
+    const h = r.hs();
+    h.coop!.teamGold += 500; h.coop!.teamChests += 2; // Gold and chests the team already picked up
+    expect(h.kills).toBeGreaterThan(0);
+    expect(h.coop!.kingKills).toBeGreaterThan(0);
+    const late = createSim(botOptions(300, { events: quiet, coop: { role: 'guest', self: 'L' }, debug: { god: true }, config: cfg }));
+    late.step({ mx: 0, my: 0 }, [{ type: 'snap', snap: rt(hostSnapshot(h)) }]);
+    const s = late.view() as SimState;
+    expect(s.kills).toBe(0);
+    expect(s.runGold).toBe(0);
+    expect(s.kingsKilled).toEqual([]);
+    expect(s.sp).toBe(0);
+    expect(s.chestQueue).toBe(0);
+    expect(s.P.xp + s.pendingLv).toBeGreaterThan(0); // team EXP so far: catching up
+  });
+
   it('runs 4 minutes with three guests without errors', () => {
     const r = room(3);
     for (let i = 0; i < 4 * 60 * 60; i++) {

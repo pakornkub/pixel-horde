@@ -428,6 +428,13 @@ export function applySnap(s: SimState, h: HostSnap): void {
   s.specialStage = !!h.sp; s.darkness = !!h.dark;
   if (h.ot && !s.overtime) banner(s, 'overtime', 2, true);
   s.overtime = !!h.ot;
+  if (first) {
+    // this guest's first snapshot (Run start, or joined / came back mid-Run): what the team earned before is not
+    // this player's — kills, Gold, chests, King / Guardian / Rival rewards, escapes. Team EXP is: a late player catches up.
+    L.kc = h.kc; L.bk = h.bk; L.gd = h.gd; L.rk = h.rk; L.es = h.es ?? 0; L.tg = h.tg ?? 0; L.tc = h.tc ?? 0;
+    L.rv = h.rv?.[c.self] ?? 0; L.hl = h.hl?.[c.self] ?? 0; L.sg = h.sg?.[c.self] ?? 0; L.cp = h.cp?.[c.self] ?? 0; L.gp = h.gp?.[c.self] ?? 0;
+    if (Array.isArray(h.gs)) L.gs = h.gs[0];
+  }
   // team counters → this player's own rewards
   const dx = h.xp - L.xp;
   if (dx > 0 && dx < 1e7) P.xp += dx * (1 + s.cfg.shop.wisdom.per * U(s, 'wisdom')) * xpShare(s);
@@ -460,7 +467,6 @@ export function applySnap(s: SimState, h: HostSnap): void {
   const cp = h.cp && typeof h.cp[c.self] === 'number' ? h.cp[c.self] : 0;
   for (let k = L.cp; k < cp && k - L.cp < 5; k++) { s.chestQueue++; s.runGold += s.cfg.loot.chestGold; }
   L.cp = cp;
-  if (first && Array.isArray(h.gs)) L.gs = h.gs[0]; // joined later: earlier splits were not ours
   if (Array.isArray(h.gs) && h.gs[0] > L.gs && h.gs[3] > 0) {
     L.gs = h.gs[0];
     applySplit(s, h.gs[0], h.gs[1], Math.max(0, Math.min(1e7, h.gs[2])), h.gs[3], L.gp);
