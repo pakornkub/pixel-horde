@@ -38,7 +38,8 @@ npm run build && npm run preview
 
 The live project (`jqvgmkhzdhjreikjqhxt`) has every migration in `supabase/migrations/` applied,
 through `20260925000012_shield_pickup` (patches `shared.loot`) and `20260926000012_coop_feedback`
-(account suspension + the `shared.coop` part of the config schema; applied as `coop_feedback`).
+(account suspension + the `shared.coop` part of the config schema; applied as `coop_feedback`),
+and `20260926000014_reward_switches` (applied as `reward_switches`).
 Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`
 in the project's migration history); the row is byte-identical to the one in the file.
