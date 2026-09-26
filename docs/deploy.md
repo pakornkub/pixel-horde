@@ -59,8 +59,9 @@ npm run shots        # offline + god mode bot; needs Edge or Chrome installed (P
 The live project (`jqvgmkhzdhjreikjqhxt`) has every migration in `supabase/migrations/` applied,
 through `20260925000012_shield_pickup` (patches `shared.loot`) and `20260926000012_coop_feedback`
 (account suspension + the `shared.coop` part of the config schema; applied as `coop_feedback`),
-`20260925000013_mob_skill_switches` (applied as `mob_skill_switches`)
-and `20260926000014_reward_switches` (applied as `reward_switches`).
+`20260925000013_mob_skill_switches` (applied as `mob_skill_switches`),
+`20260926000014_reward_switches` (applied as `reward_switches`)
+and `20260926000015_player_feedback` (player Feedback button; applied as `player_feedback`).
 Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`
 in the project's migration history); the row is byte-identical to the one in the file.
