@@ -36,6 +36,19 @@ export type FeedbackStatus = 'new' | 'read' | 'done';
 export type FeedbackCategory = 'bug' | 'balance' | 'idea' | 'other';
 export interface FeedbackRow { id: number; userId: string | null; name: string | null; category: FeedbackCategory; message: string; context: Record<string, string>; status: FeedbackStatus; at: string }
 
+export type WorkStatus = 'todo' | 'in_progress' | 'needs_decision' | 'pr_open' | 'shipped' | 'wontfix';
+export type WorkKind = 'bug' | 'ux' | 'balance' | 'idea' | 'infra' | 'other';
+export interface WorkOption { key: string; label: string; detail?: string }
+export interface WorkRef { type: 'feedback' | 'error' | string; id?: number; fingerprint?: string }
+export interface WorkLog { at: string; by: 'agent' | 'owner' | string; status?: WorkStatus; note?: string }
+/** A fix in progress (daily triage routine or the owner): Admin → งานแก้ไข. */
+export interface WorkItem {
+  id: number; kind: WorkKind; source: 'error' | 'feedback' | 'owner' | 'agent'; refs: WorkRef[]; title: string; summary: string; status: WorkStatus;
+  decision: { question: string; options: WorkOption[]; recommended?: string } | null;
+  answer: { option: string | null; note: string; at: string; by: string | null } | null;
+  prUrl: string | null; branch: string | null; log: WorkLog[]; at: string; updated: string;
+}
+
 export interface AdminApi {
   mode: 'live' | 'demo';
   whoami(): Promise<{ email: string; isAdmin: boolean } | null>;
@@ -69,6 +82,11 @@ export interface AdminApi {
   /** Player feedback from the game's Feedback button, newest first. */
   feedback(status: FeedbackStatus | '', category: FeedbackCategory | ''): Promise<FeedbackRow[]>;
   setFeedbackStatus(id: number, status: FeedbackStatus): Promise<void>;
+  /** Work items: `open` = everything not shipped / wontfix. */
+  workItems(status: WorkStatus | 'open' | ''): Promise<WorkItem[]>;
+  /** Answer a needs_decision item (an option key and/or a note); the next routine run carries it out. */
+  answerWork(id: number, option: string, note: string): Promise<void>;
+  setWorkStatus(id: number, status: 'todo' | 'shipped' | 'wontfix', note?: string): Promise<void>;
   /** Balance AI (Supabase Edge Function `balance-ai`, Gemini): proposes changes, never publishes. */
   askAi(messages: AiMsg[], fields: [string, string, number, number, number][]): Promise<AiAnswer>;
 }
@@ -122,6 +140,9 @@ async function liveApi(): Promise<AdminApi> {
     stats: (days, a, b) => rpc('admin_stats', { p_days: days, p_version_a: a ?? null, p_version_b: b ?? null }),
     feedback: (status, category) => rpc('admin_feedback', { p_status: status, p_category: category }),
     setFeedbackStatus: (id, status) => rpc('set_feedback_status', { p_id: id, p_status: status }),
+    workItems: (status) => rpc('admin_work_items', { p_status: status }),
+    answerWork: (id, option, note) => rpc('answer_work_item', { p_id: id, p_option: option, p_note: note }),
+    setWorkStatus: (id, status, note = '') => rpc('set_work_item_status', { p_id: id, p_status: status, p_note: note }),
     async askAi(messages, fields) {
       const { data, error } = await sb.functions.invoke('balance-ai', { body: { messages, fields } });
       if (error) {
@@ -161,6 +182,23 @@ function demoApi(): AdminApi {
     { id: 3, userId: 'u5', name: 'Pim', category: 'bug', message: 'บอสตายแล้วค้าง คับ', context: { build: '202609261200', device: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', screen: '390x844@3', lang: 'th', chapter: '3', hero: 'alchemist', realm: 'deepdark', mode: 'solo', phase: 'overtime' }, status: 'new', at: now() },
     { id: 2, userId: 'u1', name: 'lyra_th', category: 'balance', message: 'ปรับตัว vex ปาขวด เท่าที่เล่นคือปามัว ทำให้เล่นยาก และเวลามีบอสปาโดนบอสน้อยมาก', context: { build: '202609261200', device: 'Android 15; Pixel 8', screen: '412x915@2.63', lang: 'th' }, status: 'read', at: now() },
     { id: 1, userId: 'u0', name: 'KitMain', category: 'idea', message: 'อยากให้มีโหมดฝึกสกิล', context: { build: '202609251200', device: 'Windows NT 10.0', screen: '1920x1080@1', lang: 'th' }, status: 'done', at: now() },
+  ];
+  const ago = (h: number): string => new Date(Date.now() - h * 36e5).toISOString();
+  const work: WorkItem[] = [
+    { id: 3, kind: 'balance', source: 'feedback', refs: [{ type: 'feedback', id: 2 }], title: 'Vex: ขวดปาไม่ค่อยโดนบอส', status: 'needs_decision',
+      summary: 'Volatile Flask สุ่มเป้าในรัศมี ทำให้โดนบอสน้อย (บอท 20 รอบ: โดนบอส 31% ของขวด)',
+      decision: { question: 'จะให้ขวดเล็งแบบไหน?', recommended: 'a', options: [
+        { key: 'a', label: 'เล็งศัตรูที่ใกล้ที่สุด (บอสก่อนถ้ามี)', detail: 'โดนบอสราว 70% ดาเมจรวมไม่เปลี่ยน' },
+        { key: 'b', label: 'สุ่มเหมือนเดิม แต่ขวดใหญ่ขึ้น 25%', detail: 'ยังสุ่ม แต่กระจายโดนมากขึ้น' },
+        { key: 'c', label: 'ไม่เปลี่ยน' }] },
+      answer: null, prUrl: null, branch: null, at: ago(20), updated: ago(20), log: [{ at: ago(20), by: 'agent', status: 'needs_decision', note: 'วิเคราะห์ด้วย playtest bot แล้ว รอเจ้าของเลือก' }] },
+    { id: 2, kind: 'ux', source: 'feedback', refs: [{ type: 'feedback', id: 3 }], title: 'หน้าแรกบนมือถือต้องเลื่อนถึงเห็นปุ่มผูกบัญชี', status: 'pr_open',
+      summary: 'จอ 377×648 เนื้อหาสูง 666px ปุ่ม Google ตกขอบ; ย่อหน้าแรกสำหรับจอสูง ≤720px + ใน Facebook/LINE ให้เปิดใน Safari/Chrome แทน',
+      decision: null, answer: null, prUrl: 'https://github.com/pakornkub/pixel-horde/pull/18', branch: 'fix/title-fit-inapp-telemetry-worklog', at: ago(30), updated: ago(2),
+      log: [{ at: ago(30), by: 'agent', status: 'in_progress', note: 'ทำซ้ำได้ที่ 377×648' }, { at: ago(2), by: 'agent', status: 'pr_open' }] },
+    { id: 1, kind: 'bug', source: 'error', refs: [{ type: 'error', fingerprint: 'sqre4r' }], title: 'drawImage: canvas กว้าง/สูง 0', status: 'shipped',
+      summary: 'หน้าต่างถูกซ่อน (0×0) ทำให้ buffer เป็น 0 และ render loop หยุด; แก้ให้ buffer ≥ 1px', decision: null, answer: null,
+      prUrl: 'https://github.com/pakornkub/pixel-horde/pull/14', branch: 'camera-zoom', at: ago(48), updated: ago(40), log: [{ at: ago(48), by: 'agent', status: 'shipped', note: 'แก้แล้วใน 7ff4de5' }] },
   ];
   let ann: Announcement[] = [{ id: 1, title_th: 'Blood Moon สุดสัปดาห์', title_en: 'Blood Moon weekend', body_th: 'เหรียญ ×2', body_en: 'Gold ×2', starts_at: now(), ends_at: null }];
   const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10));
@@ -218,6 +256,15 @@ function demoApi(): AdminApi {
     async deleteChangelog(id) { const i = log.findIndex((x) => x.id === id); if (i >= 0) log.splice(i, 1); },
     feedback: async (st, c) => clone(fb.filter((f) => (!st || f.status === st) && (!c || f.category === c))),
     async setFeedbackStatus(id, st) { const f = fb.find((x) => x.id === id); if (f) f.status = st; },
+    workItems: async (st) => clone(work.filter((w) => !st || w.status === st || (st === 'open' && w.status !== 'shipped' && w.status !== 'wontfix'))
+      .sort((a, b) => Number(b.status === 'needs_decision') - Number(a.status === 'needs_decision'))),
+    async answerWork(id, option, n) {
+      const w = work.find((x) => x.id === id);
+      if (!w || w.status !== 'needs_decision') throw new Error('NOT_WAITING');
+      w.answer = { option: option || null, note: n, at: now(), by: 'Owner (demo)' }; w.status = 'todo'; w.updated = now();
+      w.log.push({ at: now(), by: 'owner', status: 'todo', note: 'ตอบ: ' + (option || '-') + (n ? ' — ' + n : '') });
+    },
+    async setWorkStatus(id, st, n) { const w = work.find((x) => x.id === id); if (w) { w.status = st; w.updated = now(); w.log.push({ at: now(), by: 'owner', status: st, note: n || undefined }); } },
     players: async (q) => clone(players.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))),
     askAi: async (msgs) => ({
       reply: `(โหมดตัวอย่าง) รับคำขอ "${msgs[msgs.length - 1]?.text ?? ''}" แล้ว ตัวอย่างข้อเสนอ: ให้ท่าใหญ่ของบอสช่วง overtime ไม่ถี่ขึ้น และแรงขึ้นน้อยลง`,

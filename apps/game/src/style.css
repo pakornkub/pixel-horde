@@ -297,6 +297,8 @@ html[lang="en"] .tfoot{font-size:13px}
 html[lang="en"] .tstats .chip b,html[lang="en"] .trow .who{font-family:var(--pix);font-weight:400;font-size:10px;line-height:1.8}
 html[lang="en"] .tagline{font-size:10px}
 @media (max-width:360px){.tmenu{grid-template-columns:repeat(2,1fr)}}
+/* phones (≈650–720 px tall, less inside Facebook / LINE): the whole title incl. the Google link fits without scrolling */
+@media (max-height:720px){.overlay.title{padding:10px 16px}.logo{font-size:clamp(26px,7vw,36px)}.thero canvas{width:64px;height:64px}.tmain{gap:8px}.btn.play.big{padding:12px 18px}.tfoot{gap:6px;padding:8px 10px}.gbtn{height:36px}}
 @media (max-height:520px){.logo{font-size:24px}.logo br{display:none}.tagline{display:none}.thero canvas{width:64px;height:64px}.tmain{gap:8px}}
 
 /* tutorial hints (ticket 44): never block input */

@@ -2,6 +2,7 @@
 import { t } from '@pixel-horde/i18n';
 import { backend, BackendError, type Account } from '../net';
 import { nicknameProblem } from '../net/nickname';
+import { chromeIntent, inAppBrowser, isAndroid } from '../platform/inapp';
 import { guardTab, takeOver } from '../platform/tabs';
 import { $, hide, show } from './overlays';
 import { metaSync } from '../meta';
@@ -42,6 +43,19 @@ function linkFailText(reason: string): string {
   return r ? t('link.failed.reason', { reason: r }) : t('link.failed');
 }
 
+/** Inside Facebook / LINE / … Google refuses to sign in, so the link buttons send the player to a real browser. */
+const inApp = inAppBrowser(navigator.userAgent);
+const gameUrl = (): string => location.origin + location.pathname;
+
+function linkButtons(): void {
+  const key = inApp ? (isAndroid(navigator.userAgent) ? 'link.openBrowser' : 'link.copyLink') : 'link.button';
+  for (const id of ['linkBtn', 'linkBtn2']) {
+    const btn = $(id), span = btn.querySelector<HTMLElement>('[data-i18n]');
+    if (span) { span.dataset.i18n = key; span.textContent = t(key); }
+    btn.querySelector<SVGElement>('.glogo')?.style.setProperty('display', inApp ? 'none' : '');
+  }
+}
+
 export function renderAccountLine(): void {
   const a = backend.account();
   const canLink = !!a && a.anonymous && backend.status() === 'online';
@@ -49,10 +63,11 @@ export function renderAccountLine(): void {
   $('linkBtn2').hidden = !(canLink && (runsDone() >= 3 || hasWon())); // suggested after the 3rd Run and the first victory
   const res = backend.linkResult();
   const txt = $('linkTxt');
-  txt.textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : res ? linkFailText(res.replace(/^failed:/, '')) : t('link.hint');
+  txt.textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : res ? linkFailText(res.replace(/^failed:/, '')) : t(inApp ? 'link.inapp' : 'link.hint');
   txt.className = 'linkhint' + (res ? (res.startsWith('failed') ? ' bad' : ' ok') : '');
   if (res && !res.startsWith('failed')) $('linkRow').hidden = false;
   $('linkBtn').hidden = !canLink;
+  linkButtons();
   $('acctTxt').textContent = a ? t('account.as', { name: a.nickname }) + (backend.status() === 'offline' ? t('account.offline') : backend.status() === 'suspended' ? t('account.suspended') : '') : '';
   $('renameBtn').hidden = !a;
 }
@@ -136,6 +151,17 @@ export function initAccount(h: AccountHooks): void {
   $('tabBtn').addEventListener('click', () => { takeOver(); });
   $('suspendedBtn').addEventListener('click', () => hide('ovSuspended'));
   const link = (): void => {
+    if (inApp) {
+      $('linkRow').hidden = false;
+      if (isAndroid(navigator.userAgent)) { location.href = chromeIntent(gameUrl()); return; }
+      const txt = $('linkTxt');
+      const copy = navigator.clipboard ? navigator.clipboard.writeText(gameUrl()) : Promise.reject(new Error('no clipboard'));
+      void copy.then(
+        () => { txt.textContent = t('link.copied'); txt.className = 'linkhint ok'; },
+        () => { txt.textContent = gameUrl(); }, // copy blocked: show the link so it can be copied by hand
+      );
+      return;
+    }
     void backend.linkGoogle().catch((e: unknown) => {
       const err = e as { code?: string; message?: string };
       $('linkRow').hidden = false;

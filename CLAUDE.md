@@ -150,6 +150,9 @@ The website's `updates.html` reads public entries via `get_changelog`.
 ## Backlog
 Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").
 The in-game meter (press **I**: DPS, TTK, multipliers, director, mob count) stays useful for balance passes.
+A daily cloud routine triages the live error list + player feedback (`docs/agents/triage-routine.md`): clear bugs →
+PR, owner decisions → Admin → งานแก้ไข (`public.work_items`, written only via `agent_report`). Client errors are not
+recorded from dev / local hosts; known browser noise is filtered in `apps/game/src/telemetry.ts`.
 
 ## Agent skills
 
