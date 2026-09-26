@@ -3,7 +3,7 @@
 // win whenever it is reachable. The old artifact save is uploaded once.
 import { ACHIEVEMENTS, HERO_IDS, addToLifetime, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
-import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta } from './net/backend';
+import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta, type SubmitOutcome } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
 import { backend } from './net';
 
@@ -65,6 +65,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
   const meta: MetaSave = parseMeta(json(K_META, null));
   let queue: QueueOp[] = json<QueueOp[]>(K_QUEUE, []).map((o) => (o.kind === 'run' ? { ...o, live: false } : o));
   const listeners = new Set<() => void>();
+  /** Told the server's verdict on each Run it checks (e.g. rejected by the Run checks). */
+  const runListeners = new Set<(clientRunId: string, out: SubmitOutcome) => void>();
 
   const save = (): void => {
     store.set(K_META, JSON.stringify(meta));
@@ -125,10 +127,12 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
         if (op.kind === 'run' && op.live) continue;
         try {
           if (op.kind === 'run') {
+            let out: SubmitOutcome;
             if (op.ticket) {
-              try { await backend.submitRun(op.ticket, op.result); }
-              catch (e) { if (e instanceof BackendError && e.code === 'RUN_NOT_FOUND') await backend.submitOfflineRun(op.result); else throw e; }
-            } else await backend.submitOfflineRun(op.result);
+              try { out = await backend.submitRun(op.ticket, op.result); }
+              catch (e) { if (e instanceof BackendError && e.code === 'RUN_NOT_FOUND') out = await backend.submitOfflineRun(op.result); else throw e; }
+            } else out = await backend.submitOfflineRun(op.result);
+            for (const f of runListeners) f(op.result.clientRunId, out);
           } else if (op.kind === 'buy') await backend.buyUpgrade(op.item);
           else await backend.unlockHero(op.hero);
         } catch (e) {
@@ -244,6 +248,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     replayTips,
     pending: (): readonly QueueOp[] => queue,
     onChange(fn: () => void): () => void { listeners.add(fn); return () => listeners.delete(fn); },
+    onRunChecked(fn: (clientRunId: string, out: SubmitOutcome) => void): () => void { runListeners.add(fn); return () => runListeners.delete(fn); },
     save,
   };
 }
