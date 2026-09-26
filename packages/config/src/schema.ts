@@ -188,13 +188,13 @@ const passives = obj({
 
 /** Base difficulty (ticket 48): multipliers on the numbers written in this config, applied by resolveConfig. */
 const difficulty = obj({
-  mobHp: mul(0.8, 'Normal monster HP ×'), mobDmg: mul(0.8, 'Normal monster damage ×'),
-  bossHp: mul(0.78, 'King, Guardian, Rival and Umbra HP ×'), bossDmg: mul(0.8, 'King, Guardian, Rival and Umbra damage ×'),
-  spawn: mul(0.93, 'Spawn rate and swarm size ×'), xp: mul(1.15, 'EXP gained ×'),
-  warn: mul(1.2, 'Boss move warning time ×'), kingPace: mul(1.18, 'Pause between King moves ×'),
-  hp: mul(1.15, 'Player max HP ×'), hearts: mul(1.5, 'Heart drop chance ×'),
-  ultFill: mul(0.9, 'Ultimate charge time ×'), director: mul(0.88, 'Director maximum ×'),
-  gold: mul(0.45, 'Gold earned in a Run × (coins, chests, Kings, Rival, Gold bags, Umbra bonus)'),
+  mobHp: mul(0.6, 'Normal monster HP ×'), mobDmg: mul(0.45, 'Normal monster damage ×'),
+  bossHp: mul(0.55, 'King, Guardian, Rival and Umbra HP ×'), bossDmg: mul(0.45, 'King, Guardian, Rival and Umbra damage ×'),
+  spawn: mul(0.85, 'Spawn rate and swarm size ×'), xp: mul(1.3, 'EXP gained ×'),
+  warn: mul(1.4, 'Boss move warning time ×'), kingPace: mul(1.35, 'Pause between King moves ×'),
+  hp: mul(1.3, 'Player max HP ×'), hearts: mul(2, 'Heart drop chance ×'),
+  ultFill: mul(0.8, 'Ultimate charge time ×'), director: mul(0.75, 'Director maximum ×'),
+  gold: mul(0.2, 'Gold earned in a Run × (coins, chests, Kings, Rival, Gold bags, Umbra bonus)'),
 }, 'Base difficulty: multipliers on the numbers in this config (1 = as written)');
 
 const shared = obj({
