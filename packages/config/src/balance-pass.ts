@@ -271,5 +271,75 @@ export const BALANCE_PASS_2026_09C: BalancePass = {
   },
 };
 
+/** Owner request after v5: Bram's Holy Shield barely hurts anything, the Lance fires the way you walk, and Awakening
+ *  should change the Signature's form with Skill Line skills that combo with it. Turns on the code switches
+ *  shipped with that work (awaken.form, lance.aim, shield.bashCd) and tunes the new forms. */
+export const BALANCE_PASS_2026_09D: BalancePass = {
+  id: '2026-09d',
+  note: 'Signature rework 2026-09d: Shield Bash for Bram, Lance aims at crowds, a new form for every Awakened Signature with Skill Line combos',
+  patch: {
+    shared: {
+      // every Awakened Signature takes its new form; the Skill Line skills follow it into Combos
+      awaken: { form: 1 },
+      // the Lance pierces: aimed at the thickest crowd it hits many instead of whatever is ahead
+      skills: {
+        lance: { aim: 32 },
+        // Holy Shield only hurt monsters touching the ring and knocked them out of reach: a Bash every 2 s, less knockback, more damage
+        shield: { bashCd: 2, bashMul: 2.4, kb: 50, size: 8, dmg: { base: 26, perLv: 16 } },
+        // wandering sigils made Lyra the strongest Hero (Umbra wins 17% → 58–67%): no extra sigil, weaker echoes and trail, a slower freeze
+        sigil: { awk: { echo: 0.3, trailMul: 0.35, warpChill: 0.5 } },
+        hawk: { awk: { dmgMul: 0.8 } },
+      },
+    },
+  },
+  changelog: {
+    titleTh: 'สกิลประจำตัวใหม่: โล่กระแทกของ Bram, หอกเล็งฝูง และร่างตื่นพลังแบบใหม่ทั้ง 4 ฮีโร่',
+    titleEn: 'Signature rework: Bram\'s Shield Bash, crowd-seeking Lance, and a new Awakened form for every Hero',
+    items: [
+      { cat: 'skill', th: 'Holy Shield ของ Bram: ทุก 2 วิ โล่ขยายวงออกกระแทกมอนรอบตัวแล้วหดกลับ ดาเมจแรงขึ้นมาก กระเด็นน้อยลง', en: 'Bram\'s Holy Shield: every 2 s the shields swing out in a wide bash and come back; much more damage, less knockback' },
+      { cat: 'skill', th: 'Holy Lance เล็งไปยังฝูงที่หนาแน่นที่สุดเอง ไม่ต้องหันหน้าเล็ง', en: 'Holy Lance now aims at the thickest crowd by itself' },
+      { cat: 'skill', th: 'ตื่นพลังแล้วสกิลประจำตัวเปลี่ยนร่าง: โล่พิพากษา (Bram), วงเวทเคลื่อนที่ (Lyra), ฝูงเหยี่ยว (Kit), ขวดยักษ์แตกกระจาย (Vex)', en: 'Awakening now changes your Signature\'s form: Judgement Shields (Bram), Wandering Sigils (Lyra), Hawk Flock (Kit), Giant Flask (Vex)' },
+      { cat: 'skill', th: 'สกิลตื่นพลังคอมโบต่อจากสกิลประจำตัว เช่น Judgement Pillar ลงเป็นไฟตรงจุดที่โล่กระแทก (Firestorm), Arrow Rain เป็นศรไฟตามเหยี่ยว (Overload)', en: 'Awakened skills now combo with your Signature, e.g. Judgement Pillar burns where your shields slam (Firestorm), Arrow Rain turns to fire on the hawks\' prey (Overload)' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09d: สกิลประจำตัวและร่างตื่นพลังใหม่',
+    summary: 'เจ้าของเกมเล่นแล้ว Bram อ่อนมาก: Holy Shield ตีแค่มอนที่ชนโล่และกระแทกมอนกระเด็นออกไปจนแทบไม่โดนซ้ำ (ไม่ติด 9 อันดับดาเมจของ Bram) '
+      + 'ส่วนหอกยิงตามทิศที่เดิน และการตื่นพลังแค่ทำให้สกิลประจำตัวแรงขึ้น ชุดนี้เปิดสวิตช์โค้ดใหม่: โล่กระแทกเป็นจังหวะ, หอกเล็งฝูง และร่างตื่นพลังใหม่ทั้ง 4 ฮีโร่ '
+      + 'ที่สกิลสายคอมโบต่อกันได้ แล้วจูนให้ Lyra ไม่แรงเกิน',
+    method: 'บอทชุดเดิม (scripts/playtest) บน v5 + ชุดนี้ เทียบ v5 บน seed เดียวกัน 12 seed ต่อฮีโร่ อัปร้านกลาง และทดลองตัวเลือกอีก 3 ชุด',
+    metrics: [
+      { label: 'ดาเมจของ Holy Shield ใน Bram (ทั้งรอบ / หลังตื่นพลัง)', before: 'ไม่ติด 9 อันดับ', after: '12% / 24% (อันดับ 1)' },
+      { label: 'เวลาฆ่า King ของ Bram (ค่ากลาง)', before: '47.6 วิ', after: '34.3 วิ' },
+      { label: 'ชนะ Umbra อัปร้านกลาง (Lyra/Bram/Kit/Vex)', before: '17/33/0/33%', after: '50/58/0/42%' },
+      { label: 'ถึงด่าน 8 อัปร้านกลาง (Lyra/Bram/Kit/Vex)', before: '83/67/33/58%', after: '83/75/33/67%' },
+      { label: 'คอมโบ Firestorm ของ Bram หลังตื่นพลัง', before: '0%', after: '11% ของดาเมจ' },
+    ],
+    findings: [
+      { level: 'bad', title: 'Holy Shield แทบไม่มีดาเมจ', body: 'บน v5 โล่ของ Bram ไม่ติด 9 อันดับดาเมจทั้งรอบ ขณะที่ Sigil ของ Lyra 36%, Hawk ของ Kit 20%, Flask ของ Vex 8% (+ คอมโบ)', status: 'แก้ด้วย shield.bashCd/kb/size/dmg' },
+      { level: 'warn', title: 'วงเวทเคลื่อนที่ทำให้ Lyra แรงที่สุด', body: 'วงเวทที่ไล่ตามฝูงทำให้ Lyra ชนะ Umbra จาก 17% เป็น 58–67% จึงตัดวงเวทที่เพิ่ม ลดคลื่นซ้ำ รอยเวท และความเร็วแช่แข็งของ Time Warp', status: 'จูนใน sigil.awk' },
+      { level: 'info', title: 'Kit ยังชนะ Umbra น้อย', body: 'ฝูงเหยี่ยวเพิ่มดาเมจของ Kit แต่ Kit ยังตายกับ elite และมอนธรรมดาช่วงท้ายเกม ปัญหาอยู่ที่ความทน ไม่ใช่สกิลประจำตัว', status: 'รอรอบถัดไป' },
+    ],
+    reasons: {
+      'shared.awaken.form': 'เปิดร่างตื่นพลังใหม่และคอมโบของสกิลสาย',
+      'shared.skills.lance.aim': 'หอกเล็งฝูงที่หนาแน่นที่สุด (ขนาดฝูง 32 px)',
+      'shared.skills.shield.bashCd': 'โล่กระแทกขยายวงทุก 2 วิ ให้โล่โดนมอนรอบตัวจริง',
+      'shared.skills.shield.bashMul': 'วงกว้างสุด 2.4 เท่า (ราว 80 px ที่เลเวลเต็ม)',
+      'shared.skills.shield.kb': 'มอนไม่กระเด็นหลุดวงโล่ทันที',
+      'shared.skills.shield.size': 'โล่ชนมอนง่ายขึ้นเล็กน้อย',
+      'shared.skills.shield.dmg.base': 'ดาเมจโล่เริ่มต้นแรงพอ ๆ กับสกิลประจำตัวอื่น',
+      'shared.skills.shield.dmg.perLv': 'ดาเมจโล่โตทันสกิลประจำตัวอื่น',
+      'shared.skills.sigil.awk.echo': 'คลื่น Mana Nova ซ้ำจากวงเวทไม่แรงเกิน',
+      'shared.skills.sigil.awk.trailMul': 'รอยเวทเป็นของแถม ไม่ใช่ดาเมจหลัก',
+      'shared.skills.sigil.awk.warpChill': 'Time Warp แช่แข็งช้าลง Lyra ไม่อมตะรอบตัว',
+      'shared.skills.hawk.awk.dmgMul': 'ฝูงเหยี่ยวแรงขึ้นเล็กน้อยให้ Kit ตามทัน',
+    },
+    next: [
+      'หลัง publish ดูข้อมูลจริง: อัตราตื่นพลังและอัตราชนะของแต่ละฮีโร่',
+      'Kit ยังอ่อนช่วงท้ายเกม: ดูความทนของ Kit ต่อ',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

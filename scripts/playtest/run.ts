@@ -1,7 +1,7 @@
 // One headless playtest Run with the bot, plus what a balance pass needs to know about it.
 // Damage attribution comes from hooks the build step (build.mjs) wraps around hit() and hurtP().
 import {
-  COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig,
+  AWK_TAG_SKILL, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig,
   type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId,
 } from '@pixel-horde/sim';
 import { BALANCE_PASSES, DEFAULT_CONFIG, applyPreset, withOverrides, type BalanceConfigInput, type PresetId } from '@pixel-horde/config';
@@ -62,6 +62,7 @@ TAG_NAME.set(HOLE_BOOM, 'hole');
 TAG_NAME.set(PET_FIRE, 'companion');
 TAG_NAME.set(PET_DIVE, 'companion');
 TAG_NAME.set(COMBO_HIT, 'combo');
+for (const [t, k] of AWK_TAG_SKILL) TAG_NAME.set(t, k);
 
 function tagName(tag: HitTag | undefined): string {
   if (!tag) return 'other';

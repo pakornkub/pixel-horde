@@ -35,7 +35,7 @@ import {
   setPlayUI, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
-/* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|realm:<id> (comma separated) ---------- */
+/* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|awaken|realm:<id> (comma separated) ---------- */
 const debug = parseDebug(location.search);
 
 /* ---------- run state ---------- */
@@ -119,7 +119,7 @@ async function newRun(): Promise<void> {
   runPreset = effectivePreset(active.cfg, settings.preset); // a preset the admin hid falls back to Balanced
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
   // Presets other than Balanced are unranked: no ticket, the Run is submitted like an offline one.
-  ticket = !isRanked(runPreset) ? null
+  ticket = !isRanked(runPreset) || debug.awaken ? null // ?debug=awaken (start Awakened) is never ranked
     : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
