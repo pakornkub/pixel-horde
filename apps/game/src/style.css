@@ -71,7 +71,7 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .opt:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .opt .key,.opt .cur{display:none} /* number keys 1/2/3 still pick; the badge is hidden (owner's choice) */
 .ico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink)}
-.opt .ico{width:46px;height:46px;font-size:18px}
+.opt .ico{width:46px;height:46px;font-size:18px;align-self:start} /* icon sits at the top, beside the name */
 /* picture icons from the atlas (ui/icons.ts): --x/--y = cell, --c/--r = atlas columns/rows */
 .ico.pic{background:#3a3363 var(--icons) no-repeat;background-size:calc(var(--c) * 100%) calc(var(--r) * 100%);
   background-position:calc(var(--x) * 100% / (var(--c) - 1)) calc(var(--y) * 100% / (var(--r) - 1));image-rendering:pixelated}
