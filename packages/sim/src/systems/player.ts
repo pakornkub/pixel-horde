@@ -9,6 +9,11 @@ export function xpNeed(cfg: ResolvedConfig, lv: number): number {
   return Math.floor(x.base + lv * x.perLv + lv * lv * x.quad + ipow(Math.max(0, lv - x.lateFrom), 2) * x.lateQuad);
 }
 
+/** Co-op: this player's share of each shared EXP pickup (1 solo, or when `coop.xpShareK` is 0). */
+export function xpShare(s: SimState): number {
+  return s.coop ? 1 / (1 + s.cfg.coop.xpShareK * s.coop.mates.length) : 1;
+}
+
 export const shopLv = (meta: Meta, id: ShopId): number => meta.up[id] || 0;
 export const U = (s: SimState, id: ShopId): number => shopLv(s.meta, id);
 
@@ -25,14 +30,15 @@ export function newPlayer(cfg: ResolvedConfig, ch: HeroId): Player {
 
 /** Additive bonuses with caps. */
 export function recompute(s: SimState): void {
-  const P = s.P, p = P.pas, c = P.ch, C = s.cfg, ps = C.passives, h = C.heroes, pl = C.player, sh = C.shop;
-  P.dmgMul = 1 + ps.mightDmg * (p.might || 0) + sh.power.per * U(s, 'power') + (c === 'mage' ? h.mage.dmg : 0);
+  const P = s.P, p = P.pas, c = P.ch, C = s.cfg, ps = C.passives, h = C.heroes, pl = C.player, sh = C.shop, lb = P.lb || {}, O = C.overflow;
+  P.dmgMul = 1 + ps.mightDmg * (p.might || 0) + sh.power.per * U(s, 'power') + (c === 'mage' ? h.mage.dmg : 0) + O.dmg * (lb.dmg || 0);
   P.cdRed = Math.min(pl.cdCap, ps.hasteCd * (p.haste || 0) + (c === 'alchemist' ? h.alchemist.cd : 0));
   P.cdMul = 1 - P.cdRed;
-  P.crit = Math.min(pl.critCap, pl.crit + ps.keenCrit * (p.crit || 0));
+  P.crit = Math.min(pl.critCap, pl.crit + ps.keenCrit * (p.crit || 0) + O.crit * (lb.crit || 0));
   P.statusMul = 1 + (c === 'alchemist' ? h.alchemist.status : 0);
   P.critMul = pl.critMul + ps.keenCritMul * (p.crit || 0);
-  P.spd = pl.spd * (1 + ps.swiftSpd * (p.swift || 0) + sh.speed.per * U(s, 'speed') + (c === 'ranger' ? h.ranger.spd : 0) - (c === 'knight' ? h.knight.spd : 0));
+  P.spd = pl.spd * (1 + ps.swiftSpd * (p.swift || 0) + sh.speed.per * U(s, 'speed') + (c === 'ranger' ? h.ranger.spd : 0) - (c === 'knight' ? h.knight.spd : 0) + O.spd * (lb.spd || 0));
   P.maxHp = pl.hp + ps.vitalHp * (p.vital || 0) + sh.vigor.per * U(s, 'vigor') + (c === 'knight' ? h.knight.hp : 0) + (c === 'ranger' ? h.ranger.hp : 0);
+  if (lb.hp) P.maxHp = Math.round(P.maxHp * (1 + O.hp * lb.hp));
   P.pick = pl.pick * (1 + ps.magnetPick * (p.magnet || 0) + (c === 'ranger' ? h.ranger.pick : 0));
 }

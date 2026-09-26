@@ -173,7 +173,10 @@ export function createBot(seed: number, profile: BotProfile = DEFAULT_PROFILE): 
     if (profile.pick === 'random') return rnd();
     switch (o.kind) {
       case 'evo': return 200;
-      case 'heal': return 1;
+      case 'heal': return P.hp < P.maxHp * 0.5 ? 30 : 1;
+      case 'lb': return ({ dmg: 14, hp: 12, crit: 10, spd: 8 } as const)[o.id] + noise;
+      case 'train': return 6 + noise;
+      case 'gold': return 3 + noise;
       case 'comp': return 34 + noise;
       case 'pas': {
         const own = P.pas[o.id] || 0;

@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { REALMS, WEAPONS, attackSlots, benchSize, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
+import { AWK_TAGS, REALMS, WEAPONS, attackSlots, benchSize, shieldPoints, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
@@ -338,7 +338,17 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     for (const f of v.effects) {
       if (f.type === 'sigil') {
         const x = f.x + ox, y = f.y + oy, r = f.r!, fade = Math.min(1, (f.dur - f.t) / 0.3, f.t / 0.15);
-        b.save(); b.globalAlpha = 0.35 * fade; b.fillStyle = '#e08cff';
+        if (f.faint) { // a wandering sigil's trail mark: a thin fading ring, so the trail never floods the screen
+          b.save(); b.globalAlpha = 0.12 * fade; b.fillStyle = '#e08cff'; b.beginPath(); b.ellipse(x, y, r, r * 0.8, 0, 0, TAU); b.fill();
+          b.globalAlpha = 0.5 * fade; b.strokeStyle = '#ff5cf4'; b.lineWidth = 1; b.stroke(); b.restore();
+          continue;
+        }
+        if (f.awk) { // Archmage: an outer rune ring turning the other way, sparks drawn inward
+          b.save(); b.globalAlpha = 0.8 * fade; b.strokeStyle = '#fff3ff'; b.lineWidth = 1; b.setLineDash([2, 3]); b.lineDashOffset = clock * 20;
+          b.beginPath(); b.ellipse(x, y, r * 1.15, r * 0.92, 0, 0, TAU); b.stroke(); b.restore();
+          if (R() < 0.6) { const a = R() * TAU; vfx.fx.push({ x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r * 0.8, vx: -Math.cos(a) * 40, vy: -Math.sin(a) * 32, t: 0, life: 0.4, col: R() < 0.5 ? '#ff5cf4' : '#fff3ff', sz: 1 }); }
+        }
+        b.save(); b.globalAlpha = (f.awk ? 0.2 : 0.35) * fade; b.fillStyle = '#e08cff'; // wandering sigils overlap a lot: lighter fill
         b.beginPath(); b.ellipse(x, y, r, r * 0.8, 0, 0, TAU); b.fill();
         b.globalAlpha = 0.9 * fade; b.strokeStyle = '#ff5cf4'; b.lineWidth = 1;
         b.beginPath(); b.ellipse(x, y, r, r * 0.8, 0, 0, TAU); b.stroke();
@@ -505,15 +515,16 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       b.save(); b.globalAlpha = 0.35 + 0.15 * Math.sin(clock * 5); b.fillStyle = '#ffd23f';
       b.beginPath(); b.ellipse(P.x + ox, P.y + oy + 8, 9, 3, 0, 0, TAU); b.fill(); b.restore();
     }
-    // holy shields
+    // holy shields (inner ring; the Paladin's outer ring is bigger and glows; thrown ones are effects)
+    const holyShield = (x: number, y: number, big: boolean, gold: boolean): void => {
+      const r = big ? 6 : 4;
+      if (big) { b.save(); b.globalAlpha = 0.35 + 0.15 * Math.sin(clock * 8); b.fillStyle = '#fff3a0'; b.beginPath(); b.arc(x, y, r + 3, 0, TAU); b.fill(); b.restore(); }
+      b.fillStyle = K; b.beginPath(); b.arc(x, y, r + 1, 0, TAU); b.fill();
+      b.fillStyle = gold ? '#ffd23f' : '#c7ced9'; b.beginPath(); b.arc(x, y, r, 0, TAU); b.fill();
+      b.fillStyle = '#fff8c0'; b.fillRect(x - 1, y - r + 1, 2, r * 2 - 2); b.fillRect(x - r + 1, y - 1, r * 2 - 2, 2);
+    };
     if (P.skills.shield && v.phase !== 'over' && !P.down) {
-      const sh = skillStats(v.cfg, 'shield', P.skills.shield, !!P.evo.shield);
-      for (let i = 0; i < sh.n; i++) {
-        const a = P.shieldA + (i * TAU) / sh.n, x = Math.round(P.x + ox + Math.cos(a) * sh.r), y = Math.round(P.y + oy + Math.sin(a) * sh.r * 0.8);
-        b.fillStyle = K; b.beginPath(); b.arc(x, y, 5, 0, TAU); b.fill();
-        b.fillStyle = P.evo.shield ? '#ffd23f' : '#c7ced9'; b.beginPath(); b.arc(x, y, 4, 0, TAU); b.fill();
-        b.fillStyle = '#fff8c0'; b.fillRect(x - 1, y - 3, 2, 6); b.fillRect(x - 3, y - 1, 6, 2);
-      }
+      for (const [x, y, outer] of shieldPoints(v as SimState)) holyShield(Math.round(x + ox), Math.round(y + oy), !!outer, !!P.evo.shield || !!outer);
     }
     // bolts
     for (const bo of v.bolts) {
@@ -548,10 +559,24 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       if (f.type === 'hawk' && !f.fired) {
         const o = f.targets![0], k = Math.min(1, f.t / f.dur);
         const x = Math.round(f.x + (o.x - f.x) * k + ox), y = Math.round(f.y + (o.y - f.y) * k - Math.sin(k * Math.PI) * 18 + oy);
-        const dir = o.x < f.x ? -1 : 1, flap = Math.floor(clock * 16) & 1;
+        const dir = o.x < f.x ? -1 : 1, flap = Math.floor(clock * 16) & 1, storm = f.tag === AWK_TAGS.flock;
+        if (storm) { // Stormhunter: a crackling trail behind each hawk of the flock
+          const px = Math.round(f.x + (o.x - f.x) * Math.max(0, k - 0.25) + ox), py = Math.round(f.y + (o.y - f.y) * Math.max(0, k - 0.25) - Math.sin(Math.max(0, k - 0.25) * Math.PI) * 18 + oy);
+          b.save(); b.strokeStyle = Math.floor(clock * 20) & 1 ? '#fff35c' : '#ffffff'; b.lineWidth = 1; b.beginPath(); b.moveTo(px, py);
+          b.lineTo((px + x) / 2 + rnd(-2, 2), (py + y) / 2 + rnd(-2, 2)); b.lineTo(x, y); b.stroke(); b.restore();
+        }
         b.fillStyle = K; b.fillRect(x - 4, y - 2, 8, 4); b.fillRect(x - 6, y - (flap ? 4 : 0), 12, 2);
-        b.fillStyle = '#c48a55'; b.fillRect(x - 3, y - 1, 6, 2); b.fillRect(x - 5, y - (flap ? 3 : 1) + 0, 10, 1);
-        b.fillStyle = '#ffd23f'; b.fillRect(x + dir * 4, y - 1, 1, 1);
+        b.fillStyle = storm ? '#5cb8ff' : '#c48a55'; b.fillRect(x - 3, y - 1, 6, 2); b.fillRect(x - 5, y - (flap ? 3 : 1) + 0, 10, 1);
+        b.fillStyle = storm ? '#fff35c' : '#ffd23f'; b.fillRect(x + dir * 4, y - 1, 1, 1);
+        continue;
+      }
+      if (f.type === 'sshield') { // Paladin: a thrown shield with a golden trail; a ring of light where it slams
+        const x = Math.round(f.x + ox), y = Math.round(f.y + oy - (f.fired ? 0 : Math.sin(Math.min(1, f.t / (f.dur / 2)) * Math.PI) * 10));
+        if (f.fired) {
+          const k = Math.min(1, (f.t - f.dur / 2) / 0.3), [sx, sy] = f.pts![0];
+          if (k < 1) { b.save(); b.globalAlpha = 1 - k; b.strokeStyle = '#ffd23f'; b.lineWidth = 2; b.beginPath(); b.ellipse(sx + ox, sy + oy, f.r! * (0.6 + k * 0.6), f.r! * (0.5 + k * 0.5), 0, 0, TAU); b.stroke(); b.restore(); }
+        } else { b.save(); b.globalAlpha = 0.4; b.fillStyle = '#fff3a0'; b.beginPath(); b.arc(x, y, 9, 0, TAU); b.fill(); b.restore(); }
+        holyShield(x, y, true, true);
         continue;
       }
       if (f.type === 'flask') {
@@ -559,7 +584,10 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if (!f.fired) {
           const [sx, sy] = f.pts![0], k = Math.min(1, f.t / f.dur);
           const x = Math.round(sx + (f.x - sx) * k + ox), y = Math.round(sy + (f.y - sy) * k - Math.sin(k * Math.PI) * 24 + oy);
-          b.fillStyle = K; b.fillRect(x - 3, y - 3, 6, 7); b.fillStyle = col; b.fillRect(x - 2, y - 1, 4, 4); b.fillStyle = '#e9f1ff'; b.fillRect(x - 1, y - 3, 2, 2);
+          if (f.awk) { // Grand Alchemist: the giant flask, twice the size and swirling
+            b.fillStyle = K; b.fillRect(x - 6, y - 6, 12, 13); b.fillStyle = col; b.fillRect(x - 5, y - 2, 10, 8);
+            b.fillStyle = Math.floor(clock * 10) & 1 ? '#ffffff' : '#e9f1ff'; b.fillRect(x - 2, y - 6, 4, 4); b.fillRect(x - 3, y, 2, 2);
+          } else { b.fillStyle = K; b.fillRect(x - 3, y - 3, 6, 7); b.fillStyle = col; b.fillRect(x - 2, y - 1, 4, 4); b.fillStyle = '#e9f1ff'; b.fillRect(x - 1, y - 3, 2, 2); }
           b.save(); b.globalAlpha = 0.5; b.strokeStyle = col; b.lineWidth = 1; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r!, f.r! * 0.6, 0, 0, TAU); b.stroke(); b.restore();
         } else {
           const k = Math.min(1, (f.t - f.dur) / 0.25);
@@ -612,8 +640,9 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.beginPath(); b.ellipse(P.x + ox, P.y + oy - 2, f.r!, f.r! * 0.9, 0, 0, TAU); b.fill();
         b.globalAlpha = 0.9; b.strokeStyle = '#ffd23f'; b.lineWidth = 2; b.stroke(); b.restore();
       } else if (f.type === 'rain') {
-        b.save(); b.globalAlpha = 0.25; b.fillStyle = '#c48a55'; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r!, f.r! * 0.8, 0, 0, TAU); b.fill(); b.restore();
-        b.fillStyle = '#ffe9a8';
+        const fire = !!f.tag; // Stormhunter: fire arrows
+        b.save(); b.globalAlpha = 0.25; b.fillStyle = fire ? '#ff6a2a' : '#c48a55'; b.beginPath(); b.ellipse(f.x + ox, f.y + oy, f.r!, f.r! * 0.8, 0, 0, TAU); b.fill(); b.restore();
+        b.fillStyle = fire ? (Math.floor(clock * 12) & 1 ? '#ffd23f' : '#ff8a3d') : '#ffe9a8';
         for (let i = 0; i < 6; i++) { const a = R() * TAU, d = R() * f.r!; b.fillRect(Math.round(f.x + ox + Math.cos(a) * d), Math.round(f.y + oy + Math.sin(a) * d * 0.8 - 6), 1, 5); }
       } else if (f.type === 'gale') {
         const k = f.t / f.dur;

@@ -157,6 +157,22 @@ export const PET_DIVE: HitTag = { el: 'fire', heavy: true, applies: 'burning' };
 /** Damage dealt by a Combo itself never starts another Combo. */
 export const COMBO_HIT: HitTag = { combo: true };
 
+/** Awakened forms (`awaken.form` 1): the Signature's new hits and the Skill Line hits that combo with them. */
+export const AWK_TAGS = {
+  /** Paladin: a thrown shield slams down (and the Aegis Dome burst); heavy, no sweep (the Skill Line grinds). */
+  slam: { heavy: true },
+  /** Judgement Pillar as holy fire: Firestorm on monsters a slam gathered. */
+  pillar: { heavy: true, el: 'fire', applies: 'burning' },
+  /** Archmage: stars fall as arcane (Catalyst on any Status). */
+  star: { heavy: true, el: 'arcane' },
+  /** Stormhunter: every hawk of the flock leaves Shocked; sweeps the Gathered (Grinder). */
+  flock: { heavy: true, sweep: true, el: 'lightning', applies: 'shocked' },
+  /** Arrow Rain as fire arrows: Overload on Shocked prey. */
+  arrow: { el: 'fire', applies: 'burning' },
+} as const satisfies Record<string, HitTag>;
+/** Which Skill each awakened tag belongs to (damage attribution). */
+export const AWK_TAG_SKILL: [HitTag, SkillId][] = [[AWK_TAGS.slam, 'shield'], [AWK_TAGS.pillar, 'judgePillar'], [AWK_TAGS.star, 'starfall'], [AWK_TAGS.flock, 'hawk'], [AWK_TAGS.arrow, 'arrowRain']];
+
 /** Status each Skill leaves on monsters (Frost Aura freezes by stacking; pulls gather). */
 export const SKILL_STATUS: Partial<Record<SkillId, StatusId>> = {
   frost: 'frozen', cyclone: 'gathered', hole: 'gathered', nova: 'burning', meteor: 'burning', chain: 'shocked', laser: 'shocked', toxic: 'poisoned',
@@ -174,22 +190,26 @@ export function comboOf(status: StatusId, tag: HitTag): ComboId | null {
   return null;
 }
 
-/** Every hit tag a Skill can carry (Black Hole's pull and collapse, each Volatile Flask element). */
-export function hitTagsOf(id: SkillId): HitTag[] {
-  return id === 'hole' ? [SKILL_TAGS.hole, HOLE_BOOM] : id === 'flask' ? Object.values(FLASK_TAGS) : [SKILL_TAGS[id]];
+/** Every hit tag a Skill can carry (Black Hole's pull and collapse, each Volatile Flask element);
+ *  `awk`: with the awakened forms (`awaken.form` 1 and Awakened), which add their own tags. */
+export function hitTagsOf(id: SkillId, awk = false): HitTag[] {
+  const base = id === 'hole' ? [SKILL_TAGS.hole, HOLE_BOOM] : id === 'flask' ? Object.values(FLASK_TAGS) : [SKILL_TAGS[id]];
+  return awk ? [...base, ...AWK_TAG_SKILL.filter(([, k]) => k === id).map(([t]) => t)] : base;
 }
+/** Statuses the awakened forms add: shield slams, wandering sigils and Gale Step gather; Time Warp freezes. */
+const AWK_STATUS: Partial<Record<SkillId, StatusId>> = { shield: 'gathered', sigil: 'gathered', galeStep: 'gathered', timeWarp: 'frozen' };
 /** Every Status a Skill can leave on monsters. */
-export function statusesOf(id: SkillId): StatusId[] {
+export function statusesOf(id: SkillId, awk = false): StatusId[] {
   const out: StatusId[] = [];
-  for (const s of [SKILL_STATUS[id], ...hitTagsOf(id).map((x) => x.applies)]) if (s && !out.includes(s)) out.push(s);
+  for (const s of [SKILL_STATUS[id], ...(awk ? [AWK_STATUS[id]] : []), ...hitTagsOf(id, awk).map((x) => x.applies)]) if (s && !out.includes(s)) out.push(s);
   return out;
 }
 
 /** Combos two Skills make together (either one leaving the Status, the other triggering). */
-export function combosBetween(a: SkillId, b: SkillId): ComboId[] {
+export function combosBetween(a: SkillId, b: SkillId, awk = false): ComboId[] {
   const out: ComboId[] = [];
   const add = (from: SkillId, by: SkillId): void => {
-    for (const s of statusesOf(from)) for (const tag of hitTagsOf(by)) { const c = comboOf(s, tag); if (c && !out.includes(c)) out.push(c); }
+    for (const s of statusesOf(from, awk)) for (const tag of hitTagsOf(by, awk)) { const c = comboOf(s, tag); if (c && !out.includes(c)) out.push(c); }
   };
   add(a, b); add(b, a);
   return out;

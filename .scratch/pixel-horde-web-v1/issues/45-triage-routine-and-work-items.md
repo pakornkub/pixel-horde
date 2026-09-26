@@ -6,7 +6,7 @@ The Admin Console shows the progress of every fix and the questions waiting for 
 
 **Blocked by:** 14 (telemetry), 15–18 (Admin Console), player feedback (migration `20260926000015`)
 
-**Status:** ready-for-human (owner review of the PR; routine created)
+**Status:** done — PR #18 merged, migration 0021 live, Admin → งานแก้ไข in use; the daily routine runs (its first fixes merged as PRs #24 and #25 on 2026-09-26)
 
 - [x] Feedback #1 "หน้าแรกบนมือถือต้องเลื่อนถึงจะเห็นปุ่มผูกบัญชี" (iPhone, Facebook in-app browser, 377×648)
 - [x] Error `sqre4r` drawImage on a 0-size canvas — already fixed in `7ff4de5` (buffers ≥ 1 px); it came from the dev server

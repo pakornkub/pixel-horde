@@ -18,4 +18,6 @@
 - Hero select shows name, role, Signature and bonus. Balance Config `skills.sigil|shield|hawk|flask`, `heroes.*`.
 - Tests: `tests/signatures.test.ts`; DB test updated for the new prices.
 
+**Update 2026-09-26:** the Hawk defends Kit when crowded (`skills.hawk.guardN/guardR`: dives the nearest monster instead of the biggest), Hawk dive splash `skills.hawk.r`, Kit max HP bonus `heroes.ranger.hp`; the Volatile Flask aims at bosses first, then the densest crowd, and follows its target. New fields are neutral by default; live values come from passes 2026-09 / 2026-09b.
+
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

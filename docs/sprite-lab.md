@@ -22,3 +22,14 @@ npm run lab        # opens http://localhost:5173/sprite-lab.html
 - The validator (`validateSprite` in `apps/game/src/sprites/types.ts`) runs in the Lab and in
   `npm test`: every row of every frame must have the same length and every character must be
   in the palette.
+
+## Skill icons
+
+The 32×32 icons on level-up cards, the HUD skill panel and the website (skills, passives, companions) are
+not in the Lab: they are PNG files in `apps/game/src/assets/icons/<id>.png` (`<id>` = the skill / passive id).
+After adding or replacing one, rebuild the atlas the game loads once (`apps/game/src/assets/icons.png` +
+`icons.json`) and commit all three:
+
+```sh
+node scripts/build-icon-atlas.mjs   # uses sharp (installed with wrangler, not a direct dependency)
+```

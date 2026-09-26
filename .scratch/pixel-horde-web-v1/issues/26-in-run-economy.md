@@ -19,4 +19,6 @@
 - The permanent Shop stays reachable only from the title and Run-end screens.
 - Tests: `tests/economy.test.ts`.
 
+**Update 2026-09-26:** by default Skill Points are no longer sold for Gold at the Stage end (`economy.spShop` 0) and a King opens only the chest wheel, no chest item (`loot.kingChestItem` 0); Admin switches bring the old rules back (migration 0014, live).
+
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

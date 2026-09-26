@@ -19,4 +19,6 @@
 - Low FPS: after 8 s under 45 FPS in play, a small bar suggests lowering effects (one tap: all → some → off), once per session. The FPS histogram (<30, 30–45, 45–55, ≥55) is already in each Run summary (ticket 14).
 - Tests: `tests/juice.test.ts` (mobile cap, kill/streak/intro events, vacuum), `apps/game/src/fpswatch.test.ts`.
 
+**Update 2026-09-26:** HUD scales with the screen (bottom-left skill panel SKILL / PASSIVE / BENCH / PET), the Kill Streak popup sits below the pause button, Kings are drawn above mobs with a glow ring (PR #24), monsters fade in on spawn, and the enemy list is compacted in place (PR #25). The phone playtest is still with the owner.
+
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

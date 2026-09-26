@@ -1,7 +1,7 @@
 // Player-facing text comes from packages/i18n (t). This file maps game ids to keys
 // and keeps the non-text visuals (icon colour and glyph) next to them.
 import { t } from '@pixel-horde/i18n';
-import type { BannerKey, Element, HeroId, PassiveId, RealmId, ShopId, SkillId, SkillStats, Trait } from '@pixel-horde/sim';
+import { isLine, isSignature, type BannerKey, type Element, type HeroId, type PassiveId, type RealmId, type ResolvedConfig, type ShopId, type SkillId, type SkillStats, type Trait } from '@pixel-horde/sim';
 
 export interface Icon { col: string; g: string }
 
@@ -26,6 +26,19 @@ export const SHOP_ICON: Record<ShopId, Icon> = {
 
 export const skillName = (id: SkillId): string => t(`skill.${id}.name`);
 export const skillDesc = (id: SkillId): string => t(`skill.${id}.desc`);
+/** The Awakened Signature's new form (`awaken.form`), with its numbers from the live config. */
+export function formDesc(cfg: ResolvedConfig, sig: SkillId): string {
+  const K = cfg.skills, n = sig === 'shield' ? K.shield.awk.n : sig === 'hawk' ? K.hawk.awk.n : sig === 'flask' ? K.flask.awk.shards : 0;
+  return t(`awk.${sig}.desc`, { n, cd: K.shield.awk.cd });
+}
+/** A Skill's description under the live rules: Lance aim, Shield Bash, awakened forms and their Skill Line combos. */
+export function skillDescIn(cfg: ResolvedConfig, id: SkillId, awakened: boolean): string {
+  if (cfg.awaken.form && isLine(id)) return t(`awk.${id}.desc`);
+  if (cfg.awaken.form && awakened && isSignature(id)) return formDesc(cfg, id);
+  if (id === 'lance' && cfg.skills.lance.aim > 0) return t('skill.lance.descAim');
+  if (id === 'shield' && cfg.skills.shield.bashCd > 0) return t('skill.shield.descBash');
+  return skillDesc(id);
+}
 export const passiveName = (id: PassiveId): string => t(`passive.${id}.name`);
 export const passiveDesc = (id: PassiveId): string => t(`passive.${id}.desc`);
 export const evoName = (id: SkillId): string => t(`evo.${id}.name`);

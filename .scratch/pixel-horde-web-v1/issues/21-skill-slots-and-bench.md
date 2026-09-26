@@ -19,4 +19,6 @@
 - The "combos with …" label needs Statuses/Combos (ticket 22) and is added there.
 - Tests: `tests/slots.test.ts`, DB test for the wallet charge in `supabase/tests/002_*`.
 
+**Update 2026-09-26:** `bench.passives` (default 1, migration 0022, live): once the 3 passive slots are full, new passives are offered to the Bench and swap into a passive slot at the Stage end (same Gold cost), replacing the "new passives only while a passive slot is free" rule above; Bench skills can be removed for free at the Stage end (`bench.discard`, default 1).
+
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

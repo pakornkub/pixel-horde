@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -7,7 +7,7 @@ import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
 import { t } from '@pixel-horde/i18n';
 import { iconHtml } from './icons';
-import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
+import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, formDesc, skillDescIn, skillDetail, skillName } from './text';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -158,6 +158,8 @@ export function closeShop(): void {
 }
 
 /* ---------- level up ---------- */
+/** Limit Break cards borrow the matching passive's picture. */
+const LB_ICON: Record<LimitBreakId, PassiveId> = { dmg: 'might', hp: 'vital', spd: 'swift', crit: 'crit' };
 export interface LevelTools { reroll: () => void; banish: (i: number) => void }
 /** Level-up notes, one colored row per kind (Signature, Link, Skill Line, Combo, final level). */
 type NoteKind = 'sig' | 'link' | 'line' | 'combo' | 'final';
@@ -169,21 +171,21 @@ function noteRows(notes: [NoteKind, string][]): string {
 }
 
 /** Element, Status and role chips of a Skill (same words as the web codex); a chip that Combos with an owned Skill is ringed. */
-function skillChips(id: SkillId, owned: SkillId[]): string {
+function skillChips(id: SkillId, owned: SkillId[], awk = false): string {
   const others = owned.filter((k) => k !== id);
-  const tags = hitTagsOf(id);
-  const hitsStatus = (tag: HitTag): boolean => others.some((k) => statusesOf(k).some((s) => !!comboOf(s, tag)));
+  const tags = hitTagsOf(id, awk);
+  const hitsStatus = (tag: HitTag): boolean => others.some((k) => statusesOf(k, awk).some((s) => !!comboOf(s, tag)));
   const chip = (cls: string, txt: string, combo: boolean, tip = ''): string => `<b class="chip ${cls}${combo ? ' hit' : ''}"${tip ? ` title="${tip}"` : ''}>${txt}</b>`;
   const els = [...new Set(tags.map((x) => x.el).filter((e): e is HitElement => !!e))];
   const out = els.map((e) => chip(`el-${e}`, t(`element.${e}`), hitsStatus({ el: e })));
-  for (const s of statusesOf(id)) out.push(chip(`stat s-${s}`, t(`status.${s}`), others.some((k) => hitTagsOf(k).some((tg) => !!comboOf(s, tg))), t('status.tip', { s: t(`status.${s}`) })));
+  for (const s of statusesOf(id, awk)) out.push(chip(`stat s-${s}`, t(`status.${s}`), others.some((k) => hitTagsOf(k, awk).some((tg) => !!comboOf(s, tg))), t('status.tip', { s: t(`status.${s}`) })));
   if (tags.some((x) => x.heavy)) out.push(chip('role', t('role.heavy'), hitsStatus({ heavy: true }), t('role.heavy.tip')));
   if (tags.some((x) => x.sweep)) out.push(chip('role', t('role.sweep'), hitsStatus({ sweep: true }), t('role.sweep.tip')));
   return out.length ? `<span class="chips">${out.join('')}</span>` : '';
 }
 
 export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void, tools?: LevelTools): void {
-  const lu = v.levelUp!, P = v.P;
+  const lu = v.levelUp!, P = v.P, awk = !!v.cfg.awaken.form && P.awakened; // awakened forms add Combos
   const box = $('opts');
   box.innerHTML = '';
   $('lvSlots').textContent = t('level.slots', { n: Object.keys(P.skills).length, max: attackSlots(v as SimState), b: P.bench.length, bmax: benchSize(v as SimState) });
@@ -199,20 +201,20 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       desc = evoDesc(o.id);
       stats = `${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id]!)}`;
       bt.classList.add('evo');
-      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[]);
+      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[], awk);
     } else if (o.kind === 'skill') {
       meta = SKILL_ICON[o.id]; pic = o.id;
       const lv = P.skills[o.id] || 0;
       name = skillName(o.id);
       tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t(o.toBench ? 'level.bench' : 'level.new')}</b>`;
-      desc = lv ? '' : skillDesc(o.id);
+      desc = lv ? '' : skillDescIn(v.cfg, o.id, P.awakened);
       stats = skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false));
-      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[]);
+      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[], awk);
       if (o.id === signatureOf(P.ch)) notes.push(['sig', t('level.signature')]);
       else if (SKILL_LINES[P.ch].includes(o.id)) notes.push(['link', t('level.link')]);
       else if (AWAKENING[P.ch].line.includes(o.id as never)) notes.push(['line', t('level.line')]);
-      const partners = (Object.keys(P.skills) as SkillId[]).filter((k) => k !== o.id && combosBetween(o.id, k).length);
-      for (const k of partners.slice(0, 2)) notes.push(['combo', t('level.combos', { list: `${skillName(k)} → ${combosBetween(o.id, k).map((c) => t('combo.' + c).replace('!', '')).join(' / ')}` })]);
+      const partners = (Object.keys(P.skills) as SkillId[]).filter((k) => k !== o.id && combosBetween(o.id, k, awk).length);
+      for (const k of partners.slice(0, 2)) notes.push(['combo', t('level.combos', { list: `${skillName(k)} → ${combosBetween(o.id, k, awk).map((c) => t('combo.' + c).replace('!', '')).join(' / ')}` })]);
       const evoPas = EVO_PASSIVE[o.id];
       if (evoPas && lv + 1 === v.cfg.skills[o.id].max) notes.push(['final', t('level.final', { passive: passiveName(evoPas) })]);
     } else if (o.kind === 'pas') {
@@ -225,6 +227,23 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       meta = { col: '#ffd23f', g: 'D' }; pic = 'pet';
       name = t('level.comp');
       desc = t('level.compDesc', { dragon: t(`guardian.${P.pet!.kind}`), lv: P.pet!.lv, next: P.pet!.lv + 1 });
+    } else if (o.kind === 'lb') {
+      const lb = P.lb?.[o.id] || 0, O = v.cfg.overflow;
+      meta = PASSIVE_ICON[LB_ICON[o.id]]; pic = LB_ICON[o.id];
+      name = t('level.lb', { stat: t('level.lbStat.' + o.id) });
+      tag = `<b class="tag up">${lb} → ${lb + 1} / ${O.max}</b>`;
+      desc = t('level.lb.' + o.id, { v: Math.round(O[o.id] * 100) });
+    } else if (o.kind === 'train') {
+      const b = P.bench.find((x) => x.id === o.id)!;
+      meta = b.pas ? PASSIVE_ICON[b.id] : SKILL_ICON[b.id]; pic = o.id;
+      name = b.pas ? passiveName(b.id) : skillName(b.id);
+      tag = `<b class="tag up">BENCH LV ${b.lv} → ${b.lv + 1}</b>`;
+      desc = t('level.trainDesc');
+      if (!b.pas) stats = skillDetail(b.id, skillStats(v.cfg, b.id, b.lv + 1, b.evo));
+    } else if (o.kind === 'gold') {
+      meta = { col: '#ffd23f', g: 'G' };
+      name = t('level.gold');
+      desc = t('level.goldDesc', { n: goldBag(v) });
     } else {
       meta = { col: '#ffa6c2', g: '♥' };
       name = t('level.recover');
@@ -420,7 +439,8 @@ export function renderAwaken(v: Readonly<SimState>, onAnswer: (accept: boolean) 
   if (!v.awakenOffer) return;
   const P = v.P, A = v.cfg.awaken, links = qualifiedLinks(v as SimState).slice(0, A.links);
   const keep = A.keep && A.slots > 0; // Links stay and the new slots make room
-  box.innerHTML = `<h3>${t('awaken.title')}</h3><p>${t(keep ? 'awaken.textKeep' : 'awaken.text', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form), links: links.map(skillName).join(' + '), slots: A.slots })}</p>`;
+  box.innerHTML = `<h3>${t('awaken.title')}</h3><p>${t(keep ? 'awaken.textKeep' : 'awaken.text', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form), links: links.map(skillName).join(' + '), slots: A.slots })}</p>`
+    + (A.form ? `<p>${t('awaken.formLine', { form: t('awk.' + signatureOf(P.ch) + '.name'), desc: formDesc(v.cfg, signatureOf(P.ch)) })}</p>` : '');
   const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = t('awaken.accept');
   const no = document.createElement('button'); no.className = 'btn ghost'; no.textContent = t('awaken.decline');
   let armed = false;
