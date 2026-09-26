@@ -16,7 +16,7 @@ export { GUARDIANS, canFuse } from './systems/guardians';
 export { KING_KITS, ULTS } from './systems/kings';
 export { awkForm, shieldPoints } from './systems/shield';
 export { attackSlots, awakenEligible, benchSize, qualifiedLinks, reviveCost, swapCost } from './systems/progress';
-export { SNAP_ENEMIES, hostPhaseOf, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies } from './systems/coop';
+export { SNAP_ENEMIES, decHp, encHp, hostPhaseOf, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies } from './systems/coop';
 export { DEFAULT_RESOLVED, resolveConfig, type ResolvedConfig } from '@pixel-horde/config';
 export { createRng, createStreams, hashString, type Rng } from './core/rng';
 export * as fmath from './core/fmath';
