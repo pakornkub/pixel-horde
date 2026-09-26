@@ -9,8 +9,9 @@ single self-contained HTML file (`pixel-horde.html`, ~1,750 lines, vanilla JS + 
 - Explain simply, with examples; interactive widgets/visuals are welcome for anything non-trivial.
 - The owner decides design questions; ask with a recommended option first.
 - Plan so far: Blueprint `docs/blueprint/pixel-horde-blueprint.md` → spec `.scratch/pixel-horde-web-v1/spec.md`
-  → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/`. The code for all 44 is in; most wait for an
-  owner playtest / review or an owner-only setup step (see each ticket's **Status**). New work gets new tickets.
+  → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/`, plus follow-ups 45 (triage routine + work items)
+  and 46 (spawn wave fronts). The code for all of them is in; most wait for an owner playtest / review or an owner-only
+  setup step (see each ticket's **Status**). New work gets new tickets.
 - Player-facing docs: the official website `apps/site` (served at `/`, the game at `/play/`) and `README.md` /
   `README.th.md`. When gameplay changes, check the site's own sentences in `apps/site/src/text.ts` (names and sprites come
   from the code; numbers from the live Balance Config via `apps/site/src/backend.ts`, built-in defaults when offline) and re-take screenshots with `npm run shots` if the look changed.
@@ -55,6 +56,7 @@ workers/room/    # Cloudflare Worker + Durable Object co-op room (PartyServer)
 workers/keepalive/ # daily ping so the Supabase Free project is never paused
 supabase/        # migrations, RLS, RPC (submit_run, run token), pg_cron jobs
 tests/           # Vitest headless sim + golden replay; Playwright cross-browser determinism
+scripts/         # playtest/ (balance bot), capture-shots (site screenshots), build-icon-atlas (32×32 skill icons), assemble-pages
 ```
 Rules: every tunable number lives in the Balance Config schema (`packages/config`). All damage to enemies MUST go
 through `hit()`; all damage to the player MUST go through `hurtP()`. `packages/sim` must never import DOM/Canvas/network,
@@ -86,21 +88,25 @@ clear screen — never at the next Stage start.
   `scaling.lvCapBase/lvCapPerCh` (2026-09b) cap the counted playerLv at `base + perCh*(stage-1+progress)` for HP, damage and armor.
 - Enemy dmg: `base * 1.18^(stage-1) * (1 + 0.5*progress) * (1 + 0.015*(playerLv-1))`, each hit ±15%.
 - Spawn rate/s: `(1.4 + 3.4*progress) * (1 + 0.35*(stage-1)) * (1 + 0.6*aliveMates) * (BloodMoon?2.3:1) * director`.
-  Swarm ring every 18 s (10 s in Blood Moon). Enemy cap ≈ 320.
-- Director: 0.7–2.4. Rises +0.06/s when HP>75% and not hurt for 6 s; −0.2/s when HP<40%.
+  Swarm ring every 18 s (10 s in Blood Moon). Enemy cap ≈ 320. Wave fronts (`spawn.frontShare/frontArc/frontEvery/lull…`:
+  most spawns from one side that moves) and pincer swarms (`spawn.pincer`: two arcs, Blood Moon keeps the ring) exist but are 0/off by default.
+- Director: 0.7–2.4. Rises +0.06/s when HP>75% and not hurt for 6 s; −0.2/s when HP<40%. Pass 2026-09c (config v6) sets
+  max 1.6, rise 0.04. `director.stageReset` (default 0) eases it back toward its start at each new Stage.
 - Player bonuses are ADDITIVE with caps: dmg = 1 + 0.2·Might + 0.08·Power(shop) + Lyra 0.10;
   cooldown reduction cap 40% (Haste 8%/lv, Vex 8%); crit 8% base + Keen Eye 7%/lv, cap 50%; critMul 2.0 + 0.2/lv.
 - XP to next level: `5 + 4lv + 0.5lv² + 1.4·max(0, lv-8)²`.
-- Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening).
+- Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening; players see them as
+  "Awakened skills" / สกิลตื่นพลัง).
   4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
   16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
   version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
 - Heroes: Lyra/Mage (Arcane Sigil, +10% dmg, free), Bram/Knight (Holy Shield, +40 HP, −5% speed, free),
-  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup; `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%).
+  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%).
 - Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP, capped at 8% of a boss
-  (Umbra 5%). 11 Weapons change only its form (default Judgement); a King drops its Realm's Weapon at 5%.
+  (Umbra 5%). 11 Weapons change only its look, colour and name (`weapon.<id>.ult`; default Judgement); a King drops its
+  Realm's Weapon at 5%. At any Stage end the player can switch to any usable Weapon (Judgement, collection, found this Run).
 - Shop (permanent): Power, Vigor, Agility, Greed, Wisdom, Second Wind (revive). A revive can also be bought in a Run
   (75G × Chapter, once, −15% Score).
 - Counter enemies: Armored variant (flat damage reduction `10*1.4^(st-1)*(1+0.05*(lv-1))`, st≥3), Split Slime (st≥4,
@@ -141,7 +147,8 @@ drives the built game and Admin in Chromium/Firefox/WebKit (golden replay, title
 Balance passes: `npm run playtest` (scripts/playtest, a human-like bot with damage/death attribution; see its README).
 Recommended tuning lives in `packages/config/src/balance-pass.ts` (patch + Thai report; the report is stored with the
 published version in `config_reports` and shown in Admin → Balance → รายงาน) and is published from Admin → Balance, never by
-changing built-in defaults (version 0 must equal the migration seed). Difficulty presets (`packages/config/src/presets.ts`)
+changing built-in defaults (version 0 must equal the migration seed). Passes loaded onto one draft stack their patches, reports
+and patch notes. Live history: v4 = pass 2026-09, v5 = 2026-09b, v6 = 2026-09c (Director). Difficulty presets (`packages/config/src/presets.ts`)
 scale the published config for solo Runs; their multipliers (and whether each is offered) are Balance Config fields
 `shared.presets.*`, tuned from Admin → Balance; only `balanced` is ranked.
 Changelog (patch notes, `packages/config/src/changelog.ts`, table `changelog`): every config publish writes a `balance`

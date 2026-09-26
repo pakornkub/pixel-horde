@@ -19,4 +19,6 @@
 - Line skills have no Evolution and higher max level; numbers in Balance Config `skills.<lineSkill>`.
 - Tests: `tests/awaken.test.ts`.
 
+**Update 2026-09-26:** new Awakening options, neutral by default (migrations 0016 / 0023, live): `awaken.keep` (the Links stay equipped instead of being consumed), `awaken.slots` (+N attack slots, `attackSlots()`), `awaken.grant/grantLv` (first line skills given right away), `awaken.wLine` (offer weight). Live v5 (pass 2026-09b) keeps the Links and adds a 5th attack slot. Player-facing name of Skill Line skills is now "Awakened skills" (สกิลตื่นพลัง); code still says Skill Line.
+
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

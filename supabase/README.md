@@ -4,8 +4,12 @@ Migrations, RLS policies, RPCs and pg_cron jobs for the Supabase project `pixel-
 (id `jqvgmkhzdhjreikjqhxt`, ap-southeast-1).
 
 - `migrations/` — applied in filename order (`supabase db push`, or the Supabase MCP `apply_migration`).
-- `tests/*.test.sql` — pgTAP tests. On Supabase: `supabase test db`. In CI they run inside PGlite
-  with a tiny pgTAP shim (`tests/db/*.sql`, `tests/db.test.ts`), so every push checks them.
+  All of them (0001–0024; number 0020 is unused) are applied to the live project; which one went in how is
+  listed in [docs/deploy.md](../docs/deploy.md#database-supabase).
+- `tests/*.test.sql` — pgTAP tests (`001_profiles_sessions` … `016_work_items`). On Supabase: `supabase test db`.
+  In CI they run inside PGlite with a tiny pgTAP shim (the repo's `tests/db/*.sql`, `tests/db.test.ts`), so every
+  push checks them.
+- `functions/balance-ai` — Edge Function behind Admin → ผู้ช่วย AI (see `docs/deploy.md`).
 - `profanity.json` — basic Thai/English nickname word list shared by the SQL filter and the client
   (a test keeps them in sync).
 

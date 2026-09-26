@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Balance Config schema with every tunable number); 09 (Server-counted meta progression, Run submission and anti-cheat tier 0)
 
-**Status:** done — migrations applied; the game follows the published Balance Config (now v4) (checked 2026-09-26 against the live project)
+**Status:** done — migrations applied; the game follows the published Balance Config (v4 = pass 2026-09, v5 = pass 2026-09b; pass 2026-09c published as v6) (checked 2026-09-26 against the live project)
 
 - [x] `balance_configs` table with draft/published/archived; publish validated server-side with the same schema
 - [x] A new version applies from the next Stage start, never mid-Stage

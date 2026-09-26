@@ -4,7 +4,7 @@ import {
 } from '@pixel-horde/sim';
 import { el, enemy, hero, heroWithWeapon, passiveIcon, pet, skillIcon, weaponIcon } from '../art';
 import { siteConfig } from '../backend';
-import { evoPassive } from '../data';
+import { evoPassive, heroBonus } from '../data';
 import { g, onLang } from '../lang';
 import { reveals, shell, toHash } from '../shell';
 import type { TextKey } from '../text';
@@ -33,7 +33,7 @@ const heroSec = section('heroes', 'w.heroes', el('div.grid', null, ...HERO_IDS.m
   return el('article.panel.herox', null, stage, el('div', null,
     el('h3', null, G(`hero.${h}.name`)), G(`hero.${h}.role`, undefined, 'p', 'muted'),
     el('dl.kv', null,
-      el('dt', null, T('w.bonus')), el('dd', null, G(`hero.${h}.desc`)),
+      el('dt', null, T('w.bonus')), el('dd', null, ...heroBonus(h, C).flatMap(([k, a], i) => [i ? ' · ' : '', T(k, a)])),
       el('dt', null, T('home.sig')), el('dd', null, skn(sig), '→', el('span.skname', null, passiveIcon(evoPassive(sig)!, 'sm'), G(`evo.${sig}.name`))),
       el('dt', null, T('w.line')), el('dd', null, ...SKILL_LINES[h].map((id) => skn(id))),
       el('dt', null, T('w.form')), el('dd', null, G(`form.${A.form}`, undefined, 'span', 'chip line'), ...A.line.map((id) => skn(id))),
@@ -45,7 +45,7 @@ main.append(heroSec);
 function chapterTag(r: RealmId): TextKey { return r === 'greenvale' ? 'w.chapter1' : r === 'crater' ? 'w.chapter8' : 'w.chapterMid'; }
 const realmSec = section('realms', 'w.realms', el('div.grid', null, ...REALM_IDS.map((r, i) => {
   const R = REALMS[r], w = Object.values(WEAPONS).find((x) => x.realm === r), kit = KING_KITS[R.king];
-  const scene = groundBg(el('div.scene', null, T(chapterTag(r), undefined, 'span', 'chtag'), ...R.pool.map((m) => el('div.mob', null, enemy(m, 3))), el('div.mob', null, enemy(R.king, 4))), R.theme, 10, 8, i);
+  const scene = groundBg(el('div.scene', null, T(chapterTag(r), { n: C.stage.chapters, m: C.stage.chapters - 1 }, 'span', 'chtag'), ...R.pool.map((m) => el('div.mob', null, enemy(m, 3))), el('div.mob', null, enemy(R.king, 4))), R.theme, 10, 8, i);
   const adv = adviceFor(R);
   return el('article.panel.realm-card.reveal', { id: `realm-${r}`, style: 'scroll-margin-top:80px' }, scene, el('div.body', null,
     el('h3', null, G(`realm.${r}.name`)),
@@ -53,7 +53,7 @@ const realmSec = section('realms', 'w.realms', el('div.grid', null, ...REALM_IDS
     G(`lore.${R.king}`, undefined, 'p', 'lore'),
     el('dl.kv', null,
       el('dt', null, T('w.traits')), el('dd', null, ...(R.traits.length ? R.traits.map((t) => G(`trait.${t}`, undefined, 'span', 'chip st')) : [T('w.noTraits', undefined, 'span', 'chip st')])),
-      el('dt', null, T('w.resist')), el('dd', null, R.element ? G(`element.${R.element}`, undefined, 'span', `chip el-${R.element}`) : T('w.noResist', undefined, 'span', 'chip st')),
+      el('dt', null, T('w.resist', { p: Math.round((1 - C.realms.resist) * 100) })), el('dd', null, R.element ? G(`element.${R.element}`, undefined, 'span', `chip el-${R.element}`) : T('w.noResist', undefined, 'span', 'chip st')),
       adv.length ? el('dt', null, T('w.advice')) : null, adv.length ? el('dd', null, ...adv.map((id) => skn(id as SkillId))) : null,
       kit ? el('dt', null, T('w.moves')) : null,
       kit ? el('dd', null, ...kit.moves.map((m) => G(`kingMove.${m}`, undefined, 'span', 'chip st')), el('span.chip', { style: 'background:#8a2030' }, G(`kingMove.${kit.ult}`), ' · ', T('w.ult'))) : null,
@@ -63,7 +63,7 @@ main.append(realmSec);
 
 // ── guardians ──
 const DRAG: ['inferno' | 'frost' | 'storm', EnemyId, number, TextKey][] = [['inferno', 'dragon', 5, 'w.drag.inferno'], ['frost', 'frostDragon', 3, 'w.drag.frost'], ['storm', 'stormDragon', 7, 'w.drag.storm']];
-main.append(section('guardians', 'w.guardians', T('w.drag.p', undefined, 'p', 'lead'), el('div.grid.g3', null, ...DRAG.map(([k, id, th, d]) => el('article.panel.drag-card', null,
+main.append(section('guardians', 'w.guardians', T('w.drag.p', { n: C.companion.maxLv }, 'p', 'lead'), el('div.grid.g3', null, ...DRAG.map(([k, id, th, d]) => el('article.panel.drag-card', null,
   groundBg(el('div.pic', null, enemy(id, 2)), th, 10, 8, 2), el('h3', null, G(`guardian.${k}`)), T(d, undefined, 'p'),
   el('div', { style: 'display:flex;gap:8px;justify-content:center;align-items:center' }, el('span.muted', null, '→'), pet(k, 4), T('g.ev.dragon.h', undefined, 'span', 'muted'))))),
   el('div.panel', { style: 'margin-top:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, pet('inferno', 4), pet('frost', 4), pet('storm', 4), el('span', { style: 'font:400 18px var(--pix)' }, '='), G('guardian.tri', undefined, 'b', 'pixh'))));

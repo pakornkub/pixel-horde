@@ -67,11 +67,11 @@ Optional play after defeating Umbra: random Realms with ever-rising difficulty, 
 _Avoid_: survival mode, infinite mode
 
 **Weapon**:
-A permanent, unique collectible (one per Realm) chosen before a Run that changes only the form of the Ultimate — never the player's stats. Earned by defeating Umbra or, rarely, from that Realm's King; a Weapon found mid-Run may be switched in at the next stage end.
+A permanent, unique collectible (one per Realm) chosen before a Run that changes only the form of the Ultimate — never the player's stats. Earned by defeating Umbra or, rarely, from that Realm's King. At any Stage end the player may switch between every usable Weapon (Judgement, the collection, and Weapons found this Run), back and forth. Each Weapon gives the Ultimate its own look, colour and name (e.g. Thornwhip → Bramble Field).
 _Avoid_: item, gear, equipment
 
 **Ultimate**:
-The special attack fired from a gauge that charges mainly with time (about every 30–60 s); it clears ordinary mobs but is capped against bosses, ignores player damage bonuses, and its form depends on the Weapon (default: Judgement).
+The special attack fired from a gauge that charges mainly with time (about every 30–60 s); it clears ordinary mobs but is capped against bosses, ignores player damage bonuses, and its form and name depend on the Weapon (default: Judgement).
 _Avoid_: ult, special, bomb
 
 **Theme**:
@@ -84,7 +84,7 @@ A rare stage modifier with run-only rewards: Blood Moon (never announced in adva
 ### Player power
 
 **Skill**:
-An auto-firing attack the player holds in one of 4 attack slots (one locked to the Signature Skill), levelled on level-up.
+An auto-firing attack the player holds in one of 4 attack slots (one locked to the Signature Skill; Awakening can add a 5th), levelled on level-up.
 _Avoid_: weapon, spell
 
 **Passive**:
@@ -98,7 +98,7 @@ A Skill that belongs to one character only, occupies a locked attack slot, and c
 _Avoid_: starting skill, unique skill, ultimate
 
 **Skill Line**:
-The group of shared Skills that count as Links for one character's Signature Skill, and the set of new Skills that character unlocks after Awakening. Every character may still pick any shared Skill.
+The group of shared Skills that count as Links for one character's Signature Skill, and the set of new Skills that character unlocks after Awakening. Every character may still pick any shared Skill. Players see the unlocked Skills as **Awakened skills** (Thai สกิลตื่นพลัง); the code keeps `SKILL_LINES` / `isLine`.
 _Avoid_: tree, class, branch
 
 **Link**:
@@ -106,7 +106,7 @@ A shared Skill from the character's own Skill Line, at max level and equipped in
 _Avoid_: synergy, bond
 
 **Awakening**:
-The optional, one-time transformation of an evolved Signature Skill that consumes its Links and unlocks the character's Skill Line skills. Declining it forfeits it for the rest of the Run.
+The optional, one-time transformation of an evolved Signature Skill that makes the Signature much stronger and unlocks the character's Skill Line skills (the first may arrive at once, `awaken.grant`). Under the original rule it consumes two Links; with `awaken.keep` the Links stay and `awaken.slots` adds attack slots instead (the live config does this). Declining it forfeits it for the rest of the Run.
 _Avoid_: ultimate evolution, second evolution, ascension
 
 **Combo**:
@@ -138,13 +138,28 @@ The only currency that survives a run; banked on stage clear or defeat. Also spe
 _Avoid_: coins, money
 
 **Director**:
-The hidden difficulty controller that raises or lowers spawn pressure based on how comfortably the player is surviving.
+The hidden difficulty controller that raises or lowers spawn pressure (and a little monster HP) based on how comfortably the player is surviving. `director.stageReset` can ease it back toward its start value at each new Stage.
+
+**Wave Front**:
+The side most monsters come from at a given moment (`spawn.frontShare`); it moves to another side every few seconds, optionally after a short lull. A **Pincer** swarm comes as two arcs from the front's sides instead of a full ring (`spawn.pincer`; Blood Moon keeps the ring). Both are off by default.
+_Avoid_: wave (a Stage is not a wave), direction
 
 ### Live operations
 
 **Balance Config**:
 The versioned set of every tunable gameplay number, edited in the Admin Console. A run locks to the version current when each stage starts; every score records the version it was played on.
 _Avoid_: settings, remote config, tuning
+
+**Balance Pass**:
+A recommended set of Balance Config changes measured with the playtest bot (`packages/config/src/balance-pass.ts`), carrying a Thai Balance Report for the owner and player-facing Patch Notes. Loaded into a draft in the Admin Console (several can stack on one draft) and published as a new version; never changes the built-in defaults.
+
+**Patch Notes**:
+The player-facing changelog entries (balance / feature / fix / content / system), written in Admin → อัปเดตเกม or automatically on each config publish, shown on the website Updates page and as the title screen's "New update!" notice.
+_Avoid_: release notes, news
+
+**Difficulty Preset**:
+A solo-only set of multipliers on top of the published Balance Config (Relaxed, Easy, Balanced, Challenge, Hard, Blitz), chosen in Settings for the next Run. Only Balanced is ranked; the others still earn Gold. The multipliers and whether each is offered are Balance Config fields.
+_Avoid_: difficulty level, mode (Endless Mode is a mode)
 
 **Season**:
 A leaderboard period opened manually by the admin (typically after a big Balance Config change). Solo and co-op are ranked separately inside a season; an all-time board is kept for display only.
@@ -159,8 +174,16 @@ A cosmetic name tag shown under a player's nickname, earned from Season rank or 
 _Avoid_: rank, badge (a badge is a separate collectible)
 
 **Admin Console**:
-The web back-office where the admin edits Balance Config, reads play statistics, and moderates leaderboards.
+The web back-office where the admin edits Balance Config, reads play statistics and Feedback, writes Patch Notes, follows Work Items, and moderates leaderboards.
 _Avoid_: dashboard, backend, CMS
+
+**Feedback**:
+A message a player sends from the in-game Feedback button (Bug, Balance, Idea or Other), read in the Admin Console.
+_Avoid_: report, ticket
+
+**Work Item**:
+A task the daily triage routine files for the owner from live errors and Feedback (`public.work_items`, written only via `agent_report`), shown in Admin → งานแก้ไข; clear bugs become pull requests instead.
+_Avoid_: issue, ticket (tickets are the markdown files under `.scratch/`)
 
 ### People and co-op
 
