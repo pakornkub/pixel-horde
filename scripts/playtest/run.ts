@@ -50,6 +50,15 @@ export interface RunMetrics {
   crowd: { mobs: number; dir: number; blocked: number; trapped: number }[];
   /** Player level at the end of each Chapter played. */
   lvByChapter: number[];
+  /** Gold picked up per Chapter (gross, before any spending). */
+  goldByCh: number[];
+  /** Skill Points: earned, spent, left at the end. */
+  spEarned: number; spSpent: number; spLeft: number;
+  /** Level-up screens: total, heal-only (nothing left to offer), with at least one Bench offer, only Bench offers (+heal),
+   *  and how many picks went to the Bench. */
+  offers: { total: number; heal: number; withBench: number; onlyBench: number; picksBench: number };
+  /** Most Bench entries held at once. */
+  benchMax: number;
 }
 
 interface Hooks { combo?: string | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
@@ -81,6 +90,7 @@ export function runOne(job: Job): RunMetrics {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
     revives: 0, secondWinds: 0, awakenAt: null, awakenOfferAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
     dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, crowd: [], lvByChapter: [],
+    goldByCh: [], spEarned: 0, spSpent: 0, spLeft: 0, offers: { total: 0, heal: 0, withBench: 0, onlyBench: 0, picksBench: 0 }, benchMax: 0,
   };
   let lastHurt = '';
   const chDmg: number[] = [], chTime: number[] = [];
@@ -104,13 +114,29 @@ export function runOne(job: Job): RunMetrics {
   };
   const maxTicks = Math.round((job.maxMin ?? 45) * 3600);
   let kingAt = -1, kingRealm = '', kingKilled = 0, revives0 = sim.view().P.revives;
+  let gold0 = 0, sp0 = 0, lastLu: unknown = null;
   for (let i = 0; i < maxTicks; i++) {
     const v = sim.view() as SimState;
     if (v.phase === 'over' || (job.maxCh && v.stage > job.maxCh)) break;
     const st = v.stage;
+    const lu = v.phase === 'levelup' ? v.levelUp : null, bench0 = v.P.bench.length;
+    if (lu && lu !== lastLu) {
+      lastLu = lu;
+      const o = lu.options, O = m.offers, toB = (x: (typeof o)[number]): boolean => 'toBench' in x && !!x.toBench;
+      O.total++;
+      if (o.length === 1 && o[0].kind === 'heal') O.heal++;
+      if (o.some(toB)) O.withBench++;
+      if (o.some(toB) && o.every((x) => toB(x) || x.kind === 'heal')) O.onlyBench++;
+    }
     bot.step(sim);
     const s = sim.view() as SimState, P = s.P;
     m.lvByChapter[st] = P.lv;
+    if (lu && P.bench.length > bench0) m.offers.picksBench++;
+    if (P.bench.length > m.benchMax) m.benchMax = P.bench.length;
+    if (s.runGold > gold0) m.goldByCh[st] = (m.goldByCh[st] || 0) + s.runGold - gold0;
+    gold0 = s.runGold;
+    if (s.sp > sp0) m.spEarned += s.sp - sp0; else if (s.sp < sp0) m.spSpent += sp0 - s.sp;
+    sp0 = s.sp;
     if (s.phase === 'play' || s.phase === 'levelup' || s.phase === 'chest') {
       m.hpMin[st] = Math.min(m.hpMin[st] ?? 1, Math.max(0, P.hp) / P.maxHp);
       if (s.phase === 'play') chTime[st] = (chTime[st] || 0) + 1 / 60;
@@ -143,7 +169,7 @@ export function runOne(job: Job): RunMetrics {
   const s = sim.view() as SimState;
   m.result = s.victory ? 'victory' : s.phase === 'over' ? 'dead' : 'timeout';
   m.chapter = s.stage; m.cleared = s.chaptersCleared.length; m.kings = s.kingsKilled.length; m.escapes = s.escapes;
-  m.level = s.P.lv; m.minutes = +(s.totalTime / 60).toFixed(1); m.kills = s.kills; m.gold = s.runGold; m.revives = s.revivesBought; m.combos = s.combos;
+  m.spLeft = s.sp; m.level = s.P.lv; m.minutes = +(s.totalTime / 60).toFixed(1); m.kills = s.kills; m.gold = s.runGold; m.revives = s.revivesBought; m.combos = s.combos;
   m.dpsByChapter = chDmg.map((d, i) => Math.round(d / Math.max(1, chTime[i] || 1)));
   m.build = Object.entries(s.P.skills).map(([k, v]) => `${k}${v}${s.P.evo[k as keyof typeof s.P.evo] ? '*' : ''}`).concat(Object.entries(s.P.pas).map(([k, v]) => `${k}${v}`));
   m.crowd = Array.from(cr, (c) => (c ? { mobs: Math.round(c.mobs / c.n), dir: +(c.dir / c.n).toFixed(2), blocked: +(c.blocked / c.n).toFixed(2), trapped: +(c.trapped / c.n).toFixed(2) } : { mobs: 0, dir: 0, blocked: 0, trapped: 0 }));
