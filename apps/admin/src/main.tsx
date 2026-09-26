@@ -9,6 +9,7 @@ import { Ai } from './pages/ai';
 import { Announce } from './pages/announce';
 import { Audit } from './pages/audit';
 import { Balance } from './pages/balance';
+import { Feedback } from './pages/feedback';
 import { Flags } from './pages/flags';
 import { Home } from './pages/home';
 import { Leaderboard } from './pages/leaderboard';
@@ -18,7 +19,7 @@ import { Loading, Toast } from './ui';
 
 const PAGES: [string, string][] = [
   ['home', 'ห้องควบคุม'], ['balance', 'ค่าสมดุล'], ['ai', 'ผู้ช่วย AI'], ['flags', 'สวิตช์'], ['stats', 'สถิติ'],
-  ['leaderboard', 'Leaderboard'], ['players', 'ผู้เล่น'], ['announce', 'ประกาศ'], ['audit', 'บันทึกการแก้ไข'],
+  ['leaderboard', 'Leaderboard'], ['players', 'ผู้เล่น'], ['feedback', 'ความเห็นผู้เล่น'], ['announce', 'ประกาศ'], ['audit', 'บันทึกการแก้ไข'],
 ];
 
 function route(): { page: string; arg?: string } {
@@ -53,7 +54,7 @@ function App() {
   if (!api || who === undefined) return <main class="solo"><Loading /></main>;
   if (!who || !who.isAdmin) return <main class="solo"><SignIn api={api} notAdmin={!!who} email={who?.email} /></main>;
   const body = r.page === 'balance' ? <Balance api={api} focus={r.arg} /> : r.page === 'ai' ? <Ai api={api} go={go} /> : r.page === 'flags' ? <Flags api={api} /> : r.page === 'stats' ? <Stats api={api} />
-    : r.page === 'leaderboard' ? <Leaderboard api={api} initial={r.arg} /> : r.page === 'players' ? <Players api={api} /> : r.page === 'announce' ? <Announce api={api} />
+    : r.page === 'leaderboard' ? <Leaderboard api={api} initial={r.arg} /> : r.page === 'players' ? <Players api={api} /> : r.page === 'feedback' ? <Feedback api={api} /> : r.page === 'announce' ? <Announce api={api} />
     : r.page === 'audit' ? <Audit api={api} /> : <Home api={api} go={go} />;
   return (
     <div class={'shell' + (r.page === 'balance' ? ' wide' : '')}>

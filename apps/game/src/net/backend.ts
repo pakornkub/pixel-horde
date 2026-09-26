@@ -13,7 +13,7 @@ export interface Account {
 export type BackendStatus = 'online' | 'offline' | 'replaced' | 'suspended';
 export type BackendErrorCode =
   | 'SESSION_REPLACED' | 'NICKNAME_REJECTED' | 'NOT_SIGNED_IN' | 'OFFLINE' | 'UNKNOWN'
-  | 'NOT_ENOUGH_GOLD' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE' | 'ACCOUNT_SUSPENDED';
+  | 'NOT_ENOUGH_GOLD' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE' | 'ACCOUNT_SUSPENDED' | 'FEEDBACK_LIMIT';
 
 export class BackendError extends Error {
   constructor(public code: BackendErrorCode, message?: string) { super(message || code); }
@@ -23,7 +23,7 @@ export class BackendError extends Error {
 export function toBackendError(e: unknown): BackendError {
   if (e instanceof BackendError) return e;
   const msg = String((e as { message?: string })?.message ?? e ?? '');
-  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED'] as const) {
+  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED', 'FEEDBACK_LIMIT'] as const) {
     if (msg.includes(code)) return new BackendError(code, msg);
   }
   if (/fetch|network|Failed to|timeout|ECONN|503|502|504/i.test(msg)) return new BackendError('OFFLINE', msg);
@@ -96,6 +96,10 @@ export interface BoardView { board: BoardId; season: number; top: BoardRow[]; me
 export interface Announcement { id: number; title: { th: string; en: string }; body: { th: string; en: string }; endsAt: string | null }
 export interface LiveState { flags: Record<string, unknown>; configVersion: number; announcements: Announcement[]; serverTime?: string }
 
+export type FeedbackCategory = 'bug' | 'balance' | 'idea' | 'other';
+/** A player's feedback message; context = build, device, screen and (from a Run) Chapter / Hero. */
+export interface FeedbackInput { category: FeedbackCategory; message: string; context: Record<string, string | number | boolean> }
+
 export interface Backend {
   readonly kind: 'supabase' | 'offline';
   status(): BackendStatus;
@@ -124,6 +128,8 @@ export interface Backend {
   setTitle(title: string | null): Promise<void>;
   /** Tutorial hints seen by this account (ticket 44); replaces the list. */
   setTips(tips: string[]): Promise<string[]>;
+  /** Feedback button (title + Settings); at most 5 per account per day (FEEDBACK_LIMIT). */
+  sendFeedback(f: FeedbackInput): Promise<void>;
   buyUpgrade(item: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;

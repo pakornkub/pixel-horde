@@ -24,7 +24,7 @@ export const WEAPONS: Record<WeaponId, Weapon> = {
   glacierLance: { id: 'glacierLance', realm: 'frostpeak', form: 'freeze', col: '#9fd8ff', available: true },
   magmaMaul: { id: 'magmaMaul', realm: 'emberforge', form: 'crash', col: '#d8342c', available: true },
   plagueCenser: { id: 'plagueCenser', realm: 'mirefen', form: 'plague', col: '#b6f24a', available: true },
-  stormBow: { id: 'stormBow', realm: 'skyreach', form: 'shock', col: '#fff35c', available: true },
+  stormBow: { id: 'stormBow', realm: 'skyreach', form: 'shock', col: '#5cc8ff', available: true },
   coralTrident: { id: 'coralTrident', realm: 'tidehollow', form: 'push', col: '#3fbfbf', available: true },
   gearCannon: { id: 'gearCannon', realm: 'gearspire', form: 'turret', col: '#c7ced9', available: true },
   lichTome: { id: 'lichTome', realm: 'duskhold', form: 'harvest', col: '#b07cff', available: true },

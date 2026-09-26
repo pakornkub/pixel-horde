@@ -4,6 +4,7 @@ import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, saveSettings, settings } from './settings';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
+import { closeFeedback, feedbackOpen, initFeedback, openFeedback } from './ui/feedback';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
 import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
@@ -49,6 +50,8 @@ let clientRunId = '';
 let runWallStart = 0;
 let starting = false;
 let shownLevelUp: object | null = null;
+/** The chest wheel on screen: two wheels in a row keep the phase at 'chest', so track the wheel itself. */
+let shownChest: object | null = null;
 let shownPhase = '';
 let acc = 0;
 let last = performance.now();
@@ -253,6 +256,7 @@ function beginRun(s: Sim): void {
   runBanked = s.view().runGold; // Gold up to a checkpoint was already shown in the wallet
   walletBanked = s.view().walletSpent;
   shownLevelUp = null;
+  shownChest = null;
   shownPhase = '';
   consume(s.view().events, s.view());
   autoSave();
@@ -392,14 +396,17 @@ function syncOverlays(): void {
       }
     }, { reroll: () => cmd({ type: 'reroll' }), banish: (i) => cmd({ type: 'banish', index: i }) });
   }
+  if (v.phase === 'chest' && v.chest && v.chest !== shownChest) {
+    shownChest = v.chest;
+    openChest(v.chest.res, v.chest.target, v.chest.start);
+  }
   if (v.phase !== shownPhase) {
     const prev = shownPhase;
     shownPhase = v.phase;
     if (prev === 'levelup' && v.phase !== 'levelup') { hide('ovLevel'); shownLevelUp = null; }
-    if (prev === 'chest' && v.phase !== 'chest') cancelChest(); // co-op: time ran out and the sim stopped the wheel
+    if (prev === 'chest' && v.phase !== 'chest') { cancelChest(); shownChest = null; } // co-op: time ran out and the sim stopped the wheel
     if (prev === 'clear' && v.phase !== 'clear') hide('ovClear');
     if (prev === 'route' && v.phase !== 'route') hide('ovRoute');
-    if (v.phase === 'chest' && v.chest) openChest(v.chest.res, v.chest.target, v.chest.start);
     if (v.phase === 'clear') { renderClear(v); $('clearTeam').hidden = !coop; $('clearTeam').textContent = ''; ($('nextBtn') as HTMLButtonElement).disabled = false; }
     if (v.phase === 'revive') showRevive(v, reviveCost(v as SimState));
     if (v.phase === 'victory') { metaSync.unlockCrack(v.crack); show('ovEnding'); }
@@ -525,6 +532,7 @@ function toggleMet(): void {
 const playing = (): boolean => !!sim && sim.view().phase === 'play';
 
 addEventListener('keydown', (e) => {
+  if (feedbackOpen()) { if (e.code === 'Escape') closeFeedback(); return; } // typing a message: no game shortcuts
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && playing()) e.preventDefault();
   keys.add(e.code);
   if (e.code === 'Space' && playing()) cmd({ type: 'ult' });
@@ -577,6 +585,14 @@ $('shopBack').addEventListener('click', closeShop);
 $('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
 $('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
 $('setBack').addEventListener('click', closeSettings);
+$('feedbackBtn1').addEventListener('click', () => openFeedback('ovTitle'));
+$('feedbackBtn2').addEventListener('click', () => openFeedback('ovSettings'));
+// sent from the pause menu (via Settings): which Run the message is about
+initFeedback((): Record<string, string | number | boolean> => {
+  const v = sim?.view();
+  if (!v || !(v.phase === 'pause' || guestMenu)) return {};
+  return { chapter: v.stage, hero: v.P.ch, realm: v.realm, mode: coop ? 'coop' : v.endless ? 'endless' : 'solo', phase: v.overtime ? 'overtime' : v.phase };
+});
 $('startBtn').addEventListener('click', () => void newRun());
 $('continueBtn').addEventListener('click', () => void continueRun());
 $('saveQuitBtn').addEventListener('click', () => { hide('ovPause'); saveAndQuit(); });
