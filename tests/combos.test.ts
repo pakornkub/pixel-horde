@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { SKILL_TAGS, createSim, type ComboId, type Enemy, type HitTag, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { SKILL_TAGS, combosBetween, createSim, type ComboId, type Enemy, type HitTag, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { hit } from '../packages/sim/src/systems/combat';
 import { chillTick } from '../packages/sim/src/systems/combos';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
@@ -135,5 +135,13 @@ describe('Statuses and Combos', () => {
     a.s.events = [];
     hit(a.s, d, 100, '#fff', 0, SKILL_TAGS.frost);
     expect(a.dmgs()[0]).toBe(b.dmgs()[0]);
+  });
+
+  it('level-up Combo hints see every tag a Skill carries (Volatile Flask elements, Black Hole collapse)', () => {
+    expect(combosBetween('meteor', 'flask')).toContain('toxicBurst');
+    expect(combosBetween('flask', 'cyclone')).toContain('firestorm');
+    expect(combosBetween('frost', 'hole')).toContain('shatter');
+    expect(combosBetween('frost', 'lance')).toEqual(['shatter']);
+    expect(combosBetween('lance', 'orbit')).toEqual([]);
   });
 });

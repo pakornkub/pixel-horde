@@ -86,6 +86,15 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .tag.new{background:#c2361f;color:#fff}
 .tag.up{background:#3a7a2c;color:#fff}
 .tag.evo{background:var(--gold);color:var(--ink)}
+/* level-up Skill chips: element (filled), Status it leaves (dot), role (ink); .hit = Combos with an owned Skill */
+.opt .chips{display:flex;flex-wrap:wrap;gap:4px}
+.opt .chip{--c:#fff;font-family:var(--th);font-weight:700;font-size:11px;line-height:1;padding:3px 6px;border-radius:3px;border:2px solid var(--ink);background:var(--c);color:var(--ink);white-space:nowrap}
+.opt .chip.el-fire{--c:#ff8a3d}.opt .chip.el-ice{--c:#9fd3ff}.opt .chip.el-lightning{--c:#ffe14d}.opt .chip.el-poison{--c:#b8f04a}.opt .chip.el-dark{--c:#a37cf0}.opt .chip.el-arcane{--c:#ff7ad9}
+.opt .chip.stat{background:var(--paper)}
+.opt .chip.stat::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;border:1.5px solid var(--ink);background:var(--c);margin-right:4px;vertical-align:-1px}
+.opt .chip.s-frozen{--c:#9fd3ff}.opt .chip.s-gathered{--c:#d8d4c4}.opt .chip.s-burning{--c:#ff8a3d}.opt .chip.s-shocked{--c:#ffe14d}.opt .chip.s-poisoned{--c:#b8f04a}
+.opt .chip.role{background:var(--ink);color:#fff}
+.opt .chip.hit{outline:2px solid #d9481f;outline-offset:1px}
 
 #ultBtn{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
   width:78px;height:78px;border-radius:50%;border:4px solid var(--ink);background:#3a3363;color:var(--paper);
