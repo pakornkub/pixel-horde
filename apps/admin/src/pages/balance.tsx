@@ -1,7 +1,7 @@
 // Tuning lab (prototype variant C): search every Balance Config field (generated from the zod
 // schema), edit with range validation, impact chart + per-version history, staged changes with a
 // note, test live on this device, publish / roll back (always a new version).
-import { BALANCE_PASSES, CAT_LABEL, FIELD_TH, GROUP_TH, autoItems, listFields, parseBalanceConfig, withOverrides, type BalanceConfig, type BalancePass, type BalanceReport, type ChangeEntry, type FieldInfo } from '@pixel-horde/config';
+import { BALANCE_PASSES, CAT_LABEL, FIELD_TH, GROUP_TH, autoItems, listFields, parseBalanceConfig, stackNotes, stackReport, withOverrides, type BalanceConfig, type BalancePass, type BalanceReport, type ChangeEntry, type FieldInfo } from '@pixel-horde/config';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { GAME_URL, type AdminApi, type ConfigRow } from '../api';
 import { Chart } from '../chart';
@@ -133,16 +133,20 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
       setDraft(null); setNote(''); setReport(null); setPassNotes(null); setClTitle(''); setViewing(null); cfgs.reload();
     } catch (e) { toast('Publish ไม่ได้: ' + (e as Error).message); }
   };
-  /** A playtest pass (packages/config/src/balance-pass.ts) on top of the current draft, with its report on screen. */
+  /** A playtest pass (packages/config/src/balance-pass.ts) on top of the current draft, with its report on screen.
+   *  Loads stack: passes loaded onto the same draft publish as one version with all their reports and notes. */
   const loadPass = (p: BalancePass): void => {
     const rest = { ...(d as Record<string, unknown>) };
     delete rest.version;
     const next = withOverrides(parseBalanceConfig(rest), p.patch) as BalanceConfig & Record<string, unknown>;
+    const onPass = !!draft && !!report; // this draft already holds a pass
     setDraft({ ...next, version: base.version });
     if (!note.trim()) setNote(p.note);
-    setReport(p.report);
-    setPassNotes(p.changelog);
-    setClTitle(p.changelog.titleTh);
+    else if (onPass && !note.includes(p.note)) setNote(`${note}; ${p.note}`);
+    const notes = stackNotes(onPass ? passNotes : null, p);
+    setReport(stackReport(onPass ? report : null, p));
+    setPassNotes(notes);
+    setClTitle(notes.titleTh);
     setViewing('draft');
     toast(`ใส่ค่าจากรอบจูน ${p.id} ในฉบับร่างแล้ว อ่านรายงานแล้วตรวจก่อน publish`);
   };
@@ -211,7 +215,7 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
         {changes.length > 0 && <button onClick={discard}>ทิ้งฉบับร่าง</button>}
         {report && <button onClick={() => setViewing('draft')}>ดูรายงานของฉบับร่าง</button>}
         {BALANCE_PASSES.map((p) => <button onClick={() => loadPass(p)}>ใส่ค่าจากรอบจูน {p.id}</button>)}
-        <div class="small mut">ค่าที่แนะนำจากการทดสอบด้วยบอท พร้อมรายงาน รายงานจะเก็บไว้กับเวอร์ชันที่ publish</div>
+        <div class="small mut">ค่าที่แนะนำจากการทดสอบด้วยบอท พร้อมรายงาน รายงานจะเก็บไว้กับเวอร์ชันที่ publish กดหลายรอบต่อกันได้ ค่า รายงาน และ patch notes จะรวมเป็นเวอร์ชันเดียว</div>
         <h3 style="margin-top:10px">เวอร์ชัน</h3>
         {published.map((c, i) => <div class="row between verrow"><span class="small">v{c.version} {i === 0 && <Tag kind="ok">ใช้อยู่</Tag>} {c.report && <Tag kind="info">มีรายงาน</Tag>}<br /><span class="mut">{c.note}</span></span>
           <span class="row"><button onClick={() => setViewing(c.version)}>รายงาน</button>{i > 0 && <button onClick={() => rollback(c.version)}>ย้อนกลับ</button>}</span></div>)}

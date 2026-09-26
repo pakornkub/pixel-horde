@@ -120,6 +120,8 @@ const skills = obj({
     max: int(7, 1, 20, 'Max level'),
     dmg: lin(34, 16, 'Dive damage'), cd: lin(2.2, -0.14, 'Cooldown (s)', 0.9), range: pos(230, 'Hunting range'), flight: sec(0.35, 'Dive time (s)'), kb: pos(40, 'Knockback'),
     r: n(0, 0, 200, 'Dive splash radius: monsters this close to the prey are hit too (0 = prey only)'),
+    guardN: int(0, 0, 50, 'Monsters this close to Kit that make the Hawk defend: it dives the nearest one instead of the biggest (0 = never)'),
+    guardR: pos(40, 'Hawk defend radius around Kit'),
     evo: evo({ n: int(2, 1, 4, 'Hawks'), stun: sec(0.8, 'Stun (s); bosses are slowed') }),
   }, 'Kit: Hawk Companion'),
   flask: obj({
@@ -211,6 +213,8 @@ const shared = obj({
   }, 'Spawner'),
   scaling: obj({
     hpGrowth: mul(1.5, 'Enemy HP × per stage'), hpProg: mul(0.7, 'Enemy HP + at stage end'), hpPerLv: frac(0.08, 'Enemy HP + per player level'),
+    lvCapBase: n(0, 0, 100, 'Highest player level the monster formulas count at the start of Chapter 1 (0 with lvCapPerCh 0 = no cap)'),
+    lvCapPerCh: n(0, 0, 50, 'That counted-level cap grows by this much over each Chapter; levels above it add no monster HP, damage or armor'),
     hpDirBase: mul(0.85, 'Enemy HP Director base'), hpDirK: mul(0.15, 'Enemy HP per Director point'),
     dmgGrowth: mul(1.18, 'Enemy damage × per stage'), dmgProg: mul(0.5, 'Enemy damage + at stage end'), dmgPerLv: frac(0.015, 'Enemy damage + per player level'),
     spdPerStage: frac(0.04, 'Enemy speed + per stage'), spdJitter: frac(0.1, 'Enemy speed random ±'),
@@ -284,7 +288,7 @@ const shared = obj({
   heroes: obj({
     mage: obj({ cost: pos(0, 'Unlock price'), dmg: frac(0.1, 'Skill damage bonus') }, 'Lyra'),
     knight: obj({ cost: pos(0, 'Unlock price'), hp: pos(40, 'Max HP bonus'), spd: frac(0.05, 'Speed penalty') }, 'Bram'),
-    ranger: obj({ cost: pos(500, 'Unlock price'), spd: frac(0.12, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus') }, 'Kit'),
+    ranger: obj({ cost: pos(500, 'Unlock price'), spd: frac(0.12, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus'), hp: n(0, 0, 200, 'Max HP bonus') }, 'Kit'),
     alchemist: obj({ cost: pos(1000, 'Unlock price'), cd: frac(0.08, 'Cooldown reduction'), status: frac(0.2, 'Statuses last longer by') }, 'Vex'),
   }, 'Heroes'),
   secondWind: obj({ hp: frac(0.5, 'HP after revive'), inv: sec(2.5, 'Invulnerability (s)'), r: pos(110, 'Blast radius'), dmg: pos(150, 'Blast damage'), dmgGrowth: mul(1.45, 'Blast × per stage') }, 'Second Wind revive'),
@@ -385,12 +389,14 @@ const shared = obj({
     hp3: mul(1.8, 'Tier 3: monster HP ×'), dmg3: mul(1.45, 'Tier 3: monster damage ×'), spawn3: mul(1.45, 'Tier 3: spawn rate ×'),
   }, 'Heart Crack difficulty tiers (unlocked by beating Umbra)'),
   awaken: obj({
-    links: int(2, 1, 3, 'Max-level Links needed (and consumed)'),
+    links: int(2, 1, 3, 'Max-level Links needed (consumed unless keep is 1)'),
     stages: int(1, 1, 5, 'Full Stages the Links must have been max level and equipped'),
     sigDmg: mul(1.3, 'Awakened Signature Skill damage ×'),
-    grant: int(0, 0, 3, 'Skill Line skills given right away when Awakening (in listed order, into the freed slots)'),
+    grant: int(0, 0, 3, 'Skill Line skills given right away when Awakening (in listed order, into free attack slots)'),
     grantLv: int(1, 1, 8, 'Level of the Skill Line skills given at Awakening'),
     wLine: mul(1, 'Level-up offer weight × for Skill Line skills after Awakening'),
+    keep: int(0, 0, 1, 'Awakening keeps the Links equipped (1) or consumes them (0)'),
+    slots: int(0, 0, 2, 'Extra attack slots after Awakening'),
   }, 'Awakening'),
   kings: obj({
     firstCd: sec(1.6, 'First move after a King arrives (s)'),

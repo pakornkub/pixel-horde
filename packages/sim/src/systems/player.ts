@@ -33,6 +33,6 @@ export function recompute(s: SimState): void {
   P.statusMul = 1 + (c === 'alchemist' ? h.alchemist.status : 0);
   P.critMul = pl.critMul + ps.keenCritMul * (p.crit || 0);
   P.spd = pl.spd * (1 + ps.swiftSpd * (p.swift || 0) + sh.speed.per * U(s, 'speed') + (c === 'ranger' ? h.ranger.spd : 0) - (c === 'knight' ? h.knight.spd : 0));
-  P.maxHp = pl.hp + ps.vitalHp * (p.vital || 0) + sh.vigor.per * U(s, 'vigor') + (c === 'knight' ? h.knight.hp : 0);
+  P.maxHp = pl.hp + ps.vitalHp * (p.vital || 0) + sh.vigor.per * U(s, 'vigor') + (c === 'knight' ? h.knight.hp : 0) + (c === 'ranger' ? h.ranger.hp : 0);
   P.pick = pl.pick * (1 + ps.magnetPick * (p.magnet || 0) + (c === 'ranger' ? h.ranger.pick : 0));
 }

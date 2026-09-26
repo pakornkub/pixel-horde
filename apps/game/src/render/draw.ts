@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { REALMS, WEAPONS, benchSize, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
+import { REALMS, WEAPONS, attackSlots, benchSize, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
@@ -1105,9 +1105,9 @@ function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, max
   const yP = bottom - ps, yPl = yP - lab - 7 * D, yS = yPl - sz - 12 * D, ySl = yS - lab - 8 * D;
   const sig = signatureOf(P.ch);
   const skills = (Object.keys(P.skills) as SkillId[]).sort((a, c) => (a === sig ? -1 : c === sig ? 1 : 0));
-  const atkSlots = Math.max(cfg.maxAttackSlots, skills.length);
+  const slots = attackSlots(v as SimState), atkSlots = Math.max(slots, skills.length);
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  outlined(`${t('hud.panel.skill')} ${skills.length}/${cfg.maxAttackSlots}`, left, ySl, lab, '#ffb3b3');
+  outlined(`${t('hud.panel.skill')} ${skills.length}/${slots}`, left, ySl, lab, '#ffb3b3');
   for (let i = 0; i < atkSlots; i++) {
     const x = left + i * (sz + gap);
     if (x + sz > maxX) break;

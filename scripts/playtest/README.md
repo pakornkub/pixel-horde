@@ -13,7 +13,7 @@ node scripts/playtest/exp.mjs patches.json 12 mid   # compare Balance Config pat
 
 Suites (`suites.mjs`): `heroes` (fresh), `veteran`/`max` (Shop levels), `awaken` (accept vs decline),
 `casual` (random picks, slower reactions), `presets`, `patch` (env `PT_PATCH_JSON`). Env: `PT_PASS=1`
-start from the balance pass, `PT_BASE=defaults` skip the live stage lengths, `PT_MAXCH=1` stop after
+start from every balance pass in `BALANCE_PASSES` (`PT_PASS=2026-09` = only up to that pass, i.e. config v4), `PT_BASE=defaults` skip the live stage lengths, `PT_MAXCH=1` stop after
 Chapter 1.
 
 `build.mjs` bundles the sim with esbuild and wraps `hit()` / `hurtP()` so every point of damage is

@@ -4,7 +4,7 @@ import {
   COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig,
   type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId,
 } from '@pixel-horde/sim';
-import { BALANCE_PASS_2026_09, DEFAULT_CONFIG, applyPreset, withOverrides, type BalanceConfigInput, type PresetId } from '@pixel-horde/config';
+import { BALANCE_PASSES, DEFAULT_CONFIG, applyPreset, withOverrides, type BalanceConfigInput, type PresetId } from '@pixel-horde/config';
 import { createBot, DEFAULT_PROFILE, type BotProfile } from './bot';
 
 export interface Job {
@@ -15,8 +15,9 @@ export interface Job {
   patch?: BalanceConfigInput;
   /** Difficulty preset applied on top (Settings → Difficulty). */
   preset?: PresetId;
-  /** Start from the recommended balance pass (packages/config/src/balance-pass.ts). */
-  pass?: boolean;
+  /** Start from the recommended balance passes (packages/config/src/balance-pass.ts): true / '1' = all of them,
+   *  a pass id = the passes up to and including that one. */
+  pass?: boolean | string;
   shop?: Partial<Record<ShopId, number>>;
   profile?: Partial<BotProfile>;
   /** Stop after this many minutes of game time. */
@@ -44,6 +45,8 @@ export interface RunMetrics {
   build: string[];
   /** HP fraction the current King still had when the Run ended (null = none alive). */
   kingLeft: number | null;
+  /** Player level at the end of each Chapter played. */
+  lvByChapter: number[];
 }
 
 interface Hooks { combo?: string | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
@@ -63,7 +66,10 @@ function tagName(tag: HitTag | undefined): string {
 }
 
 export function runOne(job: Job): RunMetrics {
-  const base = job.pass ? withOverrides(DEFAULT_CONFIG, BALANCE_PASS_2026_09.patch) : DEFAULT_CONFIG;
+  const passes = [...BALANCE_PASSES].reverse(); // oldest first
+  const upTo = job.pass === true || job.pass === '1' ? passes.length : passes.findIndex((p) => p.id === job.pass) + 1;
+  if (job.pass && !upTo) throw new Error(`unknown balance pass ${job.pass}`);
+  const base = passes.slice(0, job.pass ? upTo : 0).reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
   const cfg = applyPreset(resolveConfig(withOverrides(base, job.patch ?? {})), job.preset ?? 'balanced');
   const profile = { ...DEFAULT_PROFILE, ...job.profile };
   const sim = createSim({ seed: job.seed, hero: job.hero, meta: { up: { ...job.shop } }, viewport: { w: 338, h: 190 }, config: cfg });
@@ -71,7 +77,7 @@ export function runOne(job: Job): RunMetrics {
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
     revives: 0, secondWinds: 0, awakenAt: null, awakenOfferAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
-    dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null,
+    dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, lvByChapter: [],
   };
   let lastHurt = '';
   const chDmg: number[] = [], chTime: number[] = [];
@@ -100,6 +106,7 @@ export function runOne(job: Job): RunMetrics {
     const st = v.stage;
     bot.step(sim);
     const s = sim.view() as SimState, P = s.P;
+    m.lvByChapter[st] = P.lv;
     if (s.phase === 'play' || s.phase === 'levelup' || s.phase === 'chest') {
       m.hpMin[st] = Math.min(m.hpMin[st] ?? 1, Math.max(0, P.hp) / P.maxHp);
       if (s.phase === 'play') chTime[st] = (chTime[st] || 0) + 1 / 60;

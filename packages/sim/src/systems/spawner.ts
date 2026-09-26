@@ -7,6 +7,13 @@ import { aliveTargets } from './query';
 import { aliveMates, coopBossMul } from './coop';
 
 export const prog = (s: SimState): number => clamp(s.stageTime / s.stageDur, 0, 1);
+/** Player level as the monster formulas count it: capped at the on-curve level for this point of the Run
+ *  (`scaling.lvCapBase/lvCapPerCh`), so EXP beyond the curve (Wisdom, Transmute) never makes monsters tougher. */
+export const scaleLv = (s: SimState): number => {
+  const c = s.cfg.scaling;
+  if (!c.lvCapBase && !c.lvCapPerCh) return s.P.lv;
+  return Math.min(s.P.lv, Math.max(1, c.lvCapBase + c.lvCapPerCh * (s.stage - 1 + prog(s))));
+};
 export const realm = (s: SimState) => REALMS[s.realm];
 
 export function typePool(s: SimState): EnemyId[] {
@@ -31,7 +38,7 @@ export function typePool(s: SimState): EnemyId[] {
 }
 
 /** Flat damage reduction of armored enemies. */
-export const armorVal = (s: SimState): number => { const c = s.cfg.scaling; return Math.round(c.armorBase * ipow(c.armorGrowth, s.stage - 1) * (1 + c.armorPerLv * (s.P.lv - 1))); };
+export const armorVal = (s: SimState): number => { const c = s.cfg.scaling; return Math.round(c.armorBase * ipow(c.armorGrowth, s.stage - 1) * (1 + c.armorPerLv * (scaleLv(s) - 1))); };
 
 const INTRO_TYPES = new Set(['caster', 'charger', 'splitter', 'armor']);
 
@@ -43,9 +50,9 @@ function introType(s: SimState, type: EnemyId, armored: boolean): void {
 }
 
 export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, elite: boolean): Enemy {
-  const t = ET[type], b = s.cfg.enemies[type], c = s.cfg.scaling, P = s.P, R = s.rng.spawn;
+  const t = ET[type], b = s.cfg.enemies[type], c = s.cfg.scaling, R = s.rng.spawn;
   const hm = hpScale(s);
-  const dm = ipow(c.dmgGrowth, s.stage - 1) * (1 + c.dmgProg * prog(s)) * (1 + c.dmgPerLv * (P.lv - 1));
+  const dm = ipow(c.dmgGrowth, s.stage - 1) * (1 + c.dmgProg * prog(s)) * (1 + c.dmgPerLv * (scaleLv(s) - 1));
   const e: Enemy = {
     id: s.eid++ & 262143, type, x, y,
     hp: b.hp * hm * (elite ? c.eliteHp : 1) * (t.boss ? coopBossMul(s) : 1), maxHp: 0,
@@ -68,7 +75,7 @@ export function spawnEnemy(s: SimState, type: EnemyId, x: number, y: number, eli
 /** Monster HP multiplier right now (Chapter, Stage progress, player level, Director). */
 export function hpScale(s: SimState): number {
   const c = s.cfg.scaling;
-  return ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * (1 + c.hpPerLv * (s.P.lv - 1)) * (c.hpDirBase + c.hpDirK * s.dir.v) * extraHp(s);
+  return ipow(c.hpGrowth, s.stage - 1) * (1 + c.hpProg * prog(s)) * (1 + c.hpPerLv * (scaleLv(s) - 1)) * (c.hpDirBase + c.hpDirK * s.dir.v) * extraHp(s);
 }
 
 /** Heart Crack tier and Endless depth on top of the Chapter formulas. */
