@@ -76,6 +76,7 @@ in the project's migration history); the row is byte-identical to the one in the
 gains `p_changelog` and always writes a `balance` entry) is applied as `changelog`, backfilled with 18 entries (PR #1–#15, config v1–v4).
 `20260927000021_work_items` (Admin → งานแก้ไข: `work_items` table, `agent_report` for the daily triage routine, Admin RPCs)
 is applied as `work_items`. Number 0020 is unused.
+`20260927000022_bench_passives` (switch `shared.bench.passives`: passives can use the Bench) is applied as `bench_passives`.
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
