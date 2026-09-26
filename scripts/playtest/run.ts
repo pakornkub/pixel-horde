@@ -54,7 +54,7 @@ export interface RunMetrics {
   goldByCh: number[];
   /** Skill Points: earned, spent, left at the end. */
   spEarned: number; spSpent: number; spLeft: number;
-  /** Level-up screens: total, heal-only (nothing left to offer), with at least one Bench offer, only Bench offers (+heal),
+  /** Level-up screens: total, filler-only (no real upgrade left), with at least one Bench offer, only Bench offers (+heal),
    *  and how many picks went to the Bench. */
   offers: { total: number; heal: number; withBench: number; onlyBench: number; picksBench: number };
   /** Most Bench entries held at once. */
@@ -125,7 +125,8 @@ export function runOne(job: Job): RunMetrics {
       lastLu = lu;
       const o = lu.options, O = m.offers, toB = (x: (typeof o)[number]): boolean => 'toBench' in x && !!x.toBench;
       O.total++;
-      if (o.length === 1 && o[0].kind === 'heal') O.heal++;
+      // no real upgrade left: only fillers (Limit Break, Bench training, Gold bag, Recover)
+      if (o.every((x) => x.kind === 'heal' || x.kind === 'lb' || x.kind === 'train' || x.kind === 'gold')) O.heal++;
       if (o.some(toB)) O.withBench++;
       if (o.some(toB) && o.every((x) => toB(x) || x.kind === 'heal')) O.onlyBench++;
     }
