@@ -11,6 +11,7 @@ import { answerFuse, levelCompanion, petStep, spawnGuardian, swapCompanion } fro
 import { banner, shake } from './systems/fx';
 import { directionOf, initKing } from './systems/kings';
 import { REALMS } from './content/lumora/realms';
+import { AWAKENING, signatureOf } from './data/heroes';
 import { isWeapon } from './data/weapons';
 import { usableWeapons } from './systems/combat';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
@@ -113,6 +114,13 @@ export function createSim(opts: SimOptions): Sim {
   if (opts.resume) restoreInto(s, opts.resume);
   else {
     if (s.debug.realm && REALMS[s.debug.realm]) { s.realm = s.debug.realm; s.visited = [s.realm]; }
+    if (s.debug.awaken) { // try the Awakened form at once (owner testing)
+      const sig = signatureOf(P.ch);
+      P.skills = { [sig]: s.cfg.skills[sig].max };
+      P.evo = { [sig]: true };
+      P.awakened = true;
+      for (const id of AWAKENING[P.ch].line) P.skills[id] = 3;
+    }
     startStage(s, 1);
   }
   let cp = snapshotOf(s);
