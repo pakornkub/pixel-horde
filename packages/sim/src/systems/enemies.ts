@@ -114,7 +114,9 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
     }
     if (!e.boss && !(RANGED[e.type]?.still && (s.cfg.caster.on || e.summoned)) && l > farDist) { const [x, y] = edgePos(s, !!s.cfg.spawn.frontRecycle); e.x = x; e.y = y; }
   }
-  s.enemies = s.enemies.filter((e) => !e.dead);
+  let w = 0; // compact dead enemies out in place: same array, no per-tick reallocation
+  for (let r = 0; r < s.enemies.length; r++) if (!s.enemies[r].dead) s.enemies[w++] = s.enemies[r];
+  s.enemies.length = w;
   if (s.boss && s.boss.dead) s.boss = null;
   if (s.boss2 && s.boss2.dead) s.boss2 = null;
   if (s.dragonE && s.dragonE.dead) s.dragonE = null;

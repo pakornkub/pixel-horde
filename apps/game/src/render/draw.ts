@@ -13,6 +13,8 @@ const K = INK;
 const R = fxRng.next;
 const clamp = (v: number, a: number, c: number): number => (v < a ? a : v > c ? c : v);
 let ox = 0, oy = 0;
+/** Reused every frame for the Y-sorted entity pass, instead of allocating a new ~320-element array each tick. */
+const entScratch: (Enemy | null)[] = [];
 /** World (low-res buffer) → hi-res canvas, following the zoom moment around the screen centre. */
 function toScreen(x: number, y: number): [number, number] {
   const { S } = screen, z = zoomK(), W = cv.width, H = cv.height;
@@ -425,11 +427,14 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       }
       if (e.elite) { b.fillStyle = K; b.fillRect(x, y - 4, w, 3); b.fillStyle = '#ff4b5c'; b.fillRect(x + 1, y - 3, Math.max(0, ((w - 2) * e.hp) / e.maxHp), 1); }
     };
-    // entities sorted by y — Kings/dragon/rival (`e.boss`) are held out and drawn last (below), always above regular mobs
-    const ents: (Enemy | null)[] = v.enemies.filter((e) => !e.boss);
-    ents.push(null); // null = the player
-    ents.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
-    for (const e of ents) {
+    // entities sorted by y, reusing entScratch instead of a new array every frame; Kings/dragon/rival (`e.boss`)
+    // are held out and drawn last (below), always above regular mobs
+    let entN = 0;
+    for (const e of v.enemies) if (!e.boss) entScratch[entN++] = e;
+    entScratch[entN++] = null; // the player
+    entScratch.length = entN;
+    entScratch.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
+    for (const e of entScratch) {
       if (!e) {
         if (hideSelf) continue;
         const CS2 = HERO_SPR[P.ch] || HERO_SPR.mage;
