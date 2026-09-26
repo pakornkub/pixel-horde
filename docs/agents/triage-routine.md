@@ -27,8 +27,11 @@ where status not in ('shipped', 'wontfix') order by id;
 - `pr_open`: if its branch is merged into `origin/main` (`git branch -r --merged origin/main`, or the PR is
   merged) → `agent_report({"id":N,"status":"shipped","note":"merged"})` (this also marks its feedback done).
   If the PR was closed without merging → `todo` with a note, or `wontfix` if the owner said so in the PR.
-- `todo` with an `answer` (the owner answered a question): carry out the chosen option (step 3). The owner's
-  `answer.note` overrides the option text when they conflict.
+- `todo` with an `answer` (the owner answered a question, in Admin or live in chat): carry out the chosen
+  option (step 3) — if it's code, that means the full **Fixing** section below, including opening the PR.
+  The owner's `answer.note` overrides the option text when they conflict. An owner approval given live in
+  chat (not through Admin) is recorded the same way before starting: `agent_report({"id":N,"status":
+  "in_progress","answer":{"chosen":"b","note":"…approved live in chat…"}})`.
 - `in_progress` older than 2 days: something went wrong last time; pick it up again or explain in a note.
 
 ## 2. Find new things
@@ -79,6 +82,11 @@ never change built-in defaults — they go to `packages/config/src/balance-pass.
 them from Admin → Balance.
 
 ## Fixing
+
+**Every code change ends in an opened pull request — a pushed branch alone is not done.** Committing and
+`git push`ing is not the finish line: always call the PR-creation tool (e.g. `create_pull_request`) so a
+real PR exists on GitHub before reporting `pr_open`. If something (network, permissions) stops the PR from
+being created, the item stays `in_progress` with a note saying so — never report `pr_open` without a `pr_url`.
 
 - One branch and one PR per work item: `triage/<yyyymmdd>-<short-slug>` from `origin/main`. At most 3 PRs per run.
 - Reproduce first; add or extend a test that fails before the fix (Vitest in `tests/` or next to the code;
