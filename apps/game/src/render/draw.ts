@@ -508,7 +508,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         }
       }
     }
-    if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.14)'; b.fillRect(0, 0, LW, LH); }
+    if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.22)'; b.fillRect(0, 0, LW, LH); }
     if (v.darkness) {
       // Umbra's darkened heart: only a light around the player remains
       const r = v.cfg.umbra.lightR, px = P.x + ox, py = P.y + oy;

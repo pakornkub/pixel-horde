@@ -1,5 +1,5 @@
 import './style.css';
-import { REALM_IDS, createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
+import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, saveSettings, settings } from './settings';
@@ -17,6 +17,7 @@ import { backend, type Announcement, type RunResult, type RunTicket } from './ne
 import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
+import { parseDebug } from './debug';
 import { createTips, type TipId } from './tips';
 import { initLobby, leaveRoom, openLobby, refreshLobbyName } from './ui/lobby';
 import { createTeam } from './coop/team';
@@ -33,12 +34,7 @@ import {
 } from './ui/overlays';
 
 /* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|realm:<id> (comma separated) ---------- */
-const debugFlags = new Set((new URLSearchParams(location.search).get('debug') || '').split(',').filter(Boolean));
-const debug: SimOptions['debug'] = {
-  god: debugFlags.has('god'),
-  event: (['dragon', 'frostdragon', 'stormdragon', 'rival', 'bloodmoon'] as DebugEvent[]).find((k) => debugFlags.has(k)),
-  realm: REALM_IDS.find((r) => debugFlags.has('realm:' + r)),
-};
+const debug = parseDebug(location.search);
 
 /* ---------- run state ---------- */
 let sim: Sim | null = null;
