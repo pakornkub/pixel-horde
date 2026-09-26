@@ -16,9 +16,9 @@ const merge = (a, b) => {
   return out;
 };
 const BASE = process.env.PT_BASE === 'defaults' ? {} : LIVE;
-/** PT_PASS=1: every job starts from the recommended balance pass. */
-const PASS = !!process.env.PT_PASS;
-const per = (n, f) => HEROES.flatMap((hero) => Array.from({ length: n }, (_, i) => { const j = f(hero, i + 1); return { ...j, patch: merge(BASE, j.patch || {}), ...(PASS ? { pass: true } : {}) }; }));
+/** PT_PASS=1: every job starts from all the recommended balance passes; PT_PASS=<id> stops at that pass. */
+const PASS = process.env.PT_PASS;
+const per = (n, f) => HEROES.flatMap((hero) => Array.from({ length: n }, (_, i) => { const j = f(hero, i + 1); return { ...j, patch: merge(BASE, j.patch || {}), ...(PASS ? { pass: PASS } : {}) }; }));
 
 export const suites = {
   heroes: (n) => per(n, (hero, seed) => ({ hero, seed, label: 'fresh' })),

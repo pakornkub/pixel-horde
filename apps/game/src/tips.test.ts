@@ -38,6 +38,23 @@ describe('tutorial hints', () => {
     expect(shownLog).toEqual(['combo', 'bloodMoon', 'king']); // in the order they happened
   });
 
+  it('point at the Links when one is first offered, and again when one is maxed (until Awakened)', () => {
+    const { tips, shownLog, run } = setup();
+    const P = { bench: [], ch: 'ranger', skills: { hawk: 1 }, awakened: false };
+    tips.observe([], view({ phase: 'levelup', levelUp: { lv: 2, options: [{ kind: 'skill', id: 'bolt' }] }, P } as never));
+    run(TIP_TIME + 1.2);
+    expect(shownLog).toEqual(['levelup']); // bolt is not one of Kit's Links
+    tips.observe([], view({ phase: 'levelup', levelUp: { lv: 3, options: [{ kind: 'skill', id: 'boomer' }] }, P } as never));
+    run(TIP_TIME + 1.2);
+    expect(shownLog).toEqual(['levelup', 'links']);
+    tips.observe([], view({ P: { ...P, awakened: true, skills: { boomer: 99 } } } as never));
+    run(TIP_TIME + 1.2);
+    expect(shownLog).toEqual(['levelup', 'links']); // already Awakened: no reminder
+    tips.observe([], view({ P: { ...P, skills: { boomer: 99 } } } as never));
+    run(TIP_TIME + 1.2);
+    expect(shownLog).toEqual(['levelup', 'links', 'linkMax']);
+  });
+
   it('are skipped when already seen by the account or turned off', () => {
     const a = setup();
     a.seen.push('levelup');

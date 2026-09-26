@@ -90,6 +90,33 @@ describe('Awakening', () => {
     expect(lineOffers / total).toBeGreaterThan(0.5);
   });
 
+  it('awaken.keep + awaken.slots: the Links stay, an extra attack slot opens and holds the granted skill', async () => {
+    const { attackSlots } = await import('@pixel-horde/sim');
+    const { buildOptions } = await import('../packages/sim/src/systems/progress');
+    const { sim, s, endStage, next, maxLinks } = setup('ranger');
+    s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 1, grant: 1, grantLv: 6 } };
+    maxLinks(3); // Signature + three Links: every base slot is full
+    expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
+    endStage(); next(); endStage();
+    say(sim, true);
+    for (const id of SKILL_LINES.ranger) expect(s.P.skills[id]).toBe(s.cfg.skills[id].max);
+    expect(s.P.skills[signatureOf('ranger')]).toBeDefined();
+    expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots + 1);
+    expect(s.P.skills[AWAKENING.ranger.line[0]]).toBe(6);
+    expect(Object.keys(s.P.skills).length).toBe(s.cfg.maxAttackSlots + 1);
+    // slots full again: new skills now go to the Bench
+    for (let i = 0; i < 50; i++) for (const o of buildOptions(s)) if (o.kind === 'skill' && !s.P.skills[o.id]) expect(o.toBench).toBe(true);
+  });
+
+  it('by default (version 0) Awakening adds no slot', async () => {
+    const { attackSlots } = await import('@pixel-horde/sim');
+    const { sim, s, endStage, next, maxLinks } = setup('mage');
+    maxLinks(2);
+    endStage(); next(); endStage();
+    say(sim, true);
+    expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
+  });
+
   it('declining forfeits Awakening for the Run', () => {
     const { sim, s, endStage, next, maxLinks } = setup();
     maxLinks(2);

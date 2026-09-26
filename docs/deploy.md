@@ -70,6 +70,10 @@ in the project's migration history); the row is byte-identical to the one in the
 `balance_pass_fields`; the 2026-09 balance pass (`packages/config/src/balance-pass.ts`) is published as config v4
 (v3 + those changes).
 
+`20260928000017_balance_followup_fields` (new `shared.awaken.{keep,slots}`, `shared.scaling.{lvCapBase,lvCapPerCh}`,
+`shared.skills.hawk.{guardN,guardR}`, `shared.heroes.ranger.hp`) is **not applied yet**. Apply it, then in Admin →
+Balance load "รอบจูน 2026-09b" on top of v4 and publish it as v5.
+
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
 - When the Balance Config schema (`packages/config`) gains or changes fields, update the live copy

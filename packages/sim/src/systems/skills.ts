@@ -180,8 +180,12 @@ export function updSkills(s: SimState, dt: number): void {
       sfx(s, 'nova');
       P.cds[id] = t.cd * P.cdMul;
     } else if (id === 'hawk') {
-      // hunts the biggest monsters in range
-      const prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < t.range).sort((a, b) => b.hp - a.hp || a.id - b.id);
+      // hunts the biggest monsters in range; defends Kit (nearest first) once enough monsters close in
+      let prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < t.range).sort((a, b) => b.hp - a.hp || a.id - b.id);
+      if (K.hawk.guardN) {
+        const close = prey.filter((e) => hypot(e.x - P.x, e.y - P.y) < K.hawk.guardR);
+        if (close.length >= K.hawk.guardN) prey = close.sort((a, b) => hypot(a.x - P.x, a.y - P.y) - hypot(b.x - P.x, b.y - P.y) || a.id - b.id);
+      }
       if (!prey.length) { P.cds[id] = 0.2; continue; }
       for (let i = 0; i < t.n; i++) {
         const e = prey[i % prey.length];

@@ -1,8 +1,8 @@
 // Tutorial hints (ticket 44): short non-blocking lines, each shown once per account. The first
 // Greenvale teaches the basics in order; later hints appear the first time something happens.
-import { benchSize, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { SKILL_LINES, benchSize, type SimEvent, type SimState } from '@pixel-horde/sim';
 
-export const TIP_IDS = ['move', 'auto', 'crystals', 'levelup', 'ult', 'king', 'stageEnd', 'combo', 'bench', 'bloodMoon', 'dragon', 'awaken', 'escape'] as const;
+export const TIP_IDS = ['move', 'auto', 'crystals', 'levelup', 'ult', 'king', 'stageEnd', 'combo', 'bench', 'bloodMoon', 'dragon', 'links', 'linkMax', 'awaken', 'escape'] as const;
 export type TipId = (typeof TIP_IDS)[number];
 
 /** Seconds a hint stays up, and the pause before the next one. */
@@ -25,6 +25,10 @@ export function createTips(store: TipStore) {
       if (v.totalTime > 5) want('auto');
       if (v.gems.some((g) => g.kind === 'xp')) want('crystals');
       if (v.phase === 'levelup') want('levelup');
+      // Awakening is easy to miss: point at the Links when one is first offered, and again when one is maxed
+      const links = SKILL_LINES[v.P.ch] ?? [];
+      if (v.phase === 'levelup' && v.levelUp?.options.some((o) => o.kind === 'skill' && links.includes(o.id))) want('links');
+      if (!v.P.awakened && links.some((id) => (v.P.skills[id] || 0) >= v.cfg.skills[id].max)) want('linkMax');
       if (v.ult >= v.cfg.ult.max) want('ult');
       if (v.phase === 'clear') {
         want('stageEnd');

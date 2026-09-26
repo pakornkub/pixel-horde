@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -186,7 +186,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
   box.innerHTML = '';
-  $('lvSlots').textContent = t('level.slots', { n: Object.keys(P.skills).length, max: v.cfg.maxAttackSlots, b: P.bench.length, bmax: benchSize(v as SimState) });
+  $('lvSlots').textContent = t('level.slots', { n: Object.keys(P.skills).length, max: attackSlots(v as SimState), b: P.bench.length, bmax: benchSize(v as SimState) });
   $('lvTitle').textContent = lu.chest ? t('level.chestTitle') : t('level.title', { lv: lu.lv });
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
@@ -418,8 +418,9 @@ export function renderAwaken(v: Readonly<SimState>, onAnswer: (accept: boolean) 
   const box = $('awakenBox');
   box.hidden = !v.awakenOffer;
   if (!v.awakenOffer) return;
-  const P = v.P, links = qualifiedLinks(v as SimState).slice(0, v.cfg.awaken.links);
-  box.innerHTML = `<h3>${t('awaken.title')}</h3><p>${t('awaken.text', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form), links: links.map(skillName).join(' + ') })}</p>`;
+  const P = v.P, A = v.cfg.awaken, links = qualifiedLinks(v as SimState).slice(0, A.links);
+  const keep = A.keep && A.slots > 0; // Links stay and the new slots make room
+  box.innerHTML = `<h3>${t('awaken.title')}</h3><p>${t(keep ? 'awaken.textKeep' : 'awaken.text', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form), links: links.map(skillName).join(' + '), slots: A.slots })}</p>`;
   const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = t('awaken.accept');
   const no = document.createElement('button'); no.className = 'btn ghost'; no.textContent = t('awaken.decline');
   let armed = false;
@@ -454,7 +455,7 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
     else bt.addEventListener('click', () => { if (benchSel >= 0 && afford) { onSwap(benchSel, id); benchSel = -1; } });
     attack.appendChild(bt);
   }
-  for (let i = ids.length; i < v.cfg.maxAttackSlots; i++) {
+  for (let i = ids.length; i < attackSlots(v as SimState); i++) {
     const bt = document.createElement('button'); bt.className = 'sk empty'; bt.textContent = t('bench.empty');
     bt.addEventListener('click', () => { if (benchSel >= 0 && afford) { onSwap(benchSel, null); benchSel = -1; } });
     attack.appendChild(bt);

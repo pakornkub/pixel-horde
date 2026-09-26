@@ -82,6 +82,32 @@ describe('Signature Skills', () => {
     expect(far.hp).toBe(100);
   });
 
+  it('with skills.hawk.guardN the Hawk defends Kit: once that many monsters are close it dives the nearest', () => {
+    const { s, mob, run } = hero('ranger');
+    const big = mob(-150, 0, 5000);
+    const ring = [0, 1, 2, 3].map((i) => mob(i < 2 ? 20 + i * 8 : -20 - (i - 2) * 8, 10, 300));
+    run(1.5);
+    expect(big.hp).toBeLessThan(5000); // off by default: still hunts the biggest
+    expect(ring.every((e) => e.hp === 300)).toBe(true);
+    s.cfg = { ...s.cfg, skills: { ...s.cfg.skills, hawk: { ...s.cfg.skills.hawk, guardN: 4, guardR: 40 } } };
+    const bigHp = big.hp;
+    s.P.cds.hawk = 0;
+    run(1.5);
+    expect(ring.some((e) => e.hp < 300)).toBe(true);
+    expect(big.hp).toBe(bigHp);
+    for (const e of ring) e.dead = true; // the crowd is gone: back to the biggest
+    s.P.cds.hawk = 0;
+    run(1.5);
+    expect(big.hp).toBeLessThan(bigHp);
+  });
+
+  it('heroes.ranger.hp adds to Kit\'s max HP only', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { heroes: { ranger: { hp: 20 } } } }));
+    const hp = (h: HeroId, c = config) => (createSim(botOptions(3, { hero: h, config: c })).view() as SimState).P.maxHp;
+    expect(hp('ranger', cfg)).toBe(hp('ranger') + 20);
+    expect(hp('mage', cfg)).toBe(hp('mage'));
+  });
+
   it('Volatile Flask leaves Statuses; Smart Flask picks fire on a Gathered pack', () => {
     const { s, mob, run } = hero('alchemist');
     const e = mob(50, 0);

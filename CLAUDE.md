@@ -81,6 +81,7 @@ clear screen — never at the next Stage start.
 - Kings: 2 telegraphed moves + an ultimate below 50% HP (`KING_KITS`). Umbra: 3 phases (shadow skills → stolen King
   ultimates below 66% → darkened heart below 33%). Beating Umbra → Endless mode and Heart Crack tiers 1–3.
 - Enemy HP: `base * 1.5^(stage-1) * (1 + 0.7*progress) * (1 + 0.08*(playerLv-1)) * (0.85 + 0.15*director)`.
+  `scaling.lvCapBase/lvCapPerCh` (2026-09b) cap the counted playerLv at `base + perCh*(stage-1+progress)` for HP, damage and armor.
 - Enemy dmg: `base * 1.18^(stage-1) * (1 + 0.5*progress) * (1 + 0.015*(playerLv-1))`, each hit ±15%.
 - Spawn rate/s: `(1.4 + 3.4*progress) * (1 + 0.35*(stage-1)) * (1 + 0.6*aliveMates) * (BloodMoon?2.3:1) * director`.
   Swarm ring every 18 s (10 s in Blood Moon). Enemy cap ≈ 320.
@@ -90,11 +91,12 @@ clear screen — never at the next Stage start.
 - XP to next level: `5 + 4lv + 0.5lv² + 1.4·max(0, lv-8)²`.
 - Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening).
   4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4). 6 passives,
-  16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage.
+  16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
+  version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
 - Heroes: Lyra/Mage (Arcane Sigil, +10% dmg, free), Bram/Knight (Holy Shield, +40 HP, −5% speed, free),
-  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%).
+  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup; `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%).
 - Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP, capped at 8% of a boss
   (Umbra 5%). 11 Weapons change only its form (default Judgement); a King drops its Realm's Weapon at 5%.
 - Shop (permanent): Power, Vigor, Agility, Greed, Wisdom, Second Wind (revive). A revive can also be bought in a Run

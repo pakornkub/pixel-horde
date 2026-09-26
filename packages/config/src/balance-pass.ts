@@ -38,3 +38,24 @@ export const BALANCE_PASS_2026_09: BalancePass = {
     worlds: { lumora: { enemies: { boss: { hp: 1800 }, umbra: { hp: 2000, dmg: 24 } } } },
   },
 };
+
+/** Follow-up to 2026-09 (published there as config v4): load it on top of v4 and publish a new version. */
+export const BALANCE_PASS_2026_09B: BalancePass = {
+  id: '2026-09b',
+  note: 'Playtest follow-up 2026-09b: Awakening keeps the Links and adds a slot, extra EXP no longer toughens monsters, Kit survives the late game',
+  patch: {
+    shared: {
+      // Awakening was only as good as declining it: the Links now stay and a 5th attack slot holds the new skills
+      awaken: { keep: 1, slots: 1 },
+      // monsters count the player's level only up to the usual level for that point of the Run (7 + 7 per Chapter),
+      // so Wisdom and Transmute stop making the game harder; the Chapter curve stays where it was
+      scaling: { lvCapBase: 7, lvCapPerCh: 7 },
+      // Kit died to regular monsters: the Hawk clears a crowd around Kit, and a little more HP
+      skills: { hawk: { guardN: 4, guardR: 40 } },
+      heroes: { ranger: { hp: 20 } },
+    },
+  },
+};
+
+/** Every pass in order; the playtest harness (PT_PASS=1) applies them all. */
+export const BALANCE_PASSES: readonly BalancePass[] = [BALANCE_PASS_2026_09, BALANCE_PASS_2026_09B];

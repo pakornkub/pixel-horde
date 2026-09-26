@@ -71,6 +71,8 @@ for (const [k, rs] of [...groups].sort()) {
 }
 console.log('\nDPS by chapter (median)');
 for (const [k, rs] of [...groups].sort()) console.log(k.padEnd(20) + [1, 2, 3, 4, 5, 6, 7, 8].map((c) => String(med(rs.map((r) => r.dpsByChapter[c]).filter((x) => x > 0)) || '-').padStart(7)).join(''));
+console.log('\nplayer level at chapter end (median)');
+for (const [k, rs] of [...groups].sort()) console.log(k.padEnd(20) + [1, 2, 3, 4, 5, 6, 7, 8].map((c) => String(med(rs.map((r) => r.lvByChapter?.[c]).filter((x) => x > 0)) || '-').padStart(7)).join(''));
 console.log('\nmin HP by chapter (median %)');
 for (const [k, rs] of [...groups].sort()) console.log(k.padEnd(20) + [1, 2, 3, 4, 5, 6, 7, 8].map((c) => { const v = med(rs.map((r) => r.hpMin[c]).filter((x) => x != null)); return (Number.isFinite(v) ? String(Math.round(v * 100)) : '-').padStart(5); }).join(''));
 console.log('\nKing time-to-kill by chapter (median s; E = escape rate %)');

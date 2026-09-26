@@ -13,7 +13,7 @@ export * from './data/achievements';
 export { xpNeed } from './systems/player';
 export { GUARDIANS, canFuse } from './systems/guardians';
 export { KING_KITS, ULTS } from './systems/kings';
-export { awakenEligible, benchSize, qualifiedLinks, reviveCost, swapCost } from './systems/progress';
+export { attackSlots, awakenEligible, benchSize, qualifiedLinks, reviveCost, swapCost } from './systems/progress';
 export { SNAP_ENEMIES, hostPhaseOf, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies } from './systems/coop';
 export { DEFAULT_RESOLVED, resolveConfig, type ResolvedConfig } from '@pixel-horde/config';
 export { createRng, createStreams, hashString, type Rng } from './core/rng';
