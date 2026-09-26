@@ -32,7 +32,7 @@ describe('Balance Config schema', () => {
   it('resolving merges shared rules with one World', () => {
     const r = resolveConfig(DEFAULT_CONFIG, 'lumora');
     expect(r.world).toBe('lumora');
-    expect(r.enemies.boss.hp).toBe(2200);
+    expect(r.enemies.boss.hp).toBeCloseTo(2200 * DEFAULT_CONFIG.shared.difficulty.bossHp, 6); // base difficulty applied
     expect(r.skills.nova.r.base).toBe(55);
     // no World key may shadow a shared key
     const shared = Object.keys(DEFAULT_CONFIG.shared);

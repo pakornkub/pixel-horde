@@ -3,7 +3,6 @@ import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState,
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, onSettingsChange, saveSettings, settings } from './settings';
-import { applyPreset, effectivePreset, isPreset, isRanked, type PresetId } from '@pixel-horde/config';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { closeFeedback, feedbackOpen, initFeedback, openFeedback } from './ui/feedback';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
@@ -44,8 +43,6 @@ let queue: Command[] = [];
 let runBanked = 0;
 let walletBanked = 0;
 let ticket: RunTicket | null = null;
-/** Difficulty preset of the Run in progress (solo only; co-op is always balanced). */
-let runPreset: PresetId = 'balanced';
 let clientRunId = '';
 let runWallStart = 0;
 let starting = false;
@@ -116,10 +113,8 @@ async function newRun(): Promise<void> {
   clearSave();
   starting = true;
   initAudio();
-  runPreset = effectivePreset(active.cfg, settings.preset); // a preset the admin hid falls back to Balanced
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
-  // Presets other than Balanced are unranked: no ticket, the Run is submitted like an offline one.
-  ticket = !isRanked(runPreset) || debug.awaken ? null // ?debug=awaken (start Awakened) is never ranked
+  ticket = debug.awaken ? null // ?debug=awaken (start Awakened) is never ranked
     : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
@@ -133,7 +128,7 @@ async function newRun(): Promise<void> {
     firstRun: !META.tips.includes('first'), // the account's very first Greenvale is a little easier
     meta: simMeta(),
     viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
-    config: applyPreset(active.cfg, runPreset),
+    config: active.cfg,
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
   }));
@@ -158,7 +153,6 @@ function playerPid(): string {
 async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<void> {
   if (sim) return;
   coop = s;
-  runPreset = 'balanced';
   initAudio();
   clearSave();
   const config = s.role === 'guest' ? (await configFor(cfgVersion)) ?? active.cfg : active.cfg; // guests use the host's Balance Config
@@ -284,7 +278,7 @@ function autoSave(quit = false): void {
   if (!sim || !canSave()) return;
   const v = sim.view(), cp = sim.checkpoint();
   writeSave({ runId: ticket?.runId, token: ticket?.token, seed: v.seed, hero: v.hero, weapon: v.weapon, crack: v.crack, chapter: cp.chapter,
-    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId, preset: runPreset });
+    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId });
   if (ticket) void backend.saveCheckpoint({ runId: ticket.runId, token: ticket.token, chapter: cp.chapter, hash: cp.hash, data: cp.data, configVersion: cp.configVersion, quit });
 }
 
@@ -332,8 +326,7 @@ async function continueRun(): Promise<void> {
     if (!pick) return;
     const base = await configFor(pick.configVersion);
     if (!base) { showMsg(t('save.noConfig')); return; }
-    runPreset = isPreset(pick.preset) ? pick.preset : 'balanced';
-    const config = applyPreset(base, runPreset);
+    const config = base;
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
     const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
@@ -515,8 +508,10 @@ let leaveArmed = false;
 let guestMenu = false; // a guest's pause menu never stops the room
 function pause(): void {
   if (!sim || sim.view().phase !== 'play') return;
-  if (isGuest()) { if (!guestMenu) { guestMenu = true; ($('saveQuitBtn') as HTMLButtonElement).disabled = true; leaveArmed = false; showPause(); } return; }
+  if (isGuest()) { if (!guestMenu) { guestMenu = true; ($('saveQuitBtn') as HTMLButtonElement).disabled = true; $('saveQuitNote').textContent = t('save.quitNote'); leaveArmed = false; showPause(); } return; }
   ($('saveQuitBtn') as HTMLButtonElement).disabled = !canSave();
+  // after a Continue the Stage-start save is spent until the next Chapter starts: say so instead of a dead button
+  $('saveQuitNote').textContent = t(sim.checkpoint().hash === usedHash ? 'save.usedNote' : 'save.quitNote');
   cmd({ type: 'pause' });
   leaveArmed = false;
   showPause();
@@ -658,9 +653,8 @@ async function refreshLive(): Promise<void> {
     onAnnouncements: (list) => { news = list; renderNews(); },
     onMaintenance: (on) => { if (on && !maintDismissed) { pause(); show('ovMaint'); } if (!on) hide('ovMaint'); },
     onTooOld: () => { pause(); show('ovUpdate'); },
-    onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: applyPreset(cfg, runPreset) }); },
+    onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: cfg }); },
   });
-  renderModeBadge(); // the new config may hide or change a preset
   const f = live.flags();
   if (sim) cmd({ type: 'setEvents', events: { bloodMoon: f.bloodMoon, dragon: f.dragon, rival: f.rival } });
 }
@@ -688,21 +682,11 @@ onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
-initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); void refreshUpdateNote($('updNote')); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); } });
+initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); void refreshUpdateNote($('updNote')); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); if (!sim) void refreshContinue(); } });
+void refreshContinue(); // a save kept from an earlier visit (tab closed, page reloaded) shows "Continue" right away
 void refreshLive();
 void refreshUpdateNote($('updNote'));
 initLeaderboard();
 installTelemetry();
 $('draftBadge').hidden = !DRAFT;
-/** Title: a reminder when a non-standard (unranked) difficulty is selected; tap to change it. */
-function renderModeBadge(): void {
-  const b = $('modeBadge');
-  const id = effectivePreset(active.cfg, settings.preset);
-  b.hidden = id === 'balanced';
-  b.textContent = t('preset.badge', { name: t(`preset.${id}`) });
-}
-$('modeBadge').addEventListener('click', () => openSettings('ovTitle'));
-onSettingsChange(renderModeBadge);
-onLangChange(renderModeBadge);
-renderModeBadge();
 requestAnimationFrame(frame);

@@ -4,17 +4,17 @@ import {
   AWK_TAG_SKILL, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig,
   type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId,
 } from '@pixel-horde/sim';
-import { BALANCE_PASSES, DEFAULT_CONFIG, applyPreset, withOverrides, type BalanceConfigInput, type PresetId } from '@pixel-horde/config';
+import { BALANCE_PASSES, DEFAULT_CONFIG, withOverrides, type BalanceConfigInput } from '@pixel-horde/config';
 import { createBot, DEFAULT_PROFILE, type BotProfile } from './bot';
 
 export interface Job {
   hero: HeroId;
   seed: number;
   label: string;
-  /** Balance Config patch (a preset) on top of the defaults. */
+  /** Balance Config patch on top of the defaults. */
   patch?: BalanceConfigInput;
-  /** Difficulty preset applied on top (Settings → Difficulty). */
-  preset?: PresetId;
+  /** Heart Crack tier 0–3 (the difficulty ladder unlocked by beating Umbra). */
+  crack?: number;
   /** Start from the recommended balance passes (packages/config/src/balance-pass.ts): true / '1' = all of them,
    *  a pass id = the passes up to and including that one. */
   pass?: boolean | string;
@@ -74,9 +74,9 @@ export function runOne(job: Job): RunMetrics {
   const upTo = job.pass === true || job.pass === '1' ? passes.length : passes.findIndex((p) => p.id === job.pass) + 1;
   if (job.pass && !upTo) throw new Error(`unknown balance pass ${job.pass}`);
   const base = passes.slice(0, job.pass ? upTo : 0).reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
-  const cfg = applyPreset(resolveConfig(withOverrides(base, job.patch ?? {})), job.preset ?? 'balanced');
+  const cfg = resolveConfig(withOverrides(base, job.patch ?? {}));
   const profile = { ...DEFAULT_PROFILE, ...job.profile };
-  const sim = createSim({ seed: job.seed, hero: job.hero, meta: { up: { ...job.shop } }, viewport: { w: 338, h: 190 }, config: cfg });
+  const sim = createSim({ seed: job.seed, hero: job.hero, meta: { up: { ...job.shop } }, viewport: { w: 338, h: 190 }, config: cfg, crack: job.crack ?? 0 });
   const bot = createBot(job.seed, profile);
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,

@@ -20,7 +20,7 @@ describe('headless bot runs', () => {
     const { sim, ticks } = runBot(botOptions(seed), 10 * MIN);
     const v = sim.view();
     expect(ticks).toBeGreaterThan(20 * 60);
-    expect(['over', 'play', 'levelup', 'chest', 'clearing', 'clear']).toContain(v.phase);
+    expect(['over', 'revive', 'play', 'levelup', 'chest', 'clearing', 'clear']).toContain(v.phase);
     expect(Number.isFinite(v.P.x) && Number.isFinite(v.P.y)).toBe(true);
   });
 

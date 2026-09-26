@@ -86,6 +86,9 @@ are neutral, so wave fronts stay off until a config version sets them.
 `20260929000025_awakened_forms_fields` (new `shared.awaken.form/mark`, `skills.lance.aim`, Shield Bash and the
 Awakened-form fields `skills.{shield,sigil,hawk,flask}.awk.*`; patches only `awaken` and those five skills) is applied.
 Publish pass 2026-09d only after this code is deployed: an older client strips the unknown fields.
+`20260930000028_base_difficulty` (ticket 48: drops `shared.presets`, adds `shared.difficulty`) is **not applied yet**. Apply it
+before deploying the Admin that publishes `difficulty`. Published versions without the group get its defaults (the old
+Relaxed preset, Gold ×1), so the live game gets easier the moment the new game client is deployed, without a publish.
 Published configs: v4 = pass 2026-09, v5 = pass 2026-09b, v6 = pass 2026-09c (Director max 1.6, rise 0.04). Passes are
 loaded onto one draft in Admin → Balance (they stack, oldest first) and published from there.
 
