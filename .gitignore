@@ -32,3 +32,6 @@ test-results/
 playwright-report/
 .wrangler/
 scripts/playtest/.out/
+
+# AI source renders for icons (kept locally; the 32x32 icons live in apps/game/src/assets)
+generated-images/

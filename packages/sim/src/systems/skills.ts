@@ -27,6 +27,18 @@ export function st(s: SimState, id: SkillId, lv: number): SkillStats {
   return t;
 }
 
+/** The monster with the most others within r, from 8 random samples. */
+function densest(vis: Enemy[], r: number, R: SimState['rng']['skills']): Enemy {
+  let best = vis[0], bc = -1;
+  for (let k = 0; k < 8; k++) {
+    const c = vis[R.int(vis.length)];
+    let n = 0;
+    for (const e of vis) if ((e.x - c.x) * (e.x - c.x) + (e.y - c.y) * (e.y - c.y) < r * r) n++;
+    if (n > bc) { bc = n; best = c; }
+  }
+  return best;
+}
+
 function wrapAngle(a: number): number {
   return atan2(sin(a), cos(a));
 }
@@ -42,7 +54,7 @@ export function useUlt(s: SimState): void {
   flash(s, 0.25, '#fff8c0', false, true);
   shake(s, 6);
   sfx(s, 'ult');
-  banner(s, 'judgement', 1.1, true);
+  banner(s, 'judgement', 1.1, true, { weapon: s.weapon });
 }
 
 /** One Ultimate strike in the form of the equipped Weapon. */
@@ -179,10 +191,12 @@ export function updSkills(s: SimState, dt: number): void {
     } else if (id === 'flask') {
       const vis = visibleEnemies(s).filter((e) => hypot(e.x - P.x, e.y - P.y) < t.range);
       if (!vis.length) { P.cds[id] = 0.2; continue; }
+      // bosses first, then the thickest crowd (not a random monster); the flask follows its target in flight
+      const bosses = vis.filter((e) => e.boss);
       for (let i = 0; i < t.n; i++) {
-        const e = vis[R.int(vis.length)];
+        const e = i < bosses.length ? bosses[i] : densest(vis, t.r, R);
         const el = t.smart ? smartElement(e) : FLASKS[R.int(3)];
-        s.effects.push({ type: 'flask', x: e.x, y: e.y, pts: [[P.x, P.y - 6]], t: 0, dur: K.flask.flight, r: t.r, dmg: t.dmg, el, fired: false });
+        s.effects.push({ type: 'flask', x: e.x, y: e.y, pts: [[P.x, P.y - 6]], t: 0, dur: K.flask.flight, r: t.r, dmg: t.dmg, el, fired: false, targets: [{ e, x: e.x, y: e.y }] });
       }
       P.cds[id] = t.cd * P.cdMul;
     } else if (id === 'manaNova') {
@@ -262,13 +276,7 @@ export function updSkills(s: SimState, dt: number): void {
     } else if (id === 'hole') {
       const vis = visibleEnemies(s);
       if (vis.length < K.hole.minTargets) { P.cds[id] = 0.3; continue; }
-      let best = vis[0], bc = -1;
-      for (let k = 0; k < 8; k++) {
-        const c = vis[R.int(vis.length)];
-        let n = 0;
-        for (const e of vis) if ((e.x - c.x) * (e.x - c.x) + (e.y - c.y) * (e.y - c.y) < t.r * t.r) n++;
-        if (n > bc) { bc = n; best = c; }
-      }
+      const best = densest(vis, t.r, R);
       s.effects.push({ type: 'hole', x: best.x, y: best.y, t: 0, dur: K.hole.dur, r: t.r, dmg: t.dmg, boom: t.boom, tick: 0, boomed: false, bt: 0 });
       P.cds[id] = t.cd * P.cdMul;
     }
@@ -501,6 +509,8 @@ export function updEffects(s: SimState, dt: number): void {
         burst(s, o.x, o.y, '#c48a55', 8, 60, 0.3);
       }
     } else if (f.type === 'flask') {
+      const o = f.targets?.[0];
+      if (!f.fired && o && !o.e.dead) { f.x = o.e.x; f.y = o.e.y; }
       if (!f.fired && f.t >= f.dur) {
         f.fired = true;
         const tag = FLASK_TAGS[f.el!];

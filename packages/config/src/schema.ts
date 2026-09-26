@@ -162,6 +162,7 @@ const shared = obj({
     growAt1: int(2, 1, 20, 'Bench +1 once this Chapter is behind you'),
     growAt2: int(4, 1, 20, 'Bench +1 once this Chapter is behind you'),
     swapBase: pos(20, 'Swap cost: Gold × Chapter'),
+    discard: int(1, 0, 1, 'Stage end: Bench skills can be removed for free (1) or not (0)'),
     swapGrowth: mul(2, 'Each further swap in the same Stage end costs × this'),
   }, 'Bench and Stage-end swaps'),
   stage: obj({
@@ -246,7 +247,8 @@ const shared = obj({
     heartChance: frac(0.012, 'Heart drop chance'), heartSmall: frac(0.3, 'Small heart heal (× max HP)'), heartBig: frac(0.5, 'Boss heart heal (× max HP)'),
     shieldChance: frac(0.004, 'Shield drop chance (normal monster)'), shieldElite: frac(0.15, 'Shield drop chance (elite monster)'),
     shieldAbsorb: frac(0.3, 'Shield absorbs this much damage (× max HP)'), shieldDur: sec(10, 'Shield lasts (s)'),
-    chestGold: pos(20, 'Gold when picking up a chest'), gemCap: int(380, 10, 5000, 'Gems on the ground before merging'),
+    chestGold: pos(20, 'Gold when picking up a chest'),
+    kingChestItem: int(0, 0, 1, 'Kings also drop a chest item (1: two chests per King) or only open the wheel (0)'), gemCap: int(380, 10, 5000, 'Gems on the ground before merging'),
     bossGems: int(14, 1, 100, 'XP gems a boss drops'), eventGems: int(10, 1, 100, 'XP gems a dragon/rival drops'),
     magnetAccel: pos(400, 'Gem pull acceleration'), magnetMax: pos(320, 'Gem pull max speed'),
   }, 'Drops and pickups'),
@@ -336,6 +338,7 @@ const shared = obj({
   economy: obj({
     kingSkillPoints: int(1, 0, 10, 'Skill Points per King killed'),
     kingChest: int(1, 0, 5, 'Chest wheels per King killed'),
+    spShop: int(0, 0, 1, 'Stage end: Skill Points can be bought for Gold (1) or not (0)'),
     spCost: pos(30, 'Buy 1 Skill Point at Stage end: Gold × Chapter'),
     reroll: int(1, 0, 10, 'Skill Points: reroll the level-up offers'),
     banish: int(1, 0, 10, 'Skill Points: banish a Skill/passive from this Run'),

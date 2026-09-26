@@ -1,11 +1,12 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, endlessBreakdown, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
 import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
 import { t } from '@pixel-horde/i18n';
+import { iconHtml } from './icons';
 import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, skillDesc, skillDetail, skillName } from './text';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
@@ -167,6 +168,20 @@ function noteRows(notes: [NoteKind, string][]): string {
   return `<span class="nrows">${notes.map(([k, s]) => `<span class="nrow n-${k}"><b>${NOTE_ICON[k]}</b><span>${clean(s)}</span></span>`).join('')}</span>`;
 }
 
+/** Element, Status and role chips of a Skill (same words as the web codex); a chip that Combos with an owned Skill is ringed. */
+function skillChips(id: SkillId, owned: SkillId[]): string {
+  const others = owned.filter((k) => k !== id);
+  const tags = hitTagsOf(id);
+  const hitsStatus = (tag: HitTag): boolean => others.some((k) => statusesOf(k).some((s) => !!comboOf(s, tag)));
+  const chip = (cls: string, txt: string, combo: boolean, tip = ''): string => `<b class="chip ${cls}${combo ? ' hit' : ''}"${tip ? ` title="${tip}"` : ''}>${txt}</b>`;
+  const els = [...new Set(tags.map((x) => x.el).filter((e): e is HitElement => !!e))];
+  const out = els.map((e) => chip(`el-${e}`, t(`element.${e}`), hitsStatus({ el: e })));
+  for (const s of statusesOf(id)) out.push(chip(`stat s-${s}`, t(`status.${s}`), others.some((k) => hitTagsOf(k).some((tg) => !!comboOf(s, tg))), t('status.tip', { s: t(`status.${s}`) })));
+  if (tags.some((x) => x.heavy)) out.push(chip('role', t('role.heavy'), hitsStatus({ heavy: true }), t('role.heavy.tip')));
+  if (tags.some((x) => x.sweep)) out.push(chip('role', t('role.sweep'), hitsStatus({ sweep: true }), t('role.sweep.tip')));
+  return out.length ? `<span class="chips">${out.join('')}</span>` : '';
+}
+
 export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void, tools?: LevelTools): void {
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
@@ -176,21 +191,23 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
     bt.className = 'opt';
-    let meta: { col: string; g: string }, name: string, desc: string, tag = '', stats = '';
+    let meta: { col: string; g: string }, pic = '', name: string, desc: string, tag = '', stats = '', chips = '';
     const notes: [NoteKind, string][] = [];
     if (o.kind === 'evo') {
-      meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g };
+      meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g }; pic = o.id;
       name = evoName(o.id); tag = `<b class="tag evo">${t('level.evolve')}</b>`;
       desc = evoDesc(o.id);
       stats = `${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id]!)}`;
       bt.classList.add('evo');
+      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[]);
     } else if (o.kind === 'skill') {
-      meta = SKILL_ICON[o.id];
+      meta = SKILL_ICON[o.id]; pic = o.id;
       const lv = P.skills[o.id] || 0;
       name = skillName(o.id);
       tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t(o.toBench ? 'level.bench' : 'level.new')}</b>`;
       desc = lv ? '' : skillDesc(o.id);
       stats = skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false));
+      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[]);
       if (o.id === signatureOf(P.ch)) notes.push(['sig', t('level.signature')]);
       else if (SKILL_LINES[P.ch].includes(o.id)) notes.push(['link', t('level.link')]);
       else if (AWAKENING[P.ch].line.includes(o.id as never)) notes.push(['line', t('level.line')]);
@@ -199,13 +216,13 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       const evoPas = EVO_PASSIVE[o.id];
       if (evoPas && lv + 1 === v.cfg.skills[o.id].max) notes.push(['final', t('level.final', { passive: passiveName(evoPas) })]);
     } else if (o.kind === 'pas') {
-      meta = PASSIVE_ICON[o.id];
+      meta = PASSIVE_ICON[o.id]; pic = o.id;
       const lv = P.pas[o.id] || 0;
       name = passiveName(o.id);
       tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t('level.new')}</b>`;
       desc = passiveDesc(o.id);
     } else if (o.kind === 'comp') {
-      meta = { col: '#ffd23f', g: 'D' };
+      meta = { col: '#ffd23f', g: 'D' }; pic = 'pet';
       name = t('level.comp');
       desc = t('level.compDesc', { dragon: t(`guardian.${P.pet!.kind}`), lv: P.pet!.lv, next: P.pet!.lv + 1 });
     } else {
@@ -213,7 +230,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       name = t('level.recover');
       desc = t('level.recoverDesc');
     }
-    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span class="body"><span class="nm">${name} ${tag}</span>`
+    bt.innerHTML = `<span class="key">${idx + 1}</span>${pic ? iconHtml(pic, meta) : `<span class="ico" style="background:${meta.col}">${meta.g}</span>`}<span class="body"><span class="nm">${name} ${tag}</span>${chips}`
       + (desc ? `<span class="ds">${desc}</span>` : '') + (stats ? `<span class="st">${stats}</span>` : '') + noteRows(notes) + '</span>';
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
@@ -333,19 +350,22 @@ export function renderWeaponSwitch(v: Readonly<SimState>, onUse: (id: WeaponId) 
 }
 
 /* ---------- Skill Points (clear screen) ---------- */
-export function renderSp(v: Readonly<SimState>, onBuy: () => void, onUp: (id: SkillId) => void): void {
-  const box = $('spBox'), E = v.cfg.economy, P = v.P;
-  box.hidden = false;
+/** Stage end: spend Skill Points on +1 level (Skill Points are no longer sold for Gold). */
+export function renderSp(v: Readonly<SimState>, onUp: (id: SkillId) => void, onBuy?: () => void): void {
+  const box = $('spBox'), E = v.cfg.economy, P = v.P, shop = !!E.spShop && !!onBuy;
+  box.hidden = v.sp <= 0 && !shop; // nothing to spend (Skill Points come from Kings, or the shop when it is on)
   box.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
-  const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
-  buy.addEventListener('click', onBuy);
-  box.appendChild(buy);
+  if (shop) {
+    const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
+    buy.addEventListener('click', onBuy!);
+    box.appendChild(buy);
+  }
   for (const id of Object.keys(P.skills) as SkillId[]) {
     const lv = P.skills[id]!;
     if (lv >= v.cfg.skills[id].max) continue;
     const bt = document.createElement('button');
     bt.className = 'uprow';
-    bt.innerHTML = `<span class="ico" style="background:${SKILL_ICON[id].col}">${SKILL_ICON[id].g}</span><span class="nm">${skillName(id)}</span><b class="tag up">LV ${lv} → ${lv + 1}</b><span class="cost">${t('sp.upgrade', { n: E.upgrade })}</span>`;
+    bt.innerHTML = `${iconHtml(id, SKILL_ICON[id])}<span class="nm">${skillName(id)}</span><b class="tag up">LV ${lv} → ${lv + 1}</b><span class="cost">${t('sp.upgrade', { n: E.upgrade })}</span>`;
     bt.disabled = v.sp < E.upgrade;
     bt.addEventListener('click', () => onUp(id));
     box.appendChild(bt);
@@ -413,7 +433,7 @@ export function renderAwaken(v: Readonly<SimState>, onAnswer: (accept: boolean) 
 
 /* ---------- Bench ↔ attack slots (clear screen) ---------- */
 let benchSel = -1;
-export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot: SkillId | null) => void, denied = false): void {
+export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot: SkillId | null) => void, denied = false, onDiscard?: (bench: number) => void): void {
   const P = v.P, box = $('benchBox');
   box.hidden = !P.bench.length;
   if (!P.bench.length) return;
@@ -421,7 +441,7 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
   const sig = signatureOf(P.ch), cost = swapCost(v as SimState), wallet = Math.max(0, (v.meta.wallet || 0) - v.walletSpent);
   const fromRun = Math.min(v.runGold, cost), afford = v.runGold + wallet >= cost;
   const chip = (id: SkillId, lv: number, evo: boolean): string =>
-    `<span class="ico" style="background:${SKILL_ICON[id].col}${evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''}">${SKILL_ICON[id].g}</span><span class="nm">${skillName(id)}</span><b class="lv">LV ${lv}</b>`;
+    `${iconHtml(id, SKILL_ICON[id], evo ? ';box-shadow:0 0 0 2px #ffd23f' : '')}<span class="nm">${skillName(id)}</span><b class="lv">LV ${lv}</b>`;
   box.innerHTML = `<div class="lbl">${t('bench.title')}</div><div class="step">${benchSel >= 0 ? t('bench.step2', { name: skillName(P.bench[benchSel].id) }) : t('bench.step1')}</div>`;
   box.classList.toggle('picking', benchSel >= 0);
   const attack = document.createElement('div'); attack.className = 'row';
@@ -444,8 +464,14 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
   P.bench.forEach((b, i) => {
     const bt = document.createElement('button'); bt.className = 'sk' + (i === benchSel ? ' sel' : '');
     bt.innerHTML = chip(b.id, b.lv, b.evo);
-    bt.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; renderBench(v, onSwap); });
+    bt.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; renderBench(v, onSwap, false, onDiscard); });
     bench.appendChild(bt);
+    if (onDiscard && v.cfg.bench.discard) { // free removal; frees the Bench slot for a new Skill
+      const x = document.createElement('button'); x.className = 'sk del'; x.textContent = '✕';
+      x.title = x.ariaLabel = t('bench.discard', { name: skillName(b.id) });
+      x.addEventListener('click', () => { if (confirm(t('bench.discardAsk', { name: skillName(b.id), lv: b.lv }))) { benchSel = -1; onDiscard(i); } });
+      bench.appendChild(x);
+    }
   });
   const c = document.createElement('div'); c.className = 'cost' + (afford ? '' : ' warn');
   c.textContent = denied || !afford ? t('bench.short') + ' — ' + t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun }) : t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun });

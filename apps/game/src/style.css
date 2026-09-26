@@ -71,7 +71,10 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .opt:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .opt .key,.opt .cur{display:none} /* number keys 1/2/3 still pick; the badge is hidden (owner's choice) */
 .ico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink)}
-.opt .ico{width:46px;height:46px;font-size:18px}
+.opt .ico{width:46px;height:46px;font-size:18px;align-self:start} /* icon sits at the top, beside the name */
+/* picture icons from the atlas (ui/icons.ts): --x/--y = cell, --c/--r = atlas columns/rows */
+.ico.pic{background:#3a3363 var(--icons) no-repeat;background-size:calc(var(--c) * 100%) calc(var(--r) * 100%);
+  background-position:calc(var(--x) * 100% / (var(--c) - 1)) calc(var(--y) * 100% / (var(--r) - 1));image-rendering:pixelated}
 .opt .body{display:flex;flex-direction:column;gap:3px;min-width:0}
 .opt .nm{font-family:var(--th);font-weight:700;font-size:18px;line-height:1.3;display:block}
 .opt .nm i{font-style:normal;color:#c2361f}
@@ -86,17 +89,32 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .tag.new{background:#c2361f;color:#fff}
 .tag.up{background:#3a7a2c;color:#fff}
 .tag.evo{background:var(--gold);color:var(--ink)}
+/* level-up Skill chips: element (filled), Status it leaves (dot), role (ink); .hit = Combos with an owned Skill */
+.opt .chips{display:flex;flex-wrap:wrap;gap:4px}
+.opt .chip{--c:#fff;font-family:var(--th);font-weight:700;font-size:11px;line-height:1;padding:3px 6px;border-radius:3px;border:2px solid var(--ink);background:var(--c);color:var(--ink);white-space:nowrap}
+.opt .chip.el-fire{--c:#ff8a3d}.opt .chip.el-ice{--c:#9fd3ff}.opt .chip.el-lightning{--c:#ffe14d}.opt .chip.el-poison{--c:#b8f04a}.opt .chip.el-dark{--c:#a37cf0}.opt .chip.el-arcane{--c:#ff7ad9}
+.opt .chip.stat{background:var(--paper)}
+.opt .chip.stat::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;border:1.5px solid var(--ink);background:var(--c);margin-right:4px;vertical-align:-1px}
+.opt .chip.s-frozen{--c:#9fd3ff}.opt .chip.s-gathered{--c:#d8d4c4}.opt .chip.s-burning{--c:#ff8a3d}.opt .chip.s-shocked{--c:#ffe14d}.opt .chip.s-poisoned{--c:#b8f04a}
+.opt .chip.role{background:var(--ink);color:#fff}
+.opt .chip.hit{outline:2px solid #d9481f;outline-offset:1px}
 
-#ultBtn{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
-  width:78px;height:78px;border-radius:50%;border:4px solid var(--ink);background:#3a3363;color:var(--paper);
-  font-family:var(--pix);font-size:10px;line-height:1.5;z-index:3;display:none;cursor:pointer;overflow:hidden;padding:0}
-#ultBtn .fill{position:absolute;left:0;right:0;bottom:0;height:var(--p,0%);background:var(--ult);opacity:.9}
-#ultBtn span{position:relative}
+/* HUD buttons grow with the HUD (--ui, set on resize); the Ultimate takes the equipped Weapon's colour (--wcol) */
+#ultBtn{--u:var(--ui,1);position:fixed;right:calc(14px * var(--u) + env(safe-area-inset-right,0px));bottom:calc(16px * var(--u) + env(safe-area-inset-bottom,0px));
+  width:calc(78px * var(--u));height:calc(78px * var(--u));border-radius:50%;border:calc(4px * var(--u)) solid var(--ink);background:#3a3363;color:var(--paper);
+  font-family:var(--pix);font-size:calc(10px * var(--u));line-height:1.5;z-index:3;display:none;cursor:pointer;overflow:hidden;padding:0}
+#ultBtn .fill{position:absolute;left:0;right:0;bottom:0;height:var(--p,0%);background:var(--wcol,var(--ult));opacity:.9}
+#ultBtn span{position:relative;display:flex;flex-direction:column;align-items:center}
+#ultBtn small{font-size:calc(5px * var(--u));line-height:1.2;margin-top:calc(2px * var(--u));max-width:92%;overflow:hidden;white-space:nowrap}
+#ultBtn small:empty{display:none}
 #ultBtn.ready{color:var(--ink);animation:pulse .6s steps(2) infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 6px var(--gold)}}
-#pauseBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(64px + env(safe-area-inset-top,0px));
-  width:36px;height:36px;border:3px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);font-family:var(--pix);font-size:10px;z-index:3;display:none;cursor:pointer;padding:0}
-@media (prefers-reduced-motion: reduce){#ultBtn.ready{animation:none;box-shadow:0 0 0 6px var(--gold)}}
+@keyframes pulse{50%{box-shadow:0 0 0 calc(6px * var(--u)) var(--wcol,var(--gold))}}
+#pauseBtn{--u:var(--ui,1);position:fixed;right:calc(12px * var(--u) + env(safe-area-inset-right,0px));top:calc(64px * var(--u) + env(safe-area-inset-top,0px));
+  width:calc(36px * var(--u));height:calc(36px * var(--u));border:calc(3px * var(--u)) solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);font-family:var(--pix);font-size:calc(10px * var(--u));z-index:3;display:none;cursor:pointer;padding:0}
+@media (prefers-reduced-motion: reduce){#ultBtn.ready{animation:none;box-shadow:0 0 0 calc(6px * var(--u)) var(--wcol,var(--gold))}}
+/* menus: the whole card scales (as far as a tall one still fits the screen) */
+.overlay .box{zoom:var(--menu,1)}
+#tipBar{zoom:var(--menu,1)}
 
 /* Both languages read body text in Chakra Petch (it has Latin too); the pixel font stays on titles,
    numbers and tags — small pixel text was too hard to read (co-op test feedback). */
@@ -125,6 +143,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .presetnote.unranked{color:#b4461f}
 .modebadge{font:inherit;font-family:var(--th);font-weight:700;font-size:13px;background:var(--ink);color:var(--gold);border:0;border-radius:4px;padding:4px 10px;margin:-6px 0 10px;cursor:pointer}
 @media (max-width:360px){.presetgrid{grid-template-columns:repeat(2,1fr)}}
+.fbcats{justify-content:flex-start;margin:0 0 12px}
+.fblabel{display:block;font-size:14px;margin:0 0 4px}
+.fbtext{display:block;width:100%;font:inherit;font-size:15px;line-height:1.45;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:4px;padding:8px 10px;resize:vertical;min-height:110px;-webkit-user-select:text;user-select:text;touch-action:auto}
+.fbtext:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.fbcount{font-size:12px;text-align:right;opacity:.7;margin:2px 0 4px}
+#ovFeedback .btn.ghost{margin-top:10px}
 
 
 /* account (ticket 08) */
@@ -171,6 +195,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench button.sk{display:inline-flex;align-items:center;gap:6px;border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;font-size:14px;padding:5px 8px;cursor:pointer;min-height:40px}
 .bench button.sk .ico{width:24px;height:24px;font-size:11px;border-width:2px}
 .bench button.sk .lv{font-family:var(--pix);font-weight:400;font-size:9px;background:var(--ink);color:var(--paper);border-radius:3px;padding:3px 4px}
+.bench button.sk.del{min-width:40px;justify-content:center;color:#c2361f;font-weight:700;border-color:#c2361f;margin-left:-4px}
+.bench button.sk.del:hover{background:#ffe0dc}
 .bench button.sk.empty{border-style:dashed;opacity:.7;min-width:64px;justify-content:center}
 .bench button.sk.sel{background:var(--gold);outline:3px solid var(--ink);outline-offset:1px}
 .bench.picking .row:first-of-type button.sk:not(:disabled){box-shadow:0 0 0 3px #8fdcff;animation:pickme 1s steps(2) infinite}

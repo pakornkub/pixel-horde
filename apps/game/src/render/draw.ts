@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { REALMS, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
+import { REALMS, WEAPONS, benchSize, signatureOf, skillStats, type Enemy, type SimState, type SkillId, type PassiveId } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
@@ -7,6 +7,7 @@ import { tileAtT } from './tiles';
 import { MET, TAU, fxRng, rnd, vfx, zoomK } from './vfx';
 import { lang, t } from '@pixel-horde/i18n';
 import { PASSIVE_ICON, SKILL_ICON, kingName, realmShort } from '../ui/text';
+import { iconAtlas, iconRect } from '../ui/icons';
 
 const K = INK;
 const R = fxRng.next;
@@ -507,7 +508,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         }
       }
     }
-    if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.14)'; b.fillRect(0, 0, LW, LH); }
+    if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.22)'; b.fillRect(0, 0, LW, LH); }
     if (v.darkness) {
       // Umbra's darkened heart: only a light around the player remains
       const r = v.cfg.umbra.lightR, px = P.x + ox, py = P.y + oy;
@@ -555,45 +556,58 @@ function thaiText(txt: string, x: number, y: number, px: number, col: string, lw
   ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
 
-/** A screen-edge arrow pointing at (sx, sy) (hi-res pixels); returns where it was drawn. */
+/** A screen-edge arrow pointing at (sx, sy) (hi-res pixels), with a glow; returns where it was drawn. */
 function edgeArrow(sx: number, sy: number, mg: number, sz: number, col: string): { ax: number; ay: number; a: number } {
-  const D = screen.DPR, W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
-  const k = Math.min((W / 2 - mg) / Math.max(1e-6, Math.abs(dx)), (H / 2 - mg) / Math.max(1e-6, Math.abs(dy)));
+  const D = screen.HD, W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
+  const g = Math.max(mg, sz * 1.8 + 8 * D); // keep the whole tip on screen
+  const k = Math.min((W / 2 - g) / Math.max(1e-6, Math.abs(dx)), (H / 2 - g) / Math.max(1e-6, Math.abs(dy)));
   const ax = cx + dx * k, ay = cy + dy * k, a = Math.atan2(dy, dx);
   ctx.save();
   ctx.translate(ax, ay); ctx.rotate(a);
-  ctx.beginPath(); ctx.moveTo(sz * 1.7, 0); ctx.lineTo(sz * 0.3, -sz * 1.1); ctx.lineTo(sz * 0.3, sz * 1.1); ctx.closePath();
-  ctx.fillStyle = col; ctx.strokeStyle = INK; ctx.lineWidth = 3 * D; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(sz * 1.8, 0); ctx.lineTo(sz * 0.2, -sz * 1.2); ctx.lineTo(sz * 0.55, 0); ctx.lineTo(sz * 0.2, sz * 1.2); ctx.closePath();
+  ctx.shadowColor = col; ctx.shadowBlur = 14 * D; // glow so it stands out on any Realm
+  ctx.fillStyle = col; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = INK; ctx.lineWidth = 4 * D; ctx.lineJoin = 'round'; ctx.stroke(); ctx.fill();
   ctx.restore();
   return { ax, ay, a };
 }
 
+/** Round badge behind an arrow: a sprite in a ringed disc, a sonar ping and the distance under it. */
+function edgeBadge(ax: number, ay: number, a: number, sz: number, col: string, im: CanvasImageSource | undefined, dist: number, clock: number): { bx: number; by: number; r: number } {
+  const D = screen.HD, r = 24 * D, bx = ax - Math.cos(a) * (sz * 0.2 + r * 1.05), by = ay - Math.sin(a) * (sz * 0.2 + r * 1.05);
+  const ping = (clock * 0.9) % 1; // an expanding ring once a second
+  ctx.save();
+  ctx.globalAlpha = 0.7 * (1 - ping); ctx.strokeStyle = col; ctx.lineWidth = 3 * D;
+  ctx.beginPath(); ctx.arc(bx, by, r * (1 + ping * 0.8), 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(bx, by, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 4 * D; ctx.stroke();
+  if (im) { const isz = r * 1.5; ctx.imageSmoothingEnabled = false; ctx.drawImage(im, bx - isz / 2, by - isz / 2, isz, isz); }
+  ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  outlined(Math.round(dist / 16) + 'm', bx, by + r + 4 * D, 10 * D, col);
+  return { bx, by, r };
+}
+
 /** Off-screen arrows with the boss icon (Kings, dragon, Shadow Rival, Umbra). Always on. */
 function drawArrows(v: Readonly<SimState>, clock: number): void {
-  const { S, DPR: D, LW, LH } = screen, m = 34 * D;
+  const { S, HD: D, LW, LH } = screen, m = 34 * D;
   for (const e of [v.boss, v.boss2, v.dragonE, v.rivalE]) {
     if (!e || e.dead) continue;
     const sx = e.x + ox, sy = e.y + oy;
     if (sx > 0 && sy > 0 && sx < LW && sy < LH) continue;
-    const near = Math.hypot(sx - LW / 2, sy - LH / 2) < Math.max(LW, LH) * 0.9;
     if (v.clock - e.born < 2 && Math.floor(clock * 8) & 1) continue; // blink right after the spawn
-    const pulse = 1 + 0.08 * Math.sin(clock * 6);
-    const sz = (near ? 1.25 : 1) * 14 * D * pulse, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
+    const pulse = 1 + 0.1 * Math.sin(clock * 6);
+    const sz = 22 * D * pulse, col = e === v.boss || e === v.boss2 ? '#ffd23f' : e === v.dragonE ? '#ff6a2a' : '#b07cff';
     const { ax, ay, a } = edgeArrow(sx * S, sy * S, m, sz, col);
-    const im = ENEMY_SPR[e.type]?.[0]?.n;
-    if (im) {
-      const isz = 26 * D, r = isz * 0.72, ix = ax - Math.cos(a) * sz * 0.9, iy = ay - Math.sin(a) * sz * 0.9;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ix, iy, r, 0, TAU); ctx.fill();
-      ctx.strokeStyle = col; ctx.lineWidth = 2 * D; ctx.stroke();
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(im, ix - isz / 2, iy - isz / 2, isz, isz);
-    }
+    edgeBadge(ax, ay, a, sz, col, ENEMY_SPR[e.type]?.[0]?.n, Math.hypot(e.x - v.P.x, e.y - v.P.y), clock);
   }
 }
 
 /** King dialogue bubbles; they follow a living speaker and stay on screen. */
 function drawBubbles(v: Readonly<SimState>): void {
-  const { DPR: D } = screen, W = cv.width, H = cv.height;
+  const { HD: D } = screen, W = cv.width, H = cv.height;
   for (const bb of vfx.bubbles) {
     const who = [v.boss, v.boss2, v.rivalE].find((k) => k && k.type === bb.who) ?? null;
     if (who) { bb.x = who.x; bb.y = who.y; }
@@ -614,11 +628,12 @@ function drawBubbles(v: Readonly<SimState>): void {
   }
 }
 
-/** Co-op: names and HP over teammates; arrows (with the name) to teammates off screen — downed ones blink red. */
+/** Co-op: names and HP over teammates; off screen, a big arrow with the ally's Hero, name and
+ * distance — downed allies blink red so someone goes to revive them. */
 function drawMates(v: Readonly<SimState>, clock: number): void {
   const mates = v.coop?.mates;
   if (!mates?.length) return;
-  const { DPR: D, LW, LH } = screen;
+  const { HD: D, LW, LH } = screen;
   for (const m of mates) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     const [x, y] = toScreen(m.rx, m.ry - 12);
@@ -631,12 +646,21 @@ function drawMates(v: Readonly<SimState>, clock: number): void {
       ctx.fillStyle = '#e8434f'; ctx.fillRect(x - bw / 2, y - 3 * D, bw * clamp(m.hp / (m.mh || 1), 0, 1), 2 * D);
       continue;
     }
-    const blink = m.dn && Math.floor(clock * 4) & 1;
-    const { ax, ay, a } = edgeArrow(x, y, 30 * D, (m.dn ? 13 : 11) * D, m.dn ? (blink ? '#ff4b5c' : '#ffd9de') : '#8fdcff');
-    // the name sits on the inner side of the arrow
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = Math.cos(a) > 0.5 ? 'right' : Math.cos(a) < -0.5 ? 'left' : 'center';
-    outlined(label, ax - Math.cos(a) * 26 * D, ay - Math.sin(a) * 24 * D, 9 * D, m.dn ? '#ff8a8a' : '#8fdcff');
+    const blink = m.dn && Math.floor(clock * 4) & 1, col = m.dn ? (blink ? '#ff4b5c' : '#ffd9de') : '#8fdcff';
+    const sz = (m.dn ? 22 : 18) * D * (m.dn ? 1 + 0.12 * Math.sin(clock * 8) : 1);
+    const { ax, ay, a } = edgeArrow(x, y, 30 * D, sz, col);
+    const spr = HERO_SPR[m.hero] || HERO_SPR.mage;
+    const { bx, by, r } = edgeBadge(ax, ay, a, sz, col, m.fc < 0 ? spr.l[0] : spr.r[0], Math.hypot(m.x - v.P.x, m.y - v.P.y), clock);
+    // the name in a dark pill beside the badge, on the side facing the middle of the screen
+    ctx.font = font(9 * D);
+    const tw = ctx.measureText(label).width, pw = tw + 12 * D, ph = 18 * D;
+    const left = Math.cos(a) > 0.3, px = left ? bx - r - 6 * D - pw : bx + r + 6 * D;
+    const py = Math.max(ph, Math.min(cv.height - ph * 2, by - ph / 2));
+    const qx = Math.max(4 * D, Math.min(cv.width - pw - 4 * D, px));
+    ctx.fillStyle = 'rgba(30,27,51,.85)'; ctx.fillRect(qx, py, pw, ph);
+    ctx.strokeStyle = col; ctx.lineWidth = 2 * D; ctx.strokeRect(qx, py, pw, ph);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    outlined(label, qx + 6 * D, py + ph / 2 + D, 9 * D, m.dn ? '#ff8a8a' : '#8fdcff');
   }
 }
 
@@ -660,45 +684,94 @@ export function drawTexts(clock: number): void {
 }
 
 function bar(x: number, y: number, w: number, h: number, val: number, col: string, bg?: string): void {
-  const D = screen.DPR;
+  const D = screen.HD;
   ctx.fillStyle = INK; ctx.fillRect(x - 2 * D, y - 2 * D, w + 4 * D, h + 4 * D);
   ctx.fillStyle = bg || '#3a3363'; ctx.fillRect(x, y, w, h);
   ctx.fillStyle = col; ctx.fillRect(x, y, w * clamp(val, 0, 1), h);
 }
 
 export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: number): void {
-  const { DPR: D, VW, SAFE } = screen;
-  const P = v.P, W = cv.width, top = SAFE.t * D, left = (SAFE.l + 12) * D, right = W - (SAFE.r + 12) * D;
+  // D = one HUD pixel: grows with the screen (screen.UI) so the HUD keeps its share of big screens
+  const { HD: D, DPR, UI, SAFE } = screen, VW = screen.VW / UI;
+  const P = v.P, W = cv.width, top = SAFE.t * DPR, left = SAFE.l * DPR + 12 * D, right = W - SAFE.r * DPR - 12 * D;
+  // phones in portrait: three tight columns (left LV/HP/SP, middle timer/chapter/streak, right KO/Gold)
+  // so the overtime timer, SP and streak no longer run into each other or the pause button
+  const narrow = VW < 560;
+  const blink = Math.floor(clock * 4) & 1;
   ctx.textBaseline = 'top';
   bar(0 + 2 * D, top + 2 * D, W - 4 * D, 7 * D, P.xp / P.need, '#4fc3ff');
   ctx.textAlign = 'left';
-  outlined('LV ' + P.lv, left, top + 18 * D, 11 * D, '#ffffff');
-  const hw = Math.min(150, VW * 0.32) * D;
-  bar(left, top + 36 * D, hw, 10 * D, P.hp / P.maxHp, '#e8434f');
-  outlined(Math.ceil(P.hp) + '/' + P.maxHp + (P.guardT > 0 ? '  +' + P.guard : ''), left, top + 52 * D, 8 * D, '#ffd9de');
-  if (P.guardT > 0) bar(left, top + 47 * D, hw * Math.min(1, P.guard / P.maxHp), 3 * D, P.guardT / v.cfg.loot.shieldDur, '#7fd4ff', '#2a5a80');
-  ctx.textAlign = 'center';
-  if (v.overtime) {
-    const otLeft = v.stageDur + v.cfg.stage.overtime - v.stageTime;
-    const umbra = v.boss?.type === 'umbra'; // Umbra never escapes: no countdown
-    outlined(t('hud.overtime') + (umbra ? '' : ' ' + fmtT(Math.max(0, otLeft))), W / 2, top + 18 * D, 16 * D, Math.floor(clock * 4) & 1 ? '#ff4b5c' : '#ffb347');
+  const hpText = Math.ceil(P.hp) + '/' + P.maxHp + (P.guardT > 0 ? (narrow ? ' +' : '  +') + P.guard : '');
+  let hudBottom: number; // lowest HUD line: the boss bars and co-op label start below it
+  if (narrow) {
+    outlined('LV ' + P.lv, left, top + 16 * D, 10 * D, '#ffffff');
+    const hw = Math.min(120, VW * 0.3) * D;
+    bar(left, top + 32 * D, hw, 9 * D, P.hp / P.maxHp, '#e8434f');
+    if (P.guardT > 0) bar(left, top + 42 * D, hw * Math.min(1, P.guard / P.maxHp), 2 * D, P.guardT / v.cfg.loot.shieldDur, '#7fd4ff', '#2a5a80');
+    outlined(hpText, left, top + 46 * D, 7 * D, '#ffd9de');
+    hudBottom = top + 56 * D;
+    if (v.sp > 0) {
+      const label = t('hud.sp', { n: v.sp });
+      ctx.font = font(8 * D);
+      const pw = ctx.measureText(label).width + 10 * D;
+      ctx.fillStyle = INK; ctx.fillRect(left, top + 58 * D, pw, 14 * D);
+      ctx.fillStyle = '#3a2a55'; ctx.fillRect(left + D, top + 59 * D, pw - 2 * D, 12 * D);
+      outlined(label, left + 5 * D, top + 61 * D, 8 * D, '#c9a8ff');
+      hudBottom = top + 74 * D;
+    }
+    ctx.textAlign = 'center';
+    if (v.overtime) {
+      const otLeft = v.stageDur + v.cfg.stage.overtime - v.stageTime;
+      const umbra = v.boss?.type === 'umbra'; // Umbra never escapes: no countdown
+      const col = blink ? '#ff4b5c' : '#ffb347';
+      if (!umbra) outlined(fmtT(Math.max(0, otLeft)), W / 2, top + 14 * D, 18 * D, col);
+      outlined(t('hud.overtime'), W / 2, top + (umbra ? 20 : 38) * D, (umbra ? 12 : 8) * D, '#ff4b5c');
+    } else {
+      const rem = v.stageDur - v.stageTime;
+      outlined(fmtT(rem), W / 2, top + 14 * D, 18 * D, rem <= 10 && v.phase === 'play' && blink ? '#ff4b5c' : '#ffffff');
+      outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 38 * D, 8 * D, '#ffd23f');
+    }
+    if (v.streak >= 10) {
+      const pulse = 1 + 0.15 * Math.max(0, 1 - (2.2 - v.streakT) / 0.15);
+      const c = v.streak >= 200 ? '#ff5cf4' : v.streak >= 100 ? '#ff7a3d' : v.streak >= 50 ? '#ffd23f' : '#ffffff';
+      outlined(t('hud.streak', { n: v.streak }), W / 2, top + 52 * D, 9 * D * pulse, c);
+      hudBottom = Math.max(hudBottom, top + 68 * D);
+    }
+    ctx.textAlign = 'right';
+    outlined('KO ' + v.kills, right, top + 16 * D, 10 * D, '#ffffff');
+    outlined(runGoldShown + ' G', right, top + 32 * D, 9 * D, '#ffd23f');
   } else {
-    const rem = v.stageDur - v.stageTime;
-    outlined(fmtT(rem), W / 2, top + 18 * D, 20 * D, rem <= 10 && v.phase === 'play' ? (Math.floor(clock * 4) & 1 ? '#ff4b5c' : '#ffffff') : '#ffffff');
-  }
-  outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
-  ctx.textAlign = 'right';
-  outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
-  outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');
-  if (v.sp > 0) outlined(t('hud.sp', { n: v.sp }), right - 90 * D, top + 36 * D, 10 * D, '#c9a8ff');
-  if (v.streak >= 10) {
-    const pulse = 1 + 0.25 * Math.max(0, 1 - (2.2 - v.streakT) / 0.15);
-    const c = v.streak >= 200 ? '#ff5cf4' : v.streak >= 100 ? '#ff7a3d' : v.streak >= 50 ? '#ffd23f' : '#ffffff';
-    outlined(t('hud.streak', { n: v.streak }), right, top + 54 * D, 11 * D * pulse * (v.streak >= 100 ? 1.25 : 1), c);
+    outlined('LV ' + P.lv, left, top + 18 * D, 11 * D, '#ffffff');
+    const hw = Math.min(150, VW * 0.32) * D;
+    bar(left, top + 36 * D, hw, 10 * D, P.hp / P.maxHp, '#e8434f');
+    outlined(hpText, left, top + 52 * D, 8 * D, '#ffd9de');
+    if (P.guardT > 0) bar(left, top + 47 * D, hw * Math.min(1, P.guard / P.maxHp), 3 * D, P.guardT / v.cfg.loot.shieldDur, '#7fd4ff', '#2a5a80');
+    ctx.textAlign = 'center';
+    if (v.overtime) {
+      const otLeft = v.stageDur + v.cfg.stage.overtime - v.stageTime;
+      const umbra = v.boss?.type === 'umbra'; // Umbra never escapes: no countdown
+      outlined(t('hud.overtime') + (umbra ? '' : ' ' + fmtT(Math.max(0, otLeft))), W / 2, top + 18 * D, 16 * D, blink ? '#ff4b5c' : '#ffb347');
+    } else {
+      const rem = v.stageDur - v.stageTime;
+      outlined(fmtT(rem), W / 2, top + 18 * D, 20 * D, rem <= 10 && v.phase === 'play' ? (blink ? '#ff4b5c' : '#ffffff') : '#ffffff');
+    }
+    outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
+    ctx.textAlign = 'right';
+    outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
+    outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');
+    if (v.sp > 0) outlined(t('hud.sp', { n: v.sp }), right - 90 * D, top + 36 * D, 10 * D, '#c9a8ff');
+    hudBottom = top + 62 * D;
+    if (v.streak >= 10) { // centred under the Chapter: on the right it ran into the pause button
+      const pulse = 1 + 0.25 * Math.max(0, 1 - (2.2 - v.streakT) / 0.15);
+      const c = v.streak >= 200 ? '#ff5cf4' : v.streak >= 100 ? '#ff7a3d' : v.streak >= 50 ? '#ffd23f' : '#ffffff';
+      ctx.textAlign = 'center';
+      outlined(t('hud.streak', { n: v.streak }), W / 2, top + 58 * D, 11 * D * pulse * (v.streak >= 100 ? 1.15 : 1), c);
+      hudBottom = top + 80 * D;
+    }
   }
   // boss bars
   {
-    let yy = top + 62 * D;
+    let yy = hudBottom;
     const bw = Math.min(300, VW * 0.6) * D;
     ctx.textAlign = 'center';
     const bars: [Enemy | null, string, string, string][] = [
@@ -719,48 +792,12 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   drawBubbles(v);
   if (v.coop) {
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    outlined(t('coop.hud', { n: v.coop.mates.length + 1 }), left, top + 66 * D, 8 * D, '#8fdcff');
+    outlined(t('coop.hud', { n: v.coop.mates.length + 1 }), left, top + (narrow ? (v.sp > 0 ? 76 : 60) : 66) * D, 8 * D, '#8fdcff');
     const msg = v.coop.role === 'guest' && v.coop.hostPhase === 'pause' ? t('coop.hostPaused') : '';
     if (msg) { ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; outlined(msg, W / 2, cv.height * 0.45, 12 * D, '#ffffff'); }
     ctx.textBaseline = 'top';
   }
-  // skills row
-  const ids: string[] = [...Object.keys(P.skills), ...Object.keys(P.pas)];
-  if (P.pet) ids.push('_pet');
-  if (P.clone) ids.push('_clone');
-  const sz = 24 * D, gap = 5 * D, by = cv.height - (SAFE.b + 14) * D - sz;
-  ids.forEach((id, i) => {
-    const sk = SKILL_ICON[id as SkillId], ps = PASSIVE_ICON[id as PassiveId];
-    const petCol = P.pet?.kind === 'frost' ? '#4fa8ff' : P.pet?.kind === 'storm' ? '#d8b400' : P.pet?.kind === 'tri' ? '#ffd23f' : '#ff6a2a';
-    const m = sk || ps || (id === '_pet' ? { col: petCol, g: 'D' } : { col: '#6a4a9a', g: 'S' });
-    const lv = P.skills[id as SkillId] || P.pas[id as PassiveId] || (id === '_pet' ? P.pet!.lv : id === '_clone' ? P.clone!.lv : 1);
-    const x = left + i * (sz + gap);
-    if (x + sz > W - 100 * D) return;
-    const gold = P.evo[id as SkillId] || id[0] === '_';
-    ctx.fillStyle = gold ? '#ffd23f' : INK; ctx.fillRect(x - 2 * D, by - 2 * D, sz + 4 * D, sz + 4 * D);
-    if (gold) { ctx.fillStyle = INK; ctx.fillRect(x - 1 * D, by - 1 * D, sz + 2 * D, sz + 2 * D); }
-    ctx.fillStyle = m.col; ctx.fillRect(x, by, sz, sz);
-    const cdv = P.cds[id as SkillId];
-    if (sk && cdv! > 0 && id !== 'orbit' && id !== 'frost') {
-      const s = skillStats(v.cfg, id as SkillId, lv, !!P.evo[id as SkillId]);
-      ctx.fillStyle = 'rgba(30,27,51,.45)'; ctx.fillRect(x, by, sz, sz * clamp(cdv! / (s.cd * P.cdMul), 0, 1));
-    }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.font = font(10 * D); ctx.fillText(m.g, x + sz / 2, by + sz / 2);
-    ctx.textBaseline = 'top'; outlined(String(lv), x + sz - 2 * D, by - 6 * D, 7 * D, '#ffffff'); ctx.textBaseline = 'top';
-  });
-  // benched skills: small and dimmed after the row
-  {
-    const bs = 14 * D, bx0 = left + ids.length * (sz + gap) + 4 * D;
-    P.bench.forEach((bk, i) => {
-      const x = bx0 + i * (bs + 3 * D), y = by + sz - bs;
-      if (x + bs > W - 100 * D) return;
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = INK; ctx.fillRect(x - 1 * D, y - 1 * D, bs + 2 * D, bs + 2 * D);
-      ctx.fillStyle = SKILL_ICON[bk.id].col; ctx.fillRect(x, y, bs, bs);
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.font = font(7 * D); ctx.fillText(SKILL_ICON[bk.id].g, x + bs / 2, y + bs / 2);
-      ctx.globalAlpha = 1;
-    });
-  }
+  drawSkillPanel(v, left, cv.height - SAFE.b * DPR - 14 * D, W - (SAFE.r * DPR + 110 * D));
   // banner
   const bn = vfx.banner;
   if (bn) {
@@ -835,12 +872,154 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
   // joystick
   const joy = touch.joy;
   if (joy && joy.act) {
-    ctx.globalAlpha = 0.35; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(joy.ox * D, joy.oy * D, 40 * D, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.35; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(joy.ox * DPR, joy.oy * DPR, 40 * DPR, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.7;
     const dx = joy.cx - joy.ox, dy = joy.cy - joy.oy, l = Math.hypot(dx, dy), m = Math.min(l, 40) / (l || 1);
-    ctx.beginPath(); ctx.arc((joy.ox + dx * m) * D, (joy.oy + dy * m) * D, 18 * D, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc((joy.ox + dx * m) * DPR, (joy.oy + dy * m) * DPR, 18 * DPR, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
   }
   const ub = document.getElementById('ultBtn')!;
   ub.style.setProperty('--p', (v.ult / v.cfg.ult.max) * 100 + '%');
   ub.classList.toggle('ready', v.ult >= v.cfg.ult.max);
+  if (ub.dataset.w !== v.weapon + lang()) {
+    ub.dataset.w = v.weapon + lang();
+    ub.style.setProperty('--wcol', WEAPONS[v.weapon].col);
+    document.getElementById('ultName')!.textContent = t(`weapon.${v.weapon}.name`).toUpperCase();
+  }
+}
+
+/* ---------- skill panel (bottom left) ---------- */
+function rrect(x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+/** A framed icon: square (Skills, Bench) or rounded (Passives); the atlas picture for `pic`, else the coloured letter. */
+function panelIcon(x: number, y: number, sz: number, col: string, g: string, round: boolean, pic?: string): void {
+  const D = screen.HD, r = iconRect(pic ?? '');
+  ctx.fillStyle = INK; rrect(x - 2 * D, y - 2 * D, sz + 4 * D, sz + 4 * D, round ? 5 * D : 0); ctx.fill();
+  ctx.fillStyle = r ? '#3a3363' : col; rrect(x, y, sz, sz, round ? 3 * D : 0); ctx.fill();
+  if (r) {
+    ctx.save(); rrect(x, y, sz, sz, round ? 3 * D : 0); ctx.clip();
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(iconAtlas, r[0], r[1], r[2], r[2], x, y, sz, sz);
+    ctx.restore();
+    return;
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.font = font(Math.round(sz * 0.42));
+  ctx.fillText(g, x + sz / 2, y + sz / 2 + D);
+}
+/** An empty slot: dashed outline, so the player sees how many are left. */
+function panelSlot(x: number, y: number, sz: number, round: boolean): void {
+  const D = screen.HD;
+  ctx.save(); ctx.setLineDash([3 * D, 2 * D]); ctx.strokeStyle = 'rgba(244,247,228,.5)'; ctx.lineWidth = 1.5 * D;
+  rrect(x, y, sz, sz, round ? 3 * D : 0); ctx.stroke(); ctx.restore();
+}
+/** Level in the top-right corner; gold MAX at the cap. */
+function panelLv(x: number, y: number, sz: number, lv: string | number, max = Infinity, col = '#ffffff'): void {
+  const D = screen.HD, top = typeof lv === 'number' && lv >= max;
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  outlined(top ? 'MAX' : String(lv), x + sz + 3 * D, y - 4 * D, 6 * D, top ? '#ffd23f' : col);
+}
+/** EVO / AWK ribbon across the bottom edge of an icon. */
+function panelRibbon(txt: string, x: number, y: number, sz: number): void {
+  const D = screen.HD;
+  ctx.fillStyle = INK; ctx.fillRect(x - 2 * D, y + sz - 5 * D, sz + 4 * D, 9 * D);
+  ctx.fillStyle = '#ffd23f'; ctx.fillRect(x - D, y + sz - 4 * D, sz + 2 * D, 7 * D);
+  ctx.fillStyle = INK; ctx.font = font(5 * D); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(txt, x + sz / 2, y + sz - 2.5 * D);
+}
+
+/**
+ * Bottom-left panel: SKILL row (Signature first, x/attack slots), then PASSIVE x/slots, BENCH x/size and
+ * PET (dragon, Shadow Clone, or the Shadow Shards collected toward one). Stops before `maxX` (the ULT button).
+ */
+function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, maxX: number): void {
+  const D = screen.HD, P = v.P, cfg = v.cfg;
+  const sz = 22 * D, gap = 8 * D, ps = 16 * D, pg = 7 * D, lab = 6 * D;
+  const yP = bottom - ps, yPl = yP - lab - 7 * D, yS = yPl - sz - 12 * D, ySl = yS - lab - 8 * D;
+  const sig = signatureOf(P.ch);
+  const skills = (Object.keys(P.skills) as SkillId[]).sort((a, c) => (a === sig ? -1 : c === sig ? 1 : 0));
+  const atkSlots = Math.max(cfg.maxAttackSlots, skills.length);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  outlined(`${t('hud.panel.skill')} ${skills.length}/${cfg.maxAttackSlots}`, left, ySl, lab, '#ffb3b3');
+  for (let i = 0; i < atkSlots; i++) {
+    const x = left + i * (sz + gap);
+    if (x + sz > maxX) break;
+    const id = skills[i];
+    if (!id) { panelSlot(x, yS, sz, false); continue; }
+    const m = SKILL_ICON[id], lv = P.skills[id]!, evo = !!P.evo[id], isSig = id === sig;
+    if (isSig && P.awakened) { // awakened: a pulsing gold glow
+      ctx.fillStyle = `rgba(255,210,63,${0.3 + 0.4 * (0.5 + 0.5 * Math.sin(v.clock * 6))})`;
+      rrect(x - 6 * D, yS - 6 * D, sz + 12 * D, sz + 12 * D, 4 * D); ctx.fill();
+    }
+    if (evo) { ctx.fillStyle = '#ffd23f'; ctx.fillRect(x - 4 * D, yS - 4 * D, sz + 8 * D, sz + 8 * D); }
+    panelIcon(x, yS, sz, m.col, m.g, false, id);
+    const cdv = P.cds[id] ?? 0;
+    if (cdv > 0 && id !== 'orbit' && id !== 'frost') {
+      const st = skillStats(cfg, id, lv, evo);
+      if (st.cd) { ctx.fillStyle = 'rgba(30,27,51,.45)'; ctx.fillRect(x, yS, sz, sz * clamp(cdv / (st.cd * P.cdMul), 0, 1)); }
+    }
+    if (isSig) { // Signature: pink corner
+      ctx.fillStyle = '#ff5cf4'; ctx.beginPath(); ctx.moveTo(x - 2 * D, yS - 2 * D); ctx.lineTo(x + 7 * D, yS - 2 * D); ctx.lineTo(x - 2 * D, yS + 7 * D); ctx.fill();
+    }
+    panelLv(x, yS, sz, lv, cfg.skills[id].max);
+    if (isSig && P.awakened) panelRibbon('AWK', x, yS, sz);
+    else if (evo) panelRibbon('EVO', x, yS, sz);
+  }
+  // passives
+  const pas = Object.keys(P.pas) as PassiveId[], pasSlots = Math.max(cfg.passiveSlots, pas.length);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  outlined(`${t('hud.panel.passive')} ${pas.length}/${cfg.passiveSlots}`, left, yPl, lab, '#b3d4ff');
+  for (let i = 0; i < pasSlots; i++) {
+    const x = left + i * (ps + pg), id = pas[i];
+    if (!id) { panelSlot(x, yP, ps, true); continue; }
+    panelIcon(x, yP, ps, PASSIVE_ICON[id].col, PASSIVE_ICON[id].g, true, id);
+    panelLv(x, yP, ps, P.pas[id]!, cfg.passives.max[id]);
+  }
+  let gx = left + pasSlots * (ps + pg) + 10 * D;
+  /** Starts a group after a divider; returns its width (the label may be wider than the icons), or 0 if it does not fit. */
+  const group = (label: string, col: string, iconsW: number): number => {
+    ctx.font = font(lab);
+    const w = Math.max(iconsW, ctx.measureText(label).width + 2 * D);
+    if (gx + w > maxX) return 0;
+    ctx.fillStyle = 'rgba(244,247,228,.3)'; ctx.fillRect(gx - 8 * D, yPl, 1.5 * D, ps + lab + 9 * D);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; outlined(label, gx, yPl, lab, col);
+    return w;
+  };
+  // bench: dimmed with a dashed frame (these do not fire)
+  const bSize = benchSize(v as SimState);
+  const benchW = P.bench.length ? group(`${t('hud.panel.bench')} ${P.bench.length}/${bSize}`, '#c8c3d8', bSize * (ps + pg)) : 0;
+  if (benchW) {
+    for (let i = 0; i < bSize; i++) {
+      const x = gx + i * (ps + pg), bk = P.bench[i];
+      if (!bk) { panelSlot(x, yP, ps, false); continue; }
+      ctx.globalAlpha = 0.5; panelIcon(x, yP, ps, SKILL_ICON[bk.id].col, SKILL_ICON[bk.id].g, false, bk.id); ctx.globalAlpha = 1;
+      ctx.save(); ctx.setLineDash([2 * D, 2 * D]); ctx.strokeStyle = '#e8e4f4'; ctx.lineWidth = D; ctx.strokeRect(x - 3 * D, yP - 3 * D, ps + 6 * D, ps + 6 * D); ctx.restore();
+      panelLv(x, yP, ps, bk.lv, cfg.skills[bk.id].max);
+    }
+    gx += benchW + 12 * D;
+  }
+  // companions: dragon pet, Shadow Clone, or the Shadow Shards collected toward one (dimmed, n/needed)
+  const pets: { col: string; g: string; lv: string; dim: boolean; pic: string }[] = [];
+  if (P.pet) pets.push({ pic: 'pet', col: P.pet.kind === 'frost' ? '#4fa8ff' : P.pet.kind === 'storm' ? '#d8b400' : P.pet.kind === 'tri' ? '#ffd23f' : '#ff6a2a', g: 'D', lv: String(P.pet.lv), dim: false });
+  if (P.clone) pets.push({ pic: 'clone', col: '#6a4a9a', g: 'S', lv: String(P.clone.lv), dim: false });
+  else if (P.shards > 0) pets.push({ pic: 'clone', col: '#6a4a9a', g: 'S', lv: `${P.shards}/${cfg.rival.shards}`, dim: true });
+  ctx.font = font(6 * D);
+  const step = pets.map((p) => ps + Math.max(pg, ctx.measureText(p.lv).width + 2 * D)); // room for the level / shard count
+  if (pets.length && group(t('hud.panel.pet'), '#ffc59e', step.reduce((a, c) => a + c, 0))) {
+    let x = gx;
+    pets.forEach((p, i) => {
+      if (i) x += step[i - 1];
+      const cx = x + ps / 2, cy = yP + ps / 2;
+      ctx.globalAlpha = p.dim ? 0.45 : 1;
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(cx, cy, ps / 2 + 2 * D, 0, TAU); ctx.fill();
+      const r = iconRect(p.pic);
+      ctx.fillStyle = r ? '#3a3363' : p.col; ctx.beginPath(); ctx.arc(cx, cy, ps / 2, 0, TAU); ctx.fill();
+      if (r) {
+        ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, ps / 2, 0, TAU); ctx.clip();
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(iconAtlas, r[0], r[1], r[2], r[2], x, yP, ps, ps); ctx.restore();
+      } else { ctx.fillStyle = INK; ctx.font = font(7 * D); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.g, cx, cy + D); }
+      ctx.globalAlpha = 1;
+      panelLv(x, yP, ps, p.lv, Infinity, p.dim ? '#d9b8ff' : '#ffffff');
+    });
+  }
 }
