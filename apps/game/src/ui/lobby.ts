@@ -6,7 +6,7 @@ import { createSession, type LobbyPlayer, type Session } from '../coop/session';
 import { ROOM_URL } from '../net/config';
 import { wsConnect, type Connect } from '../net/transport';
 import { META } from '../meta';
-import { live } from '../live';
+import { BUILD, live } from '../live';
 import { active } from '../config';
 import { backend } from '../net';
 import { $, charImg, hide, show } from './overlays';
@@ -51,11 +51,15 @@ function renderRoom(players: LobbyPlayer[]): void {
     ul.appendChild(li);
   }
   const go = $('coopGo') as HTMLButtonElement;
+  const odd = session.otherBuild(); // players on another game version cannot play together
   if (session.role === 'host') {
-    const ok = players.length > 1 && session.allReady();
+    const ok = players.length > 1 && session.allReady() && !odd.length;
     go.textContent = t('coop.start');
     go.disabled = !ok;
-    msg(players.length > 1 && !ok ? t('coop.startWait') : '');
+    msg(odd.length ? t('coop.versionHost', { who: odd.map((p) => p.name).join(', ') }) : players.length > 1 && !ok ? t('coop.startWait') : '');
+  } else if (odd.length) {
+    go.disabled = true;
+    msg(t('coop.version'));
   } else {
     const me = players.find((p) => p.id === session!.selfId);
     go.disabled = false;
@@ -83,7 +87,7 @@ function attach(s: Session): void {
 function open(role: 'host' | 'guest', code: string): void {
   if (!connect) return;
   msg(t('coop.connecting'));
-  attach(createSession(connect, { role, code, name: hooks.name(), pid: hooks.pid(), hero: META.ch, weapon: META.weapon }));
+  attach(createSession(connect, { role, code, name: hooks.name(), pid: hooks.pid(), hero: META.ch, weapon: META.weapon, build: BUILD }));
 }
 function create(): void { open('host', newCode(Math.random)); }
 function join(raw: string): void {
@@ -125,7 +129,7 @@ export function initLobby(h: LobbyHooks): void {
     const s = session;
     if (!s) return;
     // the host's Balance Config version goes with the start: guests load the same one
-    if (s.role === 'host') { if (s.players().length > 1 && s.allReady()) s.start((Math.random() * 4294967296) >>> 0, Math.max(0, active.cfg.version)); return; }
+    if (s.role === 'host') { if (s.players().length > 1 && s.allReady() && !s.otherBuild().length) s.start((Math.random() * 4294967296) >>> 0, Math.max(0, active.cfg.version)); return; }
     const me = s.players().find((p) => p.id === s.selfId);
     s.setMe(META.ch, META.weapon, !me?.ready);
   });

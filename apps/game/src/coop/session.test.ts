@@ -49,4 +49,18 @@ describe('co-op session over the in-memory hub', () => {
     hub.flush();
     expect(ev.pop()).toEqual({ t: 'closed', reason: 'host-left' });
   });
+
+  it('players on another game build are flagged on both sides (the lobby blocks the start)', () => {
+    const hub = createMemoryHub();
+    const host = createSession(hub.connect, { role: 'host', code: 'VVVVV', name: 'H', pid: 'h', hero: 'mage', weapon: 'judgement', build: 200 });
+    const same = createSession(hub.connect, { role: 'guest', code: 'VVVVV', name: 'Same', pid: 's', hero: 'mage', weapon: 'judgement', build: 200 });
+    const old = createSession(hub.connect, { role: 'guest', code: 'VVVVV', name: 'Old', pid: 'o', hero: 'mage', weapon: 'judgement', build: 199 });
+    hub.flush();
+    same.setMe('mage', 'judgement', true); old.setMe('mage', 'judgement', true);
+    hub.flush();
+    expect(host.allReady()).toBe(true);
+    expect(host.otherBuild().map((p) => p.name)).toEqual(['Old']);
+    expect(same.otherBuild()).toEqual([]);
+    expect(old.otherBuild().map((p) => p.name)).toEqual(['H']);
+  });
 });

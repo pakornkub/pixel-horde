@@ -5,11 +5,12 @@ import { hostSnapshot, selfWire, takeHits, type Command, type HeroId, type HostS
 import type { CloseReason, PeerInfo, Role } from '@pixel-horde/coop';
 import type { Connect, Transport } from '../net/transport';
 
-export interface LobbyPlayer { id: string; name: string; hero: HeroId; weapon: WeaponId; ready: boolean; host: boolean }
+/** `build`: the game build (set from `hello`; -1 = an older game that does not say). */
+export interface LobbyPlayer { id: string; name: string; hero: HeroId; weapon: WeaponId; ready: boolean; host: boolean; build?: number }
 
 export type Msg =
   // guest → host
-  | { k: 'hello'; hero: HeroId; weapon: WeaponId; ready: boolean; name?: string }
+  | { k: 'hello'; hero: HeroId; weapon: WeaponId; ready: boolean; name?: string; build?: number }
   | { k: 'me'; p: MateWire; d: number[]; q?: number } // q = the damage batch number (acknowledged in the snapshot)
   | { k: 'ready'; on: boolean } // Stage end: this player is done
   | { k: 'vote'; i: number } // route vote
@@ -29,7 +30,7 @@ export type SessionEvent =
   | { t: 'endless'; id: string; go: boolean }
   | { t: 'closed'; reason: CloseReason };
 
-export interface SessionOptions { role: Role; code: string; name: string; pid: string; hero: HeroId; weapon: WeaponId }
+export interface SessionOptions { role: Role; code: string; name: string; pid: string; hero: HeroId; weapon: WeaponId; build?: number }
 
 export const SNAP_EVERY = 1 / 15, ME_EVERY = 1 / 10;
 const cleanName = (n: unknown): string => (typeof n === 'string' ? n.trim().slice(0, 24) : '');
@@ -39,7 +40,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
   const fns = new Set<(e: SessionEvent) => void>();
   const emit = (e: SessionEvent): void => { for (const f of [...fns]) f(e); };
   let selfId = '', hostId = '', peers: PeerInfo[] = [], open = false, closed = false;
-  const me: LobbyPlayer = { id: '', name: o.name, hero: o.hero, weapon: o.weapon, ready: o.role === 'host', host: o.role === 'host' };
+  const me: LobbyPlayer = { id: '', name: o.name, hero: o.hero, weapon: o.weapon, ready: o.role === 'host', host: o.role === 'host', build: o.build ?? 0 };
   const lobby = new Map<string, LobbyPlayer>();
   let started: { seed: number; cfg: number } | null = null;
   // host
@@ -62,7 +63,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
   const nameOf = (id: string, fallback: string): string => (id === selfId ? me.name : lobby.get(id)?.name) || fallback;
   const names = (): Record<string, string> => Object.fromEntries(peers.map((p) => [p.id, nameOf(p.id, p.name)]));
   const pushLobby = (): void => { if (o.role === 'host' && open) tr.send({ k: 'lobby', players: players() } satisfies Msg); emit({ t: 'lobby', players: players() }); };
-  const hello = (): void => { if (o.role === 'guest' && open) tr.send({ k: 'hello', hero: me.hero, weapon: me.weapon, ready: me.ready, name: me.name } satisfies Msg); };
+  const hello = (): void => { if (o.role === 'guest' && open) tr.send({ k: 'hello', hero: me.hero, weapon: me.weapon, ready: me.ready, name: me.name, build: me.build } satisfies Msg); };
 
   tr.onEvent((e) => {
     if (e.t === 'open') { open = true; selfId = e.id; me.id = e.id; hostId = e.host; peers = e.peers; hello(); pushLobby(); return; }
@@ -81,7 +82,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
     if (o.role === 'host') {
       const p = peers.find((x) => x.id === e.from);
       if (!p) return;
-      if (m.k === 'hello') { lobby.set(e.from, { id: e.from, name: cleanName(m.name) || p.name, hero: m.hero, weapon: m.weapon, ready: !!m.ready, host: false }); pushLobby(); }
+      if (m.k === 'hello') { lobby.set(e.from, { id: e.from, name: cleanName(m.name) || p.name, hero: m.hero, weapon: m.weapon, ready: !!m.ready, host: false, build: typeof m.build === 'number' ? m.build : -1 }); pushLobby(); }
       else if (m.k === 'me' && m.p) {
         presence.set(e.from, { ...m.p, id: e.from, name: nameOf(e.from, p.name) });
         matesDirty = true;
@@ -113,6 +114,8 @@ export function createSession(connect: Connect, o: SessionOptions) {
     setName(name: string): void { const n = cleanName(name); if (!n || n === me.name) return; me.name = n; hello(); pushLobby(); },
     /** Host: everyone (but the host) ready? */
     allReady: (): boolean => players().every((p) => p.ready),
+    /** Players on another game build than mine (host: guests who said hello; guest: the host). */
+    otherBuild: (): LobbyPlayer[] => players().filter((p) => p.id !== selfId && p.build !== undefined && p.build !== me.build && (o.role === 'host' || p.host)),
     start(seed: number, cfg: number): void {
       if (o.role !== 'host') return;
       started = { seed, cfg };

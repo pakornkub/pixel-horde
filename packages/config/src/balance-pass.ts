@@ -431,5 +431,39 @@ export const BALANCE_PASS_2026_09_AC: BalancePass = {
   },
 };
 
+/** Owner co-op decisions (2026-09-26): pickups belong to whoever takes them, Gold is split evenly at each Stage end.
+ *  Needs a build with `coop.goldSplit` (co-op step 3); co-op only. */
+export const BALANCE_PASS_2026_09_COOP2: BalancePass = {
+  id: '2026-09-coop2',
+  note: 'Co-op pass 2: Gold goes to a team pot split evenly at each Stage end, a dropped chest to whoever takes it',
+  patch: { shared: { coop: { goldSplit: 1 } } },
+  changelog: {
+    titleTh: 'เล่นด้วยกัน: ทองเข้ากองกลาง หารเท่ากันตอนจบด่าน',
+    titleEn: 'Co-op: Gold goes to a team pot, split evenly at each Stage end',
+    items: [
+      { cat: 'coop', th: 'ใครเก็บทองก็ได้ ขึ้นตัวเลขให้เห็นทุกครั้ง ทองเข้ากองกลางของทีม (ดูส่วนแบ่งได้ข้างจำนวนทองบนจอ) แล้วหารเท่ากันตอนจบด่าน', en: 'Anyone can pick up Gold and every pickup shows; it goes to the team pot (your share shows next to your Gold) and is split evenly at each Stage end' },
+      { cat: 'coop', th: 'หีบที่ดรอป เป็นของคนที่เก็บ ส่วนหีบของ King และหีบพระจันทร์เลือดยังได้ทุกคน', en: 'A dropped chest belongs to whoever takes it; King and Blood Moon chests still go to everyone' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน co-op 2: ของเป็นของคนเก็บ ทองหารเท่ากัน',
+    summary: 'เจ้าของตัดสินใจจากการเล่น co-op: ใครเก็บของก็เข้าคนนั้น ส่วนทองหารเท่ากันตอนจบด่าน เดิมทุกคนได้ทองทุกเหรียญเต็มจำนวน '
+      + 'และหีบที่ใครเก็บ ทุกคนได้หมุนวงล้อ แต่ไม่มีอะไรบอกว่าใครเก็บอะไร (เหรียญต่ำกว่า 5G ไม่มีตัวเลขขึ้น) เพื่อนเลยรู้สึกว่าเก็บแล้วของหาย '
+      + 'ชุดนี้ให้ทองเข้ากองกลาง ขึ้นตัวเลขทุกครั้งที่เก็บ แสดงส่วนแบ่งข้างจำนวนทองบนจอ และหน้าจบด่านบอกว่าหารกันอย่างไร',
+    method: 'ทดสอบ headless host + guest (tests/coop.test.ts): เหรียญ 30G (เพื่อนเก็บ) + 10G (host เก็บ) → คนละ 20G ตอนจบด่าน',
+    metrics: [
+      { label: 'ทองต่อคนเมื่อเล่น 2 คน (ไม่รวม King)', before: '100% ของที่ทีมเก็บ', after: '50% ของที่ทีมเก็บ' },
+    ],
+    findings: [
+      { level: 'warn', title: 'ทองต่อคนลดลง', body: 'ทองจากมอนแต่ละคนได้ 1/จำนวนคน ของเดิม ทองจาก King ได้เต็มทุกคนเหมือนเดิม (ก่อนหน้านี้เพื่อนได้ทองของ King ซ้ำสองรอบ แก้แล้วในโค้ด)', status: 'ตั้งใจ: เพดานกันโกงของ co-op มีแต่ปลอดภัยขึ้น' },
+      { level: 'info', title: 'หีบที่ดรอป', body: 'ไม่แบ่ง: เป็นของคนเก็บ หีบของ King (วงล้อ) และหีบพระจันทร์เลือดยังได้ทุกคน', status: 'ตามที่เจ้าของเลือก' },
+    ],
+    reasons: {
+      'shared.coop.goldSplit': 'ของเป็นของคนเก็บ ทองหารเท่ากันตอนจบด่าน (เจ้าของตัดสินใจ 2026-09-26)',
+    },
+    next: ['หลังเล่นจริง: ถ้าทองต่อคนใน co-op น้อยเกินไป เพิ่ม difficulty.gold หรือทองต่อเหรียญเฉพาะ co-op'],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

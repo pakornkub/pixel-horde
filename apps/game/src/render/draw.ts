@@ -900,6 +900,16 @@ function bar(x: number, y: number, w: number, h: number, val: number, col: strin
   ctx.fillStyle = col; ctx.fillRect(x, y, w * clamp(val, 0, 1), h);
 }
 
+/** Co-op team pot (`coop.goldSplit`): this player's share so far, paid at the Stage end — " (+45)". */
+function potShare(v: Readonly<SimState>): string {
+  const c = v.coop;
+  if (!c || !v.cfg.coop.goldSplit) return '';
+  let total = 0;
+  for (const k in c.pot) total += c.pot[k];
+  const share = Math.floor(total / (1 + c.mates.length));
+  return share > 0 ? ' (+' + share + ')' : '';
+}
+
 export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: number): void {
   // D = one HUD pixel: grows with the screen (screen.UI) so the HUD keeps its share of big screens
   const { HD: D, DPR, UI, SAFE } = screen, VW = screen.VW / UI;
@@ -949,7 +959,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     }
     ctx.textAlign = 'right';
     outlined('KO ' + v.kills, right, top + 16 * D, 10 * D, '#ffffff');
-    outlined(runGoldShown + ' G', right, top + 32 * D, 9 * D, '#ffd23f');
+    outlined(runGoldShown + ' G' + potShare(v), right, top + 32 * D, 9 * D, '#ffd23f');
   } else {
     outlined('LV ' + P.lv, left, top + 18 * D, 11 * D, '#ffffff');
     const hw = Math.min(150, VW * 0.32) * D;
@@ -968,7 +978,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
     ctx.textAlign = 'right';
     outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
-    outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');
+    outlined(runGoldShown + ' G' + potShare(v), right, top + 36 * D, 10 * D, '#ffd23f');
     if (v.sp > 0) outlined(t('hud.sp', { n: v.sp }), right - 90 * D, top + 36 * D, 10 * D, '#c9a8ff');
     hudBottom = top + 62 * D;
     if (v.streak >= 10) { // centred under the Chapter: on the right it ran into the pause button

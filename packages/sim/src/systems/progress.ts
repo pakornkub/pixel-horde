@@ -25,7 +25,7 @@ export function startStage(s: SimState, n: number): void {
   if (P.down) { P.down = false; P.hp = Math.round(P.maxHp * G.reviveHp); P.inv = 2; }
   s.stage = n;
   s.swaps = 0;
-  if (s.coop) s.coop.revivedStage = [];
+  if (s.coop) { s.coop.revivedStage = []; s.coop.pot = {}; s.coop.chestsTo = {}; s.coop.splitDone = false; }
   s.awakenOffer = false;
   s.darkness = false;
   P.linkStart = maxLinks(s);

@@ -296,6 +296,39 @@ describe('co-op host / guest', () => {
     expect(r.gs().phase).toBe('over');
   });
 
+  it('coop.goldSplit: Gold goes to a team pot split evenly at the Stage end; a dropped chest is the picker\'s alone', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6 }, coop: { goldSplit: 1 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    r.step(30);
+    const h = r.hs(), g = r.gs();
+    g.P.x = h.P.x + 300; g.P.y = h.P.y; // far apart
+    r.step(12);
+    const hg0 = h.runGold, gg0 = g.runGold, hq0 = h.chestQueue + h.coop!.teamChests;
+    h.gems.push({ kind: 'coin', x: g.P.x + 2, y: g.P.y, v: 30, mag: false }, { kind: 'coin', x: h.P.x + 2, y: h.P.y, v: 10, mag: false },
+      { kind: 'chest', x: g.P.x - 2, y: g.P.y, v: 0, mag: false });
+    r.step(20);
+    // picked up: counted per player, nobody's Gold moves yet; the chest went to the guest only
+    expect(r.hs().coop!.pot).toMatchObject({ G0: 30, H: 10 });
+    expect(r.gs().coop!.pot).toMatchObject({ G0: 30, H: 10 }); // the guest sees the pot too (HUD share)
+    expect(r.hs().chestQueue + r.hs().coop!.teamChests).toBe(hq0);
+    expect(r.gs().runGold - gg0).toBe(cfg.loot.chestGold); // its chest's Gold only
+    expect(r.hs().runGold).toBe(hg0);
+    // the Stage ends (King killed): 40 G ÷ 2 each, no Greed in this test
+    for (let i = 0; i < 60 * 60 && r.hs().phase !== 'clear'; i++) {
+      const hh = r.hs();
+      r.host.step({ mx: 0, my: 0 }, hh.boss ? [{ type: 'remoteHits', hits: [hh.boss.id, 1e9] }] : []);
+      r.step(1);
+    }
+    r.step(8);
+    const hs = r.hs().coop!.split!, gsp = r.gs().coop!.split!;
+    expect(hs).toMatchObject({ st: 1, total: 40, players: 2, mine: 10, got: 20 });
+    expect(gsp).toMatchObject({ st: 1, total: 40, players: 2, mine: 30, got: 20 });
+    // King Gold still reaches both in full (guests through the King kill, never also through the team)
+    const kingG = cfg.stage.kingGold;
+    expect(r.hs().runGold - hg0).toBeGreaterThanOrEqual(20 + kingG);
+    expect(r.gs().runGold - gg0).toBe(cfg.loot.chestGold + 20 + kingG);
+  });
+
   it('guests follow the host into the next Stage', () => {
     const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6 } } }));
     const r = room(1, { debug: { god: true }, config: cfg });
