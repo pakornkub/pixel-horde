@@ -181,6 +181,11 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 /* announcements (ticket 12) */
 .news{margin:12px 0 0;padding:10px 12px;background:#fff3b8;border:3px solid var(--ink);border-radius:4px;font-size:14px}
 .news b{display:block;margin-bottom:2px}
+.updnote{margin:10px 0 0;font-family:var(--th);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13px;opacity:.85;text-align:left}
+.updnote b{font-weight:700}
+.updnote a{color:inherit;font-weight:700;white-space:nowrap}
+.updnote.new{position:relative;opacity:1;padding:8px 30px 8px 12px;background:#d9f7c4;border:3px solid var(--ink);border-radius:4px;font-size:14px}
+.updnote .x{position:absolute;top:4px;right:4px;border:0;background:none;font:inherit;font-weight:700;cursor:pointer;padding:4px 6px;color:inherit}
 #ovMaint,#ovUpdate{z-index:9}
 
 .link-row{margin-top:2px}
@@ -291,7 +296,7 @@ html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);fo
 .gbtn .glogo{flex:none}
 .gbtn[hidden]{display:none}
 .gbtn.wide{width:100%;margin-top:10px}
-.tmain .news{width:100%;text-align:left;margin:0}
+.tmain .news,.tmain .updnote{width:100%;text-align:left;margin:0}
 html[lang="en"] .tmenu button,html[lang="en"] .tagline{font-family:var(--pix);font-weight:400;font-size:9px;line-height:1.7}
 html[lang="en"] .tfoot{font-size:13px}
 html[lang="en"] .tstats .chip b,html[lang="en"] .trow .who{font-family:var(--pix);font-weight:400;font-size:10px;line-height:1.8}

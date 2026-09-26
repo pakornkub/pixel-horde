@@ -57,6 +57,7 @@ export function createOfflineBackend(store: KeyValue = browserStore): Backend {
     importLegacy: offlineErr,
     getLeaderboard: offlineErr,
     getLive: offlineErr,
+    latestUpdate: async () => null,
     getConfig: offlineErr,
     report: async () => false,
     linkGoogle: offlineErr,

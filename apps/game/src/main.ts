@@ -28,6 +28,7 @@ import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
 import { cv, onResize, screen, syncViewZoom } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
+import { refreshUpdateNote, renderUpdateNote } from './ui/update-note';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
   $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
@@ -371,6 +372,7 @@ function toTitle(): void {
   renderTitleStats();
   show('ovTitle');
   void refreshContinue();
+  void refreshUpdateNote($('updNote'));
 }
 
 let benchDirty = false;
@@ -680,13 +682,15 @@ function refreshText(): void {
   renderTitleStats();
   renderAccountLine();
   renderNews();
+  renderUpdateNote($('updNote'));
 }
 onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
 applyLang(settings.lang);
 refreshText();
-initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); } });
+initAccount({ pauseGame: pause, onMetaChanged: () => { refreshText(); void refreshLive(); void refreshUpdateNote($('updNote')); }, onAccount: () => { refreshLobbyName(); setTimeout(openInvite, 300); } });
 void refreshLive();
+void refreshUpdateNote($('updNote'));
 initLeaderboard();
 installTelemetry();
 $('draftBadge').hidden = !DRAFT;
