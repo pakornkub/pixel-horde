@@ -382,5 +382,54 @@ export const BALANCE_PASS_2026_09_COOP: BalancePass = {
   },
 };
 
+/** Fast-tracked from the v6 audit (2026-09e): the server's run checks rejected almost every honest Run past Chapter 5.
+ *  The checks read these fields from the Run's published config (public.run_problem), so no migration is needed. */
+export const BALANCE_PASS_2026_09_AC: BalancePass = {
+  id: '2026-09-ac',
+  note: 'Anti-cheat fix: kill and Gold ceilings fit the current game (honest Runs past Chapter 5 were rejected)',
+  patch: {
+    shared: {
+      // v4–v6 honest Runs reach 19–27 kills/s solo and 33–48 in 2-player co-op (team kills); 4-player co-op ≈ ×2.8 solo
+      antiCheat: { killsPerSecond: 90, goldBase: 2000, goldGrowth: 1.7 },
+    },
+  },
+  changelog: {
+    titleTh: 'แก้ระบบตรวจรอบ: รอบที่เล่นเก่งไม่ถูกปฏิเสธอีก',
+    titleEn: 'Run checks fixed: strong Runs are no longer rejected',
+    items: [
+      { cat: 'system', th: 'รอบที่ไปได้ไกล (ด่าน 5 ขึ้นไป) ถูกระบบตรวจปฏิเสธเพราะฆ่ามอนและได้ทองเยอะเกินเพดานเดิม ตอนนี้เพดานเข้ากับเกมปัจจุบันแล้ว ทองและอันดับถูกบันทึกตามปกติ', en: 'Long Runs (Chapter 5+) were rejected for more kills and Gold than the old limits allowed; the limits now fit the current game, so Gold and ranks are recorded as usual' },
+    ],
+  },
+  report: {
+    title: 'แก้เพดานกันโกง 2026-09-ac (แยกออกมาจากการตรวจ v6)',
+    summary: 'ระบบตรวจรอบฝั่งเซิร์ฟเวอร์ (run_problem) ปฏิเสธรอบที่เล่นสุจริตเกือบทุกรอบที่ไปถึงด่าน 5 ขึ้นไป: รอบเดี่ยวถึงด่าน 5+ โดน 12 จาก 13 รอบ '
+      + 'ส่วนใหญ่ด้วย KILL_CEILING (15 ตัว/วินาที) เพราะเกมปัจจุบันฆ่าได้ 19–27 ตัว/วินาทีเมื่อเล่นเดี่ยว และ 33–48 เมื่อเล่น 2 คน (co-op นับการฆ่าของทั้งทีม) '
+      + 'และบางรอบด้วย GOLD_CEILING เมื่อผู้เล่นมี Greed ผู้เล่นจึงเสีย Gold และอันดับของรอบนั้น ชุดนี้ขยายเพดานให้พอดีกับเกมโดยยังจับตัวเลขที่เป็นไปไม่ได้',
+    method: 'รอบที่ถูกปฏิเสธทั้งหมดใน Supabase (25 รอบ, v3–v6) เทียบกับเวลาเล่นจริงและเวลาในเกม และบอท playtest 832 รอบบน v6 '
+      + '(ฮีโร่ 4 ตัว × บัญชีใหม่/ร้านกลาง/ร้านเต็ม × preset ทุกแบบ × บอทเลือกสุ่ม)',
+    metrics: [
+      { label: 'รอบจริงที่ถูกปฏิเสธด้วย KILL/GOLD_CEILING จะผ่าน', before: '0 จาก 20', after: '20 จาก 20' },
+      { label: 'บอทสุจริตเกินเพดาน (832 รอบ)', before: 'ฆ่า 304 รอบ (37%), ทอง 4 รอบ', after: '0 รอบ (สูงสุด 52% ของเพดานฆ่า, 26% ของเพดานทอง)' },
+      { label: 'เพดานทอง ด่าน 5 / 6 / 7 / 8', before: '14.9k / 21.7k / 30.7k / 43k', after: '37.7k / 66k / 114k / 196k' },
+    ],
+    findings: [
+      { level: 'bad', title: 'เพดานฆ่า 15 ตัว/วินาทีต่ำกว่าเกมจริง', body: 'รอบเดี่ยวจริงสูงสุด 27 ตัว/วินาที บอท Blitz สูงสุด 42, co-op 2 คน 48 (นับรวมทั้งทีม) เล่น 4 คนมอนเกิด ×2.8 จึงตั้ง 90', status: 'แก้ใน config' },
+      { level: 'bad', title: 'เพดานทองไม่เผื่อ Greed และ co-op', body: 'รอบเดี่ยว Vex ด่าน 6 ได้ 24,236 (เพดาน 21,658) co-op 2 คนด่าน 7 ได้ 56k (ทองดรอปแชร์ ทุกคนได้เต็ม)', status: 'แก้ใน config' },
+      { level: 'warn', title: 'TOO_FAST กับผู้เล่น co-op ที่เข้ากลางทาง', body: '4 รอบ co-op ถูกปฏิเสธ TOO_FAST เพราะเวลาเล่นจริงนับจาก start_run ของคนที่เข้าห้องทีหลัง แต่ด่านนับจากรอบของ host ชุดนี้ไม่ได้แก้ (ต้องแก้ฝั่ง co-op/SQL)', status: 'ส่งต่อ' },
+      { level: 'info', title: 'ไม่พบรอบที่โกงชัดเจนในข้อมูล', body: 'ทุกรอบที่ถูกปฏิเสธมีเวลาในเกมใกล้เวลาจริง เลเวลและจำนวนฆ่าสอดคล้องกัน ค่าใหม่ยังปฏิเสธตัวเลขที่เป็นไปไม่ได้ เช่น 100k ทองที่ด่าน 3 (เพดาน 12.6k) หรือฆ่า 50k ใน 5 นาที', status: 'ข้อมูล' },
+    ],
+    reasons: {
+      'shared.antiCheat.killsPerSecond': 'เกมจริงฆ่าได้ 19–27/วินาที (เดี่ยว), 33–48 (co-op 2 คน, นับทั้งทีม); เผื่อ co-op 4 คน',
+      'shared.antiCheat.goldBase': 'ด่าน 1 เผื่อ Greed เต็มและ Blood Moon',
+      'shared.antiCheat.goldGrowth': 'ทองต่อรอบโตเร็วตามจำนวนมอนในด่านท้าย และ co-op ทุกคนได้ทองเต็ม',
+    },
+    next: [
+      'รอบที่ถูกปฏิเสธไปแล้ว 20 รอบ: เจ้าของตัดสินใจว่าจะคืนทอง/อันดับหรือไม่ (ไม่อยู่ในชุดนี้)',
+      'co-op: เพดานฆ่าควรคูณตามจำนวนผู้เล่น และ TOO_FAST ควรนับจากเวลาที่เข้าห้อง (ต้องแก้ SQL)',
+      'ระยะยาว: ตรวจด้วยการเล่นซ้ำ (replay) เพราะ sim เป็น deterministic แทนเพดานตัวเลข',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
