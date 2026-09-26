@@ -35,16 +35,21 @@ const AI: Record<string, number> = Object.fromEntries([...A64].map((c, i) => [c,
 const enc = (n: number, len: number): string => { let s = ''; for (let i = 0; i < len; i++) { s = A64[n & 63] + s; n >>= 6; } return s; };
 const dec = (s: string, at: number, len: number): number => { let n = 0; for (let i = 0; i < len; i++) { const v = AI[s[at + i]]; if (v === undefined) return NaN; n = n * 64 + v; } return n; };
 const OFF = 131072, MAXC = 262143;
+/** Guest dead reckoning: monsters and mates keep moving at their last speed for this long (s) when the next
+ *  position is late; speeds measured over a longer gap than LEAD_GAP, or above MAX_LEAD_SPEED px/s, are not used. */
+const LEAD = 0.25, LEAD_GAP = 0.5, MAX_LEAD_SPEED = 400;
 /** Monsters per snapshot (keeps it under ~4 KB). */
 export const SNAP_ENEMIES = 230;
 
 /** The monsters a snapshot carries (and their order). */
 function* snapEnemies(list: readonly Enemy[]): Generator<Enemy> {
   let n = 0;
-  for (const e of list) {
-    if (e.dead || e.hide) continue;
-    if (n++ >= SNAP_ENEMIES) return;
-    yield e;
+  for (const boss of [true, false]) { // bosses first: a trimmed snapshot (fitSnap) cuts from the end
+    for (const e of list) {
+      if (e.dead || e.hide || !!e.boss !== boss) continue;
+      if (n++ >= SNAP_ENEMIES) return;
+      yield e;
+    }
   }
 }
 
@@ -102,9 +107,14 @@ export const SNAP_GEMS = 150;
 function packGems(s: SimState, ox: number, oy: number): string {
   let list = s.gems;
   if (list.length > SNAP_GEMS) {
-    const ps = [s.P, ...s.coop!.mates];
-    const near = (g: Gem): number => Math.min(...ps.map((p) => Math.abs(p.x - g.x) + Math.abs(p.y - g.y)));
-    list = [...list].sort((a, b) => near(a) - near(b)).slice(0, SNAP_GEMS);
+    // distance to the closest player, measured once per drop (not in every comparison)
+    const ps = [s.P, ...s.coop!.mates], all = list, d = new Float64Array(all.length);
+    for (let i = 0; i < all.length; i++) {
+      let m = Infinity;
+      for (const p of ps) { const v = Math.abs(p.x - all[i].x) + Math.abs(p.y - all[i].y); if (v < m) m = v; }
+      d[i] = m;
+    }
+    list = Array.from(all.keys()).sort((a, b) => d[a] - d[b]).slice(0, SNAP_GEMS).map((i) => all[i]);
   }
   let out = '';
   for (const g of list) {
@@ -213,7 +223,10 @@ function mergeMates(s: SimState, list: readonly MateWire[]): void {
   const c = s.coop!, old = new Map(c.mates.map((m) => [m.id, m]));
   c.mates = list.filter((m) => m && m.id !== c.self && Number.isFinite(m.x) && Number.isFinite(m.y)).map((m) => {
     const o = old.get(m.id), far = !o || hypot(o.rx - m.x, o.ry - m.y) > 200;
-    return { ...m, rx: far ? m.x : o.rx, ry: far ? m.y : o.ry };
+    // speed from the last two positions that differ (a mate standing still keeps its old one until it runs out)
+    const moved = !!o && (o.x !== m.x || o.y !== m.y), dt = o?.at === undefined ? 0 : s.clock - o.at;
+    const v = moved && !far && dt > 0.02 && dt < LEAD_GAP ? [(m.x - o!.x) / dt, (m.y - o!.y) / dt] : moved ? [0, 0] : [o?.vx ?? 0, o?.vy ?? 0];
+    return { ...m, rx: far ? m.x : o.rx, ry: far ? m.y : o.ry, vx: v[0], vy: v[1], at: moved || !o ? s.clock : o.at };
   });
 }
 
@@ -353,6 +366,28 @@ const cleanHz = (h: Hazard): Hazard => {
   return o as unknown as Hazard;
 };
 
+/**
+ * Trim a snapshot until its JSON fits `max` characters (the relay drops bigger messages silently): half the hazards,
+ * then half the drops, then a quarter of the monsters (bosses are packed first, so they stay), as often as needed.
+ */
+export function fitSnap(h: HostSnap, max: number): HostSnap {
+  let len = JSON.stringify(h).length;
+  if (len <= max) return h;
+  const o: HostSnap = { ...h, hz: [...h.hz] };
+  let trim = 0;
+  const over = (): boolean => { trim++; len = JSON.stringify(o).length; return len > max; };
+  while (len > max && o.hz.length) { o.hz = o.hz.slice(0, o.hz.length >> 1); over(); }
+  while (len > max && o.g && o.g.length) { o.g = o.g.slice(0, Math.floor(o.g.length / 14) * 7); over(); }
+  while (len > max && o.e.length) {
+    const n = Math.floor((o.e.length / 11) * 0.75);
+    o.e = o.e.slice(0, n * 11);
+    if (o.eh) o.eh = o.eh.slice(0, n * 4);
+    over();
+  }
+  o.trim = trim;
+  return o;
+}
+
 export function hostSnapshot(s: SimState, names: Record<string, string> = {}): HostSnap {
   const c = s.coop!, ox = Math.round(s.P.x), oy = Math.round(s.P.y);
   const bs: [string, number, number][] = [];
@@ -362,7 +397,7 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
   if (s.dragonE && !s.dragonE.dead) bs.push(['d', s.dragonE.id, pct(s.dragonE)]);
   if (s.rivalE && !s.rivalE.dead) bs.push(['r', s.rivalE.id, pct(s.rivalE)]);
   return {
-    st: s.stage, realm: s.realm, t: Math.round(s.stageTime * 10), dur: s.stageDur, ph: hostPhaseOf(s), ox, oy,
+    st: s.stage, realm: s.realm, t: Math.round(s.stageTime * 10), dur: s.stageDur, ph: hostPhaseOf(s), ox, oy, ck: Math.round(s.clock * 60),
     e: packEnemies(s.enemies, ox, oy), eh: packEnemyHp(s.enemies), ak: { ...c.acks }, bs,
     xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
     tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), sg: { ...c.guarded }, g: packGems(s, ox, oy),
@@ -549,6 +584,10 @@ function mirrorEnemies(s: SimState, h: HostSnap): void {
       e.id = p.id;
       e.hp = e.maxHp = 1e12; // HP unknown (older host) until the snapshot says; the host decides deaths
     }
+    const ck = typeof h.ck === 'number' ? h.ck : undefined, M = e.mir, d = M && ck !== undefined ? (ck - M.ck) / 60 : 0;
+    const vx = M && d > 0 && d < LEAD_GAP ? (p.x - M.x) / d : 0, vy = M && d > 0 && d < LEAD_GAP ? (p.y - M.y) / d : 0;
+    const fast = vx * vx + vy * vy > MAX_LEAD_SPEED * MAX_LEAD_SPEED; // a knockback or a recycle: no guessing
+    e.mir = { x: p.x, y: p.y, ck: ck ?? 0, vx: fast ? 0 : vx, vy: fast ? 0 : vy, age: 0 };
     e.tx = p.x; e.ty = p.y;
     e.armor = p.armored ? e.armor || 1 : 0;
     e.predHp = false;
@@ -582,6 +621,8 @@ export function guestEnemies(s: SimState, dt: number, live: boolean): void {
   if (s.enemies.some((e) => e.dead)) s.enemies = s.enemies.filter((e) => !e.dead); // predicted kills
   for (const e of s.enemies) {
     if (e.tx !== undefined) {
+      const M = e.mir;
+      if (M) { if (M.age < LEAD) { e.tx += M.vx * dt; e.ty! += M.vy * dt; } M.age += dt; } // late snapshot: keep going a moment
       if (Math.abs(e.tx - e.x) > 200 || Math.abs(e.ty! - e.y) > 200) { e.x = e.tx; e.y = e.ty!; }
       e.x += (e.tx - e.x) * k; e.y += (e.ty! - e.y) * k;
     }
@@ -598,5 +639,9 @@ export function guestEnemies(s: SimState, dt: number, live: boolean): void {
 export function smoothMates(s: SimState, dt: number): void {
   if (!s.coop) return;
   const k = 1 - exp(-14 * dt);
-  for (const m of s.coop.mates) { m.rx += (m.x - m.rx) * k; m.ry += (m.y - m.ry) * k; }
+  for (const m of s.coop.mates) {
+    const lead = Math.min(LEAD, Math.max(0, s.clock - (m.at ?? s.clock))); // keeps gliding while the next position is late
+    const tx = m.x + (m.vx ?? 0) * lead, ty = m.y + (m.vy ?? 0) * lead;
+    m.rx += (tx - m.rx) * k; m.ry += (ty - m.ry) * k;
+  }
 }
