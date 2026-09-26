@@ -227,6 +227,8 @@ export interface Player {
   mark?: { x: number; y: number; t: number } | null;
   /** Benched skills keep their level and Evolution but do not fire and are not offered upgrades. */
   bench: BenchSkill[];
+  /** Limit Break picks this Run (optional: older checkpoints have none). */
+  lb?: Partial<Record<LimitBreakId, number>>;
   /** Slippery floor: movement keeps momentum while > 0. */
   slip: number; slipGrip: number;
   vx: number; vy: number;
@@ -403,7 +405,14 @@ export type LevelOption =
   | { kind: 'skill'; id: SkillId; toBench?: boolean }
   | { kind: 'pas'; id: PassiveId; toBench?: boolean }
   | { kind: 'comp' }
+  // fillers once too few upgrades are left (`overflow` in the Balance Config)
+  | { kind: 'lb'; id: LimitBreakId }
+  | { kind: 'train'; id: SkillId | PassiveId }
+  | { kind: 'gold' }
   | { kind: 'heal' };
+
+/** Limit Break: small stacking Run bonuses offered once the upgrades run out. */
+export type LimitBreakId = 'dmg' | 'hp' | 'spd' | 'crit';
 
 export interface LevelUpView {
   options: LevelOption[];

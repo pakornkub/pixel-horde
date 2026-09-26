@@ -1,7 +1,7 @@
 import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
 import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
 import { ipow } from '../core/fmath';
-import type { LevelOption, SimState } from '../types';
+import type { LevelOption, LimitBreakId, SimState } from '../types';
 import { rollStage } from './events';
 import { canFuse, levelCompanion } from './guardians';
 import { say } from './kings';
@@ -219,7 +219,7 @@ export const attackSlots = (s: SimState): number => s.cfg.maxAttackSlots + (s.P.
 /** Offer rules (ticket 21): 4 attack slots, then new Skills go to the Bench while it has room;
  *  benched Skills are never offered; new passives only while a passive slot is free. */
 export function buildOptions(s: SimState): LevelOption[] {
-  const P = s.P, R = s.rng.levelup, L = s.cfg.levelup, K = s.cfg.skills, out: LevelOption[] = [];
+  const P = s.P, L = s.cfg.levelup, K = s.cfg.skills, out: LevelOption[] = [];
   for (const id of Object.keys(P.skills) as SkillId[]) {
     const pas = EVO_PASSIVE[id];
     if (pas && P.skills[id]! >= K[id].max && !P.evo[id] && (P.pas[pas] || 0) >= 1 && out.length < L.offers) out.push({ kind: 'evo', id });
@@ -247,15 +247,42 @@ export function buildOptions(s: SimState): LevelOption[] {
     } else c.push({ o: { kind: 'pas', id }, w: L.wPassive });
   }
   if (P.pet && P.pet.lv < s.cfg.companion.maxLv) c.push({ o: { kind: 'comp' }, w: s.cfg.companion.wLevel });
-  while (out.length < L.offers && c.length) {
+  draw(s, c, out);
+  if (out.length < L.offers) draw(s, fillers(s), out);
+  if (!out.length) out.push({ kind: 'heal' });
+  return out;
+}
+
+/** Weighted draw without repeats until `out` holds `levelup.offers` options. */
+function draw(s: SimState, c: { o: LevelOption; w: number }[], out: LevelOption[]): void {
+  const R = s.rng.levelup;
+  while (out.length < s.cfg.levelup.offers && c.length) {
     const tot = c.reduce((a, o) => a + o.w, 0);
     let r = R.next() * tot, i = 0;
     for (; i < c.length - 1; i++) { r -= c[i].w; if (r <= 0) break; }
     out.push(c.splice(i, 1)[0].o);
   }
-  if (!out.length) out.push({ kind: 'heal' });
-  return out;
 }
+
+export const LIMIT_BREAK_IDS: readonly LimitBreakId[] = ['dmg', 'hp', 'spd', 'crit'];
+
+/** Once too few upgrades are left: Limit Break bonuses, +1 level to a Bench entry, a Gold bag, Recover. */
+function fillers(s: SimState): { o: LevelOption; w: number }[] {
+  const P = s.P, O = s.cfg.overflow, lb = P.lb || {}, c: { o: LevelOption; w: number }[] = [];
+  for (const id of LIMIT_BREAK_IDS) {
+    if ((lb[id] || 0) >= O.max || (id === 'crit' && P.crit >= s.cfg.player.critCap)) continue;
+    c.push({ o: { kind: 'lb', id }, w: O.wLb });
+  }
+  for (const b of P.bench) {
+    if (b.lv < (b.pas ? s.cfg.passives.max[b.id] : s.cfg.skills[b.id].max)) c.push({ o: { kind: 'train', id: b.id }, w: O.wTrain });
+  }
+  if (O.gold > 0) c.push({ o: { kind: 'gold' }, w: O.wGold });
+  if (P.hp < P.maxHp) c.push({ o: { kind: 'heal' }, w: O.wHeal });
+  return c.filter((x) => x.w > 0);
+}
+
+/** Gold from a Gold bag this Chapter. */
+export const goldBag = (s: Readonly<SimState>): number => Math.round(s.cfg.overflow.gold * s.stage);
 
 /** Stage-end cost of the next swap: base × Chapter × growth^swaps. */
 export function swapCost(s: SimState): number {
@@ -338,6 +365,19 @@ export function choose(s: SimState, index: number): void {
   } else if (o.kind === 'comp') {
     levelCompanion(s);
     if (P.pet) banner(s, 'dragonPowerUp', 1.6, false, { lv: P.pet.lv, kind: P.pet.kind });
+  } else if (o.kind === 'lb') {
+    const lb = (P.lb ||= {}), before = P.maxHp;
+    lb[o.id] = (lb[o.id] || 0) + 1;
+    recompute(s);
+    P.hp = Math.min(P.maxHp, P.hp + Math.max(0, P.maxHp - before));
+  } else if (o.kind === 'train') {
+    const b = P.bench.find((x) => x.id === o.id);
+    if (b) b.lv++;
+  } else if (o.kind === 'gold') {
+    const g = goldBag(s);
+    s.runGold += g;
+    sfx(s, 'coin');
+    s.events.push({ t: 'text', x: P.x, y: P.y - 12, v: '+' + g + 'G', col: '#ffd23f', cr: false });
   } else P.hp = P.maxHp;
   if (s.pendingChest > 0) s.pendingChest--;
   else s.pendingLv--;

@@ -100,6 +100,9 @@ clear screen — never at the next Stage start.
   4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
   16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
   version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
+- When too few upgrades are left, level-ups and chests fill up to 3 cards from `overflow` (ticket 47): Limit Break
+  (+4% dmg / +5% max HP / +3% speed / +2% crit per pick, 10 each), train a Bench entry +1, Gold bag 25G × Chapter,
+  Recover (only when hurt). The reroll draws a new set.
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
 - Heroes: Lyra/Mage (Arcane Sigil, +10% dmg, free), Bram/Knight (Holy Shield, +40 HP, −5% speed, free),
