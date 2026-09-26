@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, combosBetween, endlessBreakdown, scoreBreakdown, signatureOf, swapCost, shopCost, shopMax, skillStats, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -167,6 +167,20 @@ function noteRows(notes: [NoteKind, string][]): string {
   return `<span class="nrows">${notes.map(([k, s]) => `<span class="nrow n-${k}"><b>${NOTE_ICON[k]}</b><span>${clean(s)}</span></span>`).join('')}</span>`;
 }
 
+/** Element, Status and role chips of a Skill (same words as the web codex); a chip that Combos with an owned Skill is ringed. */
+function skillChips(id: SkillId, owned: SkillId[]): string {
+  const others = owned.filter((k) => k !== id);
+  const tags = hitTagsOf(id);
+  const hitsStatus = (tag: HitTag): boolean => others.some((k) => statusesOf(k).some((s) => !!comboOf(s, tag)));
+  const chip = (cls: string, txt: string, combo: boolean, tip = ''): string => `<b class="chip ${cls}${combo ? ' hit' : ''}"${tip ? ` title="${tip}"` : ''}>${txt}</b>`;
+  const els = [...new Set(tags.map((x) => x.el).filter((e): e is HitElement => !!e))];
+  const out = els.map((e) => chip(`el-${e}`, t(`element.${e}`), hitsStatus({ el: e })));
+  for (const s of statusesOf(id)) out.push(chip(`stat s-${s}`, t(`status.${s}`), others.some((k) => hitTagsOf(k).some((tg) => !!comboOf(s, tg))), t('status.tip', { s: t(`status.${s}`) })));
+  if (tags.some((x) => x.heavy)) out.push(chip('role', t('role.heavy'), hitsStatus({ heavy: true }), t('role.heavy.tip')));
+  if (tags.some((x) => x.sweep)) out.push(chip('role', t('role.sweep'), hitsStatus({ sweep: true }), t('role.sweep.tip')));
+  return out.length ? `<span class="chips">${out.join('')}</span>` : '';
+}
+
 export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void, tools?: LevelTools): void {
   const lu = v.levelUp!, P = v.P;
   const box = $('opts');
@@ -176,7 +190,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
   lu.options.forEach((o: LevelOption, idx) => {
     const bt = document.createElement('button');
     bt.className = 'opt';
-    let meta: { col: string; g: string }, name: string, desc: string, tag = '', stats = '';
+    let meta: { col: string; g: string }, name: string, desc: string, tag = '', stats = '', chips = '';
     const notes: [NoteKind, string][] = [];
     if (o.kind === 'evo') {
       meta = { col: '#ffd23f', g: SKILL_ICON[o.id].g };
@@ -184,6 +198,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       desc = evoDesc(o.id);
       stats = `${skillName(o.id)} + ${passiveName(EVO_PASSIVE[o.id]!)}`;
       bt.classList.add('evo');
+      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[]);
     } else if (o.kind === 'skill') {
       meta = SKILL_ICON[o.id];
       const lv = P.skills[o.id] || 0;
@@ -191,6 +206,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       tag = lv ? `<b class="tag up">LV ${lv} → ${lv + 1}</b>` : `<b class="tag new">${t(o.toBench ? 'level.bench' : 'level.new')}</b>`;
       desc = lv ? '' : skillDesc(o.id);
       stats = skillDetail(o.id, skillStats(v.cfg, o.id, lv + 1, false));
+      chips = skillChips(o.id, Object.keys(P.skills) as SkillId[]);
       if (o.id === signatureOf(P.ch)) notes.push(['sig', t('level.signature')]);
       else if (SKILL_LINES[P.ch].includes(o.id)) notes.push(['link', t('level.link')]);
       else if (AWAKENING[P.ch].line.includes(o.id as never)) notes.push(['line', t('level.line')]);
@@ -213,7 +229,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       name = t('level.recover');
       desc = t('level.recoverDesc');
     }
-    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span class="body"><span class="nm">${name} ${tag}</span>`
+    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${meta.col}">${meta.g}</span><span class="body"><span class="nm">${name} ${tag}</span>${chips}`
       + (desc ? `<span class="ds">${desc}</span>` : '') + (stats ? `<span class="st">${stats}</span>` : '') + noteRows(notes) + '</span>';
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
