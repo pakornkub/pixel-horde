@@ -73,6 +73,8 @@ clear screen — never at the next Stage start.
 ## Core rules & balance (current values)
 - Render: low-res buffer (≈190 px on short side, integer scale), world tiles 16×16, UI/HUD and
   damage numbers drawn on the hi-res canvas with "Press Start 2P" (+ "Chakra Petch" for Thai).
+  Settings "Camera distance" (×1 / 1.25 / 1.5) only zooms the picture out: the sim always gets the zoom-1 view
+  (`screen.RW × RH`), so auto-aim "on screen", Ultimate reach and spawn distance never change with it.
 - Stage duration: `min(150, 60 + 20*(stage-1))` s. King at 55% of the stage.
 - A Run = 8 Chapters (one Stage each): Greenvale → pick 1 of 2 Realms (Chapters 2–7) → Heart Crater (Umbra).
   11 Realms (`packages/sim/src/content/lumora/realms.ts`): own tiles, 3 mobs, King, traits and a resisted element (−50%).

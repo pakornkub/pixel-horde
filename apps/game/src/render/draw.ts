@@ -119,6 +119,33 @@ function drawHz(v: Readonly<SimState>, clock: number): void {
   }
 }
 
+/** Seconds a new monster takes to fade in. */
+const SPAWN_FADE = 0.35;
+
+/** 1-px white rim around a sprite's silhouette (cached per sprite canvas), drawn at (x − 1, y − 1). */
+const rims = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>();
+function rim(img: HTMLCanvasElement): HTMLCanvasElement {
+  let o = rims.get(img);
+  if (o) return o;
+  o = document.createElement('canvas');
+  o.width = img.width + 2; o.height = img.height + 2;
+  const x = o.getContext('2d')!;
+  for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) x.drawImage(img, dx, dy);
+  x.globalCompositeOperation = 'source-in'; x.fillStyle = '#ffffff'; x.fillRect(0, 0, o.width, o.height);
+  x.globalCompositeOperation = 'destination-out'; x.drawImage(img, 1, 1);
+  rims.set(img, o);
+  return o;
+}
+
+/** Pulsing ring under the Hero's feet so the player finds themselves in a crowd. */
+function heroRing(x: number, y: number, clock: number): void {
+  b.save();
+  b.globalAlpha = 0.55; b.strokeStyle = K; b.lineWidth = 3;
+  b.beginPath(); b.ellipse(x, y, 9, 4, 0, 0, TAU); b.stroke();
+  b.globalAlpha = 0.8 + 0.2 * Math.sin(clock * 6); b.strokeStyle = '#7df9ff'; b.lineWidth = 1; b.stroke();
+  b.restore();
+}
+
 export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSelf: boolean): void {
   const { LW, LH, S } = screen;
   const P = v?.P;
@@ -143,7 +170,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       const x = Math.round(g.x + ox), y = Math.round(g.y + oy);
       if (x < -4 || y < -4 || x > LW + 4 || y > LH + 4) continue;
       if (g.kind === 'xp') {
-        const c = g.v >= 20 ? '#ff5cf4' : g.v >= 5 ? '#ffd23f' : '#4fc3ff';
+        const c = g.v >= 20 ? '#ff5cf4' : g.v >= 5 ? '#4dff88' : '#4fc3ff'; // mid gem green: gold is for coins
         b.fillStyle = K; b.fillRect(x - 2, y - 3, 4, 6); b.fillRect(x - 3, y - 2, 6, 4);
         b.fillStyle = c; b.fillRect(x - 1, y - 2, 2, 4); b.fillRect(x - 2, y - 1, 4, 2); b.fillStyle = '#fff'; b.fillRect(x - 1, y - 2, 1, 1);
       } else if (g.kind === 'coin') {
@@ -219,6 +246,8 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     const ents: (Enemy | null)[] = v.enemies.slice();
     ents.push(null); // null = the player
     ents.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
+    // the Hero's sprite this frame; `covered` once a monster drawn after it overlaps it (x-ray on top later)
+    let self: { img: HTMLCanvasElement; x: number; y: number } | null = null, covered = false;
     for (const e of ents) {
       if (!e) {
         if (hideSelf) continue;
@@ -231,9 +260,12 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         const hw = HELD_SPR[v.weapon], hx = Math.round(P.x + ox), hy = Math.round(P.y + oy);
         const bob = P.moving ? (fr ? -1 : 0) : 0;
         b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(P.x + ox, P.y + oy + 7, 5, 2, 0, 0, TAU); b.fill();
+        heroRing(P.x + ox, P.y + oy + 7, clock);
         if (P.clone) { const c = P.clone, dk = P.face < 0 ? CS2.dkl : CS2.dk; b.globalAlpha = 0.75; b.drawImage(dk[fr], Math.round(c.x + ox - 8), Math.round(c.y + oy - 9)); b.globalAlpha = 1; }
         if (hw && dir === 'up') b.drawImage(hw[0], hx + 1, hy - 9 + bob); // the Weapon on the back
-        b.drawImage(img, Math.round(P.x + ox - 8), Math.round(P.y + oy - 9 + bob));
+        self = { img, x: Math.round(P.x + ox - 8), y: Math.round(P.y + oy - 9 + bob) };
+        b.drawImage(rim(img), self.x - 1, self.y - 1);
+        b.drawImage(img, self.x, self.y);
         if (P.guardT > 0 && (P.guardT > 2 || Math.floor(clock * 8) & 1)) { // Shield pickup bubble (blinks in its last 2 s)
           b.save(); b.globalAlpha = 0.22; b.fillStyle = '#7fd4ff';
           b.beginPath(); b.arc(P.x + ox, P.y + oy - 1, 12, 0, TAU); b.fill();
@@ -268,8 +300,12 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       const w = im.width * e.sc, h = im.height * e.sc, x = Math.round(e.x + ox - w / 2);
       const y = Math.round(e.y + oy - h / 2 + (e.type === 'bat' ? 0 : Math.sin(e.ph * 0.5) * (e.sc > 1 ? 1 : 0.5)));
       if (x < -w || y < -h || x > LW + w || y > LH + h) continue;
+      if (self && !covered && x < self.x + 14 && x + w > self.x + 2 && y < self.y + 15 && y + h > self.y + 2) covered = true;
+      // fade in right after spawning: with the camera zoomed out, the spawn ring can be inside the view
+      const age = v.clock - e.born, fade = !e.boss && age < SPAWN_FADE ? Math.max(0, age) / SPAWN_FADE : 1;
+      b.globalAlpha = fade;
       b.fillStyle = 'rgba(30,27,51,.3)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + h / 2, w * 0.35, Math.max(1.5, h * 0.12), 0, 0, TAU); b.fill();
-      if (e.type === 'ghost') b.globalAlpha = 0.85;
+      if (e.type === 'ghost') b.globalAlpha = 0.85 * fade;
       b.drawImage(im, x, y, w, h);
       b.globalAlpha = 1;
       if (e.slowT > 0) { b.fillStyle = 'rgba(159,216,255,.45)'; b.fillRect(x, y + h - 3, w, 3); }
@@ -508,6 +544,10 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         }
       }
     }
+    if (self && covered) { // x-ray: the Hero's outline and a ghost of it show through monsters in front
+      b.drawImage(rim(self.img), self.x - 1, self.y - 1);
+      b.globalAlpha = 0.45; b.drawImage(self.img, self.x, self.y); b.globalAlpha = 1;
+    }
     if (v.specialStage) { b.fillStyle = 'rgba(200,20,40,0.22)'; b.fillRect(0, 0, LW, LH); }
     if (v.darkness) {
       // Umbra's darkened heart: only a light around the player remains
@@ -665,10 +705,10 @@ function drawMates(v: Readonly<SimState>, clock: number): void {
 }
 
 export function drawTexts(clock: number): void {
-  const { CS, DPR } = screen;
+  const { CS0, DPR } = screen;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const base = CS * DPR;
+  const base = CS0 * DPR; // same size at every camera distance
   for (const t of vfx.texts) {
     const k = t.t / t.life, pop = 1 + (t.cr || t.big ? 1.1 : 0.6) * Math.max(0, 1 - t.t / 0.12);
     let px = (t.big ? 3.6 : t.cr ? 4.4 : 2.9) * base;

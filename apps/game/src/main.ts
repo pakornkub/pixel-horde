@@ -26,7 +26,7 @@ import type { Session } from './coop/session';
 import type { CloseReason } from '@pixel-horde/coop';
 import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
-import { cv, onResize, screen } from './platform/screen';
+import { cv, onResize, screen, syncViewZoom } from './platform/screen';
 import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
@@ -131,7 +131,7 @@ async function newRun(): Promise<void> {
     crack: Math.min(META.crack, META.crackMax),
     firstRun: !META.tips.includes('first'), // the account's very first Greenvale is a little easier
     meta: simMeta(),
-    viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
+    viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
     config: applyPreset(active.cfg, runPreset),
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
@@ -169,7 +169,7 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
     seed: s.role === 'host' ? seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
-    meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(), config,
+    meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(), config,
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     coop: { role: s.role, self: s.selfId },
   }));
@@ -335,7 +335,7 @@ async function continueRun(): Promise<void> {
     const config = applyPreset(base, runPreset);
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
-    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
+    const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
       config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
     clearSave();
     usedHash = s.checkpoint().hash;
@@ -505,7 +505,8 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
-onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.LW, h: screen.LH }); });
+onResize(() => { if (sim) cmd({ type: 'viewport', w: screen.RW, h: screen.RH }); });
+onSettingsChange(syncViewZoom);
 
 /* ---------- input ---------- */
 let leaveArmed = false;
