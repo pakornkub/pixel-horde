@@ -10,6 +10,7 @@ export const TXT = {
   'nav.guide': { th: 'วิธีเล่น', en: 'How to Play' },
   'nav.skills': { th: 'สกิล & คอมโบ', en: 'Skills & Combos' },
   'nav.world': { th: 'โลก Lumora', en: 'World' },
+  'nav.updates': { th: 'อัปเดต', en: 'Updates' },
   'nav.play': { th: 'เล่นเลย', en: 'PLAY' },
   'nav.menu': { th: 'เมนู', en: 'Menu' },
   'nav.lang': { th: 'EN', en: 'ไทย' },
@@ -311,6 +312,16 @@ export const TXT = {
 
   // ── world page ─────────────────────────────────────────
   'w.title': { th: 'โลก Lumora — Pixel Horde', en: 'The World of Lumora — Pixel Horde' },
+  // ── updates (changelog) ──
+  'up.title': { th: 'อัปเดต — Pixel Horde', en: 'Updates — Pixel Horde' },
+  'up.h': { th: 'อัปเดตเกม', en: 'Game Updates' },
+  'up.p': { th: 'ทุกครั้งที่เกมเปลี่ยน อ่านได้ที่นี่ ทั้งของใหม่ การแก้บั๊ก และการปรับสมดุล แยกตามหมวดให้ดูง่าย', en: 'Every change to the game: new things, fixes and balance updates, sorted by topic.' },
+  'up.all': { th: 'ทั้งหมด', en: 'All' },
+  'up.loading': { th: 'กำลังโหลด…', en: 'Loading…' },
+  'up.error': { th: 'โหลดรายการอัปเดตไม่ได้ ลองรีเฟรชอีกครั้ง', en: "Couldn't load the updates. Try refreshing." },
+  'up.empty': { th: 'ยังไม่มีอัปเดตในหมวดนี้', en: 'No updates of this kind yet.' },
+  'up.config': { th: 'ค่าสมดุล v{v}', en: 'Balance v{v}' },
+  'up.small': { th: 'ปรับค่าเล็กน้อย', en: 'Small adjustments' },
   'w.h': { th: 'โลก Lumora', en: 'The World of Lumora' },
   'w.p': { th: 'ฮีโร่ ดินแดน ราชา มังกร และมอนสเตอร์ทุกตัว', en: 'Heroes, Realms, Kings, dragons and every monster.' },
   'w.story.h': { th: 'เรื่องราว', en: 'The story' },

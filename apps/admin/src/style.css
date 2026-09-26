@@ -93,3 +93,8 @@ main.solo{display:grid;place-items:center;min-height:100vh;padding:16px}
 .finding:last-child{border-bottom:0}
 .finding .explain{margin:4px 0 0}
 .verrow{border-bottom:1px solid var(--line);padding:4px 0;flex-wrap:nowrap}
+/* changelog */
+.clitem{display:grid;grid-template-columns:150px 1fr 1fr auto;gap:6px;margin-bottom:6px}
+.clgroup{margin-top:8px}.clgroup ul{margin:2px 0 0;padding-left:18px}
+@media (max-width:900px){.clitem{grid-template-columns:1fr}}
+.clprev{border:1px solid var(--line);border-radius:6px;padding:6px 8px}.clprev ul{margin:4px 0;padding-left:16px}.clprev input{width:100%;margin-top:6px}

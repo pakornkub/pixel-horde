@@ -1,7 +1,7 @@
 // Tuning lab (prototype variant C): search every Balance Config field (generated from the zod
 // schema), edit with range validation, impact chart + per-version history, staged changes with a
 // note, test live on this device, publish / roll back (always a new version).
-import { BALANCE_PASSES, FIELD_TH, GROUP_TH, listFields, parseBalanceConfig, withOverrides, type BalanceConfig, type BalancePass, type BalanceReport, type FieldInfo } from '@pixel-horde/config';
+import { BALANCE_PASSES, CAT_LABEL, FIELD_TH, GROUP_TH, autoItems, listFields, parseBalanceConfig, withOverrides, type BalanceConfig, type BalancePass, type BalanceReport, type ChangeEntry, type FieldInfo } from '@pixel-horde/config';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { GAME_URL, type AdminApi, type ConfigRow } from '../api';
 import { Chart } from '../chart';
@@ -71,6 +71,9 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
   const [note, setNote] = useState('');
   /** Report travelling with the draft (a loaded balance pass); published with the version. */
   const [report, setReport] = useState<BalanceReport | null>(null);
+  /** Patch notes from a loaded pass; otherwise they are generated from the changed values. */
+  const [passNotes, setPassNotes] = useState<Pick<ChangeEntry, 'titleTh' | 'titleEn' | 'items'> | null>(null);
+  const [clTitle, setClTitle] = useState('');
   /** Report on screen: the draft's, or a published version's. */
   const [viewing, setViewing] = useState<'draft' | number | null>(null);
   const pub: ConfigRow | undefined = cfgs.data?.find((c) => c.status === 'published');
@@ -96,6 +99,8 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
   }, [base]);
   const d = draft ?? base;
   const changes = useMemo(() => (base && draft ? FIELDS.filter((f) => get(draft, f.path) !== get(base, f.path)).map((f) => [f.path, get(draft, f.path)!] as [string, number]) : []), [draft, base]);
+  /** What players will read on the website's Updates page for this publish. */
+  const cl: Pick<ChangeEntry, 'titleTh' | 'titleEn' | 'items'> = passNotes ?? { titleTh: '', titleEn: '', items: autoItems(changes.map(([p, v]) => ({ path: p, from: get(base, p), to: v }))) };
   if (!cfgs.data || !base || !d) return <Loading error={cfgs.error} />;
   const F = FIELDS.find((f) => f.path === sel) ?? FIELDS[0];
   const TH = thai(F);
@@ -123,9 +128,9 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
       const rest = { ...(d as Record<string, unknown>) };
       delete rest.version;
       parseBalanceConfig(rest); // same zod schema the game uses; the server checks again
-      const v = await api.publishConfig(rest, note.trim(), report);
-      toast(`Publish v${v} แล้ว มีผลตอนผู้เล่นเริ่มด่านถัดไป`);
-      setDraft(null); setNote(''); setReport(null); setViewing(null); cfgs.reload();
+      const v = await api.publishConfig(rest, note.trim(), report, { ...cl, titleTh: clTitle.trim() || cl.titleTh });
+      toast(`Publish v${v} แล้ว มีผลตอนผู้เล่นเริ่มด่านถัดไป · บันทึกในอัปเดตเกมแล้ว`);
+      setDraft(null); setNote(''); setReport(null); setPassNotes(null); setClTitle(''); setViewing(null); cfgs.reload();
     } catch (e) { toast('Publish ไม่ได้: ' + (e as Error).message); }
   };
   /** A playtest pass (packages/config/src/balance-pass.ts) on top of the current draft, with its report on screen. */
@@ -136,10 +141,12 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
     setDraft({ ...next, version: base.version });
     if (!note.trim()) setNote(p.note);
     setReport(p.report);
+    setPassNotes(p.changelog);
+    setClTitle(p.changelog.titleTh);
     setViewing('draft');
     toast(`ใส่ค่าจากรอบจูน ${p.id} ในฉบับร่างแล้ว อ่านรายงานแล้วตรวจก่อน publish`);
   };
-  const discard = (): void => { setDraft(null); setReport(null); if (viewing === 'draft') setViewing(null); };
+  const discard = (): void => { setDraft(null); setReport(null); setPassNotes(null); setClTitle(''); if (viewing === 'draft') setViewing(null); };
   const rollback = async (v: number): Promise<void> => {
     if (!confirm(`สร้างเวอร์ชันใหม่ที่ใช้ค่าของ v${v}?`)) return;
     try { const nv = await api.rollbackConfig(v); toast(`ย้อนกลับแล้ว (v${nv} = ค่าของ v${v})`); setDraft(null); cfgs.reload(); } catch (e) { toast('ไม่สำเร็จ: ' + (e as Error).message); }
@@ -194,6 +201,10 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
         <h3>รอ publish ({changes.length})</h3>
         {changes.length ? changes.map(([p, v]) => <div class="row between chgrow"><span class="small">{(() => { const f = FIELDS.find((x) => x.path === p); return f ? shortName(f) : ''; })()}<br /><span class="mut">{p.replace(/^shared\./, '')}</span></span><span class="small"><s class="mut">{String(get(base, p))}</s> → <b>{String(v)}</b></span></div>) : <div class="small mut">ยังไม่มีค่าที่เปลี่ยน</div>}
         <input placeholder="โน้ต (ทำไมถึงปรับ) จำเป็น" value={note} onInput={(e) => setNote((e.target as HTMLInputElement).value)} aria-label="โน้ต" />
+        {changes.length > 0 && <details class="clprev"><summary class="small">ข้อความถึงผู้เล่นในหน้าอัปเดต ({cl.items.length} บรรทัด{passNotes ? '' : ', สร้างจากค่าที่เปลี่ยน'})</summary>
+          <input placeholder="หัวข้ออัปเดต (ว่าง = ปรับสมดุลเกม vN)" value={clTitle} onInput={(e) => setClTitle((e.target as HTMLInputElement).value)} aria-label="หัวข้ออัปเดต" />
+          <ul class="small">{cl.items.slice(0, 12).map((i) => <li><span class="mut">{CAT_LABEL[i.cat].th}:</span> {i.th}</li>)}{cl.items.length > 12 && <li class="mut">…อีก {cl.items.length - 12} บรรทัด</li>}</ul>
+          <div class="small mut">แก้ถ้อยคำให้อ่านง่ายได้ภายหลังที่หน้า “อัปเดตเกม”</div></details>}
         <a class={'btn' + (changes.length ? '' : ' disabled')} href={changes.length ? draftLink(changes) : undefined} target="_blank" rel="noopener">ทดสอบสดในเครื่องนี้</a>
         <div class="small mut">เปิดเกมในแท็บใหม่ด้วยค่าฉบับร่าง ผู้เล่นคนอื่นไม่ได้รับผล และรอบทดสอบไม่ส่งคะแนน</div>
         <button class="pri" onClick={publish} disabled={!changes.length}>Publish เป็น v{(cfgs.data[0]?.version ?? 0) + 1}</button>

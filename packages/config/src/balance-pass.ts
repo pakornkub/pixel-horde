@@ -3,6 +3,7 @@
 // players only when the admin loads a pass into a draft in the Admin Console (Balance → "ใส่ค่าจากรอบจูน")
 // and publishes a new version. The pass's report is published with that version and shown in Admin.
 import type { BalanceConfigInput } from './schema';
+import type { ChangeEntry } from './changelog';
 
 /** A balance report shown in Admin → Balance (Thai, for the owner); stored with the published version. */
 export interface BalanceReport {
@@ -22,7 +23,11 @@ export interface BalanceReport {
   link?: string;
 }
 
-export interface BalancePass { id: string; note: string; patch: BalanceConfigInput; report: BalanceReport }
+export interface BalancePass {
+  id: string; note: string; patch: BalanceConfigInput; report: BalanceReport;
+  /** Changelog entry players read (website Updates page). */
+  changelog: Pick<ChangeEntry, 'titleTh' | 'titleEn' | 'items'>;
+}
 
 export const BALANCE_PASS_2026_09: BalancePass = {
   id: '2026-09',
@@ -54,6 +59,23 @@ export const BALANCE_PASS_2026_09: BalancePass = {
       heroes: { ranger: { spd: 0.15 } },
     },
     worlds: { lumora: { enemies: { boss: { hp: 1800 }, umbra: { hp: 2000, dmg: 24 } } } },
+  },
+  changelog: {
+    titleTh: 'ปรับสมดุลครั้งใหญ่: ด่านแรกไม่โหดเกินไป บอสสุดท้ายชนะได้',
+    titleEn: 'Big balance update: a fairer first Chapter, a beatable final boss',
+    items: [
+      { cat: 'boss', th: 'King Slime: ท่า Royal Splash คลื่นเล็กลงและช้าลง วิ่งหนีทันแล้ว เจ็บน้อยลง และเลือดลดลงเล็กน้อย', en: 'King Slime: Royal Splash is smaller, slower and weaker, so you can outrun it; slightly less HP' },
+      { cat: 'boss', th: 'Umbra บอสสุดท้าย: เลือดและดาเมจลดลงมาก ลูกไฟเงาเบาลง ตอนนี้ชนะได้จริง', en: 'Umbra: much less HP and damage, softer shadow bolts; now beatable' },
+      { cat: 'boss', th: 'ราชาช่วงท้าย (ด่าน 5–7) เลือดโตช้าลง ไม่หนีบ่อยเหมือนเดิม', en: 'Late Kings (Chapters 5–7) grow slower and escape less often' },
+      { cat: 'monster', th: 'มอนตอนต้นด่านเกิดช้าลงนิดหน่อย และ Elite ตีเบาลง', en: 'Fewer monsters at the start of a Stage; Elites hit softer' },
+      { cat: 'hero', th: 'Kit วิ่งเร็วขึ้น', en: 'Kit runs faster' },
+      { cat: 'skill', th: 'เหยี่ยวของ Kit: แรงขึ้น โฉบถี่ขึ้น กระแทกโดนมอนรอบเป้า และร่างวิวัฒน์ได้เหยี่ยว 3 ตัว', en: "Kit's Hawk: stronger, faster, hits monsters around its prey; evolved form has 3 hawks" },
+      { cat: 'skill', th: 'ขวดของ Vex: แรงขึ้น โยนถี่ขึ้น กระจายกว้างขึ้น ร่างวิวัฒน์แรงขึ้นอีก', en: "Vex's Flask: stronger, faster, wider; evolved form hits harder" },
+      { cat: 'skill', th: 'โล่ของ Bram: แรงขึ้น และร่างวิวัฒน์ได้โล่ 4 อัน', en: "Bram's Holy Shield: stronger; evolved form has 4 shields" },
+      { cat: 'skill', th: 'Awakening: ได้สกิลสายตัวแรกที่เลเวล 6 ทันที สกิลสายโผล่ให้เลือกบ่อยขึ้น และสกิลประจำตัวแรงขึ้นมาก', en: 'Awakening: your first Skill Line skill arrives at level 6, line skills are offered more often, and the Signature hits much harder' },
+      { cat: 'skill', th: 'Gale Step, Arrow Rain (Kit) และ Cauldron (Vex) แรงขึ้น', en: 'Gale Step, Arrow Rain (Kit) and Cauldron (Vex) are stronger' },
+      { cat: 'skill', th: 'Meteor เบาลงเล็กน้อย คอมโบ Overload และ Toxic Burst แรงน้อยลง ให้บิลด์อื่นมีที่ยืน', en: 'Meteor slightly weaker; Overload and Toxic Burst combos toned down so other builds can shine' },
+    ],
   },
   report: {
     title: 'รอบจูนบาลานซ์ 2026-09 (ทดสอบด้วยบอท)',

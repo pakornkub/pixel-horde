@@ -142,6 +142,10 @@ published version in `config_reports` and shown in Admin → Balance → รา�
 changing built-in defaults (version 0 must equal the migration seed). Difficulty presets (`packages/config/src/presets.ts`)
 scale the published config for solo Runs; their multipliers (and whether each is offered) are Balance Config fields
 `shared.presets.*`, tuned from Admin → Balance; only `balanced` is ranked.
+Changelog (patch notes, `packages/config/src/changelog.ts`, table `changelog`): every config publish writes a `balance`
+entry (player-facing lines from the pass's `changelog`, else auto-generated from the diff); every code release that players
+would notice gets an entry in Admin → อัปเดตเกม (kind feature/fix/content/system, lines per category, Thai + English).
+The website's `updates.html` reads public entries via `get_changelog`.
 
 ## Backlog
 Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").
