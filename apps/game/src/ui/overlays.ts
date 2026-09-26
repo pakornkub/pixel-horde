@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -158,6 +158,8 @@ export function closeShop(): void {
 }
 
 /* ---------- level up ---------- */
+/** Limit Break cards borrow the matching passive's picture. */
+const LB_ICON: Record<LimitBreakId, PassiveId> = { dmg: 'might', hp: 'vital', spd: 'swift', crit: 'crit' };
 export interface LevelTools { reroll: () => void; banish: (i: number) => void }
 /** Level-up notes, one colored row per kind (Signature, Link, Skill Line, Combo, final level). */
 type NoteKind = 'sig' | 'link' | 'line' | 'combo' | 'final';
@@ -225,6 +227,23 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       meta = { col: '#ffd23f', g: 'D' }; pic = 'pet';
       name = t('level.comp');
       desc = t('level.compDesc', { dragon: t(`guardian.${P.pet!.kind}`), lv: P.pet!.lv, next: P.pet!.lv + 1 });
+    } else if (o.kind === 'lb') {
+      const lb = P.lb?.[o.id] || 0, O = v.cfg.overflow;
+      meta = PASSIVE_ICON[LB_ICON[o.id]]; pic = LB_ICON[o.id];
+      name = t('level.lb', { stat: t('level.lbStat.' + o.id) });
+      tag = `<b class="tag up">${lb} → ${lb + 1} / ${O.max}</b>`;
+      desc = t('level.lb.' + o.id, { v: Math.round(O[o.id] * 100) });
+    } else if (o.kind === 'train') {
+      const b = P.bench.find((x) => x.id === o.id)!;
+      meta = b.pas ? PASSIVE_ICON[b.id] : SKILL_ICON[b.id]; pic = o.id;
+      name = b.pas ? passiveName(b.id) : skillName(b.id);
+      tag = `<b class="tag up">BENCH LV ${b.lv} → ${b.lv + 1}</b>`;
+      desc = t('level.trainDesc');
+      if (!b.pas) stats = skillDetail(b.id, skillStats(v.cfg, b.id, b.lv + 1, b.evo));
+    } else if (o.kind === 'gold') {
+      meta = { col: '#ffd23f', g: 'G' };
+      name = t('level.gold');
+      desc = t('level.goldDesc', { n: goldBag(v) });
     } else {
       meta = { col: '#ffa6c2', g: '♥' };
       name = t('level.recover');

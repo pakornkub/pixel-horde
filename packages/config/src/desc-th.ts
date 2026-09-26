@@ -616,6 +616,16 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Swarms on normal Stages come as two arcs from the wave front\'s sides (1) or a full ring (0)': { th: 'ฝูงล้อมมาเป็นก้ามปู 2 ฝั่ง (1) หรือวงแหวนเต็มรอบ (0)', up: '1 = ฝูงล้อมเหลือช่องหนีด้านหลัง (Blood Moon ยังเป็นวงเต็ม)' },
   'Width of each swarm arc (degrees)': { th: 'ความกว้างของก้ามปูแต่ละฝั่ง (องศา)', up: 'ก้ามปูกว้างขึ้น ช่องหนีแคบลง' },
   'A new Stage moves the Director this share of the way back to its starting value (0 = keeps it)': { th: 'เริ่มด่านใหม่ Director ถอยกลับไปหาค่าเริ่มต้นเท่านี้ (0 = คงเดิม)', up: 'ด่านใหม่เริ่มเบาลง ไม่แบกความกดดันจากด่านก่อน' },
+  'Limit Break: damage + per pick': { th: 'Limit Break: ดาเมจเพิ่มต่อการเลือก 1 ครั้ง', up: 'เลือก Limit Break แล้วตีแรงขึ้น' },
+  'Limit Break: max HP + (share) per pick': { th: 'Limit Break: HP สูงสุดเพิ่ม (สัดส่วน) ต่อการเลือก 1 ครั้ง', up: 'เลือกแล้วเลือดเยอะขึ้น' },
+  'Limit Break: move speed + per pick': { th: 'Limit Break: ความเร็วเดินเพิ่มต่อการเลือก 1 ครั้ง', up: 'เลือกแล้ววิ่งไวขึ้น' },
+  'Limit Break: crit chance + per pick (the crit cap still applies)': { th: 'Limit Break: โอกาสคริเพิ่มต่อการเลือก 1 ครั้ง (ยังติดเพดานคริ)', up: 'เลือกแล้วคริบ่อยขึ้น' },
+  'Limit Break: picks of each bonus per Run': { th: 'Limit Break: เลือกโบนัสแต่ละแบบได้สูงสุดกี่ครั้งต่อ Run (0 = ปิด)', up: 'สะสมได้มากขึ้น ช่วงท้ายเกมแรงขึ้น' },
+  'Gold bag: Gold × Chapter': { th: 'ถุงทอง: Gold ที่ได้ × Chapter', up: 'ถุงทองให้ Gold มากขึ้น' },
+  'Weight: each Limit Break bonus': { th: 'น้ำหนัก: การ์ด Limit Break แต่ละแบบ', up: 'การ์ด Limit Break โผล่บ่อยขึ้น' },
+  'Weight: train one Bench entry (+1 level), per entry': { th: 'น้ำหนัก: การ์ดฝึกสกิลใน Bench (+1 เลเวล) ต่อสกิล 1 ช่อง', up: 'การ์ดฝึก Bench โผล่บ่อยขึ้น' },
+  'Weight: Gold bag': { th: 'น้ำหนัก: การ์ดถุงทอง', up: 'การ์ดถุงทองโผล่บ่อยขึ้น' },
+  'Weight: Recover (only offered when HP is not full)': { th: 'น้ำหนัก: การ์ด Recover ฟื้น HP เต็ม (มีเฉพาะตอน HP ไม่เต็ม)', up: 'การ์ดฟื้น HP โผล่บ่อยขึ้น' },
 };
 
 /** Thai names for object / group descriptions. */
@@ -820,4 +830,5 @@ export const GROUP_TH: Record<string, string> = {
   'Preset: Challenge': 'Preset: ท้าทาย',
   'Preset: Hard': 'Preset: ยาก',
   'Preset: Blitz': 'Preset: เทพไว',
+  'Fillers when too few upgrades are left (level-up / chest)': 'การ์ดเสริมตอนสกิลตัน (เลเวลอัป / หีบ)',
 };
