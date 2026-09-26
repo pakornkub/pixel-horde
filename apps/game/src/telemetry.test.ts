@@ -4,7 +4,7 @@ import type { KeyValue } from './net/offline';
 
 vi.mock('./net', () => ({ backend: {} }));
 vi.mock('./live', () => ({ BUILD: 202609250000 }));
-const { createTelemetry, fpsBucket, inSample } = await import('./telemetry');
+const { createTelemetry, fpsBucket, inSample, isLocalHost } = await import('./telemetry');
 
 const memStore = (): KeyValue => { const m = new Map<string, string>(); return { get: (k) => m.get(k) ?? null, set: (k, v) => void m.set(k, v) }; };
 
@@ -23,6 +23,14 @@ describe('telemetry', () => {
     ok = true;
     await t.flush();
     expect(t.pending().errors).toHaveLength(0);
+  });
+
+  it('drops browser noise and knows local hosts', () => {
+    const t = createTelemetry({} as Backend, memStore(), () => true);
+    t.recordError('unhandled: Promise was rejected because the browsing context is going away');
+    expect(t.pending().errors).toHaveLength(0);
+    for (const h of ['localhost', '127.0.0.1', '[::1]', 'game.localhost', 'pixel.test']) expect(isLocalHost(h)).toBe(true);
+    for (const h of ['pixel-horde.pages.dev', 'localhost.example.com']) expect(isLocalHost(h)).toBe(false);
   });
 
   it('sends nothing when the player opts out', async () => {
