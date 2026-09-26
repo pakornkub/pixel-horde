@@ -1,16 +1,18 @@
 import {
-  AWAKENING, DEFAULT_RESOLVED, ENEMY_IDS, ET, HERO_IDS, KING_KITS, REALMS, REALM_IDS, SKILL_LINES, WEAPONS,
+  AWAKENING, ENEMY_IDS, ET, HERO_IDS, KING_KITS, REALMS, REALM_IDS, SKILL_LINES, WEAPONS,
   adviceFor, signatureOf, type EnemyId, type HeroId, type RealmId, type SkillId,
 } from '@pixel-horde/sim';
 import { el, enemy, hero, heroWithWeapon, passiveIcon, pet, skillIcon, weaponIcon } from '../art';
+import { siteConfig } from '../backend';
 import { evoPassive } from '../data';
 import { g, onLang } from '../lang';
-import { reveals, shell } from '../shell';
+import { reveals, shell, toHash } from '../shell';
 import type { TextKey } from '../text';
 import { G, T, groundBg, pageHead } from '../ui';
 
 shell('world');
-const C = DEFAULT_RESOLVED;
+// Numbers follow the Balance Config the game uses right now (built-in defaults when offline).
+const C = await siteConfig();
 const main = document.getElementById('main')!;
 const jump = el('div.jump', null, ...([['story', 'w.story.h'], ['heroes', 'w.heroes'], ['realms', 'w.realms'], ['guardians', 'w.guardians'], ['bestiary', 'w.bestiary']] as [string, TextKey][]).map(([id, k]) => el('a', { href: '#' + id }, T(k))));
 main.append(pageHead('w.h', 'w.p', 4, [enemy('umbra', 3), enemy('boss', 3), enemy('bossS', 3), enemy('bossG', 3)], jump));
@@ -106,3 +108,4 @@ addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
 main.append(section('bestiary', 'w.bestiary', T('w.best.p', undefined, 'p', 'lead'), filter, best));
 
 reveals();
+toHash();

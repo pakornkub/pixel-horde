@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Workspace scaffold and the original game running on Cloudflare Pages)
 
-**Status:** in-progress — code + tests done; waiting for the owner to apply the migration and switch on anonymous sign-in / rate limit / Turnstile (supabase/README.md)
+**Status:** in-progress — live: migrations applied and anonymous sign-in on (18 anonymous accounts). Not confirmable from here: the raised anonymous rate limit and Turnstile (repo variable `TURNSTILE_SITE_KEY`) — owner to confirm (checked 2026-09-26 against the live project)
 
 - [ ] Supabase project `pixel-horde` has `profiles` with RLS; anonymous sign-in enabled with raised rate limit and Turnstile
 - [x] `claim_session` stores the JWT session id; gameplay RPCs reject stale sessions with SESSION_REPLACED

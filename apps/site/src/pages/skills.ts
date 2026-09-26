@@ -1,9 +1,10 @@
 import {
-  AWAKENING, DEFAULT_RESOLVED, HERO_IDS, PASSIVE_IDS, SIGNATURE_IDS, SKILL_IDS, SKILL_LINES,
+  AWAKENING, HERO_IDS, PASSIVE_IDS, SIGNATURE_IDS, SKILL_IDS, SKILL_LINES,
   signatureOf, skillMax, skillStats, type ComboId, type PassiveId, type SkillId, type SkillStats,
 } from '@pixel-horde/sim';
 import { ENEMY_SPR } from '../../../game/src/render/sprites';
 import { el, enemy, hero, passiveIcon, skillIcon } from '../art';
+import { siteConfig } from '../backend';
 import {
   ALL, COMBO_COL, COMBO_IDS, NEEDS, STATUS_COL, STATUS_IDS, TRIGGER, elementsOf, evoPassive, isHeavy, isSweep, kindOf,
   leavers, ownerOf, pairCombos, statusesOf, triggers, type ComboHow, type Kind,
@@ -14,7 +15,8 @@ import type { TextKey } from '../text';
 import { G, T, pageHead } from '../ui';
 
 shell('skills');
-const C = DEFAULT_RESOLVED;
+// Numbers follow the Balance Config the game uses right now (built-in defaults when offline).
+const C = await siteConfig();
 const main = document.getElementById('main')!;
 main.append(pageHead('sk.h', 'sk.p', 5, [skillIcon('frost', 'lg'), skillIcon('meteor', 'lg'), skillIcon('chain', 'lg'), skillIcon('hole', 'lg'), enemy('islime', 3)]));
 const wrap = el('div.wrap', { style: 'padding:36px 0 80px' });
