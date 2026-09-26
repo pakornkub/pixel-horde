@@ -50,6 +50,7 @@ function fakeBackend(start: BackendStatus = 'offline') {
     getCollection: async () => null,
     setTitle: async () => undefined,
     setTips: async (x: string[]) => x,
+    sendFeedback: async () => undefined,
   };
   return { b, status, server, calls };
 }

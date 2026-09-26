@@ -133,6 +133,7 @@ export function createSupabaseBackend(): Backend {
     async getCollection() { online(); return rpc<Collection | null>('get_collection'); },
     async setTitle(title) { online(); await rpc('set_title', { p_title: title }); },
     async setTips(tips) { online(); return rpc<string[]>('set_tips', { p_tips: tips }); },
+    async sendFeedback(f) { online(); await rpc('submit_feedback', { p_category: f.category, p_message: f.message, p_context: f.context }); },
     async resumeRun(runId, hash) { online(); return rpc<{ ok: boolean; seasonChanged: boolean }>('resume_run', { p_run: runId, p_hash: hash }); },
     async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },
     async unlockHero(hero) { online(); return rpc<ServerMeta>('unlock_hero', { p_hero: hero }); },

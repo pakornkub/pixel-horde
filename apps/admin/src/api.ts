@@ -32,6 +32,10 @@ export interface AiAnswer { reply: string; changes: AiChange[]; model?: string; 
 export interface SeasonReward { userId: string; name: string; kind: 'title' | 'badge'; reward: string; rank: number | null; board: string }
 export interface SeasonPreview { season: number; pendingCoop: number; rewards: SeasonReward[] }
 
+export type FeedbackStatus = 'new' | 'read' | 'done';
+export type FeedbackCategory = 'bug' | 'balance' | 'idea' | 'other';
+export interface FeedbackRow { id: number; userId: string | null; name: string | null; category: FeedbackCategory; message: string; context: Record<string, string>; status: FeedbackStatus; at: string }
+
 export interface AdminApi {
   mode: 'live' | 'demo';
   whoami(): Promise<{ email: string; isAdmin: boolean } | null>;
@@ -57,6 +61,9 @@ export interface AdminApi {
   openSeason(name: string): Promise<number>;
   players(search: string): Promise<PlayerRow[]>;
   stats(days: number, a?: number | null, b?: number | null): Promise<Stats>;
+  /** Player feedback from the game's Feedback button, newest first. */
+  feedback(status: FeedbackStatus | '', category: FeedbackCategory | ''): Promise<FeedbackRow[]>;
+  setFeedbackStatus(id: number, status: FeedbackStatus): Promise<void>;
   /** Balance AI (Supabase Edge Function `balance-ai`, Gemini): proposes changes, never publishes. */
   askAi(messages: AiMsg[], fields: [string, string, number, number, number][]): Promise<AiAnswer>;
 }
@@ -105,6 +112,8 @@ async function liveApi(): Promise<AdminApi> {
     openSeason: (name) => rpc('admin_open_season', { p_name: name }),
     players: (search) => rpc('admin_players', { p_search: search }),
     stats: (days, a, b) => rpc('admin_stats', { p_days: days, p_version_a: a ?? null, p_version_b: b ?? null }),
+    feedback: (status, category) => rpc('admin_feedback', { p_status: status, p_category: category }),
+    setFeedbackStatus: (id, status) => rpc('set_feedback_status', { p_id: id, p_status: status }),
     async askAi(messages, fields) {
       const { data, error } = await sb.functions.invoke('balance-ai', { body: { messages, fields } });
       if (error) {
@@ -136,6 +145,11 @@ function demoApi(): AdminApi {
   const board: BoardRow[] = names.map((n, i) => ({ userId: 'u' + i, name: n, score: 80900 - i * 7000, chapter: 8 - (i >> 1), hero: ['kit', 'lyra', 'bram', 'vex'][i % 4], weapon: null, hidden: false, banned: false, at: now(), status: i === 2 ? 'suspicious' : i === 3 ? 'pending' : 'verified' }));
   let season = 1;
   const players: PlayerRow[] = names.map((n, i) => ({ id: 'u' + i, name: n, role: 'player', gold: i === 2 ? 98000 : 3000 - i * 300, linked: i % 2 === 0, banned: false, suspended: false, lastSeen: now() }));
+  const fb: FeedbackRow[] = [
+    { id: 3, userId: 'u5', name: 'Pim', category: 'bug', message: 'บอสตายแล้วค้าง คับ', context: { build: '202609261200', device: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', screen: '390x844@3', lang: 'th', chapter: '3', hero: 'alchemist', realm: 'deepdark', mode: 'solo', phase: 'overtime' }, status: 'new', at: now() },
+    { id: 2, userId: 'u1', name: 'lyra_th', category: 'balance', message: 'ปรับตัว vex ปาขวด เท่าที่เล่นคือปามัว ทำให้เล่นยาก และเวลามีบอสปาโดนบอสน้อยมาก', context: { build: '202609261200', device: 'Android 15; Pixel 8', screen: '412x915@2.63', lang: 'th' }, status: 'read', at: now() },
+    { id: 1, userId: 'u0', name: 'KitMain', category: 'idea', message: 'อยากให้มีโหมดฝึกสกิล', context: { build: '202609251200', device: 'Windows NT 10.0', screen: '1920x1080@1', lang: 'th' }, status: 'done', at: now() },
+  ];
   let ann: Announcement[] = [{ id: 1, title_th: 'Blood Moon สุดสัปดาห์', title_en: 'Blood Moon weekend', body_th: 'เหรียญ ×2', body_en: 'Gold ×2', starts_at: now(), ends_at: null }];
   const days = Array.from({ length: 30 }, (_, i) => new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10));
   const daily: DailyRow[] = days.flatMap((d, i) => [
@@ -186,6 +200,8 @@ function demoApi(): AdminApi {
         : [{ userId: r.userId, name: r.name, kind: 'badge' as const, reward: i < 10 ? 'champion' : 'top100', rank: i + 1, board: 'solo' }]) };
     },
     async openSeason(name) { note('open_season', 'seasons', { closed: season, name }); season++; return season; },
+    feedback: async (st, c) => clone(fb.filter((f) => (!st || f.status === st) && (!c || f.category === c))),
+    async setFeedbackStatus(id, st) { const f = fb.find((x) => x.id === id); if (f) f.status = st; },
     players: async (q) => clone(players.filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))),
     askAi: async (msgs) => ({
       reply: `(โหมดตัวอย่าง) รับคำขอ "${msgs[msgs.length - 1]?.text ?? ''}" แล้ว ตัวอย่างข้อเสนอ: ให้ท่าใหญ่ของบอสช่วง overtime ไม่ถี่ขึ้น และแรงขึ้นน้อยลง`,

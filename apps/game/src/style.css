@@ -72,6 +72,9 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .opt .key,.opt .cur{display:none} /* number keys 1/2/3 still pick; the badge is hidden (owner's choice) */
 .ico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink)}
 .opt .ico{width:46px;height:46px;font-size:18px}
+/* picture icons from the atlas (ui/icons.ts): --x/--y = cell, --c/--r = atlas columns/rows */
+.ico.pic{background:#3a3363 var(--icons) no-repeat;background-size:calc(var(--c) * 100%) calc(var(--r) * 100%);
+  background-position:calc(var(--x) * 100% / (var(--c) - 1)) calc(var(--y) * 100% / (var(--r) - 1));image-rendering:pixelated}
 .opt .body{display:flex;flex-direction:column;gap:3px;min-width:0}
 .opt .nm{font-family:var(--th);font-weight:700;font-size:18px;line-height:1.3;display:block}
 .opt .nm i{font-style:normal;color:#c2361f}
@@ -96,16 +99,22 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .opt .chip.role{background:var(--ink);color:#fff}
 .opt .chip.hit{outline:2px solid #d9481f;outline-offset:1px}
 
-#ultBtn{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
-  width:78px;height:78px;border-radius:50%;border:4px solid var(--ink);background:#3a3363;color:var(--paper);
-  font-family:var(--pix);font-size:10px;line-height:1.5;z-index:3;display:none;cursor:pointer;overflow:hidden;padding:0}
-#ultBtn .fill{position:absolute;left:0;right:0;bottom:0;height:var(--p,0%);background:var(--ult);opacity:.9}
-#ultBtn span{position:relative}
+/* HUD buttons grow with the HUD (--ui, set on resize); the Ultimate takes the equipped Weapon's colour (--wcol) */
+#ultBtn{--u:var(--ui,1);position:fixed;right:calc(14px * var(--u) + env(safe-area-inset-right,0px));bottom:calc(16px * var(--u) + env(safe-area-inset-bottom,0px));
+  width:calc(78px * var(--u));height:calc(78px * var(--u));border-radius:50%;border:calc(4px * var(--u)) solid var(--ink);background:#3a3363;color:var(--paper);
+  font-family:var(--pix);font-size:calc(10px * var(--u));line-height:1.5;z-index:3;display:none;cursor:pointer;overflow:hidden;padding:0}
+#ultBtn .fill{position:absolute;left:0;right:0;bottom:0;height:var(--p,0%);background:var(--wcol,var(--ult));opacity:.9}
+#ultBtn span{position:relative;display:flex;flex-direction:column;align-items:center}
+#ultBtn small{font-size:calc(5px * var(--u));line-height:1.2;margin-top:calc(2px * var(--u));max-width:92%;overflow:hidden;white-space:nowrap}
+#ultBtn small:empty{display:none}
 #ultBtn.ready{color:var(--ink);animation:pulse .6s steps(2) infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 6px var(--gold)}}
-#pauseBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(64px + env(safe-area-inset-top,0px));
-  width:36px;height:36px;border:3px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);font-family:var(--pix);font-size:10px;z-index:3;display:none;cursor:pointer;padding:0}
-@media (prefers-reduced-motion: reduce){#ultBtn.ready{animation:none;box-shadow:0 0 0 6px var(--gold)}}
+@keyframes pulse{50%{box-shadow:0 0 0 calc(6px * var(--u)) var(--wcol,var(--gold))}}
+#pauseBtn{--u:var(--ui,1);position:fixed;right:calc(12px * var(--u) + env(safe-area-inset-right,0px));top:calc(64px * var(--u) + env(safe-area-inset-top,0px));
+  width:calc(36px * var(--u));height:calc(36px * var(--u));border:calc(3px * var(--u)) solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);font-family:var(--pix);font-size:calc(10px * var(--u));z-index:3;display:none;cursor:pointer;padding:0}
+@media (prefers-reduced-motion: reduce){#ultBtn.ready{animation:none;box-shadow:0 0 0 calc(6px * var(--u)) var(--wcol,var(--gold))}}
+/* menus: the whole card scales (as far as a tall one still fits the screen) */
+.overlay .box{zoom:var(--menu,1)}
+#tipBar{zoom:var(--menu,1)}
 
 /* Both languages read body text in Chakra Petch (it has Latin too); the pixel font stays on titles,
    numbers and tags — small pixel text was too hard to read (co-op test feedback). */
@@ -119,6 +128,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .seg button:focus-visible,.setrow input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .setrow input[type=range]{width:140px;accent-color:#3a3363}
 .setmsg{font-size:13px;min-height:1.4em;margin:0}
+.fbcats{justify-content:flex-start;margin:0 0 12px}
+.fblabel{display:block;font-size:14px;margin:0 0 4px}
+.fbtext{display:block;width:100%;font:inherit;font-size:15px;line-height:1.45;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:4px;padding:8px 10px;resize:vertical;min-height:110px;-webkit-user-select:text;user-select:text;touch-action:auto}
+.fbtext:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.fbcount{font-size:12px;text-align:right;opacity:.7;margin:2px 0 4px}
+#ovFeedback .btn.ghost{margin-top:10px}
 
 
 /* account (ticket 08) */

@@ -47,6 +47,7 @@ export function bannerText(key: BannerKey, a: Record<string, string | number>, r
   if (key === 'evolved') args.evo = evoName(a.id as SkillId);
   if (a.kind) args.dragon = t(`guardian.${a.kind}`);
   if (key === 'weaponFound') args.weapon = t(`weapon.${a.id}.name`);
+  if (key === 'judgement') args.ult = t(`weapon.${a.weapon || 'judgement'}.ult`);
   if (key === 'bossIncoming') args.dir = a.dir ? t(`dir.${a.dir}`) : '';
   return { txt: t(`banner.${key}.txt`, args), sub: t(`banner.${key}.sub`, args) };
 }
