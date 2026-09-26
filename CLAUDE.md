@@ -137,7 +137,8 @@ clear screen — never at the next Stage start.
 drives the built game and Admin in Chromium/Firefox/WebKit (golden replay, title, save, route, co-op, Admin draft…). Game URL flags: `?offline` (no backend) and
 `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events.
 Balance passes: `npm run playtest` (scripts/playtest, a human-like bot with damage/death attribution; see its README).
-Recommended tuning lives in `packages/config/src/balance-pass.ts` and is published from Admin → Balance, never by
+Recommended tuning lives in `packages/config/src/balance-pass.ts` (patch + Thai report; the report is stored with the
+published version in `config_reports` and shown in Admin → Balance → รายงาน) and is published from Admin → Balance, never by
 changing built-in defaults (version 0 must equal the migration seed). Difficulty presets (`packages/config/src/presets.ts`)
 scale the published config for solo Runs; their multipliers (and whether each is offered) are Balance Config fields
 `shared.presets.*`, tuned from Admin → Balance; only `balanced` is ranked.

@@ -86,3 +86,10 @@ main.solo{display:grid;place-items:center;min-height:100vh;padding:16px}
   .grid2{grid-template-columns:1fr}
   .alert{grid-template-columns:34px 1fr}.alert .row{grid-column:1/-1}
 }
+/* balance reports */
+.report{display:flex;flex-direction:column;gap:12px}
+.report ul{margin:0;padding-left:18px}
+.finding{padding:6px 0;border-bottom:1px solid var(--line)}
+.finding:last-child{border-bottom:0}
+.finding .explain{margin:4px 0 0}
+.verrow{border-bottom:1px solid var(--line);padding:4px 0;flex-wrap:nowrap}

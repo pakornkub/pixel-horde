@@ -1,6 +1,6 @@
 // Admin data access. Live = Supabase RPCs (every one checks the admin role server-side).
 // Demo (?demo) = in-memory fake data so the console can be tried before the backend is live.
-import { DEFAULT_CONFIG } from '@pixel-horde/config';
+import { DEFAULT_CONFIG, type BalanceReport } from '@pixel-horde/config';
 
 export interface Attention { kind: string; level: 'bad' | 'warn' | 'info'; [k: string]: unknown }
 export interface Overview {
@@ -11,7 +11,7 @@ export interface Overview {
   attention: Attention[];
 }
 export interface AuditRow { id: number; at: string; actor: string; action: string; target: string; detail: unknown }
-export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown> }
+export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown>; report?: BalanceReport | null }
 export interface BoardRow { userId: string; name: string; score: number; chapter: number; hero: string; weapon: string | null; hidden: boolean; banned: boolean; at: string; status: 'verified' | 'pending' | 'suspicious' }
 export interface PlayerRow {
   id: string; name: string; role: string; gold: number; linked: boolean; lastSeen: string;
@@ -45,7 +45,8 @@ export interface AdminApi {
   overview(): Promise<Overview>;
   audit(limit?: number): Promise<AuditRow[]>;
   configs(): Promise<ConfigRow[]>;
-  publishConfig(data: unknown, note: string): Promise<number>;
+  /** `report` is stored with the new version and shown in its history. */
+  publishConfig(data: unknown, note: string, report?: BalanceReport | null): Promise<number>;
   rollbackConfig(version: number): Promise<number>;
   flags(): Promise<Record<string, unknown>>;
   setFlag(key: string, value: unknown): Promise<void>;
@@ -96,7 +97,7 @@ async function liveApi(): Promise<AdminApi> {
     overview: () => rpc('admin_overview'),
     audit: (limit = 200) => rpc('admin_audit', { p_limit: limit }),
     configs: () => rpc('admin_configs'),
-    publishConfig: (data, note) => rpc('publish_config', { p_data: data, p_note: note }),
+    publishConfig: (data, note, report) => rpc('publish_config', { p_data: data, p_note: note, p_report: report ?? null }),
     rollbackConfig: (version) => rpc('rollback_config', { p_version: version }),
     async flags() { const s = await rpc<{ flags: Record<string, unknown> }>('get_live_state'); return s.flags; },
     setFlag: (key, value) => rpc('set_flag', { p_key: key, p_value: value }),
@@ -181,7 +182,7 @@ function demoApi(): AdminApi {
     }),
     audit: async () => clone(audit),
     configs: async () => clone(configs),
-    async publishConfig(data, n) { const v = configs[0].version + 1; configs.unshift({ version: v, status: 'published', note: n, at: now(), by: 'Owner (demo)', data: { ...(data as object), version: v } }); note('insert', 'balance_configs', { version: v, note: n }); return v; },
+    async publishConfig(data, n, report) { const v = configs[0].version + 1; configs.unshift({ version: v, status: 'published', note: n, at: now(), by: 'Owner (demo)', data: { ...(data as object), version: v }, report: report ?? null }); note('insert', 'balance_configs', { version: v, note: n }); return v; },
     async rollbackConfig(version) { const src = configs.find((c) => c.version === version)!; return this.publishConfig(clone(src.data), 'rollback to v' + version); },
     flags: async () => clone(flags),
     async setFlag(k, v) { note('update', 'feature_flags', { old: { key: k, value: flags[k] }, new: { key: k, value: v } }); flags[k] = v; },
