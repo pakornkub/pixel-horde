@@ -1,7 +1,7 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL, SPLITS } from '../data/enemies';
 import { SKILL_TAGS, linAt, type HitTag } from '../data/skills';
-import { WEAPONS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
+import { WEAPONS, WEAPON_IDS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
 import { REALMS, type RealmId } from '../content/lumora/realms';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
@@ -82,6 +82,8 @@ export function rollKingWeapon(s: SimState, realm: RealmId): void {
 }
 
 const ownsWeapon = (s: SimState, id: WeaponId): boolean => (s.meta.weapons || []).includes(weaponKey(id)) || s.foundWeapons.includes(id);
+/** Weapons the clear screen can switch to: Judgement, the collection and the ones found this Run. */
+export const usableWeapons = (s: Readonly<SimState>): WeaponId[] => WEAPON_IDS.filter((w) => w === 'judgement' || ownsWeapon(s as SimState, w));
 function findWeapon(s: SimState, id: WeaponId): void {
   s.foundWeapons.push(id);
   s.events.push({ t: 'weaponFound', id });

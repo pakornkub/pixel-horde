@@ -10,6 +10,8 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --paper:#f4f7e4; --ink:#1e1b33; } }
 :root[data-theme="dark"]{ --paper:#f4f7e4; --ink:#1e1b33; }
 *,*::before,*::after{box-sizing:inherit}
+/* `hidden` always wins over a class's display (a stale .sptools box kept showing the last Run's Companion) */
+[hidden]{display:none!important}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #c{position:fixed;inset:0;width:100vw;height:100vh;display:block;image-rendering:pixelated}

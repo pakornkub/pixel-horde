@@ -1,5 +1,5 @@
 import './style.css';
-import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
+import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState, type SkillId, type PassiveId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
 import { applyLang, onSettingsChange, saveSettings, settings } from './settings';
@@ -374,7 +374,7 @@ function toTitle(): void {
 }
 
 let benchDirty = false;
-function onSwap(bench: number, slot: SkillId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
+function onSwap(bench: number, slot: SkillId | PassiveId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
 function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benchDirty = true; }
 function renderClear(v: Readonly<SimState>, denied = false): void {
   showClear(v, v.runGold);

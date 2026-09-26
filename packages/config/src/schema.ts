@@ -182,6 +182,7 @@ const shared = obj({
     growAt2: int(4, 1, 20, 'Bench +1 once this Chapter is behind you'),
     swapBase: pos(20, 'Swap cost: Gold × Chapter'),
     discard: int(1, 0, 1, 'Stage end: Bench skills can be removed for free (1) or not (0)'),
+    passives: int(1, 0, 1, 'Full passive slots: new passives go to the Bench and swap at the Stage end (1) or are not offered (0)'),
     swapGrowth: mul(2, 'Each further swap in the same Stage end costs × this'),
   }, 'Bench and Stage-end swaps'),
   stage: obj({
