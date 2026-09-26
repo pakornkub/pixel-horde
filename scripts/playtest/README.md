@@ -18,7 +18,7 @@ Suites (`suites.mjs`): `heroes` (fresh), `veteran`/`max` (Shop levels), `awaken`
 `casual` (random picks, slower reactions), `presets` (`PT_PRESETS=relaxed,hard` limits the list), `patch`
 (env `PT_PATCH_JSON`, `PT_SHOP`, `PT_PRESET`, `PT_MAXCH=1` stop after Chapter 1). Env for every suite: `PT_PASS=1`
 start from every balance pass (= config v6), `PT_PASS=<id>` only up to that pass (`2026-09` = v4, `2026-09b` = v5),
-`PT_BASE=defaults` skip the live stage lengths, `PT_HEROES=mage,ranger` limit the Heroes.
+`PT_BASE=defaults` skip v3's Stage lengths, `PT_HEROES=mage,ranger` limit the Heroes.
 
 `build.mjs` bundles the sim with esbuild and wraps `hit()` / `hurtP()` so every point of damage is
 attributed to a Skill, Combo, monster or boss move. The shipped sim is never changed by this.
