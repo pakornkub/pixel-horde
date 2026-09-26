@@ -190,12 +190,13 @@ export const BALANCE_PASS_2026_09B: BalancePass = {
     method: 'บอทเดิมของรอบ 2026-09 (scripts/playtest) เทียบ v4 กับ v4 + 2026-09b บน seed เดียวกัน 24 seed ต่อฮีโร่ '
       + 'ที่อัปร้านกลางและอัปเต็ม (384 เกม) และทดลองทางเลือกแยกทีละข้ออีกราว 2,000 เกม',
     metrics: [
-      { label: 'ชนะ Umbra อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '33/33/33/13%', after: '67/42/58/33%' },
-      { label: 'ชนะ Umbra อัปร้านกลาง (Vex/Bram/Lyra/Kit)', before: '17/17/17/8%', after: '29/21/25/0%' },
-      { label: 'ถึงด่าน 8 อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '71/63/67/29%', after: '88/75/83/46%' },
-      { label: 'ถึงด่าน 8 อัปร้านกลาง (Vex/Bram/Lyra/Kit)', before: '38/33/42/13%', after: '58/63/50/25%' },
+      { label: 'ชนะ Umbra อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '38/46/29/17%', after: '71/58/46/13%' },
+      { label: 'ชนะ Umbra อัปร้านกลาง (Vex/Bram/Lyra/Kit)', before: '17/17/13/4%', after: '42/17/33/0%' },
+      { label: 'ถึงด่าน 8 อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '83/63/75/17%', after: '79/83/79/46%' },
+      { label: 'ถึงด่าน 8 อัปร้านกลาง (Vex/Bram/Lyra/Kit)', before: '38/46/42/4%', after: '67/54/54/17%' },
+      { label: 'Kit ถึงด่าน 7 (ร้านกลาง / อัปเต็ม)', before: '33% / 75%', after: '54% / 88%' },
       { label: 'ด่าน 1–4 (ถึงด่าน, ราชาตาย)', before: 'ผ่านเกือบ 100%', after: 'เท่าเดิม' },
-      { label: 'ดาเมจที่ Kit โดนจากมอนธรรมดา (อัปเต็ม)', before: '62%', after: '54%' },
+      { label: 'ดาเมจที่ Kit โดนจากมอนธรรมดา (อัปเต็ม)', before: '60%', after: '54%' },
     ],
     findings: [
       { level: 'warn', title: 'Awakening ดีพอ ๆ กับการปฏิเสธ', body: 'อัปเต็ม: รับ 33/33/33/13% เทียบปฏิเสธ 50/29/38/8% (Vex/Bram/Lyra/Kit) แบบแปลง Link เป็นสกิลสายยังเท่าเดิม ส่วนแบบเก็บ Link + ช่องที่ 5 ได้ 63/42/50/17%', status: 'แก้ด้วย field ใหม่ awaken.keep/slots' },
@@ -213,7 +214,7 @@ export const BALANCE_PASS_2026_09B: BalancePass = {
       'shared.heroes.ranger.hp': 'Kit เปราะที่สุด เพิ่ม HP ครึ่งหนึ่งของโบนัส Bram',
     },
     next: [
-      'Kit ยังอ่อนสุดที่ร้านกลาง (ชนะ 0% ถึงด่าน 8 25%) ดู DPS ด่าน 4–6 ของ Kit ต่อ',
+      'Kit ไปได้ไกลขึ้นแต่ยังชนะ Umbra น้อยสุด (ร้านกลาง 0%, อัปเต็ม ≈13%) ดู DPS ด่าน 4–8 ของ Kit ต่อ',
       'หลัง publish ดูข้อมูลจริง: อัตราตื่นพลัง และเวลาที่ผู้เล่นใช้ในด่าน 6–8',
     ],
   },
