@@ -2,7 +2,7 @@
 import type { AdminApi, Attention } from '../api';
 import { Card, Kpi, Loading, Tag, toast, useData } from '../ui';
 
-const ICON: Record<string, string> = { dropoff: '!', suspicious: '?', error: '⚠', gold: '$', quota: '▲', coop_review: '✓', skill: '↑' };
+const ICON: Record<string, string> = { dropoff: '!', suspicious: '?', error: '⚠', gold: '$', quota: '▲', coop_review: '✓', skill: '↑', decision: '?', pr: '⇡' };
 
 function describe(a: Attention): { title: string; detail: string } {
   switch (a.kind) {
@@ -12,6 +12,8 @@ function describe(a: Attention): { title: string; detail: string } {
     case 'gold': return { title: `Gold สูงผิดปกติ: ${a.name}`, detail: `${Number(a.gold).toLocaleString()} Gold` };
     case 'quota': return { title: `ใกล้เต็มโควตาฟรี: ${a.what === 'database' ? 'ฐานข้อมูล' : 'จำนวนผู้เล่น'}`, detail: `${a.used} / ${a.limit}` };
     case 'coop_review': return { title: `co-op รอตรวจ ${a.count} อันดับ`, detail: 'อันดับต้นๆ ของ co-op ต้องตรวจก่อนนับเป็นยืนยัน' };
+    case 'decision': return { title: `ผู้ช่วยรอคุณตัดสินใจ: ${a.title}`, detail: String(a.question ?? '') };
+    case 'pr': return { title: `มี PR แก้ไขรอ merge ${a.count} งาน`, detail: String(a.titles ?? '') };
     case 'skill': return { title: `${a.skill} อาจ${a.dir === 'up' ? 'แรงเกิน' : 'อ่อนเกิน'}`, detail: `รอบที่ใช้ไปถึง Ch6+ ${a.reach}% (เฉลี่ย ${a.avg}%)` };
     default: return { title: a.kind, detail: '' };
   }
@@ -20,10 +22,16 @@ function describe(a: Attention): { title: string; detail: string } {
 export function Home({ api, go }: { api: AdminApi; go: (page: string, arg?: string) => void }) {
   const ov = useData(() => api.overview());
   const st = useData(() => api.stats(7));
+  const work = useData(() => api.workItems('open'));
   if (!ov.data) return <Loading error={ov.error} />;
   const o = ov.data, k = o.kpi;
+  const att: Attention[] = [];
+  // the triage routine's questions and fixes waiting for the owner (Admin → งานแก้ไข)
+  for (const w of work.data ?? []) if (w.status === 'needs_decision') att.push({ kind: 'decision', level: 'bad', title: w.title, question: w.decision?.question });
+  const prs = (work.data ?? []).filter((w) => w.status === 'pr_open');
+  if (prs.length) att.push({ kind: 'pr', level: 'info', count: prs.length, titles: prs.map((w) => w.title).join(' · ') });
+  att.push(...o.attention);
   // Skill outliers (ticket 18) from the last 7 days of rollups
-  const att: Attention[] = [...o.attention];
   if (st.data) {
     const sum = (m: string): Map<string, number> => { const r = new Map<string, number>(); for (const d of st.data!.daily) if (d.metric === m) r.set(d.key, (r.get(d.key) || 0) + d.value); return r; };
     const picked = sum('skill_picked'), reach = sum('skill_reach6');
@@ -59,6 +67,7 @@ export function Home({ api, go }: { api: AdminApi; go: (page: string, arg?: stri
                 {(a.kind === 'suspicious' || a.kind === 'gold') && <button class="danger" onClick={() => act('ซ่อนจาก leaderboard 30 วันแล้ว (ยังเล่นได้)', () => api.banPlayer(String(a.userId), new Date(Date.now() + 30 * 864e5).toISOString()))}>ซ่อนจาก leaderboard 30 วัน</button>}
                 {a.kind === 'error' && <button onClick={() => go('stats')}>ดู error</button>}
                 {a.kind === 'error' && <button onClick={() => act('ปิดมังกรชั่วคราวแล้ว', () => api.setFlag('dragon', false))}>ปิดมังกรชั่วคราว</button>}
+                {(a.kind === 'decision' || a.kind === 'pr') && <button onClick={() => go('work')}>{a.kind === 'decision' ? 'ตอบ' : 'ดูงาน'}</button>}
                 {a.kind === 'coop_review' && <button onClick={() => go('leaderboard', 'coop')}>ตรวจ co-op</button>}
                 {a.kind === 'skill' && <button onClick={() => go('balance', 'skills.' + String(a.skill))}>ปรับสกิล</button>}
               </div>
