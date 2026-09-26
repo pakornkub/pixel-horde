@@ -29,6 +29,6 @@ The Admin Console shows the progress of every fix and the questions waiting for 
   `set_work_item_status`. Shipping an item marks its referenced feedback `done`.
 - Admin: new page `apps/admin/src/pages/work.tsx`; the home "ต้องดู" list shows questions and open PRs; feedback
   rows link to their work item. Demo data in `?demo`.
-- Tests: `apps/game/src/platform/inapp.test.ts`, `apps/game/src/telemetry.test.ts`, `supabase/tests/014_work_items.test.sql`.
+- Tests: `apps/game/src/platform/inapp.test.ts`, `apps/game/src/telemetry.test.ts`, `supabase/tests/016_work_items.test.sql`.
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`

@@ -182,7 +182,7 @@ function demoApi(): AdminApi {
       answer: null, prUrl: null, branch: null, at: ago(20), updated: ago(20), log: [{ at: ago(20), by: 'agent', status: 'needs_decision', note: 'วิเคราะห์ด้วย playtest bot แล้ว รอเจ้าของเลือก' }] },
     { id: 2, kind: 'ux', source: 'feedback', refs: [{ type: 'feedback', id: 3 }], title: 'หน้าแรกบนมือถือต้องเลื่อนถึงเห็นปุ่มผูกบัญชี', status: 'pr_open',
       summary: 'จอ 377×648 เนื้อหาสูง 666px ปุ่ม Google ตกขอบ; ย่อหน้าแรกสำหรับจอสูง ≤720px + ใน Facebook/LINE ให้เปิดใน Safari/Chrome แทน',
-      decision: null, answer: null, prUrl: 'https://github.com/pakornkub/pixel-horde/pull/16', branch: 'fix/title-fit-inapp-telemetry-worklog', at: ago(30), updated: ago(2),
+      decision: null, answer: null, prUrl: 'https://github.com/pakornkub/pixel-horde/pull/18', branch: 'fix/title-fit-inapp-telemetry-worklog', at: ago(30), updated: ago(2),
       log: [{ at: ago(30), by: 'agent', status: 'in_progress', note: 'ทำซ้ำได้ที่ 377×648' }, { at: ago(2), by: 'agent', status: 'pr_open' }] },
     { id: 1, kind: 'bug', source: 'error', refs: [{ type: 'error', fingerprint: 'sqre4r' }], title: 'drawImage: canvas กว้าง/สูง 0', status: 'shipped',
       summary: 'หน้าต่างถูกซ่อน (0×0) ทำให้ buffer เป็น 0 และ render loop หยุด; แก้ให้ buffer ≥ 1px', decision: null, answer: null,
