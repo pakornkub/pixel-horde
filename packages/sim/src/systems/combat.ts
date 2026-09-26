@@ -107,6 +107,21 @@ function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | u
   if (!guest && e.hp <= 0) killE(s, e);
 }
 
+/** Transmute (Grand Alchemist): a monster dying with Statuses passes them on to the monsters around it. */
+function spreadStatus(s: SimState, e: Enemy, r: number): void {
+  const has = (e.burn || 0) > 0 || (e.shock || 0) > 0 || (e.pois || 0) > 0 || (e.gath || 0) > 0 || e.frz > 0;
+  if (!has) return;
+  for (const o of s.enemies) {
+    if (o === e || o.dead || o.hide || hypot(o.x - e.x, o.y - e.y) > r + o.r) continue;
+    if ((e.burn || 0) > (o.burn || 0)) o.burn = e.burn;
+    if ((e.shock || 0) > (o.shock || 0)) o.shock = e.shock;
+    if ((e.pois || 0) > (o.pois || 0)) { o.pois = e.pois; o.poisDps = Math.max(o.poisDps || 0, e.poisDps || 0); }
+    if ((e.gath || 0) > (o.gath || 0)) o.gath = e.gath;
+    if (e.frz > 0 && !o.boss && o.frz <= 0) o.frz = e.frz;
+  }
+  burst(s, e.x, e.y, '#b6f24a', 8, 60, 0.35);
+}
+
 export function killE(s: SimState, e: Enemy): void {
   const R = s.rng.loot, C = s.cfg, L = C.loot;
   s.events.push({ t: 'kill', ttk: s.clock - e.born, x: e.x, y: e.y, type: e.type, boss: e.boss, elite: e.elite });
@@ -125,10 +140,12 @@ export function killE(s: SimState, e: Enemy): void {
   const tm = s.P.skills.transmute;
   if (tm && !e.boss) {
     const c = C.skills.transmute;
-    if (hypot(e.x - s.P.x, e.y - s.P.y) < linAt(c.r, tm) && R.next() < linAt(c.chance, tm)) {
+    const inside = hypot(e.x - s.P.x, e.y - s.P.y) < linAt(c.r, tm);
+    if (inside && R.next() < linAt(c.chance, tm)) {
       s.gems.push({ kind: 'xp', x: e.x, y: e.y, v: Math.round(linAt(c.xp, tm) * s.stage), mag: false });
       burst(s, e.x, e.y, '#ff5cf4', 10, 50, 0.4);
     }
+    if (inside && C.awaken.form && s.P.awakened) spreadStatus(s, e, C.skills.flask.awk.spreadR); // Grand Alchemist
   }
   s.kills++;
   s.killsByType[e.type] = (s.killsByType[e.type] || 0) + 1;
