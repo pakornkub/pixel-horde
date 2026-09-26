@@ -208,6 +208,16 @@ const shared = obj({
     swarmBase: int(16, 0, 500, 'Enemies per swarm ring'), swarmPerStage: int(6, 0, 100, 'Extra ring enemies per stage'), swarmCap: int(340, 10, 2000, 'Enemy cap during swarm'),
     capMobile: int(240, 10, 2000, 'Enemy cap on phones/tablets'), swarmCapMobile: int(260, 10, 2000, 'Enemy cap during swarm on phones/tablets'),
     edge: pos(14, 'Spawn distance beyond the view edge'), ringEdge: pos(10, 'Swarm ring distance beyond the view edge'), despawn: mul(0.95, 'Recycle distance (× view diagonal)'),
+    // Wave fronts: most monsters come from one side at a time, which moves every few seconds (0 = all around)
+    frontShare: frac(0, 'Share of monsters that come from the wave front instead of anywhere around (0 = all around)'),
+    frontArc: n(100, 10, 360, 'Wave front width (degrees)'),
+    frontEvery: n(9, 1, 120, 'Seconds before the wave front moves to another side'),
+    frontTurn: n(90, 0, 180, 'The next wave front turns at least this many degrees'),
+    lull: sec(0, 'Quiet seconds each time the wave front moves (0 = none)'),
+    lullSpawn: frac(0.35, 'Spawn rate × during the quiet seconds'),
+    frontRecycle: int(0, 0, 1, 'Monsters left far behind reappear on the wave front (1) or anywhere around (0)'),
+    pincer: int(0, 0, 1, 'Swarms on normal Stages come as two arcs from the wave front\'s sides (1) or a full ring (0)'),
+    pincerArc: n(100, 10, 180, 'Width of each swarm arc (degrees)'),
   }, 'Spawner'),
   scaling: obj({
     hpGrowth: mul(1.5, 'Enemy HP × per stage'), hpProg: mul(0.7, 'Enemy HP + at stage end'), hpPerLv: frac(0.08, 'Enemy HP + per player level'),
@@ -224,6 +234,7 @@ const shared = obj({
     rise: pos(0.06, 'Rise per second while cruising'), riseHp: frac(0.75, 'Cruising: HP above this fraction'), riseCalm: sec(6, 'Cruising: seconds without being hurt'),
     drop: pos(0.2, 'Drop per second while struggling'), dropHp: frac(0.4, 'Struggling: HP below this fraction'),
     hurtDrop: pos(0.03, 'Drop per second right after a hit'), hurtWindow: sec(2, 'Seconds counted as right after a hit'),
+    stageReset: frac(0, 'A new Stage moves the Director this share of the way back to its starting value (0 = keeps it)'),
   }, 'Director (adaptive pressure)'),
   player: obj({
     hp: pos(100, 'Base max HP'), spd: pos(62, 'Base speed'), pick: pos(26, 'Base pickup range'), crit: frac(0.08, 'Base crit chance'), critMul: mul(2, 'Base crit multiplier'),

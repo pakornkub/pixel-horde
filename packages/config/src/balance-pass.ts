@@ -155,5 +155,54 @@ export const BALANCE_PASS_2026_09: BalancePass = {
   },
 };
 
+/** Owner playtest after v4: Chapters 2–3 turn into a wall of monsters from every side. First step (config only):
+ *  a lower, slower Director. Wave fronts (spawn.front*, pincer, director.stageReset) come in a later pass. */
+export const BALANCE_PASS_2026_09C: BalancePass = {
+  id: '2026-09c',
+  note: 'Playtest pass 2026-09c: fewer monsters for players who do well (Director max 2.4 → 1.6, slower rise)',
+  patch: {
+    shared: {
+      // a player doing well sat at 2.0–2.3 of 2.4 from Chapter 1 on: spawns ×2.3 and carried into the next Stage
+      director: { max: 1.6, rise: 0.04 },
+    },
+  },
+  changelog: {
+    titleTh: 'มอนไม่ท่วมจอเกินไปเมื่อเล่นได้ดี',
+    titleEn: 'Fewer monster floods when you play well',
+    items: [
+      { cat: 'difficulty', th: 'ระบบปรับความยากกดดันน้อยลงและเร่งช้าลง ด่าน 2–3 มอนบนจอลดลงราวหนึ่งในสี่เมื่อเล่นได้ดี', en: 'The difficulty Director pushes less and ramps up slower: about a quarter fewer monsters on screen in Chapters 2–3 when you play well' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09c: ลดมอนท่วมจอ (Director)',
+    summary: 'เล่นจริงหลัง v4: ด่าน 2–3 มอนมาเป็นฝูงใหญ่รอบตัวทุกทิศ สาเหตุหลักคือ Director ขึ้นถึงเพดานเร็ว (ผู้เล่นที่เล่นดีอยู่ที่ 2.0–2.3 จากเพดาน 2.4 ตั้งแต่ด่าน 1) '
+      + 'และค่าติดข้ามด่าน อัตราเกิดมอนจึงคูณ ×2.3 ตลอด ชุดนี้ลดเพดานเหลือ 1.6 และให้ขึ้นช้าลง ส่วนเรื่องมอนมาทุกทิศต้องแก้ด้วยโค้ด (คลื่นทีละทิศ) ซึ่งจะมาในรอบถัดไป',
+    method: 'บอทชุดเดิม (scripts/playtest) เทียบ v4 กับ v4 + 2026-09c บน seed เดียวกัน 12 seed ต่อฮีโร่ ทั้งบัญชีใหม่และอัปร้านกลาง (192 เกม) '
+      + 'วัดความแน่นของมอนทุกครึ่งวินาที: จำนวนมอนบนจอ และสัดส่วน 12 ทิศรอบตัวที่มีมอนขวางในระยะ 70 px',
+    metrics: [
+      { label: 'Director เฉลี่ยด่าน 2 (อัปร้านกลาง)', before: '2.25', after: '1.5' },
+      { label: 'มอนบนจอเฉลี่ยด่าน 2 (บัญชีใหม่ / อัปร้านกลาง)', before: '66 / 64', after: '47 / 46' },
+      { label: 'มอนบนจอเฉลี่ยด่าน 3 (อัปร้านกลาง)', before: '73', after: '55' },
+      { label: 'ทิศรอบตัวที่โดนขวางด่าน 2 (อัปร้านกลาง)', before: '34%', after: '26%' },
+      { label: 'ด่านเฉลี่ยที่ไปถึง (บัญชีใหม่ / อัปร้านกลาง)', before: '3.6 / 6.6', after: '4.1 / 6.9' },
+      { label: 'ชนะ Umbra อัปร้านกลาง (Lyra/Bram/Kit/Vex)', before: '0/0/0/17%', after: '17/42/0/33%' },
+    ],
+    findings: [
+      { level: 'bad', title: 'Director ติดเพดานเกือบตลอดเกม', body: 'ขึ้น 0.06/วิ เมื่อเลือดเกิน 75% และไม่โดนตี 6 วิ จาก 1 ถึง 2.4 ใช้แค่ราว 23 วิ และไม่รีเซ็ตตอนเริ่มด่านใหม่ ด่าน 2 จึงเริ่มที่ ×2.3 ทันที', status: 'แก้ใน config (เพดาน) + รีเซ็ตรอโค้ด director.stageReset' },
+      { level: 'warn', title: 'มอนเกิดมุมสุ่มเท่ากันทุกทิศ', body: 'ทุกตัวสุ่ม 0–360° ที่ขอบจอ มอนที่ตามไม่ทันก็วาร์ปกลับมาแบบสุ่มทิศ และฝูงล้อมเป็นวงเต็มทุก 18 วิ ผู้เล่นจึงไม่มีทางหนี', status: 'รอโค้ด: คลื่นทีละทิศ (spawn.front*)' },
+      { level: 'info', title: 'ช่วงท้ายเกมง่ายขึ้นด้วย', body: 'Director ต่ำลงทำให้เลือดมอนต่ำลงเล็กน้อยด้วย (×0.85 + 0.15 × Director) ชนะ Umbra ที่อัปร้านกลางจากเฉลี่ย 4% เป็น 23% ถ้าใส่คู่กับ 2026-09b จะง่ายขึ้นอีก ควรดูข้อมูลจริงหลัง publish', status: 'รอดูข้อมูลจริง' },
+    ],
+    reasons: {
+      'shared.director.max': 'ผู้เล่นที่เล่นดีไม่โดนมอน ×2.4 ตั้งแต่ด่าน 2',
+      'shared.director.rise': 'ความกดดันขึ้นช้าลง ต้องเล่นดีต่อเนื่องราว 15 วิ ถึงเพดาน',
+    },
+    next: [
+      'คลื่นทีละทิศ: มอนส่วนใหญ่มาจากทิศเดียวแล้วเปลี่ยนทิศเป็นช่วง ๆ มีช่วงพักหายใจ ฝูงล้อมเป็นก้ามปู 2 ฝั่ง',
+      'รีเซ็ต Director ครึ่งทางตอนเริ่มด่านใหม่ (director.stageReset)',
+      'หลัง publish ดูข้อมูลจริง: ด่านที่ตาย และอัตราชนะ Umbra',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first. */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09];

@@ -44,6 +44,9 @@ export interface RunMetrics {
   build: string[];
   /** HP fraction the current King still had when the Run ended (null = none alive). */
   kingLeft: number | null;
+  /** Crowding per Chapter (sampled twice a second in play): monsters alive, Director value, share of the 12
+   *  directions around the player blocked by a monster within 70 px, and share of time with 10+ blocked (trapped). */
+  crowd: { mobs: number; dir: number; blocked: number; trapped: number }[];
 }
 
 interface Hooks { combo?: string | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
@@ -71,10 +74,11 @@ export function runOne(job: Job): RunMetrics {
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
     revives: 0, secondWinds: 0, awakenAt: null, awakenOfferAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
-    dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null,
+    dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, crowd: [],
   };
   let lastHurt = '';
   const chDmg: number[] = [], chTime: number[] = [];
+  const cr: { n: number; mobs: number; dir: number; blocked: number; trapped: number }[] = [];
   globalThis.__PT = {
     cur: null,
     onHit(s, _e, tag, d) {
@@ -104,6 +108,16 @@ export function runOne(job: Job): RunMetrics {
       m.hpMin[st] = Math.min(m.hpMin[st] ?? 1, Math.max(0, P.hp) / P.maxHp);
       if (s.phase === 'play') chTime[st] = (chTime[st] || 0) + 1 / 60;
     }
+    if (s.phase === 'play' && i % 30 === 0) {
+      const sec = new Array<boolean>(12).fill(false);
+      for (const e of s.enemies) {
+        if (e.dead || e.boss) continue;
+        const dx = e.x - P.x, dy = e.y - P.y;
+        if (dx * dx + dy * dy < 70 * 70) sec[Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * 12) % 12] = true;
+      }
+      const b = sec.filter(Boolean).length, c = (cr[st] ??= { n: 0, mobs: 0, dir: 0, blocked: 0, trapped: 0 });
+      c.n++; c.mobs += s.enemies.length; c.dir += s.dir.v; c.blocked += b / 12; c.trapped += b >= 10 ? 1 : 0;
+    }
     if (s.boss && kingAt < 0) { kingAt = s.totalTime; kingRealm = s.realm; }
     if (s.kingsKilled.length > kingKilled) {
       kingKilled = s.kingsKilled.length;
@@ -125,6 +139,7 @@ export function runOne(job: Job): RunMetrics {
   m.level = s.P.lv; m.minutes = +(s.totalTime / 60).toFixed(1); m.kills = s.kills; m.gold = s.runGold; m.revives = s.revivesBought; m.combos = s.combos;
   m.dpsByChapter = chDmg.map((d, i) => Math.round(d / Math.max(1, chTime[i] || 1)));
   m.build = Object.entries(s.P.skills).map(([k, v]) => `${k}${v}${s.P.evo[k as keyof typeof s.P.evo] ? '*' : ''}`).concat(Object.entries(s.P.pas).map(([k, v]) => `${k}${v}`));
+  m.crowd = Array.from(cr, (c) => (c ? { mobs: Math.round(c.mobs / c.n), dir: +(c.dir / c.n).toFixed(2), blocked: +(c.blocked / c.n).toFixed(2), trapped: +(c.trapped / c.n).toFixed(2) } : { mobs: 0, dir: 0, blocked: 0, trapped: 0 }));
   m.kingLeft = s.boss && !s.boss.dead ? +(s.boss.hp / s.boss.maxHp).toFixed(2) : null;
   globalThis.__PT = undefined;
   return m;

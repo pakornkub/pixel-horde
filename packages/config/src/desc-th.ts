@@ -600,6 +600,16 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'XP to level: × level': { th: 'EXP ที่ต้องใช้อัปเลเวล: × เลเวล', up: 'ยิ่งเลเวลสูงยิ่งอัปช้าลง' },
   'XP to level: × level²': { th: 'EXP ที่ต้องใช้อัปเลเวล: × เลเวล²', up: 'เลเวลสูงอัปช้าลงมาก' },
   'Zoom moment length (s)': { th: 'ช่วงซูมกล้องนาน (วินาที)', up: 'ซูมค้างนานขึ้น' },
+  'Share of monsters that come from the wave front instead of anywhere around (0 = all around)': { th: 'สัดส่วนมอนที่มาจากทิศคลื่นหลัก (0 = มารอบตัวแบบเดิม)', up: 'มอนมาทางเดียวกันมากขึ้น มีทางหนีชัดขึ้น' },
+  'Wave front width (degrees)': { th: 'ความกว้างของคลื่นหลัก (องศา)', up: 'คลื่นแผ่กว้างขึ้น ทางหนีแคบลง' },
+  'Seconds before the wave front moves to another side': { th: 'คลื่นหลักเปลี่ยนทิศทุกกี่วินาที', up: 'คลื่นอยู่ทิศเดิมนานขึ้น เปลี่ยนทิศน้อยลง' },
+  'The next wave front turns at least this many degrees': { th: 'คลื่นถัดไปหมุนไปอย่างน้อยกี่องศา', up: 'คลื่นใหม่มาจากอีกฝั่งชัดขึ้น (180 = ฝั่งตรงข้าม)' },
+  'Quiet seconds each time the wave front moves (0 = none)': { th: 'ช่วงพักหายใจตอนคลื่นเปลี่ยนทิศ (วินาที, 0 = ไม่มี)', up: 'พักนานขึ้น มีเวลาเก็บ EXP' },
+  'Spawn rate × during the quiet seconds': { th: 'อัตราเกิดมอนช่วงพักหายใจ (× ปกติ)', up: 'ช่วงพักมีมอนมากขึ้น พักน้อยลง' },
+  'Monsters left far behind reappear on the wave front (1) or anywhere around (0)': { th: 'มอนที่ตามไม่ทันวาร์ปไปฝั่งคลื่น (1) หรือที่ไหนก็ได้ (0)', up: '1 = วิ่งหนีแล้วไม่โดนมอนเก่าดักข้างหน้า' },
+  'Swarms on normal Stages come as two arcs from the wave front\'s sides (1) or a full ring (0)': { th: 'ฝูงล้อมมาเป็นก้ามปู 2 ฝั่ง (1) หรือวงแหวนเต็มรอบ (0)', up: '1 = ฝูงล้อมเหลือช่องหนีด้านหลัง (Blood Moon ยังเป็นวงเต็ม)' },
+  'Width of each swarm arc (degrees)': { th: 'ความกว้างของก้ามปูแต่ละฝั่ง (องศา)', up: 'ก้ามปูกว้างขึ้น ช่องหนีแคบลง' },
+  'A new Stage moves the Director this share of the way back to its starting value (0 = keeps it)': { th: 'เริ่มด่านใหม่ Director ถอยกลับไปหาค่าเริ่มต้นเท่านี้ (0 = คงเดิม)', up: 'ด่านใหม่เริ่มเบาลง ไม่แบกความกดดันจากด่านก่อน' },
 };
 
 /** Thai names for object / group descriptions. */

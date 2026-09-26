@@ -29,6 +29,10 @@ for (const pair of pairs) {
       awaken: pct(rs, (r) => r.awakenAt !== null), awakenCh: r1(avg(rs.filter((r) => r.awakenAt !== null).map((r) => r.awakenAt))),
       level: r1(avg(rs.map((r) => r.level))), minutes: r1(avg(rs.map((r) => r.minutes))),
       dmg: share('dmg'), dmgAfter: share('dmgAfterAwaken'),
+      crowd: [1, 2, 3, 4].map((c) => {
+        const cs = rs.map((r) => r.crowd?.[c]).filter((x) => x && x.mobs);
+        return { ch: c, mobs: Math.round(avg(cs.map((x) => x.mobs)) ?? 0), dir: r1(avg(cs.map((x) => x.dir))), blocked: Math.round((avg(cs.map((x) => x.blocked)) ?? 0) * 100), trapped: Math.round((avg(cs.map((x) => x.trapped)) ?? 0) * 100) };
+      }),
       hurt: Object.entries(hurt).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, d]) => [s, Math.round((d / hsum) * 100)]),
     };
   });

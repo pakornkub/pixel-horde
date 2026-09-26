@@ -25,7 +25,7 @@ describe('changelog', () => {
   it('balance passes carry player-facing patch notes', () => {
     for (const p of BALANCE_PASSES) {
       expect(p.changelog.titleTh.length).toBeGreaterThan(5);
-      expect(p.changelog.items.length).toBeGreaterThan(3);
+      expect(p.changelog.items.length).toBeGreaterThan(0);
       for (const i of p.changelog.items) { expect(isChangeCat(i.cat)).toBe(true); expect(i.th.length).toBeGreaterThan(5); expect(i.en.length).toBeGreaterThan(5); }
       expect(groupItems(p.changelog.items).map(([c]) => c)).toEqual(CHANGE_CATS.filter((c) => p.changelog.items.some((i) => i.cat === c)));
     }

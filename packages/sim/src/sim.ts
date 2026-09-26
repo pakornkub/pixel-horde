@@ -96,7 +96,7 @@ export function createSim(opts: SimOptions): Sim {
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
     chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
-    stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, bossSpawned: false, boss: null, eid: 1,
+    stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, front: { a: 0, t: 0 }, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, pickReturn: null, levelUp: null, chest: null,
     totalTime: 0, clearT: 0, slowT: 0, hitstop: 0, frostT: 0, runGold: 0,

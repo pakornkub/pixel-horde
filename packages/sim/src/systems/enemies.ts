@@ -112,7 +112,7 @@ export function stepEnemies(s: SimState, dt: number, damp: number, live: boolean
       if (ET[e.type].trait === 'leech' && P.hp < hp0) e.hp = Math.min(e.maxHp, e.hp + (hp0 - P.hp) * s.cfg.leech.heal); // it drinks what it takes
       if (s.phase === 'over') return;
     }
-    if (!e.boss && !(RANGED[e.type]?.still && (s.cfg.caster.on || e.summoned)) && l > farDist) { const [x, y] = edgePos(s); e.x = x; e.y = y; }
+    if (!e.boss && !(RANGED[e.type]?.still && (s.cfg.caster.on || e.summoned)) && l > farDist) { const [x, y] = edgePos(s, !!s.cfg.spawn.frontRecycle); e.x = x; e.y = y; }
   }
   s.enemies = s.enemies.filter((e) => !e.dead);
   if (s.boss && s.boss.dead) s.boss = null;

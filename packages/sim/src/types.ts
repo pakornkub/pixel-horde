@@ -508,6 +508,8 @@ export interface SimState {
   bloodMoonShown: boolean;
   stageTime: number; stageDur: number;
   spawnAcc: number; waveT: number;
+  /** Wave front (`spawn.frontShare`): direction (rad) most monsters come from, seconds until it moves. */
+  front: { a: number; t: number };
   bossSpawned: boolean;
   boss: Enemy | null;
   /** Double-King Stage: the King of the Realm the player skipped. */
