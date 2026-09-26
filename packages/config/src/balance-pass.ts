@@ -337,6 +337,9 @@ export const BALANCE_PASS_2026_09D: BalancePass = {
     next: [
       'หลัง publish ดูข้อมูลจริง: อัตราตื่นพลังและอัตราชนะของแต่ละฮีโร่',
       'Kit ยังอ่อนช่วงท้ายเกม: ดูความทนของ Kit ต่อ',
+    ],
+  },
+};
 
 /** Owner co-op playtest (2026-09-27): levels chained while the player stood invulnerable in the level-up bubble.
  *  Co-op only; works on any build that has `coop.choosingSkills` / `coop.xpShareK`. */
