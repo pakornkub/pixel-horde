@@ -90,14 +90,32 @@ export const extraDmg = (s: SimState): number => crackMul(s, 'dmg') * ipow(s.cfg
 /** HP of this Chapter's normal monster (the Realm's first mob) right now. */
 export const chapterMobHp = (s: SimState): number => s.cfg.enemies[realm(s).pool[0]].hp * hpScale(s);
 
-/** A point just outside the view around a random living player. */
-export function edgePos(s: SimState): [number, number] {
-  const R = s.rng.spawn;
+const DEG = TAU / 360;
+const frontOn = (s: SimState): boolean => s.cfg.spawn.frontShare > 0;
+
+/** A point just outside the view around a random living player: on the wave front (`spawn.frontShare` of the
+ *  time, or always with `onFront`) or anywhere around. */
+export function edgePos(s: SimState, onFront = false): [number, number] {
+  const R = s.rng.spawn, C = s.cfg.spawn;
   let cx = s.P.x, cy = s.P.y;
   const al = aliveTargets(s);
   if (al.length) { const t = al[R.int(al.length)]; cx = t.x; cy = t.y; }
-  const a = R.next() * TAU, d = hypot(s.viewport.w, s.viewport.h) / 2 + s.cfg.spawn.edge;
+  const front = frontOn(s) && (onFront || R.next() < C.frontShare);
+  const a = front ? s.front.a + (R.next() - 0.5) * C.frontArc * DEG : R.next() * TAU, d = hypot(s.viewport.w, s.viewport.h) / 2 + C.edge;
   return [cx + cos(a) * d, cy + sin(a) * d];
+}
+
+/** Moves the wave front to another side every `spawn.frontEvery` s; returns the spawn-rate × (quiet seconds after a move). */
+function frontStep(s: SimState, dt: number): number {
+  const C = s.cfg.spawn, f = s.front, R = s.rng.spawn;
+  if (!frontOn(s)) return 1;
+  f.t -= dt;
+  if (f.t <= 0) {
+    f.t = C.frontEvery;
+    const turn = C.frontTurn * DEG, a = f.a + (R.next() < 0.5 ? -1 : 1) * (turn + R.next() * (TAU / 2 - turn));
+    f.a = a < 0 ? a + TAU : a >= TAU ? a - TAU : a;
+  }
+  return C.frontEvery - f.t < C.lull ? C.lullSpawn : 1;
 }
 
 /** Director: watches how easily the player is winning and pushes back (0.7–2.4). */
@@ -112,7 +130,8 @@ export function directorStep(s: SimState, dt: number): void {
 export function spawnStep(s: SimState, dt: number): void {
   const R = s.rng.spawn, C = s.cfg.spawn, mates = aliveMates(s);
   directorStep(s, dt);
-  const rate = (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * crackMul(s, 'spawn') * s.dir.v * (s.firstRun && s.stage === 1 ? s.cfg.tutorial.spawn : 1);
+  const lull = frontStep(s, dt);
+  const rate = lull * (C.base + C.prog * prog(s)) * (1 + C.stageGrowth * (s.stage - 1)) * (1 + C.perMate * mates) * (s.specialStage ? s.cfg.events.bloodMoonSpawn : 1) * (s.overtime ? s.cfg.stage.overtimeSpawn : 1) * crackMul(s, 'spawn') * s.dir.v * (s.firstRun && s.stage === 1 ? s.cfg.tutorial.spawn : 1);
   s.spawnAcc += rate * dt;
   const pool = typePool(s);
   while (s.spawnAcc >= 1) {
@@ -127,8 +146,12 @@ export function spawnStep(s: SimState, dt: number): void {
     s.waveT = s.specialStage ? C.swarmEveryBloodMoon : C.swarmEvery;
     const n = C.swarmBase + s.stage * C.swarmPerStage, type = pool[R.int(pool.length)], d = hypot(s.viewport.w, s.viewport.h) / 2 + C.ringEdge;
     const al = aliveTargets(s), c = al.length ? al[R.int(al.length)] : s.P;
+    // Pincer: two arcs on the wave front's sides, leaving the far side open (Blood Moon keeps the full ring)
+    const pin = !!C.pincer && !s.specialStage, h = Math.ceil(n / 2);
+    const base = pin ? (frontOn(s) ? s.front.a : R.next() * TAU) : 0;
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU;
+      const k = i < h ? i : i - h, m = i < h ? h : n - h;
+      const a = pin ? base + (i < h ? 1 : -1) * TAU / 4 + ((k + 0.5) / m - 0.5) * C.pincerArc * DEG : (i / n) * TAU;
       if (s.enemies.length < (s.mobile ? C.swarmCapMobile : C.swarmCap)) spawnEnemy(s, type, c.x + cos(a) * d, c.y + sin(a) * d, false);
     }
     banner(s, 'swarm', 1.4);

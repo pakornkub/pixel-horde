@@ -30,7 +30,9 @@ export function startStage(s: SimState, n: number): void {
   s.darkness = false;
   P.linkStart = maxLinks(s);
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
-  s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
+  s.stageTime = 0; s.spawnAcc = 0; s.waveT = s.cfg.spawn.swarmFirst; s.front.t = 0; s.bossSpawned = false; s.boss = null; s.stageKills = 0;
+  const D = s.cfg.director;
+  if (D.stageReset > 0) s.dir.v += (D.start - s.dir.v) * D.stageReset; // pressure built up last Stage eases off
   s.enemies = []; s.bolts = []; s.effects = [];
   for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v; if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
   s.gems = [];

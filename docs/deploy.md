@@ -78,8 +78,11 @@ gains `p_changelog` and always writes a `balance` entry) is applied as `changelo
 is applied as `work_items`. Number 0020 is unused.
 `20260927000022_bench_passives` (switch `shared.bench.passives`: passives can use the Bench) is applied as `bench_passives`.
 `20260928000023_balance_followup_fields` (new `shared.awaken.{keep,slots}`, `shared.scaling.{lvCapBase,lvCapPerCh}`,
-`shared.skills.hawk.{guardN,guardR}`, `shared.heroes.ranger.hp`) is **not applied yet**. Apply it, then in Admin →
-Balance load "รอบจูน 2026-09b" on top of the live version and publish it.
+`shared.skills.hawk.{guardN,guardR}`, `shared.heroes.ranger.hp`) is applied as `balance_followup_fields` (it shows
+twice in the migration history: two sessions applied the same idempotent SQL 25 s apart; the schema is identical).
+`20260928000024_spawn_wave_fronts` (new `shared.spawn.front*` / `lull*` / `pincer*` and `shared.director.stageReset`)
+is **not applied yet**; the owner applies it before publishing any of those fields (pass 2026-09c alone needs no migration).
+Config v5 = load "รอบจูน 2026-09b" then "2026-09c" onto one draft in Admin → Balance (loads stack) and publish it.
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
