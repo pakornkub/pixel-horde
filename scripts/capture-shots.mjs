@@ -73,6 +73,14 @@ if (want('play') || want('level') || want('king')) {
   await page.close();
 }
 
+if (want('moon')) {
+  const page = await openGame('bloodmoon');
+  await page.click('#startBtn');
+  await play(page, 24);
+  await shot(page, 'moon');
+  await page.close();
+}
+
 if (want('realm')) {
   const page = await openGame('realm:emberforge');
   await page.click('#startBtn');

@@ -28,6 +28,10 @@
     <td><img src="apps/site/public/shots/level.png" alt="เลเวลอัป"><br><sub>เลเวลอัป: เลือก 1 ใน 3 — สกิลใหม่ อัปสกิลเดิม หรือพาสซีฟ</sub></td>
     <td><img src="apps/site/public/shots/realm.png" alt="Emberforge"><br><sub>11 ดินแดน มอน ลักษณะเด่น และราชาไม่ซ้ำกัน</sub></td>
   </tr>
+  <tr>
+    <td><img src="apps/site/public/shots/moon.png" alt="Blood Moon"><br><sub>Blood Moon: มอนเยอะขึ้นมาก Gold ×2 และได้หีบโบนัส</sub></td>
+    <td><img src="apps/site/public/shots/hero.png" alt="เลือกฮีโร่และอาวุธ"><br><sub>เลือกฮีโร่ และอาวุธที่เปลี่ยนท่าไม้ตาย</sub></td>
+  </tr>
 </table>
 
 ### วิธีเล่นใน 30 วินาที
