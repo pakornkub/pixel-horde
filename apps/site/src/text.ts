@@ -152,7 +152,7 @@ export const TXT = {
   'g.slots.pas': { th: 'ช่องพาสซีฟ', en: 'Passive slots' },
   'g.slots.bench': { th: 'Bench', en: 'Bench' },
   'g.slots.lock': { th: 'ล็อก', en: 'locked' },
-  'g.slots.benchp': { th: 'พอช่องโจมตีเต็ม สกิลใหม่ที่เลือกจะไปพักใน Bench สกิลใน Bench ไม่ยิง และไม่ถูกเสนอให้อัป ตอนจบด่านสลับเข้าช่องโจมตีได้ (จ่าย Gold)', en: 'Once the attack slots are full, new skills you pick wait on the Bench. Bench skills do not fire and are not offered for upgrades. At a Stage end you can swap one into an attack slot (costs Gold).' },
+  'g.slots.benchp': { th: 'พอช่องโจมตีเต็ม สกิลใหม่ที่เลือกจะไปพักใน Bench สกิลใน Bench ไม่ยิง และจะถูกเสนอให้ฝึก (+1 เลเวล) ก็ต่อเมื่อไม่มีอย่างอื่นให้อัปแล้ว ตอนจบด่านสลับเข้าช่องโจมตีได้ (จ่าย Gold)', en: 'Once the attack slots are full, new skills you pick wait on the Bench. Bench skills do not fire; they are offered for training (+1 level) only once nothing else is left to upgrade. At a Stage end you can swap one into an attack slot (costs Gold).' },
   'g.slots.benchDel': { th: 'หรือลบของใน Bench ทิ้งฟรีตอนจบด่าน', en: 'You can also remove Bench items for free at a Stage end.' },
   'g.slots.benchPas': { th: 'พอช่องพาสซีฟเต็ม พาสซีฟใหม่ก็มาพักใน Bench แล้วสลับเข้าช่องพาสซีฟตอนจบด่านได้เหมือนกัน (พาสซีฟใน Bench ยังไม่นับเป็นคู่วิวัฒน์ จนกว่าจะเข้าช่องพาสซีฟ)', en: 'Once the passive slots are full, new passives wait on the Bench too and swap into a passive slot at a Stage end the same way (a benched passive does not count for Evolutions until it is in a passive slot).' },
   'g.slots.benchNoPas': { th: 'พอช่องพาสซีฟเต็ม จะไม่มีพาสซีฟใหม่ให้เลือกอีก', en: 'Once the passive slots are full, no new passives are offered.' },

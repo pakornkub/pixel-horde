@@ -397,7 +397,7 @@ function syncOverlays(): void {
     renderLevelUp(v, (i) => {
       if (sim && sim.view().phase === 'levelup') {
         const o = sim.view().levelUp?.options[i];
-        if (o) { const id = o.kind === 'heal' || o.kind === 'comp' ? o.kind : o.kind + ':' + o.id; telemetry.pick(id); telemetry.event({ k: 'pick', id, lv: sim.view().P.lv, t: Math.round(sim.view().totalTime) }); }
+        if (o) { const id = 'id' in o ? o.kind + ':' + o.id : o.kind; telemetry.pick(id); telemetry.event({ k: 'pick', id, lv: sim.view().P.lv, t: Math.round(sim.view().totalTime) }); }
         hide('ovLevel');
         cmd({ type: 'pick', index: i });
       }
