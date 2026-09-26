@@ -24,7 +24,8 @@ Migrations, RLS policies, RPCs and pg_cron jobs for the Supabase project `pixel-
 4. **Authentication → Sign In / Providers → Google**: enable, paste the Google Cloud OAuth client ID
    and secret (authorised redirect URI = the one Supabase shows). Also turn on
    **"Allow manual linking"** (Authentication → Sign In) so anonymous players can link Google.
-   Add the game URLs (`https://pixel-horde.pages.dev`, previews, itch.io) to **URL Configuration →
-   Redirect URLs**, and set **Site URL** to `https://pixel-horde.pages.dev` (not `localhost`): a
+   Add the game URLs (`https://pixel-horde.pages.dev/play/`, `https://pixel-horde.pages.dev/**` for previews and
+   older links, itch.io) to **URL Configuration → Redirect URLs** (the game sends players back to `…/play/` after
+   Google), and set **Site URL** to `https://pixel-horde.pages.dev` (not `localhost`): a
    redirect that is not allowed falls back to the Site URL.
    Without "Allow manual linking" the auth log shows `manual_linking_disabled` and the game says so.

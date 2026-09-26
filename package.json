@@ -9,14 +9,18 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @pixel-horde/game",
+    "dev:site": "npm run dev -w @pixel-horde/site",
     "build": "npm run build -w @pixel-horde/game",
+    "build:site": "npm run build -w @pixel-horde/site",
+    "build:pages": "npm run build && npm run build:site && node scripts/assemble-pages.mjs",
     "preview": "npm run preview -w @pixel-horde/game",
-    "typecheck": "tsc -p packages/sim && tsc -p packages/config && tsc -p packages/i18n && tsc -p packages/coop && tsc -p apps/game && tsc -p apps/admin && tsc -p workers/room && tsc -p tests && tsc -p workers/keepalive",
+    "typecheck": "tsc -p packages/sim && tsc -p packages/config && tsc -p packages/i18n && tsc -p packages/coop && tsc -p apps/game && tsc -p apps/admin && tsc -p apps/site && tsc -p workers/room && tsc -p tests && tsc -p workers/keepalive",
     "lint": "eslint .",
     "test": "vitest run",
     "test:browser": "playwright test",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run build:site",
     "lab": "npm run lab -w @pixel-horde/game",
+    "shots": "node scripts/capture-shots.mjs",
     "db:sync-seeds": "node scripts/sync-migration-seeds.mjs"
   },
   "devDependencies": {

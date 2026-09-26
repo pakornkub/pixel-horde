@@ -75,7 +75,7 @@ The special attack fired from a gauge that charges mainly with time (about every
 _Avoid_: ult, special, bomb
 
 **Theme**:
-The visual and enemy set of a Realm (tiles, three regular mobs, its King). Currently grass, desert, cave, snow.
+The visual and enemy set of a Realm (tiles, three regular mobs, its King). Lumora has 11: grass, desert, cave, snow, crater, ember, swamp, sky, sea, gear and dusk (`THEME_VIS` in `apps/game/src/render/tiles.ts`).
 _Avoid_: biome, map, zone
 
 **Special Event**:
@@ -122,11 +122,11 @@ A temporary effect a Skill leaves on an enemy (Frozen, Gathered, Burning, Shocke
 _Avoid_: debuff, element
 
 **Bench**:
-The storage slots holding Skills that are owned but not firing (1 slot, +1 after clearing Chapters 2 and 4); Skills move between Bench and attack slots only at stage end, for Gold, and do not level up while benched.
+The storage slots holding Skills that are owned but not firing (1 slot, +1 after clearing Chapters 2 and 4); Skills move between Bench and attack slots only at stage end, for Gold (20 × Chapter, doubling for each further swap at the same Stage end), and do not level up while benched. Removing a Skill from the Bench at a Stage end is free.
 _Avoid_: inventory, reserve, stash
 
 **Skill Point**:
-A boss reward spent during a Run: 1 to reroll level-up choices, 1 to banish a Skill from the Run, 2 to raise a chosen Skill one level.
+A King reward (1 per King; not sold for Gold unless the Admin switch `economy.spShop` is on) spent during a Run: 1 to reroll level-up choices, 1 to banish a Skill from the Run, 2 to raise a chosen Skill one level.
 _Avoid_: points (ambiguous with score)
 
 **Meta Progression**:
