@@ -82,7 +82,7 @@ export function renderChars(): void {
   renderWeapons();
   renderCracks();
   const sel = HEROES[META.ch];
-  $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), role: heroRole(META.ch), skill: skillName(sel.start), bonus: heroDesc(META.ch) });
+  $('chDesc').textContent = t('hero.desc', { name: heroName(META.ch), role: heroRole(META.ch), skill: skillName(sel.start), bonus: heroDesc(active.cfg, META.ch) });
 }
 
 /* ---------- weapon pick (title) ---------- */

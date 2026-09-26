@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createSim, resolveConfig, type SimState } from '@pixel-horde/sim';
-import { DEFAULT_CONFIG, withOverrides, type BalanceConfigInput } from '@pixel-horde/config';
+import { createSim, type SimState } from '@pixel-horde/sim';
+import type { BalanceConfigInput } from '@pixel-horde/config';
 import { edgePos, spawnStep } from '../packages/sim/src/systems/spawner';
 import { startStage } from '../packages/sim/src/systems/progress';
-import { botOptions } from './bot';
+import { asWritten, botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
 const DEG = Math.PI / 180;
@@ -11,7 +11,7 @@ const DEG = Math.PI / 180;
 const diff = (a: number, b: number): number => { const d = ((a - b) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI; return d; };
 
 function fresh(patch: BalanceConfigInput): SimState {
-  const config = resolveConfig(withOverrides(DEFAULT_CONFIG, patch));
+  const config = asWritten(patch);
   const s = createSim(botOptions(7, { config, events: quiet })).view() as SimState;
   s.enemies = []; s.waveT = 1e9;
   return s;

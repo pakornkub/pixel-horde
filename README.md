@@ -58,7 +58,7 @@ The full illustrated guide, with things you can click and try, lives on the webs
 - **10 Kings + Umbra** — telegraphed moves, an ultimate below half HP, and far too much to say.
 - **Special events** — Blood Moon nights, three Guardian dragons to tame (and fuse), a Shadow Rival wearing your face, double-King Stages.
 - **11 Weapons**, each with its own Ultimate (Judgement, Solar Flare, Thunderstorm…), a permanent Shop, achievements, Titles and seasonal leaderboards.
-- **6 solo difficulty presets** from Relaxed to Blitz (only Balanced is ranked; the rest still earn Gold), a camera-distance setting and an in-game **Feedback** button.
+- One difficulty for everyone (every Run is ranked); beating Umbra unlocks **Heart Crack** tiers 1–3 for a harder Run. A camera-distance setting and an in-game **Feedback** button.
 - **Co-op for up to 4** over one invite link, and full **offline** solo play.
 - **Thai / English** everywhere. Every change is listed on the website's [Updates](https://pixel-horde.pages.dev/updates.html) page, and the title screen shows the newest one.
 

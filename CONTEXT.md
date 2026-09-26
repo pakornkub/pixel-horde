@@ -157,9 +157,13 @@ A recommended set of Balance Config changes measured with the playtest bot (`pac
 The player-facing changelog entries (balance / feature / fix / content / system), written in Admin → อัปเดตเกม or automatically on each config publish, shown on the website Updates page and as the title screen's "New update!" notice.
 _Avoid_: release notes, news
 
-**Difficulty Preset**:
-A solo-only set of multipliers on top of the published Balance Config (Relaxed, Easy, Balanced, Challenge, Hard, Blitz), chosen in Settings for the next Run. Only Balanced is ranked; the others still earn Gold. The multipliers and whether each is offered are Balance Config fields.
-_Avoid_: difficulty level, mode (Endless Mode is a mode)
+**Base Difficulty**:
+The Balance Config's own multipliers on its numbers (`shared.difficulty`), the same for every player and every Run. It replaced the six solo Difficulty Presets (removed 2026-09-27; its defaults are the old Relaxed preset). Players who want it harder pick a Heart Crack tier.
+_Avoid_: difficulty preset, difficulty level, mode (Endless Mode is a mode)
+
+**Heart Crack**:
+Difficulty tiers 1–3 picked before a new Run, unlocked by beating Umbra (winning at tier N opens N+1): monsters get more HP, damage and spawns from Chapter 1. Unlike Endless Mode it is a whole Run at a fixed higher difficulty.
+_Avoid_: hard mode, New Game+
 
 **Season**:
 A leaderboard period opened manually by the admin (typically after a big Balance Config change). Solo and co-op are ranked separately inside a season; an all-time board is kept for display only.

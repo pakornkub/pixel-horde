@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { createSim, reviveCost, scoreOf, type SimState } from '@pixel-horde/sim';
 import { hurtP, killE } from '../packages/sim/src/systems/combat';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
-import { botOptions } from './bot';
+import { asWritten, botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
 function fresh(extra: Parameters<typeof botOptions>[1] = {}) {
-  const sim = createSim(botOptions(6, { events: quiet, ...extra }));
+  const sim = createSim(botOptions(6, { events: quiet, config: asWritten(), ...extra })); // exact Gold amounts: base difficulty ×1
   const s = sim.view() as SimState;
   const step = (cmds: Parameters<typeof sim.step>[1] = []) => sim.step({ mx: 0, my: 0 }, cmds);
   return { sim, s, step };

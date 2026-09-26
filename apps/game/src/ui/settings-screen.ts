@@ -1,7 +1,5 @@
 // Settings overlay (ticket 07): every option applies immediately and persists on the device.
 import { t } from '@pixel-horde/i18n';
-import { effectivePreset, isRanked, offeredPresets, presetKnobs, type PresetId } from '@pixel-horde/config';
-import { active } from '../config';
 import { metaSync } from '../meta';
 import { VIEWS, applyLang, canVibrate, saveSettings, settings, type Settings } from '../settings';
 import { $, hide, show } from './overlays';
@@ -47,65 +45,10 @@ function row(labelKey: string, control: HTMLElement): HTMLElement {
 
 const onOff = (v: boolean): string => t(v ? 'set.opt.on' : 'set.opt.off');
 
-/** "×0.7" style change of one knob, or null when unchanged. */
-function knobLine(id: PresetId): string {
-  const k = presetKnobs(active.cfg, id), out: string[] = [];
-  const pct = (v: number): string => (v > 1 ? '+' : '−') + Math.round(Math.abs(v - 1) * 100) + '%';
-  const add = (key: string, v: number): void => { if (Math.abs(v - 1) > 0.001) out.push(t(`preset.k.${key}`, { v: pct(v) })); };
-  add('mob', (k.mobHp + k.mobDmg) / 2);
-  add('boss', (k.bossHp + k.bossDmg) / 2);
-  add('spawn', k.spawn);
-  add('xp', k.xp);
-  add('stage', k.stage);
-  add('warn', k.warn);
-  add('hp', k.hp);
-  add('speed', k.speed);
-  add('gold', k.gold);
-  return out.join(' · ');
-}
-
-/** Difficulty presets: one tap sets every gameplay knob for the next solo Run. */
-function presetBox(): HTMLElement {
-  const box = document.createElement('div');
-  box.className = 'presets';
-  const head = document.createElement('div');
-  head.className = 'presethead';
-  head.textContent = t('preset.title');
-  const grid = document.createElement('div');
-  grid.className = 'presetgrid';
-  grid.setAttribute('role', 'radiogroup');
-  grid.setAttribute('aria-label', t('preset.title'));
-  // the published Balance Config decides each preset's numbers and which ones are offered
-  const cur = effectivePreset(active.cfg, settings.preset);
-  for (const id of offeredPresets(active.cfg)) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.setAttribute('role', 'radio');
-    b.setAttribute('aria-checked', String(cur === id));
-    b.className = 'preset p-' + id;
-    b.innerHTML = '<b></b><small></small>';
-    b.querySelector('b')!.textContent = t(`preset.${id}`);
-    b.querySelector('small')!.textContent = t(`preset.${id}.tag`);
-    b.addEventListener('click', () => { settings.preset = id; saveSettings(); render(); });
-    grid.appendChild(b);
-  }
-  const ranked = isRanked(cur);
-  const info = document.createElement('p');
-  info.className = 'presetinfo';
-  const knobs = knobLine(cur);
-  info.textContent = t(`preset.${cur}.desc`) + (knobs ? ' — ' + knobs : '');
-  const note = document.createElement('p');
-  note.className = 'presetnote' + (ranked ? '' : ' unranked');
-  note.textContent = t(ranked ? 'preset.ranked' : 'preset.unranked') + ' ' + t('preset.nextRun');
-  box.append(head, grid, info, note);
-  return box;
-}
-
 function render(): void {
   const list = $('setList');
   list.innerHTML = '';
   list.append(
-    presetBox(),
     row('set.lang', seg('lang', ['th', 'en'] as const, (v) => t(`set.opt.${v}`), (v) => applyLang(v))),
     row('set.music', slider('music')),
     row('set.sfx', slider('sfx')),

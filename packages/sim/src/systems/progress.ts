@@ -86,10 +86,15 @@ export function answerAwaken(s: SimState, accept: boolean): void {
   // original rule: the Links are consumed; `keep` leaves them equipped (the new slots make room instead)
   if (!A.keep) for (const id of qualifiedLinks(s).slice(0, A.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
   P.awakened = true; // before the grant: attackSlots() counts the Awakening slots
-  // the first Skill Line skills arrive at once in free slots, so the transformation is felt
+  // the first Skill Line skills arrive at once in free slots, so the transformation is felt; with the attack slots
+  // full (e.g. keep 1 + slots 0) they wait on the Bench instead, and only a full Bench too drops the rest
   for (const id of AWAKENING[P.ch].line.slice(0, A.grant)) {
-    if (!P.skills[id] && Object.keys(P.skills).length >= attackSlots(s)) break;
-    P.skills[id] = Math.min(s.cfg.skills[id].max, Math.max(P.skills[id] || 0, A.grantLv));
+    const lv = (cur = 0): number => Math.min(s.cfg.skills[id].max, Math.max(cur, A.grantLv));
+    if (P.skills[id] || Object.keys(P.skills).length < attackSlots(s)) { P.skills[id] = lv(P.skills[id]); continue; }
+    const b = P.bench.find((x) => x.id === id);
+    if (b) b.lv = lv(b.lv);
+    else if (P.bench.length < benchSize(s)) P.bench.push({ id, lv: lv(), evo: false });
+    else break;
   }
   banner(s, 'awakened', 2.6, true);
   flash(s, 0.4, '#ffd23f');

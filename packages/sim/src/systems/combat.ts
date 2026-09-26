@@ -11,7 +11,7 @@ import { banner, burst, flash, sfx, shake, text } from './fx';
 import { say } from './kings';
 import { gameOver, offerRevive } from './progress';
 import { spawnEnemy } from './spawner';
-import { isGuest, isHost, queueHit } from './coop';
+import { ghostKill, isGuest, isHost, queueHit } from './coop';
 
 /** ALL damage to enemies goes through here. */
 export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: number, tag?: HitTag): void {
@@ -39,7 +39,7 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
   }
   s.events.push({ t: 'dmg', d });
   const guest = isGuest(s);
-  if (guest) queueHit(s, e, d, false); else e.hp -= d;
+  if (guest) { queueHit(s, e, d, false); if (e.predHp) e.hp -= d; } else e.hp -= d; // guests: predicted HP only
   e.flash = 0.08;
   const dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1, k = (kb == null ? pl.kb : kb) * (e.boss ? pl.kbBoss : e.elite ? pl.kbElite : 1);
   e.kx += (dx / l) * k;
@@ -59,6 +59,7 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
     }
   }
   if (!guest && e.hp <= 0) killE(s, e);
+  else if (guest && e.predHp && e.hp <= 0 && !e.dead) ghostKill(s, e); // the host confirms it later
   if (after) for (const f of after) f();
 }
 
@@ -98,13 +99,14 @@ function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | u
   if (e.boss && !guest) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap)); // guests: the host caps it
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
-  if (guest) queueHit(s, e, d, true); else e.hp -= d;
+  if (guest) { queueHit(s, e, d, true); if (e.predHp) e.hp -= d; } else e.hp -= d;
   e.flash = 0.08;
   const P = s.P, dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1, k = (kb ?? 0) * (e.boss ? s.cfg.player.kbBoss : 1);
   e.kx += (dx / l) * k; e.ky += (dy / l) * k;
   text(s, e.x, e.y - e.r * 1.2, d, col, false, { jitter: true });
   if (tag.applies === 'burning' && e.hp > 0) e.burn = s.cfg.status.burning * P.statusMul;
   if (!guest && e.hp <= 0) killE(s, e);
+  else if (guest && e.predHp && e.hp <= 0 && !e.dead) ghostKill(s, e); // the host confirms it later
 }
 
 /** Transmute (Grand Alchemist): a monster dying with Statuses passes them on to the monsters around it. */

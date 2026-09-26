@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { WEAPON_IDS, createSim, weaponKey, type SimEvent, type SimState } from '@pixel-horde/sim';
 import { killE } from '../packages/sim/src/systems/combat';
 import { chapterMobHp, spawnEnemy } from '../packages/sim/src/systems/spawner';
-import { botOptions } from './bot';
+import { asWritten, botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
 function fresh(extra: Parameters<typeof botOptions>[1] = {}) {
-  const sim = createSim(botOptions(8, { debug: { god: true }, events: quiet, ...extra }));
+  const sim = createSim(botOptions(8, { debug: { god: true }, events: quiet, config: asWritten(), ...extra }));
   const s = sim.view() as SimState;
   s.spawnAcc = -1e9; s.waveT = 1e9; s.enemies = [];
   const step = (n = 1, cmds: Parameters<typeof sim.step>[1] = []): SimEvent[] => { const ev: SimEvent[] = []; for (let i = 0; i < n; i++) { s.spawnAcc = -1e9; ev.push(...sim.step({ mx: 0, my: 0 }, i ? [] : cmds)); } return ev; };

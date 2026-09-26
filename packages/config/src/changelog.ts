@@ -59,7 +59,7 @@ export function catOfPath(path: string): ChangeCat {
   if (/^(events|heartCrack|endless)\./.test(p)) return 'event';
   if (/^(loot|shop|economy|chest|bench|score)\./.test(p)) return 'economy';
   if (/^coop\./.test(p)) return 'coop';
-  if (/^(spawn|scaling|director|stage|xp|levelup|presets|tutorial)\./.test(p)) return 'difficulty';
+  if (/^(spawn|scaling|director|stage|xp|levelup|difficulty|tutorial)\./.test(p)) return 'difficulty';
   if (/^fx\./.test(p)) return 'ui';
   return 'system';
 }

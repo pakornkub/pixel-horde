@@ -133,7 +133,7 @@ export function createSim(opts: SimOptions): Sim {
     if (s.coop?.role === 'guest' && (c.type === 'next' || c.type === 'route' || c.type === 'endless' || c.type === 'pause' || c.type === 'resume')) return;
     switch (c.type) {
       case 'mates': setMates(s, c.mates); break;
-      case 'remoteHits': applyRemoteHits(s, c.hits); break;
+      case 'remoteHits': applyRemoteHits(s, c.hits, c.from, c.q); break;
       case 'snap': applySnap(s, c.snap); break;
       case 'pick': choose(s, c.index); break;
       case 'chestStop': chestStop(s); break;

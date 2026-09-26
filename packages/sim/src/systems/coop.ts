@@ -5,7 +5,7 @@
 //   (`snap` commands ~15 Hz), queues its damage for the host and takes contact/hazard damage locally.
 //   Team EXP, kills, Gold, King rewards and Guardians come from the host's counters.
 import { ENEMY_IDS, type EnemyId } from '../data/enemies';
-import { exp, hypot } from '../core/fmath';
+import { exp, hypot, ipow } from '../core/fmath';
 import { REALMS } from '../content/lumora/realms';
 import type { CoopRole, CoopState, Enemy, Gem, Hazard, HostPhase, HostSnap, MateWire, SimState } from '../types';
 import { hit, hurtP, rollKingWeapon } from './combat';
@@ -21,7 +21,7 @@ export function initCoop(role: CoopRole, self: string): CoopState {
   return {
     role, self, mates: [], teamXp: 0, kingKills: 0, guardians: 0, lastGuardian: 'inferno', rivals: 0,
     teamGold: 0, teamChests: 0, healed: {}, guarded: {}, chooseT: 0, shieldT: 0, wasChoosing: false,
-    reviveT: {}, revived: {}, revivedStage: [], hostPhase: 'play', out: {},
+    reviveT: {}, revived: {}, revivedStage: [], acks: {}, hostPhase: 'play', out: {}, outU: {}, pend: [], seq: 0,
     last: { xp: 0, kc: 0, bk: 0, gd: 0, rk: 0, rv: 0, es: 0, st: 0, realm: null, ph: 'play', tg: 0, tc: 0, hl: 0, sg: 0 }, drops: [],
   };
 }
@@ -38,11 +38,43 @@ const OFF = 131072, MAXC = 262143;
 /** Monsters per snapshot (keeps it under ~4 KB). */
 export const SNAP_ENEMIES = 230;
 
-export function packEnemies(list: readonly Enemy[], ox: number, oy: number): string {
-  let s = '', n = 0;
+/** The monsters a snapshot carries (and their order). */
+function* snapEnemies(list: readonly Enemy[]): Generator<Enemy> {
+  let n = 0;
   for (const e of list) {
     if (e.dead || e.hide) continue;
-    if (n++ >= SNAP_ENEMIES) break;
+    if (n++ >= SNAP_ENEMIES) return;
+    yield e;
+  }
+}
+
+/* HP as a small float in 3 characters: 1 + exponent (6 bits) × 4096 + mantissa (12 bits), 0 = no HP; rounded UP so
+   a guest never thinks a monster is weaker than it is (a predicted kill is then always a real one). */
+const HP_M = 4096;
+export function encHp(hp: number): string {
+  if (!(hp > 0)) return enc(0, 3);
+  let v = Math.ceil(hp), ex = 0;
+  while (v >= 2 && ex < 62) { v /= 2; ex++; }
+  let m = Math.ceil((v - 1) * HP_M);
+  if (m >= HP_M) { m = 0; ex++; }
+  return enc(Math.min(62, ex) * HP_M + Math.min(m, HP_M - 1) + 1, 3);
+}
+export function decHp(s: string, at: number): number {
+  const n = dec(s, at, 3) - 1;
+  if (!(n >= 0)) return 0;
+  return ipow(2, Math.floor(n / HP_M)) * (1 + (n % HP_M) / HP_M);
+}
+
+/** HP per packed monster, same order as packEnemies: HP (3) + share of max HP (1, 0–63). */
+export function packEnemyHp(list: readonly Enemy[]): string {
+  let s = '';
+  for (const e of snapEnemies(list)) s += encHp(e.hp) + A64[Math.max(0, Math.min(63, Math.ceil((e.hp / (e.maxHp || 1)) * 63)))];
+  return s;
+}
+
+export function packEnemies(list: readonly Enemy[], ox: number, oy: number): string {
+  let s = '';
+  for (const e of snapEnemies(list)) {
     const x = Math.max(0, Math.min(MAXC, Math.round(e.x - ox) + OFF)), y = Math.max(0, Math.min(MAXC, Math.round(e.y - oy) + OFF));
     s += enc(e.id & MAXC, 3) + A64[ENEMY_IDS.indexOf(e.type)] + A64[(e.elite ? 1 : 0) + (e.armor ? 2 : 0)] + enc(x, 3) + enc(y, 3);
   }
@@ -236,8 +268,10 @@ export function chooseStep(s: SimState, dt: number): void {
 }
 
 /* ---------- host ---------- */
-export function applyRemoteHits(s: SimState, hits: readonly number[]): void {
+export function applyRemoteHits(s: SimState, hits: readonly number[], from?: string, q?: number): void {
   if (!isHost(s) || !Array.isArray(hits) || s.phase === 'over') return;
+  const acks = s.coop!.acks;
+  if (typeof from === 'string' && Number.isFinite(q)) acks[from] = Math.max(acks[from] ?? 0, q!);
   const byId = new Map<number, Enemy>();
   for (const e of s.enemies) if (!e.dead) byId.set(e.id, e);
   for (let i = 0; i + 1 < hits.length && i < 1200; i += 2) {
@@ -306,7 +340,7 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
   if (s.rivalE && !s.rivalE.dead) bs.push(['r', s.rivalE.id, pct(s.rivalE)]);
   return {
     st: s.stage, realm: s.realm, t: Math.round(s.stageTime * 10), dur: s.stageDur, ph: hostPhaseOf(s), ox, oy,
-    e: packEnemies(s.enemies, ox, oy), bs,
+    e: packEnemies(s.enemies, ox, oy), eh: packEnemyHp(s.enemies), ak: { ...c.acks }, bs,
     xp: Math.round(c.teamXp), kc: s.kills, bk: c.kingKills, gd: c.guardians, gk: c.lastGuardian, rk: c.rivals, es: s.escapes,
     tg: c.teamGold, tc: c.teamChests, hl: roundHeal(c.healed), sg: { ...c.guarded }, g: packGems(s, ox, oy),
     hz: s.hz.slice(0, 60).map(cleanHz), sp: s.specialStage, dark: s.darkness, ot: s.overtime, le: s.lastEnd,
@@ -318,17 +352,35 @@ export function hostSnapshot(s: SimState, names: Record<string, string> = {}): H
 /* ---------- guest ---------- */
 /** Guest: queue damage for the host instead of changing HP (Ultimate hits are sent negative). */
 export function queueHit(s: SimState, e: Enemy, d: number, ult: boolean): void {
-  const out = s.coop!.out;
-  out[e.id] = (out[e.id] || 0) + (ult ? -d : d);
+  const out = ult ? s.coop!.outU : s.coop!.out; // kept apart: summed together, opposite signs would cancel out
+  out[e.id] = (out[e.id] || 0) + d;
 }
 
-/** Guest: damage to send (and forget) — [enemyId, dmg, …]. */
+/** Guest: damage to send — [enemyId, dmg, …] as batch number `coop.seq`; kept in `pend` until the host acknowledges it. */
 export function takeHits(s: SimState): number[] {
   if (!isGuest(s)) return [];
-  const out = s.coop!.out, a: number[] = [];
-  for (const [id, d] of Object.entries(out)) a.push(Number(id), Math.round(d));
-  s.coop!.out = {};
+  const c = s.coop!, a: number[] = [], sum: Record<number, number> = {};
+  for (const [k, d] of Object.entries(c.out)) { const id = Number(k); a.push(id, Math.round(d)); sum[id] = d; }
+  for (const [k, d] of Object.entries(c.outU)) { const id = Number(k); a.push(id, -Math.round(d)); sum[id] = (sum[id] || 0) + d; }
+  c.out = {}; c.outU = {};
+  if (a.length) {
+    c.pend.push({ q: ++c.seq, d: sum });
+    if (c.pend.length > 100) c.pend.shift(); // a host that never acknowledges (older build)
+  }
   return a;
+}
+
+/** Guest: damage to this monster the host has not confirmed yet (sent or still waiting to be sent). */
+function unconfirmed(c: CoopState, id: number): number {
+  let d = (c.out[id] || 0) + (c.outU[id] || 0);
+  for (const b of c.pend) d += b.d[id] || 0;
+  return d;
+}
+
+/** Guest: a monster this player's damage has (by prediction) killed: it dies here now; the host confirms it later. */
+export function ghostKill(s: SimState, e: Enemy): void {
+  e.dead = true;
+  s.events.push({ t: 'kill', ttk: s.clock - e.born, x: e.x, y: e.y, type: e.type, boss: e.boss, elite: e.elite });
 }
 
 export function applySnap(s: SimState, h: HostSnap): void {
@@ -433,9 +485,15 @@ export function applySnap(s: SimState, h: HostSnap): void {
 }
 
 function mirrorEnemies(s: SimState, h: HostSnap): void {
-  const list = unpackEnemies(h.e, h.ox, h.oy), mine = new Map(s.enemies.map((e) => [e.id, e])), seen = new Set<number>();
+  const c = s.coop!, list = unpackEnemies(h.e, h.ox, h.oy), mine = new Map(s.enemies.map((e) => [e.id, e])), seen = new Set<number>();
+  // batches the host has applied are already in its HP (a host that does not acknowledge: nothing is predicted)
+  const ack = h.ak?.[c.self];
+  c.pend = ack === undefined ? [] : c.pend.filter((b) => b.q > ack);
+  const hp = typeof h.eh === 'string' && h.eh.length === list.length * 4 ? h.eh : '';
+  const bosses = new Set((Array.isArray(h.bs) ? h.bs : []).map((b) => b[1]));
   const next: Enemy[] = [];
-  for (const p of list) {
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
     seen.add(p.id);
     let e = mine.get(p.id);
     if (!e || e.type !== p.type) {
@@ -444,10 +502,19 @@ function mirrorEnemies(s: SimState, h: HostSnap): void {
       s.enemies.pop(); // spawnEnemy adds it; the mirror list is rebuilt below
       s.eid = eid;
       e.id = p.id;
-      e.hp = e.maxHp = 1e12; // guests never know monster HP; the host decides deaths
+      e.hp = e.maxHp = 1e12; // HP unknown (older host) until the snapshot says; the host decides deaths
     }
     e.tx = p.x; e.ty = p.y;
     e.armor = p.armored ? e.armor || 1 : 0;
+    e.predHp = false;
+    if (hp && !bosses.has(p.id)) {
+      // the host's HP (rounded up) minus this guest's damage it has not applied yet
+      const H = decHp(hp, i * 4), f = (AI[hp[i * 4 + 3]] ?? 63) / 63;
+      e.maxHp = f > 0 ? Math.max(H, H / f) : H;
+      e.hp = H - unconfirmed(c, p.id);
+      e.predHp = true;
+      if (e.hp <= 0) { if (!e.dead && mine.has(p.id)) ghostKill(s, e); continue; }
+    }
     next.push(e);
   }
   for (const e of s.enemies) if (!seen.has(e.id) && !e.dead && Math.abs(e.x - s.P.x) < s.viewport.w && Math.abs(e.y - s.P.y) < s.viewport.h) burst(s, e.x, e.y, '#ffffff', 5, 50, 0.35);
@@ -467,6 +534,7 @@ function mirrorEnemies(s: SimState, h: HostSnap): void {
 /** Guest, every tick: glide monsters toward the host's positions; contact damage hits only this player. */
 export function guestEnemies(s: SimState, dt: number, live: boolean): void {
   const P = s.P, k = 1 - exp(-14 * dt), contact = s.cfg.player.contact;
+  if (s.enemies.some((e) => e.dead)) s.enemies = s.enemies.filter((e) => !e.dead); // predicted kills
   for (const e of s.enemies) {
     if (e.tx !== undefined) {
       if (Math.abs(e.tx - e.x) > 200 || Math.abs(e.ty! - e.y) > 200) { e.x = e.tx; e.y = e.ty!; }
