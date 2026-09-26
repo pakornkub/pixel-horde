@@ -83,6 +83,9 @@ twice in the migration history: two sessions applied the same idempotent SQL 25 
 `20260928000024_spawn_wave_fronts` (new `shared.spawn.front*` / `lull*` / `pincer*` and `shared.director.stageReset`)
 is applied via the SQL editor (not in the migration history); the live `config_schema` has those fields. Their defaults
 are neutral, so wave fronts stay off until a config version sets them.
+`20260929000025_awakened_forms_fields` (new `shared.awaken.form/mark`, `skills.lance.aim`, Shield Bash and the
+Awakened-form fields `skills.{shield,sigil,hawk,flask}.awk.*`; patches only `awaken` and those five skills) is applied.
+Publish pass 2026-09d only after this code is deployed: an older client strips the unknown fields.
 Published configs: v4 = pass 2026-09, v5 = pass 2026-09b, v6 = pass 2026-09c (Director max 1.6, rise 0.04). Passes are
 loaded onto one draft in Admin → Balance (they stack, oldest first) and published from there.
 
