@@ -28,6 +28,10 @@ Pick one of four Heroes, walk into the swarm and bring the shards home.
     <td><img src="apps/site/public/shots/level.png" alt="Level-up choices"><br><sub>Level up: pick 1 of 3 — a new skill, an upgrade or a passive.</sub></td>
     <td><img src="apps/site/public/shots/realm.png" alt="Emberforge"><br><sub>11 Realms, each with its own monsters, traits and King.</sub></td>
   </tr>
+  <tr>
+    <td><img src="apps/site/public/shots/moon.png" alt="Blood Moon"><br><sub>Blood Moon: far more monsters, double Gold and a bonus chest.</sub></td>
+    <td><img src="apps/site/public/shots/hero.png" alt="Hero and Weapon select"><br><sub>Pick your Hero and the Weapon that shapes your Ultimate.</sub></td>
+  </tr>
 </table>
 
 ### How to play in 30 seconds
@@ -56,7 +60,6 @@ The full illustrated guide, with things you can click and try, lives on the webs
 - **Co-op for up to 4** over one invite link, and full **offline** solo play.
 - **Thai / English** everywhere.
 
-<p align="center"><img src="apps/site/public/shots/hero.png" alt="Hero and Weapon select" width="70%"></p>
 
 ---
 

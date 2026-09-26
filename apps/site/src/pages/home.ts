@@ -42,7 +42,7 @@ document.querySelectorAll<HTMLElement>('[data-ground]').forEach((sec, i) => {
 
 // ── screenshots ──
 const SHOTS: [string, TextKey, boolean?][] = [
-  ['play', 'shot.play', true], ['level', 'shot.level'], ['king', 'shot.king'], ['realm', 'shot.realm'], ['hero', 'shot.hero'], ['title', 'shot.title'],
+  ['play', 'shot.play', true], ['level', 'shot.level'], ['king', 'shot.king'], ['moon', 'shot.moon'], ['realm', 'shot.realm'], ['hero', 'shot.hero'], ['title', 'shot.title'],
 ];
 const lightbox = document.getElementById('lightbox')!;
 lightbox.addEventListener('click', () => { lightbox.hidden = true; });
