@@ -2,7 +2,7 @@
 // snapshots the way the client does (JSON round-trips, 15 Hz snapshots, 10 Hz guest messages).
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { createSim, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
+import { createSim, decHp, encHp, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
 import { botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
@@ -19,7 +19,7 @@ function room(nGuests: number, extra: Parameters<typeof botOptions>[1] = {}) {
     for (let k = 0; k < n; k++, tick++) {
       if (tick % 6 === 0) { // guests → host (10 Hz): presence + damage
         hostCmds.push({ type: 'mates', mates: rt(guests.map((g) => selfWire(g.view() as SimState))) });
-        for (const g of guests) { const h = takeHits(g.view() as SimState); if (h.length) hostCmds.push({ type: 'remoteHits', hits: rt(h) }); }
+        guests.forEach((g, i) => { const h = takeHits(g.view() as SimState); if (h.length) hostCmds.push({ type: 'remoteHits', hits: rt(h), from: 'G' + i, q: (g.view() as SimState).coop!.seq }); });
       }
       const hv = host.view();
       if (auto) {
@@ -40,7 +40,7 @@ function room(nGuests: number, extra: Parameters<typeof botOptions>[1] = {}) {
 }
 
 describe('co-op host / guest', () => {
-  it('packs monsters in 11 characters each and snapshots stay under 4 KB', () => {
+  it('packs monsters in 11 characters each and snapshots stay under 6 KB', () => {
     const sim = createSim(botOptions(3, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
     const s = sim.view() as SimState;
     for (let i = 0; i < 400; i++) s.enemies.push({ ...s.enemies[0] ?? {}, id: i, type: 'slime', x: s.P.x + i - 200, y: s.P.y - i, dead: false, elite: i % 7 === 0, armor: i % 5 === 0 ? 3 : 0 } as never);
@@ -49,7 +49,7 @@ describe('co-op host / guest', () => {
     const back = unpackEnemies(str, 10, -20);
     expect(back[7]).toMatchObject({ id: 7, type: 'slime', elite: true, x: Math.round(s.P.x + 7 - 200), y: Math.round(s.P.y - 7) });
     expect(back[5].armored).toBe(true);
-    expect(JSON.stringify(hostSnapshot(s)).length).toBeLessThan(4096);
+    expect(JSON.stringify(hostSnapshot(s)).length).toBeLessThan(6144); // with monster HP (4 chars each); the relay limit is 16 KB
   });
 
   it('guests mirror the host world and their damage kills host monsters', () => {
@@ -68,6 +68,44 @@ describe('co-op host / guest', () => {
     // guests level up from the team's pickups
     expect(g.kills).toBeGreaterThan(0);
     expect(g.P.lv).toBeGreaterThan(1);
+  });
+
+  it('monster HP travels in 3 characters, rounded up, within 0.03%', () => {
+    for (const v of [0.4, 1, 7, 100, 12345.6, 987654321]) {
+      const back = decHp(encHp(v), 0);
+      expect(back).toBeGreaterThanOrEqual(Math.ceil(v));
+      expect(back).toBeLessThanOrEqual(Math.ceil(v) * (1 + 1 / 4096) + 1e-9);
+    }
+    expect(decHp(encHp(0), 0)).toBe(0);
+  });
+
+  it('guests see monster HP and predict their own kills; the host confirms them and nothing comes back', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(4 * 60);
+    const g = r.gs(), h = r.hs();
+    const ge = g.enemies.find((e) => !e.boss && e.predHp)!;
+    const he = h.enemies.find((e) => e.id === ge.id)!;
+    expect(ge.hp).toBeGreaterThan(0); // real HP now (it used to be 1e12 on guests)
+    expect(ge.hp).toBeLessThanOrEqual(he.maxHp * 1.001 + 1);
+    expect(ge.maxHp).toBeGreaterThanOrEqual(ge.hp);
+    // this guest's damage that the host has not seen yet already kills the monster here
+    g.coop!.out[ge.id] = (g.coop!.out[ge.id] || 0) + he.maxHp * 2;
+    const kills = r.guests[0].step({ mx: 0, my: 0 }, [{ type: 'snap', snap: rt(hostSnapshot(h)) }]).filter((e) => e.t === 'kill');
+    expect(kills.some((e) => e.t === 'kill' && e.x === ge.x)).toBe(true); // death animation on the guest
+    expect(r.gs().enemies.some((e) => e.id === ge.id)).toBe(false);
+    expect(he.dead).toBe(false); // the host has not got the damage yet
+    // the damage reaches the host; the monster never reappears on the guest
+    for (let i = 0; i < 30; i++) { r.step(1); expect(r.gs().enemies.some((e) => e.id === ge.id)).toBe(false); }
+    expect(he.dead).toBe(true);
+    expect(r.gs().coop!.pend.length).toBeLessThan(3); // acknowledged batches are dropped
+  });
+
+  it("a guest's normal and Ultimate damage to one monster in the same batch both reach the host", () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(60);
+    const g = r.gs();
+    g.coop!.out = { 7: 50 }; g.coop!.outU = { 7: 100 };
+    expect(takeHits(g)).toEqual([7, 50, 7, -100]);
   });
 
   it('scales boss HP by 1 + 0.6 × extra players', () => {

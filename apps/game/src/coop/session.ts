@@ -10,7 +10,7 @@ export interface LobbyPlayer { id: string; name: string; hero: HeroId; weapon: W
 export type Msg =
   // guest → host
   | { k: 'hello'; hero: HeroId; weapon: WeaponId; ready: boolean; name?: string }
-  | { k: 'me'; p: MateWire; d: number[] }
+  | { k: 'me'; p: MateWire; d: number[]; q?: number } // q = the damage batch number (acknowledged in the snapshot)
   | { k: 'ready'; on: boolean } // Stage end: this player is done
   | { k: 'vote'; i: number } // route vote
   | { k: 'endless'; go: boolean }
@@ -44,7 +44,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
   let started: { seed: number; cfg: number } | null = null;
   // host
   const presence = new Map<string, MateWire>();
-  let hits: number[] = [];
+  let hits: { from: string; q?: number; d: number[] }[] = [];
   let matesDirty = false;
   // guest
   let snap: HostSnap | null = null;
@@ -85,7 +85,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
       else if (m.k === 'me' && m.p) {
         presence.set(e.from, { ...m.p, id: e.from, name: nameOf(e.from, p.name) });
         matesDirty = true;
-        if (Array.isArray(m.d) && m.d.length) hits.push(...m.d.slice(0, 1200));
+        if (Array.isArray(m.d) && m.d.length && hits.length < 200) hits.push({ from: e.from, q: Number.isFinite(m.q) ? m.q : undefined, d: m.d.slice(0, 1200) });
       }
       else if (m.k === 'ready') emit({ t: 'ready', id: e.from, on: !!m.on });
       else if (m.k === 'vote') emit({ t: 'vote', id: e.from, i: Number(m.i) });
@@ -126,7 +126,8 @@ export function createSession(connect: Connect, o: SessionOptions) {
       const out: Command[] = [];
       if (o.role === 'host') {
         if (matesDirty) { matesDirty = false; out.push({ type: 'mates', mates: [...presence.values()].filter((m) => peers.some((p) => p.id === m.id)) }); }
-        if (hits.length) { out.push({ type: 'remoteHits', hits }); hits = []; }
+        for (const b of hits) out.push({ type: 'remoteHits', hits: b.d, from: b.from, q: b.q });
+        hits = [];
       } else if (snap) { out.push({ type: 'snap', snap }); snap = null; }
       return out;
     },
@@ -140,7 +141,11 @@ export function createSession(connect: Connect, o: SessionOptions) {
       }
       sinceSnap += rdt;
       meT -= rdt;
-      if (meT <= 0) { meT = ME_EVERY; tr.send({ k: 'me', p: selfWire(v as SimState), d: takeHits(v as SimState) } satisfies Msg); }
+      if (meT <= 0) {
+        meT = ME_EVERY;
+        const d = takeHits(v as SimState);
+        tr.send({ k: 'me', p: selfWire(v as SimState), d, q: v.coop?.seq } satisfies Msg);
+      }
       return !(started && sinceSnap > hostLost);
     },
     leave(): void { if (!closed) { closed = true; tr.close(); } },

@@ -50,7 +50,7 @@ export type Command =
   | { type: 'setEvents'; events: EventSwitches } // feature flags for events: apply at the next Stage start
   // co-op (ticket 41/42)
   | { type: 'mates'; mates: MateWire[] } // host: latest guest presence
-  | { type: 'remoteHits'; hits: number[] } // host: guest damage [enemyId, dmg, …] (dmg < 0 = Ultimate hit, capped on bosses)
+  | { type: 'remoteHits'; hits: number[]; from?: string; q?: number } // host: guest damage [enemyId, dmg, …] (dmg < 0 = Ultimate hit, capped on bosses); q = that guest's batch number, acknowledged in the snapshot
   | { type: 'snap'; snap: HostSnap }; // guest: the host's world
 
 /** Server feature flags that switch special events off. */
@@ -121,6 +121,10 @@ export interface Mate extends MateWire {
 export interface HostSnap {
   st: number; realm: RealmId; t: number; dur: number; ph: HostPhase;
   ox: number; oy: number; e: string;
+  /** HP of each monster in `e`, same order, 4 characters each: HP rounded up (3, float) + share of max HP (1, 0–63). */
+  eh?: string;
+  /** Last guest damage batch applied, per guest id (guests stop predicting that damage). */
+  ak?: Record<string, number>;
   /** Bosses: [role k|k2|d|r, enemy id, HP %]. */
   bs: [string, number, number][];
   /** Team counters: EXP and Gold picked up by anyone, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
@@ -159,10 +163,15 @@ export interface CoopState {
   revived: Record<string, number>;
   /** Players already revived by an ally this Stage (once per player per Stage). */
   revivedStage: string[];
+  /** Last damage batch applied per guest id (sent back as `ak`). */
+  acks: Record<string, number>;
   // guest
   hostPhase: HostPhase;
-  /** Damage waiting to be sent to the host, per enemy id. */
-  out: Record<number, number>;
+  /** Damage waiting to be sent to the host, per enemy id (Ultimate hits apart: the host caps them on bosses). */
+  out: Record<number, number>; outU: Record<number, number>;
+  /** Damage batches sent but not yet acknowledged by the host (`seq` = the last batch number). */
+  pend: { q: number; d: Record<number, number> }[];
+  seq: number;
   last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number; sg: number };
   /** The host's drops on the ground (drawn only; the host decides pickups). */
   drops: Gem[];
@@ -234,6 +243,8 @@ export interface Enemy {
   id: number;
   /** Guest mirror: latest position from the host. */
   tx?: number; ty?: number;
+  /** Guest mirror: `hp` is the host's HP minus this guest's unconfirmed damage (kills are predicted); unset = HP unknown or a boss %. */
+  predHp?: boolean;
   type: EnemyId;
   x: number; y: number;
   hp: number; maxHp: number;
