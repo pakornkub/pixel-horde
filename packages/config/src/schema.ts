@@ -305,7 +305,9 @@ const shared = obj({
     reviveTime: sec(3, 'Seconds standing next to a downed ally to revive them'), reviveRange: pos(22, 'Ally revive distance'),
     reviveHp: frac(0.3, 'HP after an ally revive'),
     voteTime: sec(15, 'Route vote time (s); the host breaks ties'), clearWait: sec(30, 'Stage-end: wait for everyone to be ready at most (s)'),
-    hostLost: sec(5, 'Guests leave when no snapshot arrives for this long (s)'),
+    hostLost: sec(5, 'Not used any more (see hostWait / hostGone); kept so older versions stay valid'),
+    hostWait: sec(1.5, 'Guest: no host snapshot for this long (s) → its world pauses and "waiting for host" shows'),
+    hostGone: sec(60, 'Guest: leave the room after this long (s) without a host snapshot'),
   }, 'Co-op'),
   tutorial: obj({ kingHp: frac(0.8, 'King HP × in the account\'s very first Greenvale'), spawn: frac(0.8, 'Spawn rate × in that first Greenvale') }, 'First Run (easier Greenvale)'),
   fx: obj({

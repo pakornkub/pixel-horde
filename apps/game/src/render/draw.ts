@@ -1084,8 +1084,10 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     const prog = clamp(v.stageTime / v.stageDur, 0, 1);
     const hm = Math.pow(1.5, v.stage - 1) * (1 + 0.7 * prog) * (1 + 0.08 * (P.lv - 1)) * (0.85 + 0.15 * v.dir.v);
     const lines = [`DPS ${dps}`, `TTK ${ttk.toFixed(1)}s`, `DMG x${P.dmgMul.toFixed(2)}`, `CD -${Math.round(P.cdRed * 100)}%`, `CRIT ${Math.round(P.crit * 100)}% x${P.critMul.toFixed(1)}`,
-      `MOB HP x${hm.toFixed(1)}`, `DIRECTOR x${v.dir.v.toFixed(2)}`, `MOBS ${v.enemies.length}`];
-    const px = 8 * D, lh = 13 * D, bx = left, by2 = top + 84 * D, bw = 150 * D;
+      `MOB HP x${hm.toFixed(1)}`, `DIRECTOR x${v.dir.v.toFixed(2)}`, `MOBS ${v.enemies.length}`, ...MET.net];
+    const px = 8 * D, lh = 13 * D, bx = left, by2 = top + 84 * D;
+    ctx.font = font(px);
+    const bw = Math.max(150 * D, ...lines.map((l) => ctx.measureText(l).width + 12 * D)); // co-op lines are wider
     ctx.fillStyle = 'rgba(30,27,51,.72)'; ctx.fillRect(bx - 6 * D, by2 - 6 * D, bw, lines.length * lh + 10 * D);
     ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = font(px); ctx.fillStyle = '#e9f1ff';
     lines.forEach((l, i) => ctx.fillText(l, bx, by2 + i * lh));

@@ -2,7 +2,7 @@
 // snapshots the way the client does (JSON round-trips, 15 Hz snapshots, 10 Hz guest messages).
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { createSim, decHp, encHp, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
+import { createSim, decHp, encHp, fitSnap, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
 import { botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
@@ -40,6 +40,39 @@ function room(nGuests: number, extra: Parameters<typeof botOptions>[1] = {}) {
 }
 
 describe('co-op host / guest', () => {
+  it('a snapshot too big for the relay is trimmed (hazards, drops, then monsters) and stays consistent; bosses stay', () => {
+    const sim = createSim(botOptions(3, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
+    const s = sim.view() as SimState;
+    for (let i = 0; i < 300; i++) s.enemies.push({ ...s.enemies[0] ?? {}, id: i + 10, type: 'slime', x: s.P.x + i, y: s.P.y, dead: false, hp: 50, maxHp: 50, boss: i === 299 } as never);
+    for (let i = 0; i < 400; i++) s.gems.push({ kind: 'xp', x: s.P.x + i, y: s.P.y + 3, v: 1, mag: false });
+    for (let i = 0; i < 60; i++) s.hz.push({ id: i, kind: 'ring', x: s.P.x + i * 3.3333, y: s.P.y - i * 1.777, r: 40.123, t: 0.5, dur: 1.25, dmg: 12.5, note: 'x'.repeat(120) } as never);
+    const full = hostSnapshot(s);
+    expect(JSON.stringify(full).length).toBeGreaterThan(9000);
+    const fit = fitSnap(full, 6000);
+    expect(JSON.stringify(fit).length).toBeLessThanOrEqual(6000);
+    expect(fit.trim).toBeGreaterThan(0);
+    expect(fit.eh!.length).toBe((fit.e.length / 11) * 4); // HP still lines up with the monsters
+    expect(unpackEnemies(fit.e, fit.ox, fit.oy)[0].id).toBe(309); // the boss is packed first and kept
+    expect(fitSnap(hostSnapshot(sim.view() as SimState), 1e6).trim).toBeUndefined(); // small enough: untouched
+  });
+
+  it('guests keep monsters moving at their last speed for a moment when a snapshot is late', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(3 * 60);
+    const h = r.hs(), g = r.gs();
+    const he = h.enemies.find((e) => !e.boss)!;
+    const snapAt = (x: number, ck: number): HostSnap => { he.x = x; he.y = h.P.y + 80; const sn = rt(hostSnapshot(h)); sn.ck = ck; return sn; };
+    r.guests[0].step({ mx: 0, my: 0 }, [{ type: 'snap', snap: snapAt(h.P.x + 60, 1000) }]);
+    r.guests[0].step({ mx: 0, my: 0 }, [{ type: 'snap', snap: snapAt(h.P.x + 66, 1006) }]); // 6 px in 0.1 s = 60 px/s
+    const ge = g.enemies.find((e) => e.id === he.id)!;
+    expect(ge.mir!.vx).toBeCloseTo(60, 0);
+    const tx0 = ge.tx!;
+    for (let i = 0; i < 12; i++) r.guests[0].step({ mx: 0, my: 0 }, []); // 0.2 s, no snapshot
+    expect(ge.tx! - tx0).toBeGreaterThan(9); // kept going (about 12 px)
+    for (let i = 0; i < 60; i++) r.guests[0].step({ mx: 0, my: 0 }, []);
+    expect(ge.tx! - tx0).toBeLessThan(17); // but only for LEAD (0.25 s)
+  });
+
   it('packs monsters in 11 characters each and snapshots stay under 6 KB', () => {
     const sim = createSim(botOptions(3, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
     const s = sim.view() as SimState;

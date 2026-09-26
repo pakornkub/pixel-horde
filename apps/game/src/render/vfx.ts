@@ -83,7 +83,7 @@ function deathAnim(x: number, y: number, type: EnemyId, col: string, big: boolea
 }
 
 /** Stats meter (press I): DPS over 5 s, average time-to-kill. */
-export const MET = { on: false, dmg: [] as [number, number][], ttk: [] as number[] };
+export const MET = { on: false, dmg: [] as [number, number][], ttk: [] as number[], net: [] as string[] };
 
 export function particles(x: number, y: number, col: string, n: number, sp: number, life: number): void {
   const k = effectsScale();

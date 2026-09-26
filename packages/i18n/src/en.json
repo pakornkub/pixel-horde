@@ -784,6 +784,7 @@
  "coop.voteWait": "Vote sent — waiting for the others…",
  "coop.teamReady": "Ready: {who} · continuing in {left} s",
  "coop.split": "{total}G ÷ {n} players (you picked up {mine}G) → you get {got}G",
+ "coop.hostWait": "Waiting for the host… nothing for {s} s (the game waits, nobody gets hit)",
  "coop.version": "Your game is a different version from the host's. Reload the page (both of you) and join again.",
  "coop.versionHost": "{who} has a different game version: they should reload the page and join again.",
  "coop.teamVotes": "Voted: {who} · {left} s left (ties: the host's pick)",
