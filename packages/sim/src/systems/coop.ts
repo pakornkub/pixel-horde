@@ -15,7 +15,7 @@ import { banner, burst, flash, sfx } from './fx';
 import { choose, chestStop, gameOver, levelCheck, stageEndRewards, startStage } from './progress';
 import { spawnEnemy } from './spawner';
 import { stepStatuses } from './combos';
-import { U } from './player';
+import { U, xpShare } from './player';
 
 export function initCoop(role: CoopRole, self: string): CoopState {
   return {
@@ -130,7 +130,7 @@ export function coopGems(s: SimState, dt: number): void {
     }
     if (bd >= 7) continue;
     g.got = true;
-    if (g.kind === 'xp') { c.teamXp += g.v; P.xp += g.v * (1 + sh.wisdom.per * U(s, 'wisdom')); sfx(s, 'gem'); }
+    if (g.kind === 'xp') { c.teamXp += g.v; P.xp += g.v * (1 + sh.wisdom.per * U(s, 'wisdom')) * xpShare(s); sfx(s, 'gem'); }
     else if (g.kind === 'coin') {
       c.teamGold += g.v;
       const gg = Math.max(1, Math.round(g.v * (1 + sh.greed.per * U(s, 'greed'))));
@@ -206,6 +206,10 @@ export const choosing = (s: SimState): boolean => !!s.coop && (s.phase === 'leve
 
 /** Shield bubble on this player: picking right now, or the few seconds after (to get moving again). */
 export const shielded = (s: SimState): boolean => choosing(s) || (!!s.coop && s.coop.shieldT > 0);
+
+/** Co-op: while choosing, this player's Skills, Shadow Clone casts and Companion wait (unless `coop.choosingSkills` is 1) —
+ *  a player who cannot be hurt should not keep killing and chaining level-ups. */
+export const attacksPaused = (s: SimState): boolean => !s.cfg.coop.choosingSkills && choosing(s);
 
 /**
  * Every tick in co-op: while choosing, the Hero stands still inside a shield bubble (no damage —
@@ -350,7 +354,7 @@ export function applySnap(s: SimState, h: HostSnap): void {
   s.overtime = !!h.ot;
   // team counters → this player's own rewards
   const dx = h.xp - L.xp;
-  if (dx > 0 && dx < 1e7) P.xp += dx * (1 + s.cfg.shop.wisdom.per * U(s, 'wisdom'));
+  if (dx > 0 && dx < 1e7) P.xp += dx * (1 + s.cfg.shop.wisdom.per * U(s, 'wisdom')) * xpShare(s);
   L.xp = h.xp;
   const dk = h.kc - L.kc;
   if (dk > 0 && dk < 5000) {

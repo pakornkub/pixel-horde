@@ -15,7 +15,7 @@ import { isWeapon } from './data/weapons';
 import { usableWeapons } from './systems/combat';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
-import { applyRemoteHits, applySnap, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates } from './systems/coop';
+import { applyRemoteHits, applySnap, attacksPaused, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates } from './systems/coop';
 
 
 export interface Sim {
@@ -205,14 +205,16 @@ export function createSim(opts: SimOptions): Sim {
     s.totalTime += dt;
     const U = s.cfg.ult, rate = U.max / U.fill;
     s.ult = Math.min(U.max, s.ult + rate * dt);
-    if (!P.down) updSkills(s, dt);
+    const armed = !P.down && !attacksPaused(s);
+    if (armed) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
     guestEnemies(s, dt, live);
     if (s.phase !== 'play' && !choosing(s)) return;
     chooseStep(s, dt);
     stepHz(s, dt);
-    petStep(s, dt); cloneStep(s, dt);
+    if (armed) petStep(s, dt);
+    cloneStep(s, dt);
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
     levelCheck(s);
     if (s.phase !== 'play') return;
@@ -276,14 +278,16 @@ export function createSim(opts: SimOptions): Sim {
         shake(s, 5);
       }
     }
-    if (world && !P.down) updSkills(s, dt);
+    const armed = world && !P.down && !attacksPaused(s); // co-op: no attacks while choosing (coop.choosingSkills 0)
+    if (armed) updSkills(s, dt);
     stepBolts(s, dt);
     updEffects(s, dt);
     const damp = exp(dt * knockbackLog(s.cfg));
     stepEnemies(s, dt, damp, live);
     if (s.phase === 'over') return;
     if (world) stepHz(s, dt);
-    if (world) { petStep(s, dt); cloneStep(s, dt); }
+    if (armed) petStep(s, dt);
+    if (world) cloneStep(s, dt);
     if (world && s.coop) { chooseStep(s, dt); hostStep(s, dt); if ((s.phase as Phase) === 'over') return; }
     if (s.streakT > 0) { s.streakT -= dt; if (s.streakT <= 0) s.streak = 0; }
     if (s.coop) coopGems(s, dt); else stepGems(s, dt);

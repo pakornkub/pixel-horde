@@ -6,7 +6,7 @@ import { rollStage } from './events';
 import { canFuse, levelCompanion } from './guardians';
 import { say } from './kings';
 import { banner, burst, flash, sfx, shake } from './fx';
-import { recompute, U, xpNeed } from './player';
+import { recompute, U, xpNeed, xpShare } from './player';
 import { DEATH_COL } from '../data/enemies';
 import { REALMS, ROUTE_REALMS, type RealmId } from '../content/lumora/realms';
 
@@ -34,7 +34,7 @@ export function startStage(s: SimState, n: number): void {
   const D = s.cfg.director;
   if (D.stageReset > 0) s.dir.v += (D.start - s.dir.v) * D.stageReset; // pressure built up last Stage eases off
   s.enemies = []; s.bolts = []; s.effects = [];
-  for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v; if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
+  for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v * xpShare(s); if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
   s.gems = [];
   levelCheck(s);
   s.streak = 0; s.streakT = 0;

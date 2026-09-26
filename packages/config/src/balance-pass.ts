@@ -271,5 +271,46 @@ export const BALANCE_PASS_2026_09C: BalancePass = {
   },
 };
 
+/** Owner co-op playtest (2026-09-27): levels chained while the player stood invulnerable in the level-up bubble.
+ *  Co-op only; works on any build that has `coop.choosingSkills` / `coop.xpShareK`. */
+export const BALANCE_PASS_2026_09_COOP: BalancePass = {
+  id: '2026-09-coop',
+  note: 'Co-op pass: no attacks while choosing a level-up, a shorter shield after it, EXP shared by team size',
+  patch: {
+    shared: {
+      // the choosing player could not be hurt but their Skills kept killing: EXP kept coming and level-ups chained
+      coop: { choosingSkills: 0, shieldAfter: 1.5, xpShareK: 0.4 },
+    },
+  },
+  changelog: {
+    titleTh: 'เล่นด้วยกัน: เลเวลอัปไม่ทำให้อมตะยาว ๆ อีกต่อไป',
+    titleEn: 'Co-op: level-ups no longer make you untouchable for ages',
+    items: [
+      { cat: 'coop', th: 'ระหว่างเลือกเลเวลอัปหรือหมุนหีบ สกิลและสัตว์คู่ใจหยุดโจมตี โล่หลังเลือกเสร็จเหลือ 1.5 วินาที', en: 'While you choose a level-up or spin a chest, your Skills and Companion stop attacking; the shield after choosing lasts 1.5 s' },
+      { cat: 'coop', th: 'EXP ที่ทีมเก็บได้แบ่งตามจำนวนคน: 2 คนได้คนละ 71%, 3 คน 56%, 4 คน 45%', en: 'Team EXP is shared by team size: 71% each for 2 players, 56% for 3, 45% for 4' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน co-op 2026-09: เลเวลอัปต่อกันไม่รู้จบ',
+    summary: 'เล่นจริงแบบ co-op: ตอนเลือกการ์ดผู้เล่นอยู่ในโล่ ไม่โดนดาเมจ แต่สกิลยังยิงและฆ่ามอนต่อ '
+      + 'และหลังเลือกเสร็จยังอมตะอีก 5 วินาที ส่วน EXP ทุกเม็ดที่ใครเก็บ ทุกคนได้เต็ม (มอนเกิดเพิ่มแค่ ×1.6 เมื่อมี 2 คน) '
+      + 'EXP จึงไหลเข้าไม่หยุด เลเวลอัปต่อกันเป็นทอด ๆ และอมตะเกือบตลอด ชุดนี้ให้สกิลหยุดระหว่างเลือก ลดโล่หลังเลือก และแบ่ง EXP ตามจำนวนคน',
+    method: 'อ่านโค้ด co-op (packages/sim/src/systems/coop.ts, sim.ts) และทดสอบ headless host + guest (tests/coop.test.ts)',
+    findings: [
+      { level: 'bad', title: 'อมตะแต่ยังฆ่ามอนได้', body: 'ระหว่างเลือกการ์ด updSkills และสัตว์คู่ใจยังทำงาน ผู้เล่นฆ่ามอนต่อในโล่ แล้วได้ EXP เลเวลอัปถัดไปเปิดทันที', status: 'แก้ด้วย coop.choosingSkills = 0' },
+      { level: 'warn', title: 'โล่หลังเลือก 5 วินาที', body: 'เลเวลอัปต่อกัน 3–4 ครั้งเท่ากับอมตะ 20+ วินาที', status: 'ลดเหลือ 1.5 วินาที' },
+      { level: 'warn', title: 'EXP ทีมได้คนละเต็ม', body: 'ใครเก็บ ทุกคนได้ 100% ขณะที่มอนเกิดเพิ่มแค่ 1 + 0.6 × เพื่อน เล่น 2 คนแต่ละคนจึงได้ EXP ราว 1.6 เท่าของเล่นคนเดียว', status: 'แก้ด้วย coop.xpShareK = 0.4' },
+    ],
+    reasons: {
+      'shared.coop.choosingSkills': 'คนที่กำลังเลือกการ์ด (อมตะ) ไม่ฆ่ามอนต่อ',
+      'shared.coop.shieldAfter': 'พอให้ตั้งหลัก แต่ไม่อมตะยาว ๆ เมื่อเลเวลอัปต่อกัน',
+      'shared.coop.xpShareK': '2 คนได้คนละ 71% ใกล้ ๆ กับมอนที่เพิ่มขึ้น ×1.6 หารสองคน',
+    },
+    next: [
+      'หลังเล่นจริง: ดูว่าเลเวลตอนจบด่าน 1–3 ของ co-op ใกล้กับเล่นคนเดียวไหม ถ้ายังเร็วไปเพิ่ม xpShareK',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

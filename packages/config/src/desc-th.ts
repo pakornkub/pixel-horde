@@ -18,6 +18,8 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Level-up / chest: seconds to choose before a pick is made for you (the room keeps playing)': { th: 'เวลาเลือกเลเวลอัป/หีบ ก่อนระบบสุ่มให้ (วินาที)', up: 'มีเวลาเลือกนานขึ้น แต่ยืนในโล่เฉย ๆ นานขึ้น' },
   'Shield bubble radius while choosing (monsters are pushed out)': { th: 'รัศมีโล่ฟองสบู่ตอนกำลังเลือก', up: 'โล่ใหญ่ขึ้น ดันมอนออกไปไกลขึ้น' },
   'Shield stays this long after choosing (s): time to get moving again, still no damage': { th: 'โล่อยู่ต่อหลังเลือกสกิลเสร็จ (วินาที)', up: 'มีเวลาตั้งหลักนานขึ้น เดินได้แต่ยังไม่โดนดาเมจ' },
+  'Skills, Companion and Shadow Clone keep attacking while their player chooses a level-up / chest (1) or stop (0)': { th: 'ระหว่างเลือกเลเวลอัป/หีบ สกิล สัตว์ และเงายังโจมตีไหม (1 = ยิงต่อ, 0 = หยุด)', up: '1 = อมตะในโล่แต่ยังฆ่ามอนได้ เลเวลขึ้นต่อกันเป็นทอด ๆ' },
+  'EXP per pickup for each player = 1 / (1 + this × other players); 0 = everyone gets it all': { th: 'ลด EXP ต่อคนตามจำนวนเพื่อน: ได้ 1 / (1 + ค่านี้ × จำนวนเพื่อน)', up: 'เลเวลขึ้นช้าลงเมื่อเล่นหลายคน (0.4: 2 คนได้ 71%, 4 คนได้ 45%)' },
   'Shield bubble push speed': { th: 'ความเร็วที่โล่ดันมอนออก', up: 'มอนถูกดันออกจากโล่เร็วขึ้น' },
   'A King drops its Realm\'s Weapon (if not owned yet)': { th: 'โอกาสที่ King ดรอป Weapon ของ Realm (ถ้ายังไม่มี)', up: 'โอกาสสูงขึ้น ได้ Weapon จาก King ง่ายขึ้น' },
   'Added per skill level': { th: 'เพิ่มต่อเลเวลสกิล', up: 'ค่าเปลี่ยนมากขึ้นทุกเลเวล (ถ้าติดลบ = ลดลงทุกเลเวล เช่นคูลดาวน์)' },
