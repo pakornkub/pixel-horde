@@ -42,7 +42,7 @@ export type Command =
   | { type: 'revive' } // down: buy the revive
   | { type: 'giveUp' } // down: end the Run
   | { type: 'awaken'; accept: boolean } // clear screen: answer the Awakening prompt
-  | { type: 'swap'; bench: number; slot: SkillId | null } // clear screen: Bench skill ↔ attack slot (null = empty slot)
+  | { type: 'swap'; bench: number; slot: SkillId | PassiveId | null } // clear screen: Bench skill ↔ attack slot, Bench passive ↔ passive slot (null = empty slot)
   | { type: 'discard'; bench: number } // clear screen: remove a Bench skill for free (its levels are lost)
   | { type: 'ult' }
   | { type: 'viewport'; w: number; h: number } // low-res view size changed (affects on-screen rules)
@@ -267,7 +267,8 @@ export interface Enemy {
   ccd?: Partial<Record<ComboId, number>>;
 }
 
-export interface BenchSkill { id: SkillId; lv: number; evo: boolean }
+/** A benched attack Skill, or (`pas`) a benched passive once the passive slots are full (`bench.passives`). */
+export type BenchSkill = { id: SkillId; lv: number; evo: boolean; pas?: undefined } | { id: PassiveId; lv: number; evo: false; pas: true };
 
 export type KingMove = 'shadowBolts' | 'shadowMeteors' | 'slam' | 'split' | 'splash' | 'sandLine' | 'burrow' | 'quicksand' | 'boneFan' | 'raise' | 'crypt' | 'iceSpears' | 'iceFloor' | 'throne'
   | 'quake' | 'lavaDrops' | 'eruption' | 'spit' | 'frogs' | 'gossip' | 'trail' | 'swoop' | 'grid'
@@ -379,7 +380,7 @@ export interface Gem {
 export type LevelOption =
   | { kind: 'evo'; id: SkillId }
   | { kind: 'skill'; id: SkillId; toBench?: boolean }
-  | { kind: 'pas'; id: PassiveId }
+  | { kind: 'pas'; id: PassiveId; toBench?: boolean }
   | { kind: 'comp' }
   | { kind: 'heal' };
 

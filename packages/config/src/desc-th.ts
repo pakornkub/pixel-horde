@@ -4,6 +4,7 @@
 /** Thai text for each English field description: `th` = what it is (short, ≤ 60 chars), `up` = what raising it does (≤ 90 chars). */
 export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Stage end: Bench skills can be removed for free (1) or not (0)': { th: 'ลบสกิลใน Bench ฟรีตอนจบด่าน (1 = ได้, 0 = ไม่ได้)', up: '1 = มีปุ่ม ✕ ลบสกิลสำรองทิ้งได้ ช่อง Bench ว่างรับสกิลใหม่' },
+  'Full passive slots: new passives go to the Bench and swap at the Stage end (1) or are not offered (0)': { th: 'ช่อง Passive เต็ม: Passive ใหม่ไปพักใน Bench แล้วสลับตอนจบด่าน (1 = ได้, 0 = ไม่เสนอ Passive ใหม่)', up: '1 = เปลี่ยน Passive ได้ระหว่างรอบ' },
   'Stage end: Skill Points can be bought for Gold (1) or not (0)': { th: 'ซื้อแต้มสกิลด้วย Gold ตอนจบด่าน (1 = เปิด, 0 = ปิด)', up: '1 = มีปุ่มซื้อแต้มสกิลตอนจบด่าน (ราคาดูที่ spCost)' },
   'Kings also drop a chest item (1: two chests per King) or only open the wheel (0)': { th: 'บอสดรอปหีบบนพื้นด้วย (1 = 2 หีบต่อบอส, 0 = หีบเดียว)', up: '1 = ได้หีบเพิ่มอีกใบ ของรางวัลเยอะขึ้น เกมง่ายขึ้น' },
   'Normal monsters shoot (1) or just walk (0); King-summoned turrets always shoot': { th: 'มอนธรรมดายิงกระสุนได้ไหม (1 = ยิง, 0 = เดินอย่างเดียว)', up: '1 = มอนสายยิงยิงใส่ผู้เล่น เกมยากขึ้น (ป้อมที่ King เรียกยิงเสมอ)' },

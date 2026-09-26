@@ -1159,9 +1159,10 @@ function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, max
     for (let i = 0; i < bSize; i++) {
       const x = gx + i * (ps + pg), bk = P.bench[i];
       if (!bk) { panelSlot(x, yP, ps, false); continue; }
-      ctx.globalAlpha = 0.5; panelIcon(x, yP, ps, SKILL_ICON[bk.id].col, SKILL_ICON[bk.id].g, false, bk.id); ctx.globalAlpha = 1;
+      const ic = bk.pas ? PASSIVE_ICON[bk.id] : SKILL_ICON[bk.id];
+      ctx.globalAlpha = 0.5; panelIcon(x, yP, ps, ic.col, ic.g, !!bk.pas, bk.id); ctx.globalAlpha = 1;
       ctx.save(); ctx.setLineDash([2 * D, 2 * D]); ctx.strokeStyle = '#e8e4f4'; ctx.lineWidth = D; ctx.strokeRect(x - 3 * D, yP - 3 * D, ps + 6 * D, ps + 6 * D); ctx.restore();
-      panelLv(x, yP, ps, bk.lv, cfg.skills[bk.id].max);
+      panelLv(x, yP, ps, bk.lv, bk.pas ? cfg.passives.max[bk.id] : cfg.skills[bk.id].max);
     }
     gx += benchW + 12 * D;
   }

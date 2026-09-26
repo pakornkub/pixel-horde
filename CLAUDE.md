@@ -91,7 +91,7 @@ clear screen — never at the next Stage start.
   cooldown reduction cap 40% (Haste 8%/lv, Vex 8%); crit 8% base + Keen Eye 7%/lv, cap 50%; critMul 2.0 + 0.2/lv.
 - XP to next level: `5 + 4lv + 0.5lv² + 1.4·max(0, lv-8)²`.
 - Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening).
-  4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4). 6 passives,
+  4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
   16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage.
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
@@ -117,7 +117,7 @@ clear screen — never at the next Stage start.
   `economy.kingChest`); it drops no chest item (its Gold rides on the King coin). Skill Points come only
   from Kings — they are not sold for Gold at the Stage end. Bench skills can be removed for free at the
   Stage end. Owner switches in the Admin bring the old rules back: `loot.kingChestItem` (1 = the chest
-  item too), `economy.spShop` (1 = buy Skill Points), `bench.discard` (0 = no removing).
+  item too), `economy.spShop` (1 = buy Skill Points), `bench.discard` (0 = no removing), `bench.passives` (0 = no new passives once the slots are full).
 
 ## Co-op protocol (host-authoritative)
 - Host simulates everything and broadcasts ~15 Hz: stage, time, phase (`play|wait|pause|clear|route|victory|over`),

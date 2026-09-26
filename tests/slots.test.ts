@@ -37,13 +37,47 @@ describe('Skill slots v2 and the Bench', () => {
     expect(o.some((x) => x.kind === 'skill' && x.id === 'frost')).toBe(false);
   });
 
-  it('new passives only while a passive slot is free', async () => {
+  it('full passive slots: new passives go to the Bench while it has room (bench.passives = 0: not offered)', async () => {
     const { s } = fresh();
+    const three = ['might', 'haste', 'swift'];
     s.P.pas = { might: 1, haste: 1, swift: 1 };
-    const o = await offers(s);
-    expect(o.some((x) => x.kind === 'pas' && !['might', 'haste', 'swift'].includes(x.id))).toBe(false);
-    expect(o.some((x) => x.kind === 'pas')).toBe(true);
+    let o = await offers(s);
+    const news = o.filter((x) => x.kind === 'pas' && !three.includes(x.id));
+    expect(news.length).toBeGreaterThan(0);
+    expect(news.every((x) => x.kind === 'pas' && x.toBench)).toBe(true);
+    expect(o.some((x) => x.kind === 'pas' && three.includes(x.id) && !x.toBench)).toBe(true); // upgrades still offered
     expect(PASSIVE_IDS.length).toBeGreaterThan(3);
+    s.P.bench = [{ id: 'crit', lv: 1, evo: false, pas: true }]; // Bench full: no new passives, the benched one is not offered
+    o = await offers(s);
+    expect(o.some((x) => x.kind === 'pas' && !three.includes(x.id))).toBe(false);
+    s.P.bench = [];
+    s.cfg = { ...s.cfg, bench: { ...s.cfg.bench, passives: 0 } };
+    o = await offers(s);
+    expect(o.some((x) => x.kind === 'pas' && !three.includes(x.id))).toBe(false);
+  });
+
+  it('a Bench passive swaps into a passive slot at the Stage end, keeping levels; an evolved Skill stays evolved', () => {
+    const { sim, s } = fresh(1000);
+    s.P.pas = { might: 1, haste: 3, vital: 2 };
+    s.P.skills = { ...s.P.skills, bolt: 8 }; s.P.evo = { bolt: true }; // Bolt evolves with Haste
+    s.phase = 'levelup'; s.pendingLv = 1;
+    s.levelUp = { options: [{ kind: 'pas', id: 'crit', toBench: true }], chest: false, lv: 2 };
+    sim.step({ mx: 0, my: 0 }, [{ type: 'pick', index: 0 }]);
+    expect(s.P.bench).toEqual([{ id: 'crit', lv: 1, evo: false, pas: true }]);
+    expect(s.P.pas.crit).toBeUndefined();
+    s.phase = 'clear';
+    const base = fresh().s.P.maxHp;
+    s.P.maxHp = s.P.hp = base + 40; // as if Vitality counted
+    sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'bolt' }]); // wrong kind: ignored
+    expect(s.P.bench[0].id).toBe('crit');
+    sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'vital' }]);
+    expect(s.P.pas).toEqual({ might: 1, haste: 3, crit: 1 });
+    expect(s.P.bench).toEqual([{ id: 'vital', lv: 2, evo: false, pas: true }]);
+    expect(s.P.maxHp).toBe(base); // Vitality benched: stats recomputed, HP capped
+    expect(s.P.hp).toBe(base);
+    sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'haste' }]);
+    expect(s.P.pas.haste).toBeUndefined();
+    expect(s.P.evo.bolt).toBe(true);
   });
 
   it('picking a Bench offer puts the Skill on the Bench at level 1', () => {
