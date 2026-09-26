@@ -174,12 +174,23 @@ export function comboOf(status: StatusId, tag: HitTag): ComboId | null {
   return null;
 }
 
+/** Every hit tag a Skill can carry (Black Hole's pull and collapse, each Volatile Flask element). */
+export function hitTagsOf(id: SkillId): HitTag[] {
+  return id === 'hole' ? [SKILL_TAGS.hole, HOLE_BOOM] : id === 'flask' ? Object.values(FLASK_TAGS) : [SKILL_TAGS[id]];
+}
+/** Every Status a Skill can leave on monsters. */
+export function statusesOf(id: SkillId): StatusId[] {
+  const out: StatusId[] = [];
+  for (const s of [SKILL_STATUS[id], ...hitTagsOf(id).map((x) => x.applies)]) if (s && !out.includes(s)) out.push(s);
+  return out;
+}
+
 /** Combos two Skills make together (either one leaving the Status, the other triggering). */
 export function combosBetween(a: SkillId, b: SkillId): ComboId[] {
   const out: ComboId[] = [];
-  const sa = SKILL_STATUS[a], sb = SKILL_STATUS[b];
-  const tb = b === 'hole' ? HOLE_BOOM : SKILL_TAGS[b], ta = a === 'hole' ? HOLE_BOOM : SKILL_TAGS[a];
-  if (sa) { const c = comboOf(sa, tb); if (c) out.push(c); }
-  if (sb) { const c = comboOf(sb, ta); if (c && !out.includes(c)) out.push(c); }
+  const add = (from: SkillId, by: SkillId): void => {
+    for (const s of statusesOf(from)) for (const tag of hitTagsOf(by)) { const c = comboOf(s, tag); if (c && !out.includes(c)) out.push(c); }
+  };
+  add(a, b); add(b, a);
   return out;
 }
