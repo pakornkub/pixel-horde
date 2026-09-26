@@ -477,7 +477,6 @@
  "sp.count": "แต้มสกิล: {n}",
  "sp.reroll": "สุ่มใหม่ ({n} แต้ม)",
  "sp.banish": "ตัดทิ้ง ({n} แต้ม)",
- "sp.buy": "ซื้อ 1 แต้ม ({cost}G)",
  "sp.upgrade": "+1 เลเวล ({n} แต้ม)",
  "sp.title": "แต้มสกิล (ได้จากราชา ใช้สุ่มใหม่/ตัดทิ้งตอนเลเวลอัป)",
  "revive.title": "ล้มแล้ว!",
@@ -830,5 +829,8 @@
  "kingMove.rMeteor": "อุกกาบาตเงา",
  "kingMove.rZap": "สายฟ้าเงา",
  "title.bestLabel": "สถิติดีที่สุด",
- "title.bestValue": "ถึงด่าน {stage} · KO {kills}"
+ "title.bestValue": "ถึงด่าน {stage} · KO {kills}",
+ "bench.discard": "ลบ {name} ออกจาก Bench",
+ "bench.discardAsk": "ลบ {name} (LV {lv}) ทิ้ง? เลเวลที่มีจะหาย แต่ช่อง Bench จะว่างให้สกิลใหม่",
+ "sp.buy": "ซื้อ 1 แต้ม ({cost}G)"
 }

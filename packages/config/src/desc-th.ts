@@ -3,6 +3,9 @@
 
 /** Thai text for each English field description: `th` = what it is (short, ≤ 60 chars), `up` = what raising it does (≤ 90 chars). */
 export const FIELD_TH: Record<string, { th: string; up: string }> = {
+  'Stage end: Bench skills can be removed for free (1) or not (0)': { th: 'ลบสกิลใน Bench ฟรีตอนจบด่าน (1 = ได้, 0 = ไม่ได้)', up: '1 = มีปุ่ม ✕ ลบสกิลสำรองทิ้งได้ ช่อง Bench ว่างรับสกิลใหม่' },
+  'Stage end: Skill Points can be bought for Gold (1) or not (0)': { th: 'ซื้อแต้มสกิลด้วย Gold ตอนจบด่าน (1 = เปิด, 0 = ปิด)', up: '1 = มีปุ่มซื้อแต้มสกิลตอนจบด่าน (ราคาดูที่ spCost)' },
+  'Kings also drop a chest item (1: two chests per King) or only open the wheel (0)': { th: 'บอสดรอปหีบบนพื้นด้วย (1 = 2 หีบต่อบอส, 0 = หีบเดียว)', up: '1 = ได้หีบเพิ่มอีกใบ ของรางวัลเยอะขึ้น เกมง่ายขึ้น' },
   'Normal monsters shoot (1) or just walk (0); King-summoned turrets always shoot': { th: 'มอนธรรมดายิงกระสุนได้ไหม (1 = ยิง, 0 = เดินอย่างเดียว)', up: '1 = มอนสายยิงยิงใส่ผู้เล่น เกมยากขึ้น (ป้อมที่ King เรียกยิงเสมอ)' },
   'Normal monsters charge (1) or just walk (0)': { th: 'มอนธรรมดาพุ่งชนได้ไหม (1 = พุ่ง, 0 = เดินอย่างเดียว)', up: '1 = มอนสายพุ่งชาร์จใส่ผู้เล่น เกมยากขึ้น' },
   'Shield drop chance (normal monster)': { th: 'โอกาสดรอปโล่ (มอนธรรมดา)', up: 'เจอโล่บ่อยขึ้น เกมง่ายขึ้น' },
@@ -95,7 +98,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Bubble speed': { th: 'ความเร็วฟอง', up: 'ฟองลอยเร็วขึ้น หลบยากขึ้น' },
   'Bubbles': { th: 'จำนวนฟอง', up: 'ฟองเยอะขึ้น หลบยากขึ้น' },
   'Burning (s)': { th: 'สถานะ Burning (ติดไฟ) นาน (วินาที)', up: 'ติดไฟนานขึ้น ทำ Combo ได้ง่ายขึ้น' },
-  'Buy 1 Skill Point at Stage end: Gold × Chapter': { th: 'ซื้อ Skill Point 1 แต้มตอนจบด่าน: Gold × Chapter', up: 'Skill Point แพงขึ้น' },
+  'Buy 1 Skill Point at Stage end: Gold × Chapter': { th: 'ราคาซื้อแต้มสกิลตอนจบด่าน (Gold × Chapter)', up: 'แพงขึ้น · มีผลเฉพาะเมื่อเปิด spShop = 1' },
   'Cage radius': { th: 'รัศมีกรงกระดูก', up: 'กรงกว้างขึ้น มีที่ให้เดินมากขึ้น' },
   'Camera zoom for Evolution/Awakening/fusion': { th: 'ซูมกล้องตอน Evolution/Awakening/รวมร่าง', up: 'ซูมใกล้ขึ้น ดูอลังการขึ้น' },
   'Catalyst: Arcane Bolt on any Status, damage ×': { th: 'Catalyst: Arcane Bolt โดนมอนติด Status คูณดาเมจ', up: 'Combo Catalyst แรงขึ้น' },

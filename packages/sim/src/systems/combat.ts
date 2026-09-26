@@ -166,8 +166,9 @@ export function killE(s: SimState, e: Enemy): void {
     shake(s, 10); flash(s, 0.35, '#ffffff'); s.hitstop = 0.12; sfx(s, 'boom');
     for (let i = 0; i < L.bossGems; i++) s.gems.push({ kind: 'xp', x: e.x + R.range(-20, 20), y: e.y + R.range(-20, 20), v: Math.ceil(v / L.bossGems), mag: false });
     s.gems.push({ kind: 'heart', x: e.x, y: e.y, v: L.heartBig, mag: false });
-    s.gems.push({ kind: 'chest', x: e.x + 10, y: e.y, v: 0, mag: false });
-    s.gems.push({ kind: 'coin', x: e.x - 10, y: e.y, v: kingRealm ? C.stage.kingGold * s.stage : L.bossCoin, mag: false });
+    // loot.kingChestItem 0 (default): one chest per boss — the wheel above; the item's Gold rides on the boss coin
+    if (L.kingChestItem) s.gems.push({ kind: 'chest', x: e.x + 10, y: e.y, v: 0, mag: false });
+    s.gems.push({ kind: 'coin', x: e.x - 10, y: e.y, v: (kingRealm ? C.stage.kingGold * s.stage : L.bossCoin) + (L.kingChestItem ? 0 : L.chestGold), mag: false });
     banner(s, e.type === 'umbra' ? 'umbraDown' : 'bossDown', 1.6, e.type === 'umbra');
     if (e === s.boss) s.boss = null;
     if (e === s.boss2) s.boss2 = null;

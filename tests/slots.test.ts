@@ -84,6 +84,23 @@ describe('Skill slots v2 and the Bench', () => {
     expect(s.P.evo.chain).toBe(true);
   });
 
+  it('a Bench skill can be removed for free on the clear screen, which frees the Bench for new Skills', async () => {
+    const { sim, s } = fresh();
+    const four = ['bolt', 'chain', 'nova', 'meteor'] as SkillId[];
+    s.P.skills = Object.fromEntries(four.map((k) => [k, 1]));
+    s.P.bench = [{ id: 'frost', lv: 3, evo: false }];
+    expect((await offers(s)).some((x) => x.kind === 'skill' && x.toBench)).toBe(false); // Bench full: no new Skills
+    sim.step({ mx: 0, my: 0 }, [{ type: 'discard', bench: 0 }]);
+    expect(s.P.bench.length).toBe(1); // only on the clear screen
+    s.phase = 'clear';
+    const gold = s.runGold;
+    sim.step({ mx: 0, my: 0 }, [{ type: 'discard', bench: 0 }]);
+    expect(s.P.bench).toEqual([]);
+    expect(s.runGold).toBe(gold); // free
+    s.phase = 'play';
+    expect((await offers(s)).some((x) => x.kind === 'skill' && x.toBench)).toBe(true); // new Skills again
+  });
+
   it('a swap is refused when Gold is short, outside the clear screen, or for the Signature Skill', () => {
     const { sim, s } = fresh(0);
     s.P.skills = { sigil: 1, chain: 1 };

@@ -156,6 +156,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench button.sk{display:inline-flex;align-items:center;gap:6px;border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;font-size:14px;padding:5px 8px;cursor:pointer;min-height:40px}
 .bench button.sk .ico{width:24px;height:24px;font-size:11px;border-width:2px}
 .bench button.sk .lv{font-family:var(--pix);font-weight:400;font-size:9px;background:var(--ink);color:var(--paper);border-radius:3px;padding:3px 4px}
+.bench button.sk.del{min-width:40px;justify-content:center;color:#c2361f;font-weight:700;border-color:#c2361f;margin-left:-4px}
+.bench button.sk.del:hover{background:#ffe0dc}
 .bench button.sk.empty{border-style:dashed;opacity:.7;min-width:64px;justify-content:center}
 .bench button.sk.sel{background:var(--gold);outline:3px solid var(--ink);outline-offset:1px}
 .bench.picking .row:first-of-type button.sk:not(:disabled){box-shadow:0 0 0 3px #8fdcff;animation:pickme 1s steps(2) infinite}
