@@ -21,8 +21,8 @@ const wrap = el('div.wrap', { style: 'padding:36px 0 80px' });
 main.append(wrap);
 
 const sname = (id: SkillId, evo = false): HTMLElement => G(`${evo ? 'evo' : 'skill'}.${id}.name`);
-const elChip = (e: string): HTMLElement => (e === 'arcane' ? T('el.arcane', undefined, 'span', 'chip el-arcane') : G(`element.${e}`, undefined, 'span', `chip el-${e}`));
-const stChip = (st: string): HTMLElement => { const c = T(`st.${st}` as TextKey, undefined, 'span', 'chip st'); c.prepend(el('i.st-dot', { style: `--c:${STATUS_COL[st as keyof typeof STATUS_COL]};width:12px;height:12px;border-width:2px` })); return c; };
+const elChip = (e: string): HTMLElement => G(`element.${e}`, undefined, 'span', `chip el-${e}`);
+const stChip = (st: string): HTMLElement => { const c = G(`status.${st}`, undefined, 'span', 'chip st'); c.prepend(el('i.st-dot', { style: `--c:${STATUS_COL[st as keyof typeof STATUS_COL]};width:12px;height:12px;border-width:2px` })); return c; };
 const comboLabel = (c: ComboId): HTMLElement => G(`combo.${c}`, undefined, 'b', `combo-name cb-${c}`);
 const comboArgs = (c: ComboId): Record<string, number> => {
   const K = C.combos;
@@ -78,8 +78,8 @@ function card(id: SkillId): HTMLElement {
   if (k === 'line') chips.push(T('sk.f.line', undefined, 'span', 'chip line'));
   for (const e of elementsOf(id)) chips.push(elChip(e));
   for (const st of statusesOf(id)) chips.push(stChip(st));
-  if (isHeavy(id)) chips.push(T('sk.tag.heavy', undefined, 'span', 'chip'));
-  if (isSweep(id)) chips.push(T('sk.tag.sweep', undefined, 'span', 'chip'));
+  if (isHeavy(id)) chips.push(G('role.heavy', undefined, 'span', 'chip'));
+  if (isSweep(id)) chips.push(G('role.sweep', undefined, 'span', 'chip'));
   const b = el('button.panel.sk-card', { type: 'button', 'aria-expanded': String(openId === id), 'data-id': id },
     skillIcon(id), el('div', null, el('div.nm', null, sname(id)), G(`skill.${id}.desc`, undefined, 'div', 'ds'), el('div.chips', null, ...chips)));
   b.addEventListener('click', () => { openId = openId === id ? null : id; renderGrid(); if (openId) grid.querySelector('.sk-detail')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
@@ -156,7 +156,7 @@ const pasGrid = el('div.pas-grid', null, ...PASSIVE_IDS.map((p: PassiveId) => {
     el('div', { style: 'display:flex;gap:4px;align-items:center;margin-top:6px;flex-wrap:wrap' }, T('sk.pasEvo', undefined, 'b', 'muted'), ...evos.map((id) => skillIcon(id, 'sm')))));
 }));
 panes.table.append(el('div.filters', null, kindSeg, search), el('div.filters', null, T('sk.f.el', undefined, 'b'), elSeg),
-  el('p.muted', { style: 'font-size:14px' }, T('sk.tag.heavyD'), ' · ', T('sk.tag.sweepD')), grid, empty, el('h2.subh', null, T('sk.passives')), pasGrid);
+  el('p.muted', { style: 'font-size:14px' }, G('role.heavy.tip'), ' · ', G('role.sweep.tip')), grid, empty, el('h2.subh', null, T('sk.passives')), pasGrid);
 
 // ── combo lab ──────────────────────────────────────────
 const LAB_SKILLS = ALL.filter((id) => ALL.some((o) => pairCombos(id, o).length));
@@ -185,11 +185,11 @@ const syncPickers = (): void => { pickA.sync(); pickB.sync(); };
 
 function tagWord(c: ComboId): string {
   const t = TRIGGER[c];
-  return t === 'heavy' ? s('sk.tag.heavy') : t === 'sweep' ? s('sk.tag.sweep') : t === 'arcane' ? s('el.arcane') : g(`element.${t}`);
+  return t === 'heavy' ? g('role.heavy') : t === 'sweep' ? g('role.sweep') : g(`element.${t}`);
 }
 function how(h: ComboHow): HTMLElement {
   const p = el('p', null);
-  p.innerHTML = s('lab.how', { a: g(`skill.${h.from}.name`), b: g(`skill.${h.to}.name`), status: h.combo === 'catalyst' ? s(`st.${h.status}` as TextKey) : s(`st.${NEEDS[h.combo]}` as TextKey), tag: tagWord(h.combo), combo: g(`combo.${h.combo}`) });
+  p.innerHTML = s('lab.how', { a: g(`skill.${h.from}.name`), b: g(`skill.${h.to}.name`), status: h.combo === 'catalyst' ? g(`status.${h.status}`) : g(`status.${NEEDS[h.combo]}`), tag: tagWord(h.combo), combo: g(`combo.${h.combo}`) });
   return p;
 }
 function renderLab(): void {
@@ -262,11 +262,11 @@ onLang(drawMatrix);
 const S = C.status;
 const statusArgs: Record<string, Record<string, number>> = { frozen: { s: S.frozen, n: S.frostStacks }, gathered: { s: S.gatherLinger }, burning: { s: S.burning }, shocked: { s: S.shocked }, poisoned: { s: S.poisoned } };
 const statusCards = el('div.status-grid', null, ...STATUS_IDS.map((st) => el('div.panel.st-card', null,
-  el('h3', null, el('i.st-dot', { style: `--c:${STATUS_COL[st]}` }), T(`st.${st}` as TextKey)), T(`st.${st}.d` as TextKey, statusArgs[st], 'p'),
+  el('h3', null, el('i.st-dot', { style: `--c:${STATUS_COL[st]}` }), G(`status.${st}`)), T(`st.${st}.d` as TextKey, statusArgs[st], 'p'),
   el('div', { style: 'display:flex;gap:4px;flex-wrap:wrap;align-items:center' }, T('lab.madeBy', undefined, 'b', 'muted'), ...leavers(st).map((id) => skillIcon(id, 'sm'))))));
 const comboCards = el('div.combo-grid', null, ...COMBO_IDS.map((c) => el('div.panel.cb-card', null,
   el('h3', null, comboLabel(c)),
-  el('div.recipe', null, NEEDS[c] === 'any' ? T('lab.anyStatus', undefined, 'span', 'chip st') : stChip(NEEDS[c]), '+', TRIGGER[c] === 'heavy' ? T('sk.tag.heavy', undefined, 'span', 'chip') : TRIGGER[c] === 'sweep' ? T('sk.tag.sweep', undefined, 'span', 'chip') : elChip(TRIGGER[c])),
+  el('div.recipe', null, NEEDS[c] === 'any' ? T('lab.anyStatus', undefined, 'span', 'chip st') : stChip(NEEDS[c]), '+', TRIGGER[c] === 'heavy' ? G('role.heavy', undefined, 'span', 'chip') : TRIGGER[c] === 'sweep' ? G('role.sweep', undefined, 'span', 'chip') : elChip(TRIGGER[c])),
   T(`cb.${c}` as TextKey, comboArgs(c), 'p', 'muted'),
   el('div', { style: 'display:flex;gap:4px;flex-wrap:wrap' }, ...triggers(c).map((id) => skillIcon(id, 'sm'))))));
 const rnd = el('button.btn.sm', { type: 'button' }, T('lab.random'));

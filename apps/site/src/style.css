@@ -469,3 +469,8 @@ table.matrix{border-collapse:collapse;color:var(--ink)}
 }
 .realm-card .scene,.page-head .actors{flex-wrap:wrap}
 .realm-card{min-width:0}
+
+/* picture icons from the game's atlas (the coloured square stays as the frame colour) */
+.ico.pic{background-color:#3a3363;background-repeat:no-repeat;image-rendering:pixelated;color:transparent;font-size:0;box-shadow:none}
+.panel .formula .part{color:var(--ink)}
+.ult-gauge{flex:1 1 240px;max-width:420px}

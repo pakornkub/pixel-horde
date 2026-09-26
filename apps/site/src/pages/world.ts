@@ -16,6 +16,7 @@ const jump = el('div.jump', null, ...([['story', 'w.story.h'], ['heroes', 'w.her
 main.append(pageHead('w.h', 'w.p', 4, [enemy('umbra', 3), enemy('boss', 3), enemy('bossS', 3), enemy('bossG', 3)], jump));
 
 const section = (id: string, title: TextKey, ...kids: Node[]): HTMLElement => el('section', { id, style: 'scroll-margin-top:70px' }, el('div.wrap', null, el('h2', null, T(title)), ...kids));
+const ultChip = (id: keyof typeof WEAPONS): HTMLElement => { const c = G(`weapon.${id}.ult`, undefined, 'span', 'chip'); c.style.cssText = `background:${WEAPONS[id].col};color:var(--ink)`; return c; };
 const skn = (id: SkillId, evo = false): HTMLElement => el('span.skname', null, skillIcon(id, 'sm'), G(`${evo ? 'evo' : 'skill'}.${id}.name`));
 
 // ── story ──
@@ -54,7 +55,7 @@ const realmSec = section('realms', 'w.realms', el('div.grid', null, ...REALM_IDS
       adv.length ? el('dt', null, T('w.advice')) : null, adv.length ? el('dd', null, ...adv.map((id) => skn(id as SkillId))) : null,
       kit ? el('dt', null, T('w.moves')) : null,
       kit ? el('dd', null, ...kit.moves.map((m) => G(`kingMove.${m}`, undefined, 'span', 'chip st')), el('span.chip', { style: 'background:#8a2030' }, G(`kingMove.${kit.ult}`), ' · ', T('w.ult'))) : null,
-      w ? el('dt', null, T('w.weapon')) : null, w ? el('dd', null, weaponIcon(w.id, 3), G(`weapon.${w.id}.name`, undefined, 'b'), G(`weapon.${w.id}.desc`, undefined, 'span', 'muted')) : null)));
+      w ? el('dt', null, T('w.weapon')) : null, w ? el('dd', null, weaponIcon(w.id, 3), G(`weapon.${w.id}.name`, undefined, 'b'), ultChip(w.id), G(`weapon.${w.id}.desc`, undefined, 'span', 'muted')) : null)));
 })));
 main.append(realmSec);
 

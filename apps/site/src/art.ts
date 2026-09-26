@@ -3,6 +3,8 @@
 import type { EnemyId, HeroId, PassiveId, ShopId, SkillId } from '@pixel-horde/sim';
 import { ENEMY_SPR, HELD_SPR, HERO_SPR, PET_SPR } from '../../game/src/render/sprites';
 import { THEME_VIS, tileAtT } from '../../game/src/render/tiles';
+import atlasUrl from '../../game/src/assets/icons.png';
+import atlas from '../../game/src/assets/icons.json';
 import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, type Icon } from '../../game/src/ui/text';
 
 export const INK = '#1e1b33';
@@ -101,18 +103,29 @@ export function groundURL(theme: number, wTiles = 12, hTiles = 8, seed = 0): str
 /** Main ground colour of a theme (for small swatches). */
 export const themeColor = (theme: number): string => (THEME_VIS[theme]?.g?.[0] as string) ?? '#5fae4b';
 
-/** The game's square skill icon (colour + glyph). */
-function iconEl(ic: Icon, cls: string): HTMLElement {
+// The game's 32×32 icon atlas (apps/game/src/assets, built by scripts/build-icon-atlas.mjs).
+const atlasIndex = new Map<string, number>(atlas.ids.map((id, i) => [id, i]));
+const atlasRows = Math.ceil(atlas.ids.length / atlas.cols);
+
+/** The game's icon: its pixel picture when the atlas has one, else the coloured square with a glyph. */
+function iconEl(id: string, ic: Icon, cls: string): HTMLElement {
   const d = document.createElement('span');
   d.className = 'ico ' + cls;
   d.style.setProperty('--c', ic.col);
-  d.textContent = ic.g;
   d.setAttribute('aria-hidden', 'true');
+  const i = atlasIndex.get(id);
+  if (i === undefined) { d.textContent = ic.g; return d; }
+  d.classList.add('pic');
+  d.style.backgroundImage = `url("${atlasUrl}")`;
+  d.style.backgroundSize = `${atlas.cols * 100}% ${atlasRows * 100}%`;
+  d.style.backgroundPosition = `${((i % atlas.cols) * 100) / (atlas.cols - 1)}% ${(Math.floor(i / atlas.cols) * 100) / Math.max(1, atlasRows - 1)}%`;
   return d;
 }
-export const skillIcon = (id: SkillId, cls = ''): HTMLElement => iconEl(SKILL_ICON[id], cls);
-export const passiveIcon = (id: PassiveId, cls = ''): HTMLElement => iconEl(PASSIVE_ICON[id], cls);
-export const shopIcon = (id: ShopId, cls = ''): HTMLElement => iconEl(SHOP_ICON[id], cls);
+export const skillIcon = (id: SkillId, cls = ''): HTMLElement => iconEl(id, SKILL_ICON[id], cls);
+export const passiveIcon = (id: PassiveId, cls = ''): HTMLElement => iconEl(id, PASSIVE_ICON[id], cls);
+export const shopIcon = (id: ShopId, cls = ''): HTMLElement => iconEl('shop:' + id, SHOP_ICON[id], cls);
+/** Companion / Shadow Clone pictures from the same atlas. */
+export const extraIcon = (id: 'pet' | 'clone', cls = ''): HTMLElement => iconEl(id, { col: '#3a3363', g: '?' }, cls);
 export const skillColor = (id: SkillId): string => SKILL_ICON[id].col;
 
 // Pickups, drawn exactly like draw.ts does in the game (centre at 8,8 on a 16×16 canvas).

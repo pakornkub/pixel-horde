@@ -34,6 +34,8 @@ function sec(id: string, h: TextKey, ...kids: (Node | null)[]): void {
 }
 const tryTag = (): HTMLElement => T('guide.try', undefined, 'span', 'try');
 const note = (key: TextKey, cls = '', args?: Record<string, string | number>): HTMLElement => { const d = T(key, args, 'div', 'note ' + cls); return d; };
+/** The Ultimate's name for a Weapon, on the Weapon's own colour (like the in-game ULT button). */
+const ultChip = (id: keyof typeof WEAPONS): HTMLElement => { const c = G(`weapon.${id}.ult`, undefined, 'span', 'chip'); c.style.cssText = `background:${WEAPONS[id].col};color:var(--ink)`; return c; };
 const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null, skillIcon(id, 'sm'), G(`${evo ? 'evo' : 'skill'}.${id}.name`));
 
 // ── 1. controls ─────────────────────────────────────────
@@ -246,7 +248,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   sec('combos', 'g.combo.h', T('g.combo.p', undefined, 'p'),
     el('div.panel.demo', null, el('div.formula', null,
       el('div.part', null, skillIcon('frost', 'lg'), G('skill.frost.name')), el('span', null, '→'),
-      el('div.part', null, el('span', { style: 'position:relative;display:inline-block' }, pix(ENEMY_SPR.slime[0].i, 4)), T('st.frozen')), el('span', null, '+'),
+      el('div.part', null, el('span', { style: 'position:relative;display:inline-block' }, pix(ENEMY_SPR.slime[0].i, 4)), G('status.frozen')), el('span', null, '+'),
       el('div.part', null, skillIcon('meteor', 'lg'), G('skill.meteor.name')), el('span', null, '='),
       el('div.part', null, el('b', { style: 'font:400 13px var(--pix);color:var(--ink);background:#bfe6ff;padding:10px;border:3px solid var(--ink);border-radius:4px' }, 'SHATTER!'))),
     T('g.combo.ex', { x: C.combos.shatter }, 'p', 'muted')),
@@ -256,11 +258,11 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
 // ── 8. ultimate & weapons ───────────────────────────────
 {
   const fill = el('div', { style: 'height:100%;width:0;background:var(--gold);transition:width .1s linear' });
-  const gauge = el('div', { style: 'height:22px;border:4px solid var(--ink);border-radius:4px;background:var(--night3);overflow:hidden;max-width:420px;margin:10px 0' }, fill);
+  const gauge = el('div.ult-gauge', { style: 'height:22px;border:4px solid var(--ink);border-radius:4px;background:var(--night3);overflow:hidden;max-width:420px;margin:10px 0' }, fill);
   let t = 0;
   setInterval(() => { t = (t + 2) % 110; fill.style.width = Math.min(100, t) + '%'; fill.style.background = t >= 100 ? '#fff35c' : 'var(--gold)'; }, 100);
   const weps = el('div.grid.g4', { style: 'gap:10px' }, ...WEAPON_IDS.map((id) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:10px' },
-    weaponIcon(id, 5), el('div', null, G(`weapon.${id}.name`, undefined, 'b'), el('br'), G(`weapon.${id}.desc`, undefined, 'span', 'muted')))));
+    weaponIcon(id, 5), el('div', null, G(`weapon.${id}.name`, undefined, 'b'), el('br'), ultChip(id), el('br'), G(`weapon.${id}.desc`, undefined, 'span', 'muted')))));
   sec('ultimate', 'g.ult.h', T('g.ult.p', undefined, 'p'), el('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, gauge, el('span.key.wide', null, 'SPACE')), T('g.ult.w', undefined, 'p'),
     el('div.demo', null, el('div', { style: 'display:flex;gap:10px;align-items:end;margin-bottom:14px' }, ...HERO_IDS.map((h) => hero(h, 3, 'down'))), weps));
 }
