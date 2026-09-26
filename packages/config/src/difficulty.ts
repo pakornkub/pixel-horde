@@ -37,5 +37,7 @@ export function applyDifficulty(cfg: ResolvedConfig): ResolvedConfig {
   c.loot.heartChance = clamp(c.loot.heartChance * k.hearts, 0, 1);
   c.ult.fill *= k.ultFill;
   c.director.max = Math.max(c.director.min, c.director.max * k.director);
+  c.loot.coinChance = clamp(c.loot.coinChance * k.gold, 0, 1); c.loot.eliteCoin *= k.gold; c.loot.bossCoin *= k.gold; c.loot.chestGold *= k.gold;
+  c.stage.kingGold *= k.gold; c.rival.gold *= k.gold; c.overflow.gold *= k.gold; c.weapons.umbraGold *= k.gold;
   return c;
 }

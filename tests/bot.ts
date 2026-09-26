@@ -3,7 +3,7 @@
 import { createSim, resolveConfig, type Command, type ResolvedConfig, type Sim, type SimOptions } from '@pixel-horde/sim';
 import { DEFAULT_CONFIG, withOverrides, type BalanceConfigInput } from '@pixel-horde/config';
 
-const AS_WRITTEN = { mobHp: 1, mobDmg: 1, bossHp: 1, bossDmg: 1, spawn: 1, xp: 1, warn: 1, kingPace: 1, hp: 1, hearts: 1, ultFill: 1, director: 1 };
+const AS_WRITTEN = { mobHp: 1, mobDmg: 1, bossHp: 1, bossDmg: 1, spawn: 1, xp: 1, warn: 1, kingPace: 1, hp: 1, hearts: 1, ultFill: 1, director: 1, gold: 1 };
 /** A config whose numbers play exactly as written (base difficulty all ×1), for tests of one mechanic's numbers. */
 export function asWritten(patch: BalanceConfigInput = {}): ResolvedConfig {
   return resolveConfig(withOverrides(DEFAULT_CONFIG, { ...patch, shared: { ...patch.shared, difficulty: AS_WRITTEN } }));
