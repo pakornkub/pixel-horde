@@ -1,16 +1,18 @@
 import {
-  AWAKENING, DEFAULT_RESOLVED, HERO_IDS, REALMS, ROUTE_REALMS, SHOP_IDS, SKILL_LINES, WEAPONS, WEAPON_IDS, WHEEL,
+  AWAKENING, HERO_IDS, REALMS, ROUTE_REALMS, SHOP_IDS, SKILL_LINES, WEAPONS, WEAPON_IDS, WHEEL,
   adviceFor, signatureOf, xpNeed, type HeroId, type RealmId, type SkillId,
 } from '@pixel-horde/sim';
 import { ENEMY_SPR } from '../../../game/src/render/sprites';
 import { el, enemy, hero, passiveIcon, pickup, pix, shopIcon, skillIcon, weaponIcon } from '../art';
+import { siteConfig } from '../backend';
 import { g, onLang, s } from '../lang';
-import { reveals, shell } from '../shell';
+import { reveals, shell, toHash } from '../shell';
 import type { TextKey } from '../text';
 import { G, T, groundBg, pageHead } from '../ui';
 
 shell('guide');
-const C = DEFAULT_RESOLVED;
+// Numbers follow the Balance Config the game uses right now (built-in defaults when offline).
+const C = await siteConfig();
 const main = document.getElementById('main')!;
 
 const SECS: [string, TextKey][] = [
@@ -421,3 +423,4 @@ sec('skill-points', 'g.sp.h', T('g.sp.p', undefined, 'p'),
   article.querySelectorAll('section').forEach((x) => io.observe(x));
 }
 reveals();
+toHash();

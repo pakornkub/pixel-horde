@@ -12,8 +12,8 @@ single self-contained HTML file (`pixel-horde.html`, ~1,750 lines, vanilla JS + 
   → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/`. The code for all 44 is in; most wait for an
   owner playtest / review or an owner-only setup step (see each ticket's **Status**). New work gets new tickets.
 - Player-facing docs: the official website `apps/site` (served at `/`, the game at `/play/`) and `README.md` /
-  `README.th.md`. When gameplay changes, check the site's own sentences in `apps/site/src/text.ts` (numbers, names and
-  sprites come from the code automatically) and re-take screenshots with `npm run shots` if the look changed.
+  `README.th.md`. When gameplay changes, check the site's own sentences in `apps/site/src/text.ts` (names and sprites come
+  from the code; numbers from the live Balance Config via `apps/site/src/backend.ts`, built-in defaults when offline) and re-take screenshots with `npm run shots` if the look changed.
 
 ## Goals of the migration
 1. Split the single file into a typed, modular codebase (Vite + TypeScript, no framework).

@@ -4,7 +4,7 @@
 
 **Blocked by:** 08 (Anonymous Player Accounts, nicknames and one-place-at-a-time sessions)
 
-**Status:** in-progress — code + tests done; waiting for the owner to apply migrations to the live project
+**Status:** done — migrations applied; flags, maintenance and announcements live (checked 2026-09-26 against the live project)
 
 - [x] `feature_flags` and `announcements` tables readable by players
 - [x] Clients check flags at launch, Stage start and before creating a room or submitting a score

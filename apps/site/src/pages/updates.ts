@@ -2,12 +2,10 @@
 // published from the Admin Console show here without a new deploy.
 import { CAT_LABEL, CHANGE_KINDS, KIND_LABEL, groupItems, type ChangeEntry, type ChangeKind } from '@pixel-horde/config';
 import { el, enemy, hero } from '../art';
+import { rpc } from '../backend';
 import { lang, s } from '../lang';
 import { live, shell } from '../shell';
 import { T, pageHead } from '../ui';
-
-const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? 'https://jqvgmkhzdhjreikjqhxt.supabase.co';
-const SUPABASE_KEY: string = import.meta.env.VITE_SUPABASE_KEY ?? 'sb_publishable_g90qGZet0U9BylLeZrPnNQ_iYjBfDPA';
 
 shell('updates');
 const main = document.getElementById('main')!;
@@ -47,10 +45,6 @@ function render(): void {
 }
 
 live(render);
-fetch(`${SUPABASE_URL}/rest/v1/rpc/get_changelog`, {
-  method: 'POST',
-  headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ p_limit: 200 }),
-}).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-  .then((d: ChangeEntry[]) => { entries = Array.isArray(d) ? d : []; render(); })
+rpc<ChangeEntry[]>('get_changelog', { p_limit: 200 })
+  .then((d) => { entries = Array.isArray(d) ? d : []; render(); })
   .catch(() => { failed = true; render(); });
