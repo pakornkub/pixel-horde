@@ -125,7 +125,7 @@ export function createSupabaseBackend(): Backend {
     },
     async submitRun(ticket, r) {
       online();
-      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, weaponsFound: r.weaponsFound ?? [], endlessScore: r.endlessScore ?? 0, victory: !!r.victory, crack: r.crack ?? 0, facts: r.facts ?? {}, score: r.score, pausedMs: r.pausedMs, ...(r.resumedHash ? { resumedHash: r.resumedHash } : {}), summary: r.summary ?? {} } });
+      return rpc<SubmitOutcome>('submit_run', { p: { runId: ticket.runId, token: ticket.token, result: r.result, chapter: r.chapter, kills: r.kills, level: r.level, gold: r.gold, walletSpent: r.walletSpent ?? 0, weaponsFound: r.weaponsFound ?? [], endlessScore: r.endlessScore ?? 0, victory: !!r.victory, crack: r.crack ?? 0, facts: r.facts ?? {}, score: r.score, pausedMs: r.pausedMs, ...(r.resumedHash ? { resumedHash: r.resumedHash } : {}), ...(r.joinChapter ? { joinChapter: r.joinChapter, team: r.team ?? 1 } : {}), summary: r.summary ?? {} } });
     },
     async submitOfflineRun(r) { online(); return rpc<SubmitOutcome>('submit_offline_run', { p: r }); },
     async saveCheckpoint(p) { try { online(); await rpc('save_checkpoint', { p }); return true; } catch { return false; } },

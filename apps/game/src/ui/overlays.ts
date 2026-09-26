@@ -560,6 +560,14 @@ export function showOver(v: Readonly<SimState>, runGold: number, newAch: string[
   focusSoon('retryBtn');
 }
 
+const REJECT_REASONS = ['TOO_FAST', 'GOLD_CEILING', 'KILL_CEILING', 'STALE_CHECKPOINT'];
+/** Run-end screen: the server did not accept the Run (its reject reason), or null to clear the note. */
+export function setRunRejected(reason: string | null): void {
+  const el = $('runRejected');
+  el.hidden = reason === null;
+  el.textContent = reason === null ? '' : t('over.rejected', { why: t(`over.reject.${REJECT_REASONS.includes(reason) ? reason : 'other'}`) });
+}
+
 export function showPause(): void {
   $('leaveBtn').textContent = t('pause.leave');
   $('pauseTxt').textContent = t('pause.text');

@@ -347,6 +347,8 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Keen Eye: crit chance per level': { th: 'Keen Eye: โอกาสคริเพิ่มต่อเลเวล', up: 'อัปแล้วติดคริบ่อยขึ้นมากขึ้น' },
   'Keen Eye: crit multiplier per level': { th: 'Keen Eye: ตัวคูณคริเพิ่มต่อเลเวล', up: 'อัปแล้วคริแรงขึ้นมากขึ้น' },
   'Kill ceiling per second of real play': { th: 'เพดานจำนวนฆ่าต่อวินาทีที่เล่นจริง (กันโกง)', up: 'ตรวจหลวมขึ้น' },
+  'Co-op: kill ceiling × (1 + this × each other player in the room); the team kill counter is shared': { th: 'co-op: เพดานจำนวนฆ่า × (1 + ค่านี้ × จำนวนเพื่อนในห้อง) (กันโกง)', up: 'ตรวจ co-op หลวมขึ้นตามจำนวนคน (ยอดฆ่านับรวมทั้งทีม)' },
+  'Co-op: Gold ceiling × (1 + this × each other player in the room)': { th: 'co-op: เพดาน Gold × (1 + ค่านี้ × จำนวนเพื่อนในห้อง) (กันโกง)', up: 'ตรวจ co-op หลวมขึ้นตามจำนวนคน' },
   'Kills can add at most this × the time rate (1 = at most twice as fast)': { th: 'การฆ่าเติมเกจได้สูงสุด × อัตราเติมจากเวลา', up: 'ฆ่าเยอะแล้ว Ultimate เต็มเร็วขึ้นได้อีก' },
   'King HP × in the account\'s very first Greenvale': { th: 'HP King × ใน Greenvale ครั้งแรกของบัญชี', up: 'Run แรกยากขึ้น (ใกล้ปกติ)' },
   'King damage × in overtime': { th: 'ดาเมจ King ช่วงต่อเวลา (คูณ)', up: 'ช่วงต่อเวลา King ตีเจ็บขึ้น' },

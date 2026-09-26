@@ -75,6 +75,9 @@ export interface RunResult {
   weaponsFound?: string[];
   /** Gold taken from the wallet during the Run (Stage-end swaps); charged on submit. */
   walletSpent?: number;
+  /** Co-op: the Chapter this player joined the room at, and the most players seen (the server's Run checks use both). */
+  joinChapter?: number;
+  team?: number;
   score: number;
   /** Active play time (sim time). */
   playMs: number;

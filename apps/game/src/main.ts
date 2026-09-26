@@ -31,7 +31,7 @@ import { refreshUpdateNote, renderUpdateNote } from './ui/update-note';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
   $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
-  setPlayUI, show, showClear, showOver, showPause, applyStaticText,
+  setPlayUI, setRunRejected, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
 /* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|awaken|realm:<id> (comma separated) ---------- */
@@ -43,6 +43,9 @@ let queue: Command[] = [];
 let runBanked = 0;
 let walletBanked = 0;
 let ticket: RunTicket | null = null;
+/** Co-op: the Chapter this player joined at and the most players seen in the room. A guest's Run starts on the
+ *  server when they join, so the server's Run checks need both. */
+let coopJoin = 0, coopTeam = 1;
 let clientRunId = '';
 let runWallStart = 0;
 let starting = false;
@@ -76,6 +79,7 @@ function runResult(result: RunResult['result']): RunResult | null {
     endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack, facts: { ...runFacts(v) },
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
+    ...(coop ? { joinChapter: coopJoin || v.stage, team: coopTeam } : {}),
     summary: telemetry.summary(v),
   };
 }
@@ -88,6 +92,9 @@ function syncWallet(): void {
   if (ws > 0) metaSync.spendLocal(ws);
   runBanked = v.runGold; walletBanked = v.walletSpent;
 }
+
+// The Run that just ended was rejected by the server's Run checks: say so on the Run-end screen (it may already be open).
+metaSync.onRunChecked((id, out) => { if (id === clientRunId && out.status === 'rejected') setRunRejected(out.reason ?? 'other'); });
 
 /** Stage clear / Run end: show the Gold in the wallet now; the server credits it on submit. */
 function bank(final?: RunResult['result']): void {
@@ -160,6 +167,7 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined; usedHash = undefined;
   teamPhase = '';
+  coopJoin = 0; coopTeam = 1;
   beginRun(createSim({
     seed: s.role === 'host' ? seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
@@ -174,6 +182,13 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
     else if (e.t === 'vote') team.vote(e.id, e.i);
     else if (e.t === 'team') renderTeam(e.ready, e.votes, e.left);
   });
+}
+
+/** Co-op: note the Chapter this player joined at (a guest learns it from the host's first snapshot) and the room size. */
+function coopTrack(v: Readonly<SimState>): void {
+  if (!v.coop) return;
+  if (!coopJoin && (v.coop.role === 'host' || v.coop.last.st > 0)) coopJoin = v.stage;
+  coopTeam = Math.max(coopTeam, 1 + v.coop.mates.length);
 }
 
 /** Co-op: time left to pick a level-up / stop the chest before a pick is made (the room keeps playing). */
@@ -249,6 +264,7 @@ function beginRun(s: Sim): void {
   runWallStart = performance.now();
   telemetry.startRun();
   hide('ovTitle'); hide('ovOver');
+  setRunRejected(null);
   clearVfx();
   queue = [];
   runBanked = s.view().runGold; // Gold up to a checkpoint was already shown in the wallet
@@ -474,6 +490,7 @@ function frame(now: number): void {
         consume(events, sim.view());
       }
       if (coop) {
+        coopTrack(sim.view());
         coopDown(sim.view());
         hostTeam(rdt);
         if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostLost)) setTimeout(() => coopClosed('host-left'), 0);

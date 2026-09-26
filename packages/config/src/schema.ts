@@ -548,6 +548,8 @@ const shared = obj({
     goldGrowth: n(1.35, 1, 5, 'Gold ceiling × per extra Chapter'),
     killsPerSecond: pos(15, 'Kill ceiling per second of real play'),
     killsPerChapter: pos(500, 'Extra kills allowed per Chapter reached'),
+    coopKillsPerMate: n(0, 0, 3, 'Co-op: kill ceiling × (1 + this × each other player in the room); the team kill counter is shared'),
+    coopGoldPerMate: n(0, 0, 3, 'Co-op: Gold ceiling × (1 + this × each other player in the room)'),
     maxSubmitsPerHour: int(30, 1, 1000, 'Run submissions per player per hour'),
     minSecondsBetweenStarts: sec(5, 'Minimum seconds between two start_run calls'),
     legacyGoldCap: pos(50000, 'Most Gold a one-time legacy save upload may bring'),
