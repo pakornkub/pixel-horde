@@ -917,5 +917,9 @@
  "weapon.stormBow.ult": "THUNDERSTORM",
  "weapon.coralTrident.ult": "TIDAL WAVE",
  "weapon.gearCannon.ult": "OVERDRIVE",
- "weapon.lichTome.ult": "SOUL HARVEST"
+ "weapon.lichTome.ult": "SOUL HARVEST",
+ "update.new": "✨ New update! {date}",
+ "update.latest": "Latest update {date}:",
+ "update.read": "Read what changed →",
+ "update.dismiss": "Close"
 }
