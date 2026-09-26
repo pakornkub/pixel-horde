@@ -105,6 +105,10 @@ The original was verified with a headless Node harness (stubbed DOM/canvas, fake
 clients). Recreate it with Vitest: seed the RNG, run N minutes of sim with a scripted bot, assert
 no exceptions, stage progression, hazards hitting, rewards granted, packet sizes < 4 KB.
 Add debug flags (URL `?debug=dragon|rival|bloodmoon|god`) to force events.
+Balance passes: `npm run playtest` (scripts/playtest, a human-like bot with damage/death attribution; see its README).
+Recommended tuning lives in `packages/config/src/balance-pass.ts` and is published from Admin → Balance, never by
+changing built-in defaults (version 0 must equal the migration seed). Difficulty presets (`packages/config/src/presets.ts`)
+scale the published config for solo Runs; only `balanced` is ranked.
 
 ## Backlog
 Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").

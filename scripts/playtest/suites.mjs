@@ -1,6 +1,6 @@
 // Playtest suites: lists of Jobs (see run.ts). Seeds are 1..n per variant.
 
-const HEROES = ['mage', 'knight', 'ranger', 'alchemist'];
+const HEROES = process.env.PT_HEROES ? process.env.PT_HEROES.split(',') : ['mage', 'knight', 'ranger', 'alchemist'];
 export const SHOP = {
   fresh: {},
   mid: { power: 5, vigor: 5, speed: 2, greed: 2, wisdom: 2, revive: 1 },

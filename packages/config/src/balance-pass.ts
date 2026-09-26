@@ -18,15 +18,19 @@ export const BALANCE_PASS_2026_09: BalancePass = {
       scaling: { eliteDmg: 1.35 },
       spawn: { base: 1.2 },
       // Toxic Burst and Overload carried 40–70% of some Heroes' damage
-      combos: { overload: 1.25, toxicBurst: 0.6, toxicBurstR: 28 },
+      combos: { overload: 1.25, toxicBurst: 0.8, toxicBurstR: 28 },
       // Awakening used to cost as much as it gave (two maxed Links for level-1 skills)
       awaken: { sigDmg: 2.2, grant: 1, grantLv: 6, wLine: 2 },
       skills: {
         meteor: { n: { perLv: 0.6 }, dmg: { perLv: 32 } },
         // Signatures were among the weakest skills in the game
-        hawk: { dmg: { base: 40, perLv: 22 }, cd: { base: 1.6, min: 0.8 }, r: 22, evo: { n: 3 } },
-        flask: { dmg: { base: 28, perLv: 13 }, cd: { base: 2.3 }, r: { base: 26 } },
+        hawk: { dmg: { base: 40, perLv: 26 }, cd: { base: 1.6, min: 0.8 }, r: 22, evo: { n: 3 } },
+        flask: { dmg: { base: 28, perLv: 13 }, cd: { base: 2.3 }, r: { base: 26 }, evo: { dmgMul: 1.5 } },
         shield: { dmg: { base: 10, perLv: 6 }, evo: { n: 4 } },
+        // Kit and Vex lagged behind at the top end: their weakest Skill Line skills get real damage
+        galeStep: { dmg: { base: 30, perLv: 14 } },
+        arrowRain: { dmg: { perLv: 8 } },
+        cauldron: { dmg: { base: 16, perLv: 9 } },
       },
       umbra: { boltDmg: 0.5 },
       heroes: { ranger: { spd: 0.15 } },
