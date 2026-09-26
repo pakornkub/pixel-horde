@@ -7,6 +7,7 @@ export { FIELD_TH, GROUP_TH } from './desc-th';
 export * from './presets';
 export * from './balance-pass';
 export * from './changelog';
+export * from './pass-stack';
 
 export class BalanceConfigError extends Error {
   constructor(public issues: { path: string; message: string }[]) {

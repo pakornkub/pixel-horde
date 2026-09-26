@@ -155,6 +155,73 @@ export const BALANCE_PASS_2026_09: BalancePass = {
   },
 };
 
+/** Follow-up to 2026-09 (published as config v4). v5 = this pass + 2026-09c (the Director change from the spawn-wave
+ *  work, its own pass): load both onto one draft in Admin → Balance (loads stack) and publish them together. */
+export const BALANCE_PASS_2026_09B: BalancePass = {
+  id: '2026-09b',
+  note: 'Playtest follow-up 2026-09b: Awakening keeps the Links and adds a slot, extra EXP no longer toughens monsters, Kit survives the late game',
+  patch: {
+    shared: {
+      // Awakening was only as good as declining it: the Links now stay and a 5th attack slot holds the new skills
+      awaken: { keep: 1, slots: 1 },
+      // monsters count the player's level only up to the usual level for that point of the Run (7 + 7 per Chapter),
+      // so Wisdom and Transmute stop making the game harder; the Chapter curve stays where it was
+      scaling: { lvCapBase: 7, lvCapPerCh: 7 },
+      // Kit died to regular monsters: the Hawk clears a crowd around Kit, and a little more HP
+      skills: { hawk: { guardN: 4, guardR: 40 } },
+      heroes: { ranger: { hp: 20 } },
+    },
+  },
+  changelog: {
+    titleTh: 'ตื่นพลังคุ้มขึ้นมาก เก็บ EXP ไม่เป็นโทษอีกต่อไป Kit ทนขึ้น',
+    titleEn: 'Awakening pays off, extra EXP no longer backfires, a sturdier Kit',
+    items: [
+      { cat: 'hero', th: 'Kit: HP สูงสุด +20', en: 'Kit: +20 max HP' },
+      { cat: 'skill', th: 'ตื่นพลังไม่ต้องเสีย Link อีกแล้ว: Link อยู่ครบ และได้ช่องสกิลโจมตีที่ 5 พร้อมสกิลตื่นพลังตัวแรก', en: 'Awakening no longer costs your Links: they stay, and you get a 5th attack slot holding your first Awakened skill' },
+      { cat: 'skill', th: 'เหยี่ยวของ Kit: เมื่อมอนล้อมตัว (4 ตัวขึ้นไปในระยะใกล้) จะโฉบตัวที่ใกล้ที่สุดเพื่อเปิดทาง', en: 'Kit\'s Hawk: when 4 or more monsters close in, it dives the nearest one to clear a path' },
+      { cat: 'difficulty', th: 'มอนนับเลเวลเราแค่ถึงระดับปกติของช่วงนั้น เลเวลเกินจาก Wisdom หรือ Transmute จะไม่ทำให้มอนอึดขึ้นอีก', en: 'Monsters count your level only up to the usual level for that point of the Run: extra levels from Wisdom or Transmute no longer make them tougher' },
+      { cat: 'ui', th: 'คำใบ้ใหม่: บอกว่าสกิลไหนเป็น Link และต้องทำอะไรเพื่อตื่นพลัง', en: 'New hints: which skills are Links and what Awakening needs' },
+    ],
+  },
+  report: {
+    title: 'รอบจูนต่อ 2026-09b (Awakening, HP มอนตามเลเวล, Kit)',
+    summary: 'สามเรื่องที่ค้างจากรอบ 2026-09: Awakening ยังกิน Link เต็มเลเวล 2 ตัว จึงดีพอ ๆ กับการปฏิเสธ; '
+      + 'HP มอนโต 8% ต่อเลเวลเรา ทำให้ Wisdom และ Transmute (EXP) ทำร้ายผู้เล่น; Kit ตายกับมอนธรรมดาช่วงท้ายเกม '
+      + 'ชุดนี้ให้ Awakening เก็บ Link ไว้และเพิ่มช่องที่ 5, ให้สูตรมอนนับเลเวลแค่ถึงเส้นปกติ, ให้เหยี่ยวป้องกัน Kit และ Kit HP +20',
+    method: 'บอทเดิมของรอบ 2026-09 (scripts/playtest) เทียบ v4 กับ v5 (= v4 + ชุดนี้ + 2026-09c Director) บน seed เดียวกัน 24 seed ต่อฮีโร่ '
+      + 'ที่อัปร้านกลางและอัปเต็ม และทดลองทางเลือกแยกทีละข้ออีกราว 2,000 เกม ในวงเล็บคือผลของชุดนี้อย่างเดียว (ไม่มี 2026-09c)',
+    metrics: [
+      { label: 'ชนะ Umbra อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '38/46/29/17%', after: '75/63/67/17% (ไม่รวม Director 71/58/46/13%)' },
+      { label: 'ชนะ Umbra อัปร้านกลาง (Vex/Bram/Lyra/Kit)', before: '17/17/13/4%', after: '38/46/25/21% (42/17/33/0%)' },
+      { label: 'ถึงด่าน 8 อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '83/63/75/17%', after: '96/88/92/58% (79/83/79/46%)' },
+      { label: 'ถึงด่าน 8 อัปร้านกลาง (Vex/Bram/Lyra/Kit)', before: '38/46/42/4%', after: '71/71/79/46% (67/54/54/17%)' },
+      { label: 'Kit ถึงด่าน 7 (ร้านกลาง / อัปเต็ม)', before: '33% / 75%', after: '67% / 92% (54% / 88%)' },
+      { label: 'ด่าน 1–4 (ถึงด่าน, ราชาตาย)', before: 'ผ่านเกือบ 100%', after: 'เท่าเดิม' },
+      { label: 'ดาเมจที่ Kit โดนจากมอนธรรมดา (อัปเต็ม)', before: '60%', after: '56% (54%)' },
+    ],
+    findings: [
+      { level: 'warn', title: 'Awakening ดีพอ ๆ กับการปฏิเสธ', body: 'อัปเต็ม: รับ 33/33/33/13% เทียบปฏิเสธ 50/29/38/8% (Vex/Bram/Lyra/Kit) แบบแปลง Link เป็นสกิลสายยังเท่าเดิม ส่วนแบบเก็บ Link + ช่องที่ 5 ได้ 63/42/50/17%', status: 'แก้ด้วย field ใหม่ awaken.keep/slots' },
+      { level: 'warn', title: 'EXP เพิ่มทำให้มอนอึดขึ้น', body: 'เมื่อ Vex ได้ Transmute เลเวลพุ่งถึง 80 และถึงด่าน 8 ลดจาก 44% เหลือ 25% ทางเลือก hpPerLv 0.04 + ชดเชย hpGrowth 1.6/hpProg 1.24 ทำให้ยากขึ้นเป็นฟันเลื่อย (ต้นด่าน −20% ท้ายด่าน +22%)', status: 'แก้ด้วยเพดานเลเวล scaling.lvCapBase/lvCapPerCh' },
+      { level: 'warn', title: 'Kit ตายกับมอนธรรมดา', body: 'มอนธรรมดาเป็น 62–69% ของดาเมจที่ Kit โดน เหยี่ยวไล่ตีตัวเลือดมากที่สุดเสมอแม้โดนล้อม เสริมสกิลสาย (Gale Step) ไม่มีผลเพราะ Kit ตื่นพลังได้แค่ราวครึ่งหนึ่ง', status: 'แก้ด้วย hawk.guardN/guardR + heroes.ranger.hp' },
+      { level: 'info', title: 'ช่วงท้ายเกมง่ายขึ้นโดยรวม', body: 'Awakening ทำให้ท้ายเกมง่ายขึ้น และ Director ที่เบาลงยิ่งเพิ่มอีก (อัปเต็มชนะ Umbra 63–75% ยกเว้น Kit) ลด awaken.sigDmg เหลือ 1.8 แทบไม่ต่าง ถ้าอยากให้ยากขึ้นควรปรับที่ Umbra หรือ bossHpGrowth', status: 'รอดูข้อมูลจริง' },
+    ],
+    reasons: {
+      'shared.awaken.keep': 'Link เต็มเลเวล 2 ตัวไม่หายไปตอนตื่นพลัง',
+      'shared.awaken.slots': 'ช่องโจมตีที่ 5 รับสกิลตื่นพลังโดยไม่ต้องถอดสกิลเดิม',
+      'shared.scaling.lvCapBase': 'เส้นเลเวลปกติเริ่มที่ 7 (ค่ากลางของบอทตอนกลางด่าน 1)',
+      'shared.scaling.lvCapPerCh': 'เส้นเลเวลโต 7 ต่อ Chapter ตามค่ากลางของบอท',
+      'shared.skills.hawk.guardN': 'เมื่อมอน 4 ตัวขึ้นไปล้อม Kit เหยี่ยวช่วยเปิดทาง',
+      'shared.skills.hawk.guardR': 'ระยะล้อม 40 px รอบตัว Kit (เท่าค่าเริ่มต้น)',
+      'shared.heroes.ranger.hp': 'Kit เปราะที่สุด เพิ่ม HP ครึ่งหนึ่งของโบนัส Bram',
+    },
+    next: [
+      'Kit ยังชนะ Umbra น้อยสุด (v5: ร้านกลาง 21%, อัปเต็ม 17%) ดู DPS ด่าน 4–8 ของ Kit ต่อ',
+      'ท้ายเกม v5 ง่ายขึ้นมาก ถ้าข้อมูลจริงยืนยัน ให้เพิ่ม HP ของ Umbra หรือ bossHpGrowth',
+      'หลัง publish ดูข้อมูลจริง: อัตราตื่นพลัง และเวลาที่ผู้เล่นใช้ในด่าน 6–8',
+      ],
+    },
+  };
+
 /** Owner playtest after v4: Chapters 2–3 turn into a wall of monsters from every side. First step (config only):
  *  a lower, slower Director. Wave fronts (spawn.front*, pincer, director.stageReset) come in a later pass. */
 export const BALANCE_PASS_2026_09C: BalancePass = {
@@ -204,5 +271,5 @@ export const BALANCE_PASS_2026_09C: BalancePass = {
   },
 };
 
-/** Every balance pass the Admin Console can load, newest first. */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09];
+/** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

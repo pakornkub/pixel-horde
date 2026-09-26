@@ -74,20 +74,21 @@ function updateLinks(s: SimState): void {
   s.awakenOffer = awakenEligible(s);
 }
 
-/** Clear screen answer: accept consumes two Links and transforms the Signature; decline forfeits for this Run. */
+/** Clear screen answer: accept transforms the Signature (and consumes two Links unless `awaken.keep`); decline forfeits for this Run. */
 export function answerAwaken(s: SimState, accept: boolean): void {
   const P = s.P;
   if (s.phase !== 'clear' || !s.awakenOffer) return;
   s.awakenOffer = false;
   if (!accept) { P.awakenDeclined = true; return; }
-  for (const id of qualifiedLinks(s).slice(0, s.cfg.awaken.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
-  // the first Skill Line skills arrive at once in the freed slots, so the transformation is felt
   const A = s.cfg.awaken;
+  // original rule: the Links are consumed; `keep` leaves them equipped (the new slots make room instead)
+  if (!A.keep) for (const id of qualifiedLinks(s).slice(0, A.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
+  P.awakened = true; // before the grant: attackSlots() counts the Awakening slots
+  // the first Skill Line skills arrive at once in free slots, so the transformation is felt
   for (const id of AWAKENING[P.ch].line.slice(0, A.grant)) {
-    if (!P.skills[id] && Object.keys(P.skills).length >= s.cfg.maxAttackSlots) break;
+    if (!P.skills[id] && Object.keys(P.skills).length >= attackSlots(s)) break;
     P.skills[id] = Math.min(s.cfg.skills[id].max, Math.max(P.skills[id] || 0, A.grantLv));
   }
-  P.awakened = true;
   banner(s, 'awakened', 2.6, true);
   flash(s, 0.4, '#ffd23f');
   sfx(s, 'ult');
@@ -210,6 +211,9 @@ export function benchSize(s: SimState): number {
   return B.start + (s.stage > B.growAt1 ? 1 : 0) + (s.stage > B.growAt2 ? 1 : 0);
 }
 
+/** Attack slots (Signature included): the base count, plus `awaken.slots` once Awakened. */
+export const attackSlots = (s: SimState): number => s.cfg.maxAttackSlots + (s.P.awakened ? s.cfg.awaken.slots : 0);
+
 /** Offer rules (ticket 21): 4 attack slots, then new Skills go to the Bench while it has room;
  *  benched Skills are never offered; new passives only while a passive slot is free. */
 export function buildOptions(s: SimState): LevelOption[] {
@@ -220,7 +224,7 @@ export function buildOptions(s: SimState): LevelOption[] {
   }
   const c: { o: LevelOption; w: number }[] = [];
   const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
-  const slotFree = owned < s.cfg.maxAttackSlots, benchFree = P.bench.length < benchSize(s);
+  const slotFree = owned < attackSlots(s), benchFree = P.bench.length < benchSize(s);
   for (const id of [...SKILL_IDS, sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max || s.banished.includes(id)) continue;
@@ -287,7 +291,7 @@ export function swapBench(s: SimState, bi: number, slot: SkillId | PassiveId | n
   }
   const out = slot as SkillId | null;
   if (out === signatureOf(P.ch)) return;
-  if (out ? !P.skills[out] : Object.keys(P.skills).length >= s.cfg.maxAttackSlots) return;
+  if (out ? !P.skills[out] : Object.keys(P.skills).length >= attackSlots(s)) return;
   if (!spendGold(s, swapCost(s))) { s.events.push({ t: 'swapDenied' }); return; }
   s.swaps++;
   P.bench.splice(bi, 1);
