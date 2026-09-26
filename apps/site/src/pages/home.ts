@@ -1,5 +1,6 @@
 import { DEFAULT_RESOLVED, HERO_IDS, REALMS, REALM_IDS, signatureOf, type HeroId } from '@pixel-horde/sim';
 import { el, enemy, groundURL, hero, pickup, skillIcon, weaponIcon } from '../art';
+import { siteConfig } from '../backend';
 import { heroScene } from '../hero-scene';
 import { g, s } from '../lang';
 import { live, reveals, shell } from '../shell';
@@ -66,8 +67,8 @@ live(() => {
 
 // ── heroes ──
 const HERO_GROUND: Record<HeroId, number> = { mage: 2, knight: 0, ranger: 7, alchemist: 6 };
-live(() => {
-  const H = DEFAULT_RESOLVED.heroes;
+let H = DEFAULT_RESOLVED.heroes; // prices follow the live Balance Config once it arrives
+const drawHeroes = (): void => {
   document.getElementById('heroGrid')!.replaceChildren(...HERO_IDS.map((id) => {
     const cost = H[id].cost;
     const stage = el('div.stage', null, hero(id, 6));
@@ -81,7 +82,9 @@ live(() => {
       el('div.sigrow', null, skillIcon(sig, 'sm'), el('span', null, `${s('home.sig')}: ${g(`skill.${sig}.name`)}`)),
       el('p.muted', { style: 'font-size:14px' }, g(`hero.${id}.desc`)));
   }));
-});
+};
+live(drawHeroes);
+void siteConfig().then((c) => { H = c.heroes; drawHeroes(); });
 
 // ── features ──
 type Feat = [TextKey, TextKey, () => Node, number];

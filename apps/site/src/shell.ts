@@ -64,6 +64,12 @@ export function live(render: () => void): void {
   onLang(render);
 }
 
+/** Scroll to the URL's #section once a page has built its content (it may wait for the live config first). */
+export function toHash(): void {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (id) document.getElementById(id)?.scrollIntoView();
+}
+
 /** Section helper: reveal-on-scroll for elements with .reveal. */
 export function reveals(): void {
   const els = document.querySelectorAll('.reveal');
