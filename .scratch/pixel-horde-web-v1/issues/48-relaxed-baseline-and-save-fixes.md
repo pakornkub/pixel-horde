@@ -25,7 +25,7 @@ Owner decisions (2026-09-27):
 - [x] Website guide: the difficulty paragraph now explains Heart Crack and Endless with live numbers
 - [x] Playtest: `presets` suite → `cracks` (Heart Crack 0–3), `PT_CRACK` for the `patch` suite
 - [x] Tests: `asWritten()` in `tests/bot.ts` for tests of exact mechanic numbers; golden replays re-recorded
-- [x] Migration `20260930000028_base_difficulty.sql` (live `config_schema`: drop `presets`, add `difficulty`)
+- [x] Migration `20260930000030_base_difficulty.sql` (live `config_schema`: drop `presets`, add `difficulty`)
 - [ ] Coordinator: apply migration 0028, deploy
 - [ ] Owner playtest: a full Run at the new base, then Heart Crack 1–3 (tune `shared.difficulty.*` or
       `shared.heartCrack.*` from Admin → Balance). Heart Crack 3 on the new base ≈ old Balanced monster HP but
