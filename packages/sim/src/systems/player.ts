@@ -9,6 +9,11 @@ export function xpNeed(cfg: ResolvedConfig, lv: number): number {
   return Math.floor(x.base + lv * x.perLv + lv * lv * x.quad + ipow(Math.max(0, lv - x.lateFrom), 2) * x.lateQuad);
 }
 
+/** Co-op: this player's share of each shared EXP pickup (1 solo, or when `coop.xpShareK` is 0). */
+export function xpShare(s: SimState): number {
+  return s.coop ? 1 / (1 + s.cfg.coop.xpShareK * s.coop.mates.length) : 1;
+}
+
 export const shopLv = (meta: Meta, id: ShopId): number => meta.up[id] || 0;
 export const U = (s: SimState, id: ShopId): number => shopLv(s.meta, id);
 

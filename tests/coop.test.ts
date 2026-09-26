@@ -123,6 +123,37 @@ describe('co-op host / guest', () => {
     expect(r.gs().coop!.shieldT).toBe(0);
   });
 
+  it('coop.choosingSkills 0: a choosing player casts nothing until they pick (1, version 0: they keep casting)', () => {
+    const casts = (choosingSkills: number): boolean => {
+      const cfg = resolveConfig(parseBalanceConfig({ shared: { coop: { choosingSkills } } }));
+      const sim = createSim(botOptions(21, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true }, config: cfg }));
+      for (let i = 0; i < 60; i++) sim.step({ mx: 0, my: 0 }, []);
+      const s = sim.view() as SimState;
+      s.P.xp = s.P.need;
+      sim.step({ mx: 0, my: 0 }, []);
+      expect(sim.view().phase).toBe('levelup');
+      const cds0 = JSON.stringify(s.P.cds), pet0 = JSON.stringify(s.P.pet);
+      for (let i = 0; i < 120; i++) sim.step({ mx: 0, my: 0 }, []);
+      expect(sim.view().phase).toBe('levelup'); // still choosing
+      return JSON.stringify(s.P.cds) !== cds0 || JSON.stringify(s.P.pet) !== pet0; // skill timers moved
+    };
+    expect(casts(0)).toBe(false);
+    expect(casts(1)).toBe(true);
+  });
+
+  it('coop.xpShareK: every player gets 1 / (1 + k × other players) of a shared EXP pickup', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { coop: { xpShareK: 0.4 }, spawn: { base: 0, prog: 0, swarmFirst: 600 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    r.step(30);
+    const h = r.hs(), g = r.gs();
+    h.P.xp = 0; g.P.xp = 0;
+    h.gems.push({ kind: 'xp', x: h.P.x + 2, y: h.P.y, v: 7, mag: false });
+    r.step(20);
+    expect(r.hs().P.lv).toBe(1);
+    expect(r.hs().P.xp).toBeCloseTo(5, 6); // 7 / (1 + 0.4 × 1)
+    expect(r.gs().P.xp).toBeCloseTo(5, 6);
+  });
+
   it('the host choosing a level-up does not stop the world either', () => {
     const r = room(1, { debug: { god: true } });
     r.step(60);

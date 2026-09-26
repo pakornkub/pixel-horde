@@ -295,6 +295,8 @@ const shared = obj({
     shieldR: pos(40, 'Shield bubble radius while choosing (monsters are pushed out)'),
     shieldPush: pos(220, 'Shield bubble push speed'),
     shieldAfter: sec(5, 'Shield stays this long after choosing (s): time to get moving again, still no damage'),
+    choosingSkills: int(1, 0, 1, 'Skills, Companion and Shadow Clone keep attacking while their player chooses a level-up / chest (1) or stop (0)'),
+    xpShareK: n(0, 0, 2, 'EXP per pickup for each player = 1 / (1 + this × other players); 0 = everyone gets it all'),
     reviveTime: sec(3, 'Seconds standing next to a downed ally to revive them'), reviveRange: pos(22, 'Ally revive distance'),
     reviveHp: frac(0.3, 'HP after an ally revive'),
     voteTime: sec(15, 'Route vote time (s); the host breaks ties'), clearWait: sec(30, 'Stage-end: wait for everyone to be ready at most (s)'),
