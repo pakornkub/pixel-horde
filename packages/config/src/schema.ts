@@ -186,24 +186,16 @@ const passives = obj({
   keenCritMul: mul(0.2, 'Keen Eye: crit multiplier per level'),
 }, 'Passive skills');
 
-/** Difficulty presets (Settings → Difficulty, solo only): multipliers on this config; 1 = unchanged. */
-type Knobs = { on?: number; mobHp?: number; mobDmg?: number; bossHp?: number; bossDmg?: number; spawn?: number; xp?: number; stage?: number; warn?: number; kingPace?: number; hp?: number; speed?: number; hearts?: number; ultFill?: number; director?: number; gold?: number };
-const preset = (k: Knobs, desc: string) => obj({
-  on: int(k.on ?? 1, 0, 1, 'Offered in Settings (1) or hidden (0)'),
-  mobHp: mul(k.mobHp ?? 1, 'Normal monster HP ×'), mobDmg: mul(k.mobDmg ?? 1, 'Normal monster damage ×'),
-  bossHp: mul(k.bossHp ?? 1, 'King, Guardian, Rival and Umbra HP ×'), bossDmg: mul(k.bossDmg ?? 1, 'King, Guardian, Rival and Umbra damage ×'),
-  spawn: mul(k.spawn ?? 1, 'Spawn rate and swarm size ×'), xp: mul(k.xp ?? 1, 'EXP gained ×'),
-  stage: mul(k.stage ?? 1, 'Stage length ×'), warn: mul(k.warn ?? 1, 'Boss move warning time ×'), kingPace: mul(k.kingPace ?? 1, 'Pause between King moves ×'),
-  hp: mul(k.hp ?? 1, 'Player max HP ×'), speed: mul(k.speed ?? 1, 'Player speed ×'), hearts: mul(k.hearts ?? 1, 'Heart drop chance ×'),
-  ultFill: mul(k.ultFill ?? 1, 'Ultimate charge time ×'), director: mul(k.director ?? 1, 'Director maximum ×'), gold: mul(k.gold ?? 1, 'Gold earned ×'),
-}, desc);
-const presets = obj({
-  relaxed: preset({ mobHp: 0.6, mobDmg: 0.45, bossHp: 0.55, bossDmg: 0.45, spawn: 0.85, xp: 1.3, warn: 1.4, kingPace: 1.35, hp: 1.3, hearts: 2, ultFill: 0.8, director: 0.75, gold: 0.5 }, 'Preset: Relaxed'),
-  easy: preset({ mobHp: 0.8, mobDmg: 0.7, bossHp: 0.75, bossDmg: 0.7, spawn: 0.9, xp: 1.15, warn: 1.2, kingPace: 1.15, hp: 1.15, hearts: 1.5, ultFill: 0.9, director: 0.85, gold: 0.75 }, 'Preset: Easy'),
-  challenge: preset({ mobHp: 1.2, mobDmg: 1.2, bossHp: 1.2, bossDmg: 1.15, spawn: 1.15, warn: 0.9, kingPace: 0.9, hearts: 0.8, gold: 1.15 }, 'Preset: Challenge'),
-  hard: preset({ mobHp: 1.45, mobDmg: 1.45, bossHp: 1.4, bossDmg: 1.35, spawn: 1.3, xp: 0.9, warn: 0.8, kingPace: 0.8, hearts: 0.6, ultFill: 1.15, director: 1.1, gold: 1.3 }, 'Preset: Hard'),
-  blitz: preset({ stage: 0.6, spawn: 1.6, xp: 1.8, mobHp: 0.9, bossHp: 0.7, speed: 1.15, ultFill: 0.6, gold: 0.8 }, 'Preset: Blitz'),
-}, 'Difficulty presets (solo; Balanced = this config as is)');
+/** Base difficulty (ticket 48): multipliers on the numbers written in this config, applied by resolveConfig. */
+const difficulty = obj({
+  mobHp: mul(0.6, 'Normal monster HP ×'), mobDmg: mul(0.45, 'Normal monster damage ×'),
+  bossHp: mul(0.55, 'King, Guardian, Rival and Umbra HP ×'), bossDmg: mul(0.45, 'King, Guardian, Rival and Umbra damage ×'),
+  spawn: mul(0.85, 'Spawn rate and swarm size ×'), xp: mul(1.3, 'EXP gained ×'),
+  warn: mul(1.4, 'Boss move warning time ×'), kingPace: mul(1.35, 'Pause between King moves ×'),
+  hp: mul(1.3, 'Player max HP ×'), hearts: mul(2, 'Heart drop chance ×'),
+  ultFill: mul(0.8, 'Ultimate charge time ×'), director: mul(0.75, 'Director maximum ×'),
+  gold: mul(0.2, 'Gold earned in a Run × (coins, chests, Kings, Rival, Gold bags, Umbra bonus)'),
+}, 'Base difficulty: multipliers on the numbers in this config (1 = as written)');
 
 const shared = obj({
   maxAttackSlots: int(4, 1, 12, 'Attack slots, including the Signature Skill'),
@@ -562,7 +554,7 @@ const shared = obj({
   }, 'Anti-cheat tier 0 (server checks)'),
   skills,
   passives,
-  presets,
+  difficulty,
 });
 
 const enemy = (hp: number, spd: number, dmg: number, xp: number, r: number, name: string) =>

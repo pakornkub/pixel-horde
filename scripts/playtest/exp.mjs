@@ -16,7 +16,7 @@ const all = [];
 for (const [label, patch] of Object.entries(patches)) {
   const tmp = path.join(here, '.out', `exp-${label}.json`);
   const r = spawnSync('node', [path.join(here, 'main.mjs'), 'patch', seeds, tmp], {
-    env: { ...env, PT_LABEL: label, PT_SHOP: shop, PT_PATCH_JSON: JSON.stringify(patch.patch ?? patch), ...(patch.preset ? { PT_PRESET: patch.preset } : {}), ...(patch.noAwaken ? { PT_NOAWAKEN: '1' } : {}), ...(patch.random ? { PT_RANDOM: '1' } : {}) },
+    env: { ...env, PT_LABEL: label, PT_SHOP: shop, PT_PATCH_JSON: JSON.stringify(patch.patch ?? patch), ...(patch.crack ? { PT_CRACK: String(patch.crack) } : {}), ...(patch.noAwaken ? { PT_NOAWAKEN: '1' } : {}), ...(patch.random ? { PT_RANDOM: '1' } : {}) },
     stdio: ['ignore', 'ignore', 'inherit'],
   });
   if (r.status !== 0) { console.error('failed', label); continue; }

@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { BalanceConfigSchema, type BalanceConfig, type BalanceConfigInput, type ResolvedConfig, type WorldId } from './schema';
+import { applyDifficulty } from './difficulty';
 
 export * from './schema';
 export * from './flags';
 export { FIELD_TH, GROUP_TH } from './desc-th';
-export * from './presets';
+export * from './difficulty';
 export * from './balance-pass';
 export * from './changelog';
 export * from './pass-stack';
@@ -25,9 +26,9 @@ export function parseBalanceConfig(input: unknown): BalanceConfig {
 /** The built-in defaults (the game ships these so it runs offline). */
 export const DEFAULT_CONFIG: BalanceConfig = parseBalanceConfig({});
 
-/** Shared rules ∪ one World's content. World keys never collide with shared keys. */
+/** Shared rules ∪ one World's content (World keys never collide with shared keys), with the base difficulty applied. */
 export function resolveConfig(cfg: BalanceConfig = DEFAULT_CONFIG, world: WorldId = 'lumora'): ResolvedConfig {
-  return { ...cfg.shared, ...cfg.worlds[world], version: cfg.version, world };
+  return applyDifficulty({ ...cfg.shared, ...cfg.worlds[world], version: cfg.version, world });
 }
 
 export const DEFAULT_RESOLVED: ResolvedConfig = resolveConfig();

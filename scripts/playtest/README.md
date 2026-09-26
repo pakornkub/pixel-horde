@@ -10,13 +10,13 @@ and publishes from there.
 ```
 npm run playtest -- heroes 16            # every Hero, fresh account, 16 seeds → scripts/playtest/.out/heroes.json
 npm run playtest:report -- scripts/playtest/.out/heroes.json
-PT_PASS=1 npm run playtest -- presets 10 # every difficulty preset on top of all balance passes
+PT_PASS=1 npm run playtest -- cracks 10  # every Heart Crack tier on top of all balance passes
 node scripts/playtest/exp.mjs patches.json 12 mid   # compare Balance Config patches on the same seeds
 ```
 
 Suites (`suites.mjs`): `heroes` (fresh), `veteran`/`max` (Shop levels), `awaken` (accept vs decline),
-`casual` (random picks, slower reactions), `presets` (`PT_PRESETS=relaxed,hard` limits the list), `patch`
-(env `PT_PATCH_JSON`, `PT_SHOP`, `PT_PRESET`, `PT_MAXCH=1` stop after Chapter 1). Env for every suite: `PT_PASS=1`
+`casual` (random picks, slower reactions), `cracks` (`PT_CRACKS=0,3` limits the list), `patch`
+(env `PT_PATCH_JSON`, `PT_SHOP`, `PT_CRACK`, `PT_MAXCH=1` stop after Chapter 1). Env for every suite: `PT_PASS=1`
 start from every balance pass (= config v6), `PT_PASS=<id>` only up to that pass (`2026-09` = v4, `2026-09b` = v5),
 `PT_BASE=defaults` skip v3's Stage lengths, `PT_HEROES=mage,ranger` limit the Heroes.
 

@@ -2,7 +2,6 @@ import {
   AWAKENING, HERO_IDS, REALMS, ROUTE_REALMS, SHOP_IDS, SKILL_LINES, WEAPONS, WEAPON_IDS, WHEEL,
   adviceFor, signatureOf, xpNeed, type HeroId, type RealmId, type SkillId,
 } from '@pixel-horde/sim';
-import { isRanked, offeredPresets } from '@pixel-horde/config';
 import { ENEMY_SPR } from '../../../game/src/render/sprites';
 import { VIEWS, viewZoom } from '../../../game/src/settings';
 import { el, enemy, hero, passiveIcon, pickup, pix, shopIcon, skillIcon, weaponIcon } from '../art';
@@ -446,13 +445,11 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
 
 // ── 16. screen, settings & difficulty ──────────────────
 {
-  // Difficulty presets offered right now (an admin can hide some); ★ = the ranked one.
-  const presets = el('div.grid.g3', { style: 'gap:10px' }, ...offeredPresets(C).map((id) => el('div.panel', { style: 'padding:10px 12px' },
-    G(`preset.${id}`, undefined, 'b'), isRanked(id) ? el('b', { style: 'color:var(--gold)' }, ' ★') : null, el('br'), G(`preset.${id}.tag`, undefined, 'span', 'muted'))));
+  const H = C.heartCrack;
   sec('settings', 'g.set.h',
     T('g.set.hud', undefined, 'p'),
     T('g.set.streak', { s: C.streak.window, n: C.streak.popupEvery }, 'p'),
-    T('g.set.diff', undefined, 'p'), presets,
+    T('g.set.diff', { h1: H.hp1, h2: H.hp2, h3: H.hp3, d1: H.dmg1, d2: H.dmg2, d3: H.dmg3, e: C.endless.hpGrowth }, 'p'),
     T('g.set.view', { z: VIEWS.map((v) => `×${viewZoom(v)}`).join(' / ') }, 'p'),
     T('g.set.fb', undefined, 'p'),
     T('g.set.news', undefined, 'p'));
