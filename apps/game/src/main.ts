@@ -2,7 +2,8 @@ import './style.css';
 import { REALM_IDS, createSim, DT, isHero, isWeapon, type Command, type DebugEvent, type Sim, type SimOptions, type SimState, type SkillId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
-import { applyLang, saveSettings, settings } from './settings';
+import { applyLang, onSettingsChange, saveSettings, settings } from './settings';
+import { PRESETS, applyPreset, type PresetId } from '@pixel-horde/config';
 import { closeSettings, openSettings, settingsOpen } from './ui/settings-screen';
 import { checkSession, initAccount, noteRunFinished, renderAccountLine } from './ui/account';
 import { initLeaderboard } from './ui/leaderboard';
@@ -45,6 +46,8 @@ let queue: Command[] = [];
 let runBanked = 0;
 let walletBanked = 0;
 let ticket: RunTicket | null = null;
+/** Difficulty preset of the Run in progress (solo only; co-op is always balanced). */
+let runPreset: PresetId = 'balanced';
 let clientRunId = '';
 let runWallStart = 0;
 let starting = false;
@@ -113,8 +116,11 @@ async function newRun(): Promise<void> {
   clearSave();
   starting = true;
   initAudio();
+  runPreset = settings.preset;
   // The server picks the seed when online; give it a moment, then fall back to a local seed.
-  ticket = await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  // Presets other than Balanced are unranked: no ticket, the Run is submitted like an offline one.
+  ticket = !PRESETS[runPreset].ranked ? null
+    : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined;
@@ -127,7 +133,7 @@ async function newRun(): Promise<void> {
     firstRun: !META.tips.includes('first'), // the account's very first Greenvale is a little easier
     meta: simMeta(),
     viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
-    config: active.cfg,
+    config: applyPreset(active.cfg, runPreset),
     events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival },
     debug,
   }));
@@ -152,6 +158,7 @@ function playerPid(): string {
 async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<void> {
   if (sim) return;
   coop = s;
+  runPreset = 'balanced';
   initAudio();
   clearSave();
   const config = s.role === 'guest' ? (await configFor(cfgVersion)) ?? active.cfg : active.cfg; // guests use the host's Balance Config
@@ -276,7 +283,7 @@ function autoSave(quit = false): void {
   if (!sim || !canSave()) return;
   const v = sim.view(), cp = sim.checkpoint();
   writeSave({ runId: ticket?.runId, token: ticket?.token, seed: v.seed, hero: v.hero, weapon: v.weapon, crack: v.crack, chapter: cp.chapter,
-    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId });
+    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId, preset: runPreset });
   if (ticket) void backend.saveCheckpoint({ runId: ticket.runId, token: ticket.token, chapter: cp.chapter, hash: cp.hash, data: cp.data, configVersion: cp.configVersion, quit });
 }
 
@@ -322,8 +329,10 @@ async function continueRun(): Promise<void> {
       }
     } else resumedHash = pick?.hash; // offline: the server checks it when the Run is submitted
     if (!pick) return;
-    const config = await configFor(pick.configVersion);
-    if (!config) { showMsg(t('save.noConfig')); return; }
+    const base = await configFor(pick.configVersion);
+    if (!base) { showMsg(t('save.noConfig')); return; }
+    runPreset = pick.preset && PRESETS[pick.preset] ? pick.preset : 'balanced';
+    const config = applyPreset(base, runPreset);
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
     const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.LW, h: screen.LH }, mobile: isMobile(),
@@ -634,7 +643,7 @@ async function refreshLive(): Promise<void> {
     onAnnouncements: (list) => { news = list; renderNews(); },
     onMaintenance: (on) => { if (on && !maintDismissed) { pause(); show('ovMaint'); } if (!on) hide('ovMaint'); },
     onTooOld: () => { pause(); show('ovUpdate'); },
-    onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: cfg }); },
+    onConfig: (cfg) => { if (sim) cmd({ type: 'setConfig', config: applyPreset(cfg, runPreset) }); },
   });
   const f = live.flags();
   if (sim) cmd({ type: 'setEvents', events: { bloodMoon: f.bloodMoon, dragon: f.dragon, rival: f.rival } });
@@ -667,4 +676,14 @@ void refreshLive();
 initLeaderboard();
 installTelemetry();
 $('draftBadge').hidden = !DRAFT;
+/** Title: a reminder when a non-standard (unranked) difficulty is selected; tap to change it. */
+function renderModeBadge(): void {
+  const b = $('modeBadge');
+  b.hidden = settings.preset === 'balanced';
+  b.textContent = t('preset.badge', { name: t(`preset.${settings.preset}`) });
+}
+$('modeBadge').addEventListener('click', () => openSettings('ovTitle'));
+onSettingsChange(renderModeBadge);
+onLangChange(renderModeBadge);
+renderModeBadge();
 requestAnimationFrame(frame);

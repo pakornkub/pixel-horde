@@ -1,7 +1,7 @@
 // Tuning lab (prototype variant C): search every Balance Config field (generated from the zod
 // schema), edit with range validation, impact chart + per-version history, staged changes with a
 // note, test live on this device, publish / roll back (always a new version).
-import { FIELD_TH, GROUP_TH, listFields, parseBalanceConfig, type FieldInfo } from '@pixel-horde/config';
+import { BALANCE_PASS_2026_09, FIELD_TH, GROUP_TH, listFields, parseBalanceConfig, withOverrides, type BalanceConfig, type FieldInfo } from '@pixel-horde/config';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { GAME_URL, type AdminApi, type ConfigRow } from '../api';
 import { Chart } from '../chart';
@@ -96,6 +96,15 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
       setDraft(null); setNote(''); cfgs.reload();
     } catch (e) { toast('Publish ไม่ได้: ' + (e as Error).message); }
   };
+  /** The playtest pass (packages/config/src/balance-pass.ts) on top of the current draft, to review and publish. */
+  const loadPass = (): void => {
+    const rest = { ...(d as Record<string, unknown>) };
+    delete rest.version;
+    const next = withOverrides(parseBalanceConfig(rest), BALANCE_PASS_2026_09.patch) as BalanceConfig & Record<string, unknown>;
+    setDraft({ ...next, version: base.version });
+    if (!note.trim()) setNote(BALANCE_PASS_2026_09.note);
+    toast('ใส่ค่าจากรอบจูน 2026-09 ในฉบับร่างแล้ว ตรวจก่อน publish');
+  };
   const rollback = async (v: number): Promise<void> => {
     if (!confirm(`สร้างเวอร์ชันใหม่ที่ใช้ค่าของ v${v}?`)) return;
     try { const nv = await api.rollbackConfig(v); toast(`ย้อนกลับแล้ว (v${nv} = ค่าของ v${v})`); setDraft(null); cfgs.reload(); } catch (e) { toast('ไม่สำเร็จ: ' + (e as Error).message); }
@@ -151,6 +160,8 @@ export function Balance({ api, focus }: { api: AdminApi; focus?: string }) {
         <div class="small mut">เปิดเกมในแท็บใหม่ด้วยค่าฉบับร่าง ผู้เล่นคนอื่นไม่ได้รับผล และรอบทดสอบไม่ส่งคะแนน</div>
         <button class="pri" onClick={publish} disabled={!changes.length}>Publish เป็น v{(cfgs.data[0]?.version ?? 0) + 1}</button>
         {changes.length > 0 && <button onClick={() => setDraft(null)}>ทิ้งฉบับร่าง</button>}
+        <button onClick={loadPass}>ใส่ค่าจากรอบจูน {BALANCE_PASS_2026_09.id}</button>
+        <div class="small mut">ค่าที่แนะนำจากการทดสอบด้วยบอท (Chapter 1, Umbra, Awakening, Signature, combo)</div>
         <h3 style="margin-top:10px">เวอร์ชัน</h3>
         {published.map((c, i) => <div class="row between"><span class="small">v{c.version} {i === 0 && <Tag kind="ok">ใช้อยู่</Tag>}<br /><span class="mut">{c.note}</span></span>{i > 0 && <button onClick={() => rollback(c.version)}>ย้อนกลับ</button>}</div>)}
       </div>

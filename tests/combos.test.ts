@@ -103,6 +103,20 @@ describe('Statuses and Combos', () => {
     expect(e.poisDps).toBeGreaterThan(0);
   });
 
+  it('Toxic Burst uses the poison before Might/crit, and a one-shot poison hit counts as one second', () => {
+    const { s, mob, dmgs } = setup();
+    s.P.dmgMul = 2; // Might must apply once (on the burst), not twice
+    const pool = mob(), splash = mob(300, 300);
+    hit(s, pool, 10, '#fff', 0, SKILL_TAGS.toxic);
+    expect(pool.poisDps).toBeCloseTo(10 / s.cfg.skills.toxic.tick, 5);
+    hit(s, splash, 10, '#fff', 0, { el: 'poison', applies: 'poisoned' });
+    expect(splash.poisDps).toBe(10);
+    s.events = [];
+    hit(s, splash, 1, '#fff', 0, SKILL_TAGS.nova); // fire on poison: burst of 10 dps × 4 s × toxicBurst, × Might once
+    const burst = dmgs().slice(1);
+    expect(burst[0]).toBe(Math.round(10 * s.cfg.status.poisoned * s.cfg.combos.toxicBurst * 2));
+  });
+
   it('Superconduct removes armour for a while', () => {
     const { s, mob, dmgs } = setup();
     const e = mob();

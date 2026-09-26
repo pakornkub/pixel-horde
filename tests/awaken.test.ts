@@ -75,6 +75,21 @@ describe('Awakening', () => {
     for (const other of (Object.keys(HEROES) as HeroId[]).filter((h) => h !== 'knight')) for (const id of AWAKENING[other].line) expect(offered).not.toContain(id);
   });
 
+  it('awaken.grant gives the first Skill Line skills at awaken.grantLv; awaken.wLine favours them in offers', async () => {
+    const { buildOptions } = await import('../packages/sim/src/systems/progress');
+    const { sim, s, endStage, next, maxLinks } = setup('mage');
+    s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, grant: 1, grantLv: 6, wLine: 50 } };
+    maxLinks(2);
+    endStage(); next(); endStage();
+    say(sim, true);
+    const [first, second] = AWAKENING.mage.line;
+    expect(s.P.skills[first]).toBe(6);
+    expect(s.P.skills[second]).toBeUndefined();
+    let lineOffers = 0, total = 0;
+    for (let i = 0; i < 200; i++) for (const o of buildOptions(s)) { total++; if (o.kind === 'skill' && AWAKENING.mage.line.includes(o.id as never)) lineOffers++; }
+    expect(lineOffers / total).toBeGreaterThan(0.5);
+  });
+
   it('declining forfeits Awakening for the Run', () => {
     const { sim, s, endStage, next, maxLinks } = setup();
     maxLinks(2);

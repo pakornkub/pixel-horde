@@ -1,5 +1,6 @@
 // Device-only settings (never sent to the server), stored under `pixelhorde-settings`.
 import { detectLang, setLang, type Lang } from '@pixel-horde/i18n';
+import { DEFAULT_PRESET, isPreset, type PresetId } from '@pixel-horde/config';
 
 export type Level3 = 'off' | 'some' | 'all';
 export interface Settings {
@@ -18,6 +19,8 @@ export interface Settings {
   tipsSeen: string[];
   /** Send anonymous play statistics / error reports (PDPA opt-out). */
   stats: boolean;
+  /** Difficulty preset for the next solo Run (only `balanced` is ranked). */
+  preset: PresetId;
 }
 
 const KEY = 'pixelhorde-settings';
@@ -38,6 +41,7 @@ export function parseSettings(raw: unknown, browserLangs: readonly string[]): Se
     tips: typeof s.tips === 'boolean' ? s.tips : true,
     tipsSeen: Array.isArray(s.tipsSeen) ? s.tipsSeen.filter((x): x is string => typeof x === 'string') : [],
     stats: typeof s.stats === 'boolean' ? s.stats : true,
+    preset: isPreset(s.preset) ? s.preset : DEFAULT_PRESET,
   };
 }
 

@@ -173,7 +173,7 @@ export function updSkills(s: SimState, dt: number): void {
       if (!prey.length) { P.cds[id] = 0.2; continue; }
       for (let i = 0; i < t.n; i++) {
         const e = prey[i % prey.length];
-        s.effects.push({ type: 'hawk', x: P.x, y: P.y - 10, t: 0, dur: K.hawk.flight, dmg: t.dmg, targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun });
+        s.effects.push({ type: 'hawk', x: P.x, y: P.y - 10, t: 0, dur: K.hawk.flight, dmg: t.dmg, r: t.r, targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun });
       }
       P.cds[id] = t.cd * P.cdMul;
     } else if (id === 'flask') {
@@ -491,9 +491,12 @@ export function updEffects(s: SimState, dt: number): void {
       if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; }
       if (!f.fired && f.t >= f.dur) {
         f.fired = true;
-        if (!o.e.dead) {
-          hit(s, o.e, f.dmg, '#ffe9a8', K.hawk.kb, T.hawk);
-          if (f.stun && !o.e.dead) { if (o.e.boss) o.e.slowT = Math.max(o.e.slowT, K.hawk.evo.stun); else o.e.stun = K.hawk.evo.stun; }
+        // the prey (if still alive), then everything caught in the splash around where it was
+        const struck = o.e.dead ? [] : [o.e];
+        if (f.r) for (const e of s.enemies) if (e !== o.e && !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < f.r + e.r) struck.push(e);
+        for (const e of struck) {
+          hit(s, e, f.dmg, '#ffe9a8', K.hawk.kb, T.hawk);
+          if (f.stun && !e.dead) { if (e.boss) e.slowT = Math.max(e.slowT, K.hawk.evo.stun); else e.stun = K.hawk.evo.stun; }
         }
         burst(s, o.x, o.y, '#c48a55', 8, 60, 0.3);
       }

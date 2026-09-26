@@ -119,6 +119,7 @@ const skills = obj({
   hawk: obj({
     max: int(7, 1, 20, 'Max level'),
     dmg: lin(34, 16, 'Dive damage'), cd: lin(2.2, -0.14, 'Cooldown (s)', 0.9), range: pos(230, 'Hunting range'), flight: sec(0.35, 'Dive time (s)'), kb: pos(40, 'Knockback'),
+    r: n(0, 0, 200, 'Dive splash radius: monsters this close to the prey are hit too (0 = prey only)'),
     evo: evo({ n: int(2, 1, 4, 'Hawks'), stun: sec(0.8, 'Stun (s); bosses are slowed') }),
   }, 'Kit: Hawk Companion'),
   flask: obj({
@@ -364,6 +365,9 @@ const shared = obj({
     links: int(2, 1, 3, 'Max-level Links needed (and consumed)'),
     stages: int(1, 1, 5, 'Full Stages the Links must have been max level and equipped'),
     sigDmg: mul(1.3, 'Awakened Signature Skill damage ×'),
+    grant: int(0, 0, 3, 'Skill Line skills given right away when Awakening (in listed order, into the freed slots)'),
+    grantLv: int(1, 1, 8, 'Level of the Skill Line skills given at Awakening'),
+    wLine: mul(1, 'Level-up offer weight × for Skill Line skills after Awakening'),
   }, 'Awakening'),
   kings: obj({
     firstCd: sec(1.6, 'First move after a King arrives (s)'),

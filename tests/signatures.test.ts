@@ -69,6 +69,19 @@ describe('Signature Skills', () => {
     expect(big.slowT).toBeDefined();
   });
 
+  it('the hawk\'s dive splash (skills.hawk.r) also hits monsters next to its prey', () => {
+    const { s, mob, run } = hero('ranger');
+    const big = mob(-60, 0, 5000), beside = mob(-60, 12, 100), far = mob(60, 0, 100);
+    run(1.5);
+    expect(beside.hp).toBe(100); // no splash by default
+    s.cfg = { ...s.cfg, skills: { ...s.cfg.skills, hawk: { ...s.cfg.skills.hawk, r: 20 } } };
+    s.P.cds.hawk = 0;
+    run(1.5);
+    expect(big.hp).toBeLessThan(5000);
+    expect(beside.hp).toBeLessThan(100);
+    expect(far.hp).toBe(100);
+  });
+
   it('Volatile Flask leaves Statuses; Smart Flask picks fire on a Gathered pack', () => {
     const { s, mob, run } = hero('alchemist');
     const e = mob(50, 0);

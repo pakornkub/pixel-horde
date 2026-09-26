@@ -31,3 +31,4 @@ tests/browser/.out/
 test-results/
 playwright-report/
 .wrangler/
+scripts/playtest/.out/
