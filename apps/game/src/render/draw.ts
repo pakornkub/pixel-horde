@@ -381,12 +381,54 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.globalAlpha = 0.8; b.strokeStyle = '#bfe8ff'; b.lineWidth = 1; b.stroke(); b.restore();
       }
     }
-    // entities sorted by y
-    const ents: (Enemy | null)[] = v.enemies.slice();
-    ents.push(null); // null = the player
-    ents.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
     // the Hero's sprite this frame; `covered` once a monster drawn after it overlaps it (x-ray on top later)
     let self: { img: HTMLCanvasElement; x: number; y: number } | null = null, covered = false;
+    // draws one monster (or a King/dragon/rival with `e.boss`, which gets a glow ring so it stays visible above a crowd)
+    const drawMob = (e: Enemy): void => {
+      if (e.hide) {
+        b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + 8, 10, 3, 0, 0, TAU); b.fill();
+        return;
+      }
+      // Kings with a wind-up frame (3 frames): idle on the first two, wind-up while a move plays out
+      const frames = ENEMY_SPR[e.type], sp = frames.length === 3 && e.kg ? frames[e.kg.lock > 0 ? 2 : Math.floor(e.ph / 2) % 2] : frames[Math.floor(e.ph / 2) % frames.length];
+      const im = e.flash > 0 ? sp.w : e.frz > 0 ? sp.i : e.armor ? sp.a : e.elite ? sp.e : sp.n;
+      const w = im.width * e.sc, h = im.height * e.sc, x = Math.round(e.x + ox - w / 2);
+      const y = Math.round(e.y + oy - h / 2 + (e.type === 'bat' ? 0 : Math.sin(e.ph * 0.5) * (e.sc > 1 ? 1 : 0.5)));
+      if (x < -w || y < -h || x > LW + w || y > LH + h) return;
+      if (self && !covered && x < self.x + 14 && x + w > self.x + 2 && y < self.y + 15 && y + h > self.y + 2) covered = true;
+      if (e.boss) {
+        b.save(); b.globalAlpha = 0.5 + 0.15 * Math.sin(clock * 6); b.strokeStyle = '#ffd23f'; b.lineWidth = 2;
+        b.beginPath(); b.ellipse(e.x + ox, e.y + oy, w * 0.5 + 3, h * 0.5 + 3, 0, 0, TAU); b.stroke(); b.restore();
+      }
+      // fade in right after spawning: with the camera zoomed out, the spawn ring can be inside the view
+      const age = v.clock - e.born, fade = !e.boss && age < SPAWN_FADE ? Math.max(0, age) / SPAWN_FADE : 1;
+      b.globalAlpha = fade;
+      b.fillStyle = 'rgba(30,27,51,.3)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + h / 2, w * 0.35, Math.max(1.5, h * 0.12), 0, 0, TAU); b.fill();
+      if (e.type === 'ghost') b.globalAlpha = 0.85 * fade;
+      b.drawImage(im, x, y, w, h);
+      b.globalAlpha = 1;
+      if (e.slowT > 0) { b.fillStyle = 'rgba(159,216,255,.45)'; b.fillRect(x, y + h - 3, w, 3); }
+      // Statuses: small marks above the head (Frozen already tints the sprite)
+      {
+        let mx = Math.round(e.x + ox) - 5;
+        const my = y - (e.elite ? 8 : 4);
+        const mark = (c: string): void => { b.fillStyle = K; b.fillRect(mx - 1, my - 1, 4, 4); b.fillStyle = c; b.fillRect(mx, my, 2, 2); mx += 4; };
+        if ((e.burn || 0) > 0) mark(Math.floor(clock * 10) & 1 ? '#ff8a3d' : '#ffd23f');
+        if ((e.shock || 0) > 0) mark(Math.floor(clock * 14) & 1 ? '#fff35c' : '#ffffff');
+        if ((e.pois || 0) > 0) mark('#b6f24a');
+        if ((e.gath || 0) > 0) mark('#d8f3e0');
+        if ((e.chill || 0) > 0 && e.frz <= 0) mark('#bfe6ff');
+      }
+      if (e.armor) {
+        b.fillStyle = K; b.fillRect(Math.round(e.x + ox) - 3, y - 6, 6, 6);
+        b.fillStyle = '#c7ced9'; b.fillRect(Math.round(e.x + ox) - 2, y - 5, 4, 3); b.fillRect(Math.round(e.x + ox) - 1, y - 2, 2, 1);
+      }
+      if (e.elite) { b.fillStyle = K; b.fillRect(x, y - 4, w, 3); b.fillStyle = '#ff4b5c'; b.fillRect(x + 1, y - 3, Math.max(0, ((w - 2) * e.hp) / e.maxHp), 1); }
+    };
+    // entities sorted by y — Kings/dragon/rival (`e.boss`) are held out and drawn last (below), always above regular mobs
+    const ents: (Enemy | null)[] = v.enemies.filter((e) => !e.boss);
+    ents.push(null); // null = the player
+    ents.sort((a, c) => (a ? a.y : P.y) - (c ? c.y : P.y));
     for (const e of ents) {
       if (!e) {
         if (hideSelf) continue;
@@ -429,42 +471,10 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         }
         continue;
       }
-      if (e.hide) {
-        b.fillStyle = 'rgba(30,27,51,.35)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + 8, 10, 3, 0, 0, TAU); b.fill();
-        continue;
-      }
-      // Kings with a wind-up frame (3 frames): idle on the first two, wind-up while a move plays out
-      const frames = ENEMY_SPR[e.type], sp = frames.length === 3 && e.kg ? frames[e.kg.lock > 0 ? 2 : Math.floor(e.ph / 2) % 2] : frames[Math.floor(e.ph / 2) % frames.length];
-      const im = e.flash > 0 ? sp.w : e.frz > 0 ? sp.i : e.armor ? sp.a : e.elite ? sp.e : sp.n;
-      const w = im.width * e.sc, h = im.height * e.sc, x = Math.round(e.x + ox - w / 2);
-      const y = Math.round(e.y + oy - h / 2 + (e.type === 'bat' ? 0 : Math.sin(e.ph * 0.5) * (e.sc > 1 ? 1 : 0.5)));
-      if (x < -w || y < -h || x > LW + w || y > LH + h) continue;
-      if (self && !covered && x < self.x + 14 && x + w > self.x + 2 && y < self.y + 15 && y + h > self.y + 2) covered = true;
-      // fade in right after spawning: with the camera zoomed out, the spawn ring can be inside the view
-      const age = v.clock - e.born, fade = !e.boss && age < SPAWN_FADE ? Math.max(0, age) / SPAWN_FADE : 1;
-      b.globalAlpha = fade;
-      b.fillStyle = 'rgba(30,27,51,.3)'; b.beginPath(); b.ellipse(e.x + ox, e.y + oy + h / 2, w * 0.35, Math.max(1.5, h * 0.12), 0, 0, TAU); b.fill();
-      if (e.type === 'ghost') b.globalAlpha = 0.85 * fade;
-      b.drawImage(im, x, y, w, h);
-      b.globalAlpha = 1;
-      if (e.slowT > 0) { b.fillStyle = 'rgba(159,216,255,.45)'; b.fillRect(x, y + h - 3, w, 3); }
-      // Statuses: small marks above the head (Frozen already tints the sprite)
-      {
-        let mx = Math.round(e.x + ox) - 5;
-        const my = y - (e.elite ? 8 : 4);
-        const mark = (c: string): void => { b.fillStyle = K; b.fillRect(mx - 1, my - 1, 4, 4); b.fillStyle = c; b.fillRect(mx, my, 2, 2); mx += 4; };
-        if ((e.burn || 0) > 0) mark(Math.floor(clock * 10) & 1 ? '#ff8a3d' : '#ffd23f');
-        if ((e.shock || 0) > 0) mark(Math.floor(clock * 14) & 1 ? '#fff35c' : '#ffffff');
-        if ((e.pois || 0) > 0) mark('#b6f24a');
-        if ((e.gath || 0) > 0) mark('#d8f3e0');
-        if ((e.chill || 0) > 0 && e.frz <= 0) mark('#bfe6ff');
-      }
-      if (e.armor) {
-        b.fillStyle = K; b.fillRect(Math.round(e.x + ox) - 3, y - 6, 6, 6);
-        b.fillStyle = '#c7ced9'; b.fillRect(Math.round(e.x + ox) - 2, y - 5, 4, 3); b.fillRect(Math.round(e.x + ox) - 1, y - 2, 2, 1);
-      }
-      if (e.elite) { b.fillStyle = K; b.fillRect(x, y - 4, w, 3); b.fillStyle = '#ff4b5c'; b.fillRect(x + 1, y - 3, Math.max(0, ((w - 2) * e.hp) / e.maxHp), 1); }
+      drawMob(e);
     }
+    // Kings/dragon/rival drawn last, on top of every regular mob regardless of their Y position
+    for (const e of v.enemies) if (e.boss) drawMob(e);
     // orbit blades
     if (P.skills.orbit && v.phase !== 'over') {
       const s = skillStats(v.cfg, 'orbit', P.skills.orbit, !!P.evo.orbit);
