@@ -5,7 +5,7 @@ const banned = (object, props, why) => props.map((property) => ({ object, proper
 const NONDET = 'Not deterministic across browsers; use packages/sim/src/core/fmath.ts or the seeded RNG.';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/.wrangler/**', 'pixel-horde.html', '.scratch/**', 'docs/**', 'tests/browser/.out/**', 'apps/game/src/render/sprites.ts', 'apps/game/src/render/tiles.ts'] },
+  { ignores: ['**/dist/**', '**/node_modules/**', '**/.wrangler/**', 'pixel-horde.html', '.scratch/**', 'docs/**', 'tests/browser/.out/**', 'scripts/playtest/.out/**', 'apps/game/src/render/sprites.ts', 'apps/game/src/render/tiles.ts'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { files: ['**/*.mjs', 'scripts/**'], languageOptions: { globals: { process: 'readonly', console: 'readonly', URL: 'readonly', WebSocket: 'readonly', setTimeout: 'readonly' } } },

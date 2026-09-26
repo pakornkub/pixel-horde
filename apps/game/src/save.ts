@@ -1,6 +1,6 @@
 // Suspend / resume (ticket 31): the checkpoint of the current Stage start is kept locally
 // (`pixelhorde-save`) and on the server (single use there). One save slot per account.
-import { parseBalanceConfig, resolveConfig, type ResolvedConfig } from '@pixel-horde/config';
+import { parseBalanceConfig, resolveConfig, type PresetId, type ResolvedConfig } from '@pixel-horde/config';
 import { DEFAULT_RESOLVED, isHero, isWeapon, type HeroId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
 import { backend } from './net';
@@ -11,6 +11,8 @@ export interface LocalSave {
   seed: number; hero: HeroId; weapon: WeaponId; crack: number;
   chapter: number; configVersion: number; hash: string; data: string;
   savedAt: number; clientRunId: string;
+  /** Difficulty preset the Run was started with (absent = balanced). */
+  preset?: PresetId;
 }
 
 const K = 'pixelhorde-save';

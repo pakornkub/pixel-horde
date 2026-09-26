@@ -1,6 +1,6 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL, SPLITS } from '../data/enemies';
-import { linAt, type HitTag } from '../data/skills';
+import { SKILL_TAGS, linAt, type HitTag } from '../data/skills';
 import { WEAPONS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
 import { REALMS, type RealmId } from '../content/lumora/realms';
 import { combosFor } from './combos';
@@ -50,7 +50,13 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
     const S = s.cfg.status, m = P.statusMul;
     if (tag.applies === 'burning') e.burn = S.burning * m;
     else if (tag.applies === 'shocked') e.shock = S.shocked * m;
-    else { e.pois = S.poisoned * m; e.poisDps = d / s.cfg.skills.toxic.tick; }
+    else {
+      // Toxic Burst stores the poison as damage per second of the hit before Might/crit (the burst
+      // itself goes through hit() and gets them once): a Toxic Pool tick counts per tick interval,
+      // any other poison hit (flask splash, cauldron puff) as one second of poison.
+      e.pois = S.poisoned * m;
+      e.poisDps = base / (tag === SKILL_TAGS.toxic ? s.cfg.skills.toxic.tick : 1);
+    }
   }
   if (!guest && e.hp <= 0) killE(s, e);
   if (after) for (const f of after) f();

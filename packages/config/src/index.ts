@@ -4,6 +4,8 @@ import { BalanceConfigSchema, type BalanceConfig, type BalanceConfigInput, type 
 export * from './schema';
 export * from './flags';
 export { FIELD_TH, GROUP_TH } from './desc-th';
+export * from './presets';
+export * from './balance-pass';
 
 export class BalanceConfigError extends Error {
   constructor(public issues: { path: string; message: string }[]) {

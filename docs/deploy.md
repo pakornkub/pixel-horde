@@ -66,6 +66,11 @@ Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`
 in the project's migration history); the row is byte-identical to the one in the file.
 
+`20260927000016_balance_pass_fields` (new `shared.awaken` / `shared.skills.hawk` fields) is applied as
+`balance_pass_fields`; the 2026-09 balance pass (`packages/config/src/balance-pass.ts`) is published as config v4
+(v3 + those changes).
+`20260927000017_preset_knobs` (difficulty presets in `shared.presets`) is applied as `preset_knobs`.
+
 - New changes always go in a **new** migration file; never edit one that is already applied.
   `npm run db:sync-seeds` rewrites the JSON inside 0002/0004, so it is only for local experiments now.
 - When the Balance Config schema (`packages/config`) gains or changes fields, update the live copy

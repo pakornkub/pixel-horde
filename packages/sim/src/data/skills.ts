@@ -80,7 +80,7 @@ export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: bo
     case 'laser': { const c = K.laser; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.len = lin(c.len, lv); s.dur = c.dur; if (evo) { s.twin = true; s.dmg *= c.evo.dmgMul; } break; }
     case 'sigil': { const c = K.sigil; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); s.n = 1; if (evo) { s.r *= c.evo.rMul; s.n = c.evo.n; } break; }
     case 'shield': { const c = K.shield; s.dmg = lin(c.dmg, lv); s.n = Math.floor(lin(c.n, lv)); s.r = lin(c.r, lv); s.spd = lin(c.spd, lv); if (evo) { s.n = c.evo.n; s.absorb = true; } break; }
-    case 'hawk': { const c = K.hawk; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = 1; s.range = c.range; if (evo) { s.n = c.evo.n; s.stun = true; } break; }
+    case 'hawk': { const c = K.hawk; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = 1; s.range = c.range; s.r = c.r; if (evo) { s.n = c.evo.n; s.stun = true; } break; }
     case 'flask': { const c = K.flask; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.n = 1; s.range = c.range; if (evo) { s.n = c.evo.n; s.dmg *= c.evo.dmgMul; s.smart = true; } break; }
     case 'manaNova': { const c = K.manaNova; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = c.dur; break; }
     case 'timeWarp': { const c = K.timeWarp; s.dmg = lin(c.dmg, lv); s.r = lin(c.r, lv); break; }

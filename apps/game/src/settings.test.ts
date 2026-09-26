@@ -4,7 +4,9 @@ import { parseSettings } from './settings';
 describe('device settings', () => {
   it('defaults from the browser language and sensible values', () => {
     const s = parseSettings(null, ['en-US']);
-    expect(s).toMatchObject({ lang: 'en', shake: 'full', vibrate: true, ultFlash: true, effects: 'all', numbers: 'all', view: 'near', tips: true });
+    expect(s).toMatchObject({ lang: 'en', shake: 'full', vibrate: true, ultFlash: true, effects: 'all', numbers: 'all', view: 'near', tips: true, preset: 'balanced' });
+    expect(parseSettings({ preset: 'blitz' }, ['th']).preset).toBe('blitz');
+    expect(parseSettings({ preset: 'godlike' }, ['th']).preset).toBe('balanced');
     expect(parseSettings({}, ['th']).lang).toBe('th');
   });
   it('keeps valid stored values and repairs invalid ones', () => {

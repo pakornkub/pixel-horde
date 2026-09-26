@@ -1,4 +1,4 @@
-import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, type PassiveId, type SkillId } from '../data/skills';
+import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
 import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
 import { ipow } from '../core/fmath';
 import type { LevelOption, SimState } from '../types';
@@ -79,6 +79,12 @@ export function answerAwaken(s: SimState, accept: boolean): void {
   s.awakenOffer = false;
   if (!accept) { P.awakenDeclined = true; return; }
   for (const id of qualifiedLinks(s).slice(0, s.cfg.awaken.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
+  // the first Skill Line skills arrive at once in the freed slots, so the transformation is felt
+  const A = s.cfg.awaken;
+  for (const id of AWAKENING[P.ch].line.slice(0, A.grant)) {
+    if (!P.skills[id] && Object.keys(P.skills).length >= s.cfg.maxAttackSlots) break;
+    P.skills[id] = Math.min(s.cfg.skills[id].max, Math.max(P.skills[id] || 0, A.grantLv));
+  }
   P.awakened = true;
   banner(s, 'awakened', 2.6, true);
   flash(s, 0.4, '#ffd23f');
@@ -219,8 +225,8 @@ export function buildOptions(s: SimState): LevelOption[] {
     if (!lv) {
       if (P.bench.some((b) => b.id === id)) continue;
       if (!slotFree && !benchFree) continue;
-      c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew });
-    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) });
+      c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * (isLine(id) ? s.cfg.awaken.wLine : 1) });
+    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
   }
   const pasOwned = Object.keys(P.pas).length;
   for (const id of PASSIVE_IDS) {

@@ -128,6 +128,21 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .seg button:focus-visible,.setrow input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .setrow input[type=range]{width:140px;accent-color:#3a3363}
 .setmsg{font-size:13px;min-height:1.4em;margin:0}
+/* difficulty presets */
+.presets{background:var(--paper2);border-radius:4px;padding:10px;margin:0 0 4px}
+.presethead{font-weight:700;font-size:15px;margin:0 0 8px}
+.presetgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.preset{font:inherit;border:3px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:4px;padding:6px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px}
+.preset b{font-size:14px;line-height:1.2}
+.preset small{font-size:11px;line-height:1.25;opacity:.8;text-align:center}
+.preset[aria-checked="true"]{background:var(--ink);color:var(--paper)}
+.preset[aria-checked="true"] small{opacity:1}
+.preset:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.presetinfo{font-size:13px;line-height:1.45;margin:8px 0 4px!important}
+.presetnote{font-size:12px;margin:0!important;font-weight:700;color:#2e7d32}
+.presetnote.unranked{color:#b4461f}
+.modebadge{font:inherit;font-family:var(--th);font-weight:700;font-size:13px;background:var(--ink);color:var(--gold);border:0;border-radius:4px;padding:4px 10px;margin:-6px 0 10px;cursor:pointer}
+@media (max-width:360px){.presetgrid{grid-template-columns:repeat(2,1fr)}}
 .fbcats{justify-content:flex-start;margin:0 0 12px}
 .fblabel{display:block;font-size:14px;margin:0 0 4px}
 .fbtext{display:block;width:100%;font:inherit;font-size:15px;line-height:1.45;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:4px;padding:8px 10px;resize:vertical;min-height:110px;-webkit-user-select:text;user-select:text;touch-action:auto}

@@ -136,6 +136,11 @@ clear screen — never at the next Stage start.
 (`tests/bot.ts`), golden replays, determinism, co-op hubs and the database (PGlite); Playwright (`tests/browser/`)
 drives the built game and Admin in Chromium/Firefox/WebKit (golden replay, title, save, route, co-op, Admin draft…). Game URL flags: `?offline` (no backend) and
 `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events.
+Balance passes: `npm run playtest` (scripts/playtest, a human-like bot with damage/death attribution; see its README).
+Recommended tuning lives in `packages/config/src/balance-pass.ts` and is published from Admin → Balance, never by
+changing built-in defaults (version 0 must equal the migration seed). Difficulty presets (`packages/config/src/presets.ts`)
+scale the published config for solo Runs; their multipliers (and whether each is offered) are Balance Config fields
+`shared.presets.*`, tuned from Admin → Balance; only `balanced` is ranked.
 
 ## Backlog
 Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").
