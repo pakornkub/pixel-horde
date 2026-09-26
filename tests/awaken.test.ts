@@ -108,6 +108,22 @@ describe('Awakening', () => {
     for (let i = 0; i < 50; i++) for (const o of buildOptions(s)) if (o.kind === 'skill' && !s.P.skills[o.id]) expect(o.toBench).toBe(true);
   });
 
+  it('awaken.keep without awaken.slots: full attack slots send the granted skill to the Bench, not nowhere', async () => {
+    const { attackSlots, benchSize } = await import('@pixel-horde/sim');
+    const { sim, s, endStage, next, maxLinks } = setup('ranger');
+    s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, grant: 2, grantLv: 6 } };
+    maxLinks(3); // Signature + three Links: every slot is full and stays full
+    endStage(); next(); endStage();
+    s.P.bench = [];
+    expect(benchSize(s)).toBe(1); // Chapter 2: room for one of the two granted skills
+    say(sim, true);
+    expect(Object.keys(s.P.skills).length).toBe(attackSlots(s));
+    const [first, second] = AWAKENING.ranger.line;
+    expect(s.P.skills[first]).toBeUndefined();
+    expect(s.P.skills[second]).toBeUndefined();
+    expect(s.P.bench).toEqual([{ id: first, lv: 6, evo: false }]); // a full Bench ends the grant
+  });
+
   it('by default (version 0) Awakening adds no slot', async () => {
     const { attackSlots } = await import('@pixel-horde/sim');
     const { sim, s, endStage, next, maxLinks } = setup('mage');

@@ -44,7 +44,17 @@ export const passiveDesc = (id: PassiveId): string => t(`passive.${id}.desc`);
 export const evoName = (id: SkillId): string => t(`evo.${id}.name`);
 export const evoDesc = (id: SkillId): string => t(`evo.${id}.desc`);
 export const heroName = (id: HeroId): string => t(`hero.${id}.name`);
-export const heroDesc = (id: HeroId): string => t(`hero.${id}.desc`);
+/** A Hero's bonuses with the numbers from the live config (`heroes.<id>`); Kit's HP shows only when it is non-zero. */
+export function heroDesc(cfg: ResolvedConfig, id: HeroId): string {
+  const H = cfg.heroes, pc = (x: number): number => Math.round(x * 100);
+  const args: Record<HeroId, Record<string, string | number>> = {
+    mage: { dmg: pc(H.mage.dmg) },
+    knight: { hp: H.knight.hp, spd: pc(H.knight.spd) },
+    ranger: { spd: pc(H.ranger.spd), pick: pc(H.ranger.pick), hp: H.ranger.hp ? t('hero.ranger.hp', { n: H.ranger.hp }) : '' },
+    alchemist: { cd: pc(H.alchemist.cd), status: pc(H.alchemist.status) },
+  };
+  return t(`hero.${id}.desc`, args[id]);
+}
 export const heroRole = (id: HeroId): string => t(`hero.${id}.role`);
 export const shopName = (id: ShopId): string => t(`shop.${id}.name`);
 export const shopDesc = (id: ShopId): string => t(`shop.${id}.desc`);

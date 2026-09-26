@@ -1,4 +1,4 @@
-// Admin → Balance: loading several passes onto one draft (e.g. v5 = 2026-09b + 2026-09c) must publish one version
+// Admin → Balance: loading several passes onto one draft (e.g. 2026-09b + 2026-09c) must publish one version
 // that carries every pass's report and patch notes, not just the last one loaded.
 import type { BalancePass, BalanceReport } from './balance-pass';
 import { groupItems, type ChangeEntry } from './changelog';

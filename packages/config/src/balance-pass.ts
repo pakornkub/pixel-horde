@@ -155,8 +155,8 @@ export const BALANCE_PASS_2026_09: BalancePass = {
   },
 };
 
-/** Follow-up to 2026-09 (published as config v4). v5 = this pass + 2026-09c (the Director change from the spawn-wave
- *  work, its own pass): load both onto one draft in Admin → Balance (loads stack) and publish them together. */
+/** Follow-up to 2026-09 (published as config v4), published alone as v5; 2026-09c (the Director change from the
+ *  spawn-wave work, its own pass) followed as v6. The bot numbers below were measured with both passes on top of v4. */
 export const BALANCE_PASS_2026_09B: BalancePass = {
   id: '2026-09b',
   note: 'Playtest follow-up 2026-09b: Awakening keeps the Links and adds a slot, extra EXP no longer toughens monsters, Kit survives the late game',
@@ -188,7 +188,7 @@ export const BALANCE_PASS_2026_09B: BalancePass = {
     summary: 'สามเรื่องที่ค้างจากรอบ 2026-09: Awakening ยังกิน Link เต็มเลเวล 2 ตัว จึงดีพอ ๆ กับการปฏิเสธ; '
       + 'HP มอนโต 8% ต่อเลเวลเรา ทำให้ Wisdom และ Transmute (EXP) ทำร้ายผู้เล่น; Kit ตายกับมอนธรรมดาช่วงท้ายเกม '
       + 'ชุดนี้ให้ Awakening เก็บ Link ไว้และเพิ่มช่องที่ 5, ให้สูตรมอนนับเลเวลแค่ถึงเส้นปกติ, ให้เหยี่ยวป้องกัน Kit และ Kit HP +20',
-    method: 'บอทเดิมของรอบ 2026-09 (scripts/playtest) เทียบ v4 กับ v5 (= v4 + ชุดนี้ + 2026-09c Director) บน seed เดียวกัน 24 seed ต่อฮีโร่ '
+    method: 'บอทเดิมของรอบ 2026-09 (scripts/playtest) เทียบ v4 กับ v4 + ชุดนี้ + 2026-09c Director บน seed เดียวกัน 24 seed ต่อฮีโร่ '
       + 'ที่อัปร้านกลางและอัปเต็ม และทดลองทางเลือกแยกทีละข้ออีกราว 2,000 เกม ในวงเล็บคือผลของชุดนี้อย่างเดียว (ไม่มี 2026-09c)',
     metrics: [
       { label: 'ชนะ Umbra อัปร้านเต็ม (Vex/Bram/Lyra/Kit)', before: '38/46/29/17%', after: '75/63/67/17% (ไม่รวม Director 71/58/46/13%)' },
@@ -215,8 +215,8 @@ export const BALANCE_PASS_2026_09B: BalancePass = {
       'shared.heroes.ranger.hp': 'Kit เปราะที่สุด เพิ่ม HP ครึ่งหนึ่งของโบนัส Bram',
     },
     next: [
-      'Kit ยังชนะ Umbra น้อยสุด (v5: ร้านกลาง 21%, อัปเต็ม 17%) ดู DPS ด่าน 4–8 ของ Kit ต่อ',
-      'ท้ายเกม v5 ง่ายขึ้นมาก ถ้าข้อมูลจริงยืนยัน ให้เพิ่ม HP ของ Umbra หรือ bossHpGrowth',
+      'Kit ยังชนะ Umbra น้อยสุด (ชุดนี้ + 2026-09c: ร้านกลาง 21%, อัปเต็ม 17%) ดู DPS ด่าน 4–8 ของ Kit ต่อ',
+      'ท้ายเกมกับชุดนี้ + 2026-09c ง่ายขึ้นมาก ถ้าข้อมูลจริงยืนยัน ให้เพิ่ม HP ของ Umbra หรือ bossHpGrowth',
       'หลัง publish ดูข้อมูลจริง: อัตราตื่นพลัง และเวลาที่ผู้เล่นใช้ในด่าน 6–8',
       ],
     },
