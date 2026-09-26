@@ -63,7 +63,7 @@ export interface AdminApi {
 
 const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? 'https://jqvgmkhzdhjreikjqhxt.supabase.co';
 const SUPABASE_KEY: string = import.meta.env.VITE_SUPABASE_KEY ?? 'sb_publishable_g90qGZet0U9BylLeZrPnNQ_iYjBfDPA';
-export const GAME_URL: string = import.meta.env.VITE_GAME_URL ?? (location.hostname === 'localhost' ? 'http://localhost:5173' : 'https://pixel-horde.pages.dev');
+export const GAME_URL: string = import.meta.env.VITE_GAME_URL ?? (location.hostname === 'localhost' ? 'http://localhost:5173' : 'https://pixel-horde.pages.dev/play');
 
 async function liveApi(): Promise<AdminApi> {
   const { createClient } = await import('@supabase/supabase-js');
