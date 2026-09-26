@@ -1,9 +1,20 @@
-# Deploying the game
+# Deploying the website and the game
 
-The game is a static Vite build (`npm run build` → `apps/game/dist`) hosted on Cloudflare Pages
-(project `pixel-horde`). `.github/workflows/deploy-pages.yml` deploys on every push:
+One Cloudflare Pages project (`pixel-horde`) serves both static Vite builds:
 
-- push to `main` → production (`https://pixel-horde.pages.dev`)
+| Path | What | Built by |
+|---|---|---|
+| `/` | official website (`apps/site`) | `npm run build:site` → `apps/site/dist` |
+| `/play/` | the game (`apps/game`) | `npm run build` → `apps/game/dist` |
+
+`npm run build:pages` runs both builds and `scripts/assemble-pages.mjs`, which puts them together in
+`dist/pages` and writes the root `_headers` / `_redirects` (Pages only reads them at the root).
+Old links to the game at `/` keep working: the site's `index.html` forwards `?join=`, `?room=`, `?debug=`,
+`?offline`, Google sign-in returns and `#draftcfg=` to `/play/`, and `/privacy.html` redirects to `/play/privacy.html`.
+
+`.github/workflows/deploy-pages.yml` deploys on every push:
+
+- push to `main` → production (`https://pixel-horde.pages.dev`, game at `https://pixel-horde.pages.dev/play/`)
 - push to any other branch → preview deploy (`https://<branch>.pixel-horde.pages.dev`)
 
 ## One-time setup (owner)
@@ -21,17 +32,26 @@ Until both secrets exist the workflow still builds (so a broken build shows red)
 
 ```sh
 npm ci
-npm run build
+npm run build:pages
 npx wrangler login          # or set CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
-npx wrangler pages deploy apps/game/dist --project-name=pixel-horde --branch=main
+npx wrangler pages deploy dist/pages --project-name=pixel-horde --branch=main
 ```
 
 ## Local development
 
 ```sh
 npm install
-npm run dev       # http://localhost:5173
+npm run dev       # game    http://localhost:5173
+npm run dev:site  # website http://localhost:5180 (its PLAY buttons open the game dev server)
 npm run build && npm run preview
+npm run build:pages && npx vite preview --outDir dist/pages   # the deployed layout: / and /play/
+```
+
+Website screenshots (`apps/site/public/shots`, also used by the README) are real captures:
+
+```sh
+npm run build && npx vite preview apps/game --port 4190   # leave running
+npm run shots        # offline + god mode bot; needs Edge or Chrome installed (PW_CHANNEL=chrome)
 ```
 
 ## Database (Supabase)
@@ -39,6 +59,7 @@ npm run build && npm run preview
 The live project (`jqvgmkhzdhjreikjqhxt`) has every migration in `supabase/migrations/` applied,
 through `20260925000012_shield_pickup` (patches `shared.loot`) and `20260926000012_coop_feedback`
 (account suspension + the `shared.coop` part of the config schema; applied as `coop_feedback`),
+`20260925000013_mob_skill_switches` (applied as `mob_skill_switches`)
 and `20260926000014_reward_switches` (applied as `reward_switches`).
 Migration 0004 went in without its large `config_schema` insert,
 which was loaded separately in chunks (`config_schema_load_staging` / `config_schema_load_finish`

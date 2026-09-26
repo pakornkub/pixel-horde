@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script>
+  // The game moved from / to /play/. Old invite links, Google sign-in returns, Admin draft links
+  // and debug links still point at /, so send those straight on to the game.
+  (function () {
+    var q = location.search, h = location.hash;
+    if (/[?&](join|room|debug|offline|code|error|error_code)(=|&|$)/.test(q) || /(access_token|draftcfg|error_code)=/.test(h)) location.replace('./play/' + q + h);
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixel Horde</title>
+<meta name="description" content="Pixel Horde: a free pixel-art horde-survival game for the web. Skills fire on their own — move, collect crystals, pick new powers and defeat the Kings. Solo or co-op, Thai / English.">
+<meta name="theme-color" content="#14112a">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="Pixel Horde">
+<meta property="og:description" content="A free pixel-art horde-survival game. Skills fire on their own — you move, collect and pick new powers.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pixel-horde.pages.dev/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body data-title="home.title">
+<main>
+  <section class="hero" aria-labelledby="logo">
+    <div class="hero-bg" role="img" aria-label="The Heart of Lumora floating above its crater"></div>
+    <canvas class="scene" aria-hidden="true"></canvas>
+    <div class="hero-in wrap">
+      <h1 class="logo" id="logo">PIXEL<br>HORDE</h1>
+      <p class="tagline" data-g="title.tagline"></p>
+      <p class="lead" data-t="home.lead"></p>
+      <div class="cta-row">
+        <a class="btn big" data-play href="./play/" data-t="home.cta"></a>
+        <a class="btn big ghost" href="./guide.html" data-t="home.cta2"></a>
+      </div>
+      <div class="badges">
+        <span data-t="home.b1"></span><span data-t="home.b2"></span><span data-t="home.b3"></span><span data-t="home.b4"></span><span data-t="home.b5"></span>
+      </div>
+    </div>
+    <a class="scroll-hint" href="#how" data-t="home.scroll"></a>
+  </section>
+
+  <section id="how" class="ground" data-ground="0">
+    <div class="wrap">
+      <div class="sec-head center"><h2 data-t="home.how.h"></h2></div>
+      <div class="grid g3 steps">
+        <article class="panel step reveal"><div class="art" id="step1"></div><h3 data-t="home.how.1h"></h3><p data-t="home.how.1p"></p></article>
+        <article class="panel step reveal"><div class="art" id="step2"></div><h3 data-t="home.how.2h"></h3><p data-t="home.how.2p"></p></article>
+        <article class="panel step reveal"><div class="art" id="step3"></div><h3 data-t="home.how.3h"></h3><p data-t="home.how.3p"></p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="shots">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">SCREENSHOTS</span><h2 data-t="home.shots.h"></h2><p class="lead" data-t="home.shots.p"></p></div>
+      <div class="shots" id="shotGrid"></div>
+    </div>
+  </section>
+
+  <section id="heroes" class="ground" data-ground="3">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">HEROES</span><h2 data-t="home.heroes.h"></h2><p class="lead" data-t="home.heroes.p"></p></div>
+      <div class="grid g4" id="heroGrid"></div>
+      <p style="margin-top:22px"><a href="./world.html#heroes" data-t="home.heroes.more"></a></p>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">FEATURES</span><h2 data-t="home.feat.h"></h2></div>
+      <div class="grid g2" id="featGrid"></div>
+    </div>
+  </section>
+
+  <section id="realms" class="ground" data-ground="4">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">LUMORA</span><h2 data-t="home.realms.h"></h2><p class="lead" data-t="home.realms.p"></p></div>
+      <div class="realm-strip" id="realmStrip"></div>
+      <p><a href="./world.html#realms" data-t="home.realms.more"></a></p>
+    </div>
+  </section>
+
+  <section class="end-cta">
+    <div class="wrap">
+      <div class="heroes-row" id="endHeroes"></div>
+      <h2 data-t="home.end.h"></h2>
+      <p class="lead" style="margin:0 auto 26px" data-t="home.end.p"></p>
+      <a class="btn big" data-play href="./play/" data-t="home.cta"></a>
+    </div>
+  </section>
+</main>
+<div class="lightbox" id="lightbox" hidden><figure><img alt=""><p></p></figure></div>
+<script type="module" src="./src/pages/home.ts"></script>
+</body>
+</html>
