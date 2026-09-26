@@ -9,6 +9,7 @@
   <a href="https://pixel-horde.pages.dev/">Website</a> ·
   <a href="https://pixel-horde.pages.dev/guide.html">How to play</a> ·
   <a href="https://pixel-horde.pages.dev/skills.html">Skills &amp; Combos</a> ·
+  <a href="https://pixel-horde.pages.dev/updates.html">Updates</a> ·
   <a href="README.th.md">ภาษาไทย</a>
 </p>
 
@@ -51,14 +52,15 @@ The full illustrated guide, with things you can click and try, lives on the webs
 
 ### What is inside
 
-- **4 Heroes** — Lyra (area mage), Bram (shield knight), Kit (fast ranger), Vex (combo alchemist). Each has a Signature Skill and can **Awaken** into a new form with three new skills.
-- **28 skills, 6 passives, 16 Evolutions** — max a skill and own its paired passive to evolve it.
+- **4 Heroes** — Lyra (area mage), Bram (shield knight), Kit (fast ranger), Vex (combo alchemist). Each has a Signature Skill and can **Awaken** into a new form with three new Awakened skills (with the current balance your Links stay and a 5th attack slot opens).
+- **28 skills, 6 passives, 16 Evolutions** — max a skill and own its paired passive to evolve it. The Bench keeps spare skills and passives for later.
 - **7 element Combos** — freeze then smash (*Shatter*), shock then burn (*Overload*), gather then sweep (*Grinder*)…
 - **10 Kings + Umbra** — telegraphed moves, an ultimate below half HP, and far too much to say.
 - **Special events** — Blood Moon nights, three Guardian dragons to tame (and fuse), a Shadow Rival wearing your face, double-King Stages.
-- **11 Weapons** that change your Ultimate, a permanent Shop, achievements, Titles and seasonal leaderboards.
+- **11 Weapons**, each with its own Ultimate (Judgement, Solar Flare, Thunderstorm…), a permanent Shop, achievements, Titles and seasonal leaderboards.
+- **6 solo difficulty presets** from Relaxed to Blitz (only Balanced is ranked; the rest still earn Gold), a camera-distance setting and an in-game **Feedback** button.
 - **Co-op for up to 4** over one invite link, and full **offline** solo play.
-- **Thai / English** everywhere.
+- **Thai / English** everywhere. Every change is listed on the website's [Updates](https://pixel-horde.pages.dev/updates.html) page, and the title screen shows the newest one.
 
 
 ---
@@ -74,9 +76,11 @@ apps/admin/      Admin Console (Preact) — Balance Config, feature flags, Tunin
 packages/sim/    headless deterministic simulation (seeded RNG, fixed math; no DOM / network / Math.random)
 packages/config/ Balance Config schema (defaults, ranges, descriptions) and feature flags
 packages/i18n/   th.json / en.json + t()
-packages/coop/   co-op protocol helpers
+packages/coop/   co-op room relay rules, shared by the room worker and the in-memory test hub
 workers/room/    Cloudflare Worker + Durable Object co-op room
+workers/keepalive/ daily ping so the Supabase Free project is never paused
 supabase/        migrations, RLS, RPCs, edge functions
+scripts/         Pages assembly, screenshots, playtest bot (balance passes), icon atlas
 tests/           Vitest (headless sim, golden replay, DB) + Playwright (cross-browser determinism)
 ```
 
@@ -86,8 +90,16 @@ npm run dev          # game  → http://localhost:5173
 npm run dev:site     # site  → http://localhost:5180 (its PLAY buttons open the game dev server)
 npm run check        # lint + typecheck + tests + builds
 npm run build:pages  # site at /, game at /play/  → dist/pages (what Cloudflare Pages serves)
+npm run test:browser # Playwright: built game + Admin in Chromium / Firefox / WebKit
+npm run playtest -- heroes 16   # balance bot, see scripts/playtest/README.md
 ```
+
+- Game URL flags: `?offline` (no backend; the last cached Balance Config, else the built-in defaults) and
+  `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events;
+  press **I** in a Run for the balance meter (DPS, TTK, multipliers, Director, mob count).
+- Balance changes never touch the built-in defaults: passes live in `packages/config/src/balance-pass.ts` and are published
+  as new Balance Config versions from the Admin Console (Admin → Balance), together with a report and patch notes.
 
 - The website pulls skills, stats, combos, Realms, sprites and Thai/English text from `packages/*` and `apps/game`, so it follows the game after every build. Only the website's own sentences live in `apps/site/src/text.ts`.
 - Screenshots in `apps/site/public/shots` are real captures: build the game, run `npx vite preview apps/game --port 4190`, then `npm run shots` (offline, god mode, scripted bot).
-- Deploying, the database and the Admin Console: [docs/deploy.md](docs/deploy.md) · design: [blueprint](docs/blueprint/pixel-horde-blueprint.md) · words we use: [CONTEXT.md](CONTEXT.md) · decisions: [docs/adr](docs/adr).
+- Deploying, the database and the Admin Console: [docs/deploy.md](docs/deploy.md) · design: [blueprint](docs/blueprint/pixel-horde-blueprint.md) · words we use: [CONTEXT.md](CONTEXT.md) · decisions: [docs/adr](docs/adr) · daily error/feedback triage: [docs/agents/triage-routine.md](docs/agents/triage-routine.md) · sprites and skill icons: [docs/sprite-lab.md](docs/sprite-lab.md).
