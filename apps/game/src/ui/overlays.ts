@@ -518,10 +518,18 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
 /** Itemised Score that counts up line by line (decision #15). */
 const countUps: (() => void)[] = [];
 function showScore(v: Readonly<SimState>): void {
+  // an Endless Run from the title has no main Score, and its Endless Score starts after the last Chapter
+  $('scoreBox').hidden = v.mode === 'endless';
   countUpBox($('scoreBox'), scoreBreakdown(v));
   const eb = $('endlessBox');
   eb.hidden = !v.endless;
-  if (v.endless) { countUpBox(eb, endlessBreakdown(v)); eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`); }
+  if (v.endless && !v.endlessFrom) {
+    // a title Endless Run that fell before its Endless Score starts: the Chapter reached is the result, not a big 0 (owner, 2026-09-27)
+    eb.innerHTML = `<span class="reach">${t('score.reached', { n: v.stage })}</span><span class="sub">${t('score.endlessFrom', { n: v.cfg.stage.chapters + 1 })}</span>`;
+  } else if (v.endless) {
+    countUpBox(eb, endlessBreakdown(v));
+    eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`);
+  }
 }
 function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; points: number }[]; total: number }): void {
   const { lines, total } = b;
