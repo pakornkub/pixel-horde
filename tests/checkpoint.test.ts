@@ -36,6 +36,19 @@ describe('checkpoints (suspend / resume)', () => {
     expect(a.checkpoint().data.length).toBeLessThan(60000);
   });
 
+  it('the resumed Hero moves (the sim steps the restored Player, not the one it was built with)', () => {
+    const opts = botOptions(34, { debug: { god: true } });
+    const a = createSim(opts);
+    for (let t = 0; t < 60 * 60 * 4 && a.view().stage < 2; t++) botStep(a, t);
+    const b = createSim({ ...opts, resume: a.checkpoint().data });
+    const P = b.view().P, x0 = P.x, inv0 = P.inv;
+    for (let i = 0; i < 60; i++) b.step({ mx: 1, my: 0 });
+    expect(b.view().P).toBe(P);
+    expect(P.x - x0).toBeGreaterThan(P.spd * 0.5);
+    expect(P.moving).toBe(true);
+    expect(P.inv).toBeLessThan(inv0);
+  });
+
   it('a different Stage start gives a different hash', () => {
     const a = createSim(botOptions(33, { debug: { god: true } }));
     const h1 = a.checkpoint().hash;
