@@ -1,6 +1,6 @@
 // Co-op transport (ticket 41): one interface, two adapters — a WebSocket to the room Durable Object
 // and an in-memory hub (tests, and a local "second tab" dev mode). Rules: @pixel-horde/coop.
-import { RoomCore, type CloseReason, type PeerInfo, type Role, type ServerMsg } from '@pixel-horde/coop';
+import { HOST_GRACE_MS, RoomCore, type CloseReason, type PeerInfo, type Role, type ServerMsg } from '@pixel-horde/coop';
 
 export type TransportEvent =
   | { t: 'open'; id: string; host: string; peers: PeerInfo[] }
@@ -68,7 +68,8 @@ export function wsConnect(base: string): Connect {
       lock: (on) => raw(JSON.stringify({ ctl: on ? 'lock' : 'unlock' })),
       onEvent: ev.on,
       stats: () => ({ rx, tx }),
-      close: () => { ev.emit({ t: 'closed', reason: 'left' }); try { ws?.close(1000); } catch { /* ignore */ } },
+      // `bye` first: leaving on purpose closes the room at once (a dropped host is waited for)
+      close: () => { raw(JSON.stringify({ ctl: 'bye' })); ev.emit({ t: 'closed', reason: 'left' }); try { ws?.close(1000); } catch { /* ignore */ } },
     };
   };
 }
@@ -115,8 +116,19 @@ export function createMemoryHub(auto = false) {
       lock: (on) => r.message(id, JSON.stringify({ ctl: on ? 'lock' : 'unlock' })),
       onEvent: ev.on,
       stats: () => ({ rx: rxOf.get(id) ?? 0, tx: txOf.get(id) ?? 0 }),
-      close: () => { ev.emit({ t: 'closed', reason: 'left' }); inbox.delete(id); r.leave(id); },
+      close: () => { r.message(id, JSON.stringify({ ctl: 'bye' })); ev.emit({ t: 'closed', reason: 'left' }); inbox.delete(id); r.leave(id); afterLeave(r); },
     };
   };
-  return { connect, flush, rooms };
+  const afterLeave = (r: RoomCore): void => { if (auto && r.hostAway) { const seq = r.awaySeq; setTimeout(() => r.hostTimeout(seq), HOST_GRACE_MS); } };
+  /** Tests: the host's connection drops (no `bye`), like a phone screen turning off. */
+  function dropHost(code: string): void {
+    const r = rooms.get(code), id = r?.hostConn;
+    if (!r || !id) return;
+    const ev = inbox.get(id);
+    inbox.delete(id);
+    r.leave(id);
+    afterLeave(r);
+    ev?.emit({ t: 'closed', reason: 'network' });
+  }
+  return { connect, flush, rooms, dropHost };
 }

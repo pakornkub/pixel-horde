@@ -464,11 +464,12 @@ function frame(now: number): void {
   last = now;
   rclock += rdt;
   try {
-    // co-op guest: the host went quiet — this world waits (no monsters frozen mid-bite) and says so
-    const waiting = !!sim && !!coop && coop.silent() > sim.view().cfg.coop.hostWait;
+    // co-op: the host went quiet (guest), or this host's connection dropped and is coming back — the world waits
+    const rejoining = !!sim && !!coop && coop.reconnecting;
+    const waiting = rejoining || (!!sim && !!coop && coop.silent() > sim.view().cfg.coop.hostWait);
     const hw = $('hostWait');
     if (hw.hidden === waiting) hw.hidden = !waiting;
-    if (waiting) hw.textContent = t('coop.hostWait', { s: Math.floor(coop!.silent()) });
+    if (waiting) hw.textContent = rejoining ? t('coop.reconnecting') : t('coop.hostWait', { s: Math.floor(coop!.silent()) });
     MET.net = MET.on && coop ? netLines(coop.stats(), coop.role) : [];
     if (sim) {
       if (chestTick(rdt)) cmd({ type: 'chestStop' });

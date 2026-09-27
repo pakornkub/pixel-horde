@@ -3,7 +3,7 @@
 // snapshots ~15 Hz. Guest: sends its presence + queued damage 10 Hz and applies the latest snapshot.
 import { fitSnap, hostSnapshot, selfWire, takeHits, type Command, type HeroId, type HostSnap, type MateWire, type SimState, type WeaponId } from '@pixel-horde/sim';
 import { MAX_MSG, type CloseReason, type PeerInfo, type Role } from '@pixel-horde/coop';
-import type { Connect, Transport } from '../net/transport';
+import type { Connect, Transport, TransportEvent } from '../net/transport';
 
 /** `build`: the game build (set from `hello`; -1 = an older game that does not say). */
 export interface LobbyPlayer { id: string; name: string; hero: HeroId; weapon: WeaponId; ready: boolean; host: boolean; build?: number }
@@ -29,10 +29,17 @@ export type SessionEvent =
   | { t: 'vote'; id: string; i: number }
   | { t: 'endless'; id: string; go: boolean }
   | { t: 'closed'; reason: CloseReason }
-  | { t: 'netGap'; ms: number }; // guest: a snapshot arrived this long after the previous one (> 1 s)
+  | { t: 'netGap'; ms: number } // guest: a snapshot arrived this long after the previous one (> 1 s)
+  | { t: 'reconnecting'; tries: number } // host: the connection dropped during the Run, trying to get back in
+  | { t: 'reconnected' };
 
-/** `now`: a clock in ms for the net meter (tests pass their own; default performance.now). */
-export interface SessionOptions { role: Role; code: string; name: string; pid: string; hero: HeroId; weapon: WeaponId; build?: number; now?: () => number }
+/** `now`: a clock in ms for the net meter; `later`: a timer for host reconnects (tests pass their own). */
+export interface SessionOptions {
+  role: Role; code: string; name: string; pid: string; hero: HeroId; weapon: WeaponId; build?: number;
+  now?: () => number; later?: (ms: number, fn: () => void) => void;
+}
+/** Host reconnect attempts after its connection drops mid-Run (ms before each); they end inside the room's HOST_GRACE_MS. */
+export const REJOIN_DELAYS = [500, 1000, 2000, 3000, 5000, 5000, 5000, 5000, 5000, 5000];
 
 /** Net facts that ride with a snapshot: host frames/s, each guest's last ping [its ts, ms the host held it], trimmed snapshots so far. */
 export interface SnapNet { hf: number; pe: Record<string, [number, number]>; tr: number }
@@ -46,11 +53,13 @@ const perfNow = (): number => (typeof performance !== 'undefined' ? performance.
 const cleanName = (n: unknown): string => (typeof n === 'string' ? n.trim().slice(0, 24) : '');
 
 export function createSession(connect: Connect, o: SessionOptions) {
-  const tr: Transport = connect({ code: o.code, role: o.role, name: o.name, pid: o.pid });
-  const now = o.now ?? perfNow;
+  let tr!: Transport;
+  const now = o.now ?? perfNow, later = o.later ?? ((ms: number, fn: () => void) => { setTimeout(fn, ms); });
   const fns = new Set<(e: SessionEvent) => void>();
   const emit = (e: SessionEvent): void => { for (const f of [...fns]) f(e); };
   let selfId = '', hostId = '', peers: PeerInfo[] = [], open = false, closed = false;
+  // host reconnect: tries so far, and a new connection id the sim still has to learn (coopId command)
+  let rejoin = -1, leaving = false, newId = false;
   const me: LobbyPlayer = { id: '', name: o.name, hero: o.hero, weapon: o.weapon, ready: o.role === 'host', host: o.role === 'host', build: o.build ?? 0 };
   const lobby = new Map<string, LobbyPlayer>();
   let started: { seed: number; cfg: number } | null = null;
@@ -81,10 +90,17 @@ export function createSession(connect: Connect, o: SessionOptions) {
   const pushLobby = (): void => { if (o.role === 'host' && open) tr.send({ k: 'lobby', players: players() } satisfies Msg); emit({ t: 'lobby', players: players() }); };
   const hello = (): void => { if (o.role === 'guest' && open) tr.send({ k: 'hello', hero: me.hero, weapon: me.weapon, ready: me.ready, name: me.name, build: me.build } satisfies Msg); };
 
-  tr.onEvent((e) => {
-    if (e.t === 'open') { open = true; selfId = e.id; me.id = e.id; hostId = e.host; peers = e.peers; hello(); pushLobby(); return; }
+  const onEvent = (e: TransportEvent): void => {
+    if (e.t === 'open') {
+      const back = rejoin >= 0;
+      open = true; selfId = e.id; me.id = e.id; hostId = e.host; peers = e.peers;
+      if (back) { rejoin = -1; newId = true; tr.lock(true); emit({ t: 'reconnected' }); return; }
+      hello(); pushLobby(); return;
+    }
     if (e.t === 'peers') {
       peers = e.peers;
+      const h = peers.find((p) => p.role === 'host');
+      if (h) hostId = h.id; // a host who dropped and came back has a new connection id
       for (const id of [...presence.keys()]) if (!peers.some((p) => p.id === id)) { presence.delete(id); matesDirty = true; }
       for (const id of [...lobby.keys()]) if (!peers.some((p) => p.id === id)) lobby.delete(id);
       // a player who dropped and came back during the Run gets the start again
@@ -92,7 +108,17 @@ export function createSession(connect: Connect, o: SessionOptions) {
       pushLobby();
       return;
     }
-    if (e.t === 'closed') { closed = true; emit({ t: 'closed', reason: e.reason }); return; }
+    if (e.t === 'closed') {
+      // the host's connection dropped during the Run (or a retry failed): the room waits for it — try to get back in
+      const retry = o.role === 'host' && !!started && !leaving && e.reason !== 'left' && e.reason !== 'taken';
+      if (retry && rejoin + 1 < REJOIN_DELAYS.length) {
+        open = false; rejoin++;
+        emit({ t: 'reconnecting', tries: rejoin + 1 });
+        later(REJOIN_DELAYS[rejoin], () => { if (!leaving) attach(); });
+        return;
+      }
+      closed = true; emit({ t: 'closed', reason: e.reason }); return;
+    }
     const m = e.data as Msg;
     if (!m || typeof m !== 'object') return;
     if (o.role === 'host') {
@@ -126,13 +152,17 @@ export function createSession(connect: Connect, o: SessionOptions) {
       }
       else if (m.k === 'team') emit({ t: 'team', ready: m.ready, votes: m.votes, left: m.left });
     }
-  });
+  };
+  function attach(): void { tr = connect({ code: o.code, role: o.role, name: o.name, pid: o.pid }); tr.onEvent(onEvent); }
+  attach();
 
   return {
     role: o.role,
     code: o.code,
     get selfId(): string { return selfId; },
     get isOpen(): boolean { return open && !closed; },
+    /** Host: the connection dropped during the Run and it is getting back in (the room waits; so does this world). */
+    get reconnecting(): boolean { return rejoin >= 0 && !closed; },
     get started(): boolean { return !!started; },
     players,
     names,
@@ -157,6 +187,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
     commands(): Command[] {
       const out: Command[] = [];
       if (o.role === 'host') {
+        if (newId) { newId = false; out.push({ type: 'coopId', id: selfId }); }
         if (matesDirty) { matesDirty = false; out.push({ type: 'mates', mates: [...presence.values()].filter((m) => peers.some((p) => p.id === m.id)) }); }
         for (const b of hits) out.push({ type: 'remoteHits', hits: b.d, from: b.from, q: b.q });
         hits = [];
@@ -192,12 +223,12 @@ export function createSession(connect: Connect, o: SessionOptions) {
     /** Co-op net meter. */
     stats(): NetStats {
       const t = now(), c = tr.stats();
-      if (t - rate.at >= 1000) { const d = (t - rate.at) / 1000; rate = { at: t, rx: c.rx, tx: c.tx, rxs: rate.at ? (c.rx - rate.rx) / d : 0, txs: rate.at ? (c.tx - rate.tx) / d : 0 }; }
+      if (t - rate.at >= 1000) { const d = (t - rate.at) / 1000; rate = { at: t, rx: c.rx, tx: c.tx, rxs: rate.at ? Math.max(0, c.rx - rate.rx) / d : 0, txs: rate.at ? Math.max(0, c.tx - rate.tx) / d : 0 }; } // (a new connection starts at 0)
       const avg = gaps.length ? gaps.reduce((a, g) => a + g, 0) / gaps.length : 0;
       const jitter = gaps.length ? gaps.reduce((a, g) => a + Math.abs(g - avg), 0) / gaps.length : 0;
       return { ping: Math.round(ping), gapAvg: Math.round(avg), gapMax: Math.round(gaps.length ? Math.max(...gaps) : 0), jitter: Math.round(jitter), rx: Math.round(rate.rxs), tx: Math.round(rate.txs), hostFps: Math.round(hostFps), trims };
     },
-    leave(): void { if (!closed) { closed = true; tr.close(); } },
+    leave(): void { leaving = true; if (!closed) { closed = true; tr.close(); } },
   };
 }
 

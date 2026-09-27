@@ -50,6 +50,7 @@ export type Command =
   | { type: 'setEvents'; events: EventSwitches } // feature flags for events: apply at the next Stage start
   // co-op (ticket 41/42)
   | { type: 'mates'; mates: MateWire[] } // host: latest guest presence
+  | { type: 'coopId'; id: string } // co-op host: its connection id changed (it dropped and got back into the room)
   | { type: 'remoteHits'; hits: number[]; from?: string; q?: number } // host: guest damage [enemyId, dmg, …] (dmg < 0 = Ultimate hit, capped on bosses); q = that guest's batch number, acknowledged in the snapshot
   | { type: 'snap'; snap: HostSnap }; // guest: the host's world
 

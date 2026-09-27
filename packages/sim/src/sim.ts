@@ -16,7 +16,7 @@ import { isWeapon } from './data/weapons';
 import { usableWeapons } from './systems/combat';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
-import { applyRemoteHits, applySnap, attacksPaused, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates, splitGold } from './systems/coop';
+import { applyRemoteHits, applySnap, attacksPaused, renameSelf, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates, splitGold } from './systems/coop';
 
 
 export interface Sim {
@@ -133,6 +133,7 @@ export function createSim(opts: SimOptions): Sim {
     if (s.coop?.role === 'guest' && (c.type === 'next' || c.type === 'route' || c.type === 'endless' || c.type === 'pause' || c.type === 'resume')) return;
     switch (c.type) {
       case 'mates': setMates(s, c.mates); break;
+      case 'coopId': renameSelf(s, c.id); break;
       case 'remoteHits': applyRemoteHits(s, c.hits, c.from, c.q); break;
       case 'snap': applySnap(s, c.snap); break;
       case 'pick': choose(s, c.index); break;
