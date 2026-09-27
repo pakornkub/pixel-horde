@@ -153,11 +153,12 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.pending()).toEqual([]);
   });
 
-  it('maintenance (server online but refusing gameplay RPCs): buy/unlockHero/forgeWeapon fall back to a local purchase, same as OFFLINE', async () => {
+  it('maintenance (server online but refusing gameplay RPCs): buy/unlockHero/forgeWeapon/buyOutfit fall back to a local purchase, same as OFFLINE', async () => {
     const f = fakeBackend('online');
     f.b.buyUpgrade = async () => { throw new BackendError('MAINTENANCE'); };
     f.b.unlockHero = async () => { throw new BackendError('MAINTENANCE'); };
     f.b.forgeWeapon = async () => { throw new BackendError('MAINTENANCE'); };
+    f.b.buyOutfit = async () => { throw new BackendError('MAINTENANCE'); };
     const ms = createMetaSync(f.b, memStore());
     ms.bankLocal(3000);
     ms.unlockCrack(0); // beating Umbra unlocks the forge shop
@@ -167,7 +168,10 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.meta.owned).toContain('ranger');
     expect(await ms.forgeWeapon('judgement')).toBeNull();
     expect(ms.forgeLv('judgement')).toBe(1);
-    expect(ms.pending().map((o) => o.kind)).toEqual(['buy', 'hero', 'forge']);
+    expect(await ms.buyOutfit('ember', 'hat')).toBeNull();
+    expect(ms.outfitLv('ember', 'hat')).toBe(1);
+    expect(ms.worn().hat).toEqual({ set: 'ember', lv: 1 });
+    expect(ms.pending().map((o) => o.kind)).toEqual(['buy', 'hero', 'forge', 'outfit']);
   });
 
   it('Weapon forge: locked before the first win, then levels an owned Weapon (queued offline)', async () => {

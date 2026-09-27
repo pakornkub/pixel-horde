@@ -242,7 +242,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (lv >= active.cfg.outfits.max) return new BackendError('MAXED');
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.buyOutfit(set, slot)); if (!lv && !meta.wear[slot]) wearOutfit(slot, set); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.buyOutfit(set, slot)); if (!lv && !meta.wear[slot]) wearOutfit(slot, set); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.outfits[`${set}:${slot}`] = lv + 1;
