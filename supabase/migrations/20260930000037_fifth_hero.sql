@@ -126,7 +126,7 @@ declare
 begin
   if cost is null then raise exception 'UNKNOWN_HERO' using errcode = '22023'; end if;
   if p_hero = any (m.heroes) then return public.meta_json(m); end if;
-  if public.hero_needs_win(p_hero) and not public.has_won(uid) then -- shared check (20260930000036_weapon_forge) raise exception 'NEEDS_WIN' using errcode = '22023'; end if;
+  if public.hero_needs_win(p_hero) and not public.has_won(uid) then raise exception 'NEEDS_WIN' using errcode = '22023'; end if;
   if m.gold < cost then raise exception 'NOT_ENOUGH_GOLD' using errcode = '22023'; end if;
   update public.meta_progress set gold = gold - cost::bigint, heroes = array_append(heroes, p_hero), updated_at = now()
   where user_id = uid returning * into m;
