@@ -49,5 +49,10 @@ export const forgeLevel = (cfg: ResolvedConfig, forge: Partial<Record<WeaponId, 
   Math.max(0, Math.min(cfg.forge.max, Math.floor(forge?.[id] || 0)));
 /** Multiplier on a forged Weapon's own effect (Judgement: stun seconds instead, see `forgeStun`). */
 export const forgeMul = (cfg: ResolvedConfig, id: WeaponId, level: number): number => (id === 'judgement' ? 1 : 1 + cfg.forge[id] * level);
+/** Ultimate damage multiplier of a forged Weapon (every Weapon, Judgement included). */
+export const forgeDmg = (cfg: ResolvedConfig, level: number): number => 1 + cfg.forge.dmg * level;
+/** Share of a boss's max HP one Ultimate strike may take, raised by forge levels. */
+export const ultCap = (cfg: ResolvedConfig, umbra: boolean, level: number): number =>
+  umbra ? cfg.ult.umbraCap + cfg.forge.umbraCap * level : cfg.ult.bossCap + cfg.forge.bossCap * level;
 /** Judgement: seconds a surviving normal monster is stunned. */
 export const forgeStun = (cfg: ResolvedConfig, level: number): number => cfg.forge.judgement * level;
