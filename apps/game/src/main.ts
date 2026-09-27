@@ -10,6 +10,7 @@ import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { heroName } from './ui/text';
 import { initCollection, openCollection } from './ui/collection';
+import { initSpecialShop, openSpecialShop } from './ui/special-shop';
 import { initTitle, renderTitleSel } from './ui/title';
 import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
@@ -632,6 +633,8 @@ $('msgBtn').addEventListener('click', toTitle);
 $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle'); });
 $('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
 initCollection();
+$('specialBtn').addEventListener('click', () => { initAudio(); openSpecialShop('ovTitle'); });
+initSpecialShop();
 initTitle();
 // co-op host reconnecting: the network is back / the page is visible again → try at once
 addEventListener('online', () => coop?.retryNow());
