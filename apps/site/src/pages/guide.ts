@@ -4,6 +4,7 @@ import {
 } from '@pixel-horde/sim';
 import { ENEMY_SPR } from '../../../game/src/render/sprites';
 import { VIEWS, viewZoom } from '../../../game/src/settings';
+import { fmtN } from '../../../game/src/fmt';
 import { el, enemy, hero, passiveIcon, pickup, pix, shopIcon, skillIcon, weaponIcon } from '../art';
 import { siteConfig } from '../backend';
 import { g, onLang, s } from '../lang';
@@ -430,7 +431,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
 {
   const shop = el('div.grid.g3', null, ...SHOP_IDS.map((id) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:12px' }, shopIcon(id),
     el('div', null, G(`shop.${id}.name`, undefined, 'b'), el('br'), G(`shop.${id}.desc`, undefined, 'span', 'muted'), el('div', { style: 'margin-top:4px' }, el('span.chip.gold', null, `${C.shop[id].base}G+`), ' ', el('span.chip', null, `MAX ${C.shop[id].max}`))))));
-  const heroes = el('div.grid.g4', null, ...HERO_IDS.map((h) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:12px' }, hero(h, 3), el('div', null, G(`hero.${h}.name`, undefined, 'b'), el('br'), el('span.chip.gold', null, C.heroes[h].cost ? `${C.heroes[h].cost}G` : s('home.free'))))));
+  const heroes = el('div.grid.g4', null, ...HERO_IDS.map((h) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:12px' }, hero(h, 3), el('div', null, G(`hero.${h}.name`, undefined, 'b'), el('br'), el('span.chip.gold', null, C.heroes[h].cost ? `${fmtN(C.heroes[h].cost)}G` : s('home.free'))))));
   sec('gold', 'g.gold.h', T('g.gold.p', undefined, 'p'),
     el('h3.subh', null, T('g.gold.shop')), shop, el('h3.subh', null, T('g.gold.heroes')), heroes, note('g.gold.run', '', { p: pct(C.score.revivePenalty) }),
     T('g.gold.special', { h: pct(C.outfits.hatDmg), b: C.outfits.bodyHp, c: pct(C.outfits.cloakCrit), n: C.outfits.max, s: pct(C.outfits.setBase + C.outfits.setPerLv) }, 'p'));

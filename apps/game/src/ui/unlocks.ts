@@ -1,6 +1,7 @@
 // What beating Umbra unlocked (ticket 55): pure rules for the ending's "Unlocked" page.
 import { t } from '@pixel-horde/i18n';
 import { ACHIEVEMENTS, type WeaponId } from '@pixel-horde/sim';
+import { fmtN } from '../fmt';
 
 /** One line on the "Unlocked" page. */
 export type Unlock =
@@ -55,7 +56,7 @@ export function unlockText(u: Unlock): string {
     case 'crackTop': return t('unlock.crackTop', { n: u.n });
     case 'endless': return t('unlock.endless');
     case 'special': return t('unlock.special');
-    case 'hero': return t('unlock.hero', { name: u.name, cost: u.cost.toLocaleString('en-US') });
+    case 'hero': return t('unlock.hero', { name: u.name, cost: fmtN(u.cost) });
     case 'weapon': return t('unlock.weapon', { name: t(`weapon.${u.id}.name`) });
     case 'gold': return t('unlock.gold', { n: u.n.toLocaleString('en-US') });
     case 'ach': return t('unlock.ach', { name: t(`ach.${u.id}.name`) });

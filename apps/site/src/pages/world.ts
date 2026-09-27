@@ -5,6 +5,7 @@ import {
 import { el, enemy, hero, heroWithWeapon, passiveIcon, pet, skillIcon, weaponIcon } from '../art';
 import { siteConfig } from '../backend';
 import { evoPassive, heroBonus } from '../data';
+import { fmtN } from '../../../game/src/fmt';
 import { g, onLang } from '../lang';
 import { reveals, shell, toHash } from '../shell';
 import type { TextKey } from '../text';
@@ -37,7 +38,7 @@ const heroSec = section('heroes', 'w.heroes', el('div.grid', null, ...HERO_IDS.m
       el('dt', null, T('home.sig')), el('dd', null, skn(sig), '→', el('span.skname', null, G(`evo.${sig}.name`)), el('span.skname', { style: 'opacity:.8' }, '+', passiveIcon(evoPassive(sig)!, 'sm'), G(`passive.${evoPassive(sig)}.name`))),
       el('dt', null, T('w.line')), el('dd', null, ...SKILL_LINES[h].map((id) => skn(id))),
       el('dt', null, T('w.form')), el('dd', null, G(`form.${A.form}`, undefined, 'span', 'chip line'), ...A.line.map((id) => skn(id))),
-      el('dt', null, T('w.unlock')), el('dd', null, cost ? el('span.chip.gold', null, `${cost}G`) : T('home.free', undefined, 'span', 'chip gold'), ...(AFTER_WIN.includes(h) ? [' ', T('home.afterWin', undefined, 'span', 'chip line')] : [])))));
+      el('dt', null, T('w.unlock')), el('dd', null, cost ? el('span.chip.gold', null, `${fmtN(cost)}G`) : T('home.free', undefined, 'span', 'chip gold'), ...(AFTER_WIN.includes(h) ? [' ', T('home.afterWin', undefined, 'span', 'chip line')] : [])))));
 })));
 main.append(heroSec);
 

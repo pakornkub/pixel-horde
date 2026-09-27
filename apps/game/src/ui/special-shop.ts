@@ -6,6 +6,7 @@ import { sfx } from '../audio/sfx';
 import { active } from '../config';
 import { META, metaSync } from '../meta';
 import { HELD_SPR } from '../render/sprites';
+import { fmtN } from '../fmt';
 import { $, hide, show } from './overlays';
 
 type Tab = 'forge' | 'mastery' | 'outfits';
@@ -66,7 +67,7 @@ function powerLine(lv: number, maxed: boolean): string {
 function priceButton(bt: HTMLButtonElement, cost: number, maxed: boolean): void {
   const short = !maxed && META.gold < cost;
   bt.className = 'buy' + (short ? ' short' : '');
-  bt.textContent = maxed ? t('shop.maxed') : short ? t('forge.need', { n: cost - META.gold }) : t('shop.buy', { cost });
+  bt.textContent = maxed ? t('shop.maxed') : short ? t('forge.need', { n: fmtN(cost - META.gold) }) : t('shop.buy', { cost: fmtN(cost) });
   bt.disabled = maxed || short;
 }
 /** Shop message for a refused purchase. */
@@ -186,7 +187,7 @@ function outfitRows(box: HTMLElement): void {
       ds.textContent = lv === 0 ? slotValue(slot, 1) : maxed ? slotValue(slot, lv) : `${slotValue(slot, lv)} → ${slotValue(slot, lv + 1)}`;
       const bt = document.createElement('button');
       priceButton(bt, cost, maxed);
-      if (!maxed && !bt.classList.contains('short')) bt.textContent = t(lv ? 'outfit.up' : 'outfit.get', { cost });
+      if (!maxed && !bt.classList.contains('short')) bt.textContent = t(lv ? 'outfit.up' : 'outfit.get', { cost: fmtN(cost) });
       bt.addEventListener('click', async () => {
         bt.disabled = true;
         const err = await metaSync.buyOutfit(set, slot);
@@ -231,7 +232,7 @@ function outfitRows(box: HTMLElement): void {
 }
 
 function render(): void {
-  $('specialGold').textContent = 'GOLD ' + META.gold;
+  $('specialGold').textContent = 'GOLD ' + fmtN(META.gold);
   document.querySelectorAll<HTMLButtonElement>('#specialTabs button').forEach((b) => {
     const x = b.dataset.tab as Tab;
     b.classList.toggle('sel', x === tab);
