@@ -226,6 +226,11 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .coll .crow.locked{opacity:.45}
 .coll .crow img,.coll .crow .ph{width:32px;height:32px;image-rendering:pixelated;display:grid;place-items:center;font-weight:700}
 
+/* co-op guest: the host went quiet */
+#hostWait{position:fixed;left:50%;transform:translateX(-50%);top:calc(40% + env(safe-area-inset-top,0px));z-index:4;max-width:calc(100% - 32px);
+  background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:4px;padding:10px 14px;font-family:var(--th);font-weight:700;font-size:15px;text-align:center}
+#hostWait[hidden]{display:none}
+html[lang="en"] #hostWait{font-family:var(--pix);font-size:10px;line-height:1.7}
 /* low-FPS suggestion (ticket 39) */
 #fpsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:4;
   display:flex;gap:8px;align-items:center;max-width:calc(100% - 32px);background:var(--paper);color:var(--ink);border:3px solid var(--ink);

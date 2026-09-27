@@ -113,8 +113,8 @@ export interface MateWire {
 }
 /** Another player in this Run (host: the guests; guest: everyone else, host included). */
 export interface Mate extends MateWire {
-  /** Smoothed render position. */
-  rx: number; ry: number;
+  /** Smoothed render position; speed between the last two positions and the clock when the last one came. */
+  rx: number; ry: number; vx?: number; vy?: number; at?: number;
 }
 
 /** Host → guests ~15 Hz. Enemies are packed 11 characters each (see systems/coop.ts). */
@@ -125,6 +125,8 @@ export interface HostSnap {
   eh?: string;
   /** Last guest damage batch applied, per guest id (guests stop predicting that damage). */
   ak?: Record<string, number>;
+  /** Host tick (60/s) when the snapshot was made; how many times it was trimmed to fit the relay limit. */
+  ck?: number; trim?: number;
   /** Bosses: [role k|k2|d|r, enemy id, HP %]. */
   bs: [string, number, number][];
   /** Team counters: EXP and Gold picked up by anyone, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
@@ -257,6 +259,9 @@ export interface Enemy {
   tx?: number; ty?: number;
   /** Guest mirror: `hp` is the host's HP minus this guest's unconfirmed damage (kills are predicted); unset = HP unknown or a boss %. */
   predHp?: boolean;
+  /** Guest mirror: the last snapshot position, host tick and the speed between the last two (monsters keep moving
+   *  when a snapshot is late instead of stopping), seconds since it arrived. */
+  mir?: { x: number; y: number; ck: number; vx: number; vy: number; age: number };
   type: EnemyId;
   x: number; y: number;
   hp: number; maxHp: number;

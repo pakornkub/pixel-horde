@@ -21,7 +21,7 @@ import { parseDebug } from './debug';
 import { createTips, type TipId } from './tips';
 import { initLobby, leaveRoom, openLobby, refreshLobbyName } from './ui/lobby';
 import { createTeam } from './coop/team';
-import type { Session } from './coop/session';
+import type { NetStats, Session } from './coop/session';
 import type { CloseReason } from '@pixel-horde/coop';
 import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
@@ -181,7 +181,16 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
     if (e.t === 'ready') team.setReady(e.id, e.on);
     else if (e.t === 'vote') team.vote(e.id, e.i);
     else if (e.t === 'team') renderTeam(e.ready, e.votes, e.left);
+    else if (e.t === 'netGap') telemetry.event({ k: 'netGap', ms: e.ms, role: s.role, st: sim?.view().stage ?? 0 });
   });
+}
+
+/** Co-op lines of the I meter: how the connection is doing (guest) or what the host sends. */
+function netLines(n: NetStats, role: 'host' | 'guest'): string[] {
+  const kb = (x: number): string => (x / 1024).toFixed(1) + 'KB/s';
+  return role === 'host'
+    ? ['— CO-OP HOST —', `OUT ${kb(n.tx)} IN ${kb(n.rx)}`, `FPS ${n.hostFps}`, `TRIMMED ${n.trims}`]
+    : ['— CO-OP —', `PING ${n.ping}ms`, `SNAP ${n.gapAvg}±${n.jitter}ms MAX ${n.gapMax}`, `IN ${kb(n.rx)} OUT ${kb(n.tx)}`, `HOST FPS ${n.hostFps}`, `TRIMMED ${n.trims}`];
 }
 
 /** Co-op: note the Chapter this player joined at (a guest learns it from the host's first snapshot) and the room size. */
@@ -455,9 +464,16 @@ function frame(now: number): void {
   last = now;
   rclock += rdt;
   try {
+    // co-op guest: the host went quiet — this world waits (no monsters frozen mid-bite) and says so
+    const waiting = !!sim && !!coop && coop.silent() > sim.view().cfg.coop.hostWait;
+    const hw = $('hostWait');
+    if (hw.hidden === waiting) hw.hidden = !waiting;
+    if (waiting) hw.textContent = t('coop.hostWait', { s: Math.floor(coop!.silent()) });
+    MET.net = MET.on && coop ? netLines(coop.stats(), coop.role) : [];
     if (sim) {
       if (chestTick(rdt)) cmd({ type: 'chestStop' });
-      acc += vfx.slowmo > 0 ? rdt * sim.view().cfg.fx.slowmoScale : rdt; // King-death slow motion (presentation only)
+      if (waiting) acc = 0;
+      else acc += vfx.slowmo > 0 ? rdt * sim.view().cfg.fx.slowmoScale : rdt; // King-death slow motion (presentation only)
       let steps = 0;
       while (acc >= DT && steps < 8) {
         const input = readInput();
@@ -493,7 +509,7 @@ function frame(now: number): void {
         coopTrack(sim.view());
         coopDown(sim.view());
         hostTeam(rdt);
-        if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostLost)) setTimeout(() => coopClosed('host-left'), 0);
+        if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostGone)) setTimeout(() => coopClosed('host-left'), 0);
       }
       syncOverlays();
       const v = sim.view();
