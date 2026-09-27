@@ -360,9 +360,12 @@ function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): n
     const vis = visibleEnemies(s).filter((e) => hypot(e.x - o.x, e.y - o.y) < t.range);
     if (!vis.length) return 0.2;
     // Stormhunter: fire arrows onto the flock's latest prey (Overload on the Shocked)
-    const awk = awkForm(s), mk = awk ? freshMark(s) : null;
-    if (awk && !cl && waitMark(s, id)) return WAIT; // wait for the Signature's strike
-    const e = mk && hypot(mk.x - o.x, mk.y - o.y) < t.range ? mk : vis[R.int(vis.length)];
+    const awk = awkForm(s), mk = awk ? freshMark(s) : null, near = K.arrowRain.near;
+    // `near` > 0: onto the thickest crowd around Kit at once (the flock's prey only when it is that close)
+    const close = near > 0 ? vis.filter((e) => hypot(e.x - o.x, e.y - o.y) < near) : [];
+    if (!close.length && awk && !cl && waitMark(s, id)) return WAIT; // wait for the Signature's strike
+    const e = close.length ? (mk && hypot(mk.x - o.x, mk.y - o.y) < near ? mk : densest(close, t.r, R))
+      : mk && hypot(mk.x - o.x, mk.y - o.y) < t.range ? mk : vis[R.int(vis.length)];
     s.effects.push({ type: 'rain', x: e.x, y: e.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, ...(awk ? { tag: AWK_TAGS.arrow } : {}), ...(cl ? { cl } : {}) });
   } else if (id === 'thunderHawk') {
     const c = K.thunderHawk, first = nearest(s, o.x, o.y, t.range);
@@ -591,6 +594,17 @@ export function updSkills(s: SimState, dt: number): void {
       P.cds.galeStep = K.galeStep.every;
       s.effects.push({ type: 'gale', x: P.x, y: P.y + 4, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, hit: new Set() });
     }
+    // Gale Burst (`burstN` > 0): enough monsters around Kit and the wind bursts out, cutting, pushing and slowing them
+    const G = K.galeStep;
+    if (G.burstN > 0 && s.clock - (P.burstAt ?? -1e9) >= G.burstCd) {
+      let n = 0;
+      for (const e of s.enemies) if (!e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < G.burstR + e.r) n++;
+      if (n >= G.burstN) {
+        P.burstAt = s.clock;
+        s.effects.push({ type: 'nova', x: P.x, y: P.y, R: G.burstR, t: 0, dur: 0.25, hit: new Set(), dmg: t.dmg * G.burstMul, tag: T.galeStep, col: '#d8f3e0', kb: G.burstKb, slow: G.slow });
+        sfx(s, 'nova');
+      }
+    }
   }
   if (sk.boneWard) P.cds.boneWard = (P.cds.boneWard || 0) - dt;
   if (sk.shield) {
@@ -710,7 +724,10 @@ export function updEffects(s: SimState, dt: number): void {
       for (const e of s.enemies) {
         if (e.dead || f.hit!.has(e)) continue;
         const d = hypot(e.x - f.x, e.y - f.y);
-        if (d < r + e.r) { f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', K.nova.kb, f.tag ?? T.nova); }
+        if (d < r + e.r) {
+          f.hit!.add(e); hit(s, e, f.dmg, '#ff8a3d', f.kb ?? K.nova.kb, f.tag ?? T.nova);
+          if (f.slow && !e.dead && !e.boss) e.slowT = Math.max(e.slowT, f.slow);
+        }
       }
     } else if (f.type === 'meteor') {
       if (!f.boomed && f.t >= f.delay!) {
@@ -880,13 +897,22 @@ export function updEffects(s: SimState, dt: number): void {
       f.tick! -= dt;
       if (f.tick! <= 0) {
         f.tick = K.arrowRain.tick;
-        for (const e of s.enemies) if (!e.dead && hypot(e.x - f.x, (e.y - f.y) * 1.25) < f.r! + e.r) hit(s, e, f.dmg, f.tag ? '#ff8a3d' : '#ffe9a8', 10, f.tag ?? T.arrowRain);
+        const slow = K.arrowRain.slow;
+        for (const e of s.enemies) {
+          if (e.dead || hypot(e.x - f.x, (e.y - f.y) * 1.25) >= f.r! + e.r) continue;
+          hit(s, e, f.dmg, f.tag ? '#ff8a3d' : '#ffe9a8', 10, f.tag ?? T.arrowRain);
+          if (slow > 0 && !e.dead && !e.boss) e.slowT = Math.max(e.slowT, slow);
+        }
       }
     } else if (f.type === 'gale') {
       if (awkForm(s)) pullIn(s, f.x, f.y, f.r! * 3, K.hawk.awk.galePull * dt); // Stormhunter: the wind gathers (Grinder)
+      const slow = K.galeStep.slow;
       for (const e of s.enemies) {
         if (e.dead || f.hit!.has(e)) continue;
-        if (hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) { f.hit!.add(e); hit(s, e, f.dmg, '#d8f3e0', 30, T.galeStep); }
+        if (hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) {
+          f.hit!.add(e); hit(s, e, f.dmg, '#d8f3e0', 30, T.galeStep);
+          if (slow > 0 && !e.dead && !e.boss) e.slowT = Math.max(e.slowT, slow);
+        }
       }
     } else if (f.type === 'cauldron') {
       f.tick! -= dt;

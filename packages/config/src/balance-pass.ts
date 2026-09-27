@@ -802,5 +802,82 @@ export const BALANCE_PASS_2026_09J: BalancePass = {
   },
 };
 
+/** Kit late game (owner option 3, 2026-09-28): Kit's Awakened (Skill Line) skills clear and slow the crowd around Kit.
+ *  Needs migration 20260930000046 (skills.arrowRain.near/slow, skills.galeStep.slow/burst*). */
+export const BALANCE_PASS_2026_09K: BalancePass = {
+  id: '2026-09k',
+  note: 'Kit late game: Arrow Rain falls on the crowd around Kit and slows it; Gale Step bursts out when Kit is surrounded',
+  patch: {
+    shared: {
+      skills: {
+        // landed on a random monster up to 200 px away: now the thickest crowd within 100 px of Kit, slowed, and hits harder
+        arrowRain: { near: 100, slow: 0.6, dmg: { base: 20, perLv: 14 }, r: { base: 50, perLv: 5 } },
+        // blades only cut what walked over them: now 4+ monsters within 56 px make the wind burst out (cut, push, slow)
+        galeStep: { slow: 1, burstN: 4, burstR: 56, burstMul: 6, burstKb: 160, burstCd: 1.5 },
+      },
+    },
+  },
+  changelog: {
+    titleTh: 'Kit: สกิลตื่นพลังเคลียร์ฝูงรอบตัว',
+    titleEn: 'Kit: Awakened skills clear the crowd around Kit',
+    items: [
+      { cat: 'skill', th: 'Arrow Rain ตกกลางฝูงที่แน่นที่สุดใกล้ตัว Kit (ไม่สุ่มไกลอีกแล้ว) แรงขึ้น กว้างขึ้น และทำให้มอนใต้ฝนเดินช้าลง (ไม่รวมบอส)', en: 'Arrow Rain now falls on the thickest crowd near Kit (no longer on a random far monster), hits harder over a wider area and slows the monsters under it (not bosses)' },
+      { cat: 'skill', th: 'Gale Step: เมื่อมอน 4 ตัวขึ้นไปประชิด Kit ลมจะระเบิดออกจากตัว ฟัน ผลัก และทำให้ช้า (ทุก 1.5 วินาที) ใบมีดลมก็ทำให้ช้าด้วย', en: 'Gale Step: when 4 or more monsters close in on Kit, the wind bursts out, cutting, pushing and slowing them (every 1.5 s); its blades slow too' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09k: Kit ท้ายเกม (สกิลตื่นพลังเคลียร์ฝูง)',
+    summary: 'เจ้าของเลือกทางเลือก 3 (2026-09-28): แก้ Kit เชิงโครงสร้างที่สกิลตื่นพลัง ให้เคลียร์และคุมฝูง ไม่ใช่เพิ่มดาเมจดิบหรือ HP '
+      + 'ต้นเหตุ: Kit ฆ่ามอนต่อนาทีพอ ๆ กับคนอื่น แต่ไม่มีอะไรตีวงมอนที่ประชิดตัว (เหยี่ยวและฝูงเหยี่ยวไล่ตัวเลือดมาก) จึงโดนมอนชนนาทีละ ~150 เทียบ Lyra/Bram/Vex 25–45 '
+      + 'ส่วนสกิลตื่นพลังของ Kit ทำดาเมจแค่ 8–10% (Arrow Rain ตกใส่มอนสุ่มไกลถึง 200 px) จน Kit ที่ตื่นพลังชนะน้อยกว่า Kit ที่ไม่ตื่นพลัง '
+      + 'รอบนี้ Arrow Rain ตกใส่ฝูงใกล้ตัวและทำให้ช้า และ Gale Step มีลมระเบิดเมื่อโดนล้อม ผล: Kit ที่ตื่นพลังชนะร้าว 7 จาก 30% เป็น 64% และโดนมอนชนน้อยลง 32% '
+      + 'ผ่าน G1 ร้าว 5 และร้าว 10 ร้านเต็ม ร้าว 7 ห่าง 15.5 จุด (เกิน 0.5) G3 ยังไม่ผ่านแบบรวมทุกรอบ เพราะ ~45% ของรอบ Kit ไม่ได้ตื่นพลัง สกิลสายจึงช่วยไม่ถึง',
+    method: 'บอท playtest บน claude/kit-crowd (main a61a167 + field ใหม่) PT_PASS=1 (config v11 + 09j) Judgement Lv0 ไม่มีโรงตี/ชุด seed 1–48 ร้านกลางและเต็ม '
+      + 'Kit: `PT_PASS=1 PT_HEROES=ranger node scripts/playtest/exp.mjs kc5.json 48 mid|max` (kc5.json = B_c0/5/7/10 patch ว่าง และ K_c0/5/7/10 = patch ของรอบนี้ ตาม crack) '
+      + 'ฮีโร่อื่น: `PT_PASS=1 PT_HEROES=mage,knight,alchemist,necromancer node scripts/playtest/exp.mjs kc6.json 48 mid|max` (B_c5/7/10) '
+      + 'G5: ฮีโร่อื่นร้าว 7 ร้านกลาง seed 1–24 ใส่ patch นี้ ผลเหมือนเดิมทุกรอบ (96/96) '
+      + 'G1 = ค่าเฉลี่ยกลาง+เต็ม, G3 = (hurt.mob + hurt.elite) ÷ ผลรวม hurt ทุก key รวมทุกรอบในช่องก่อนหาร',
+    metrics: [
+      { label: 'Kit ชนะ Umbra ร้าว 5 กลาง / เต็ม', before: '46 / 77%', after: '58 / 85%' },
+      { label: 'Kit ชนะ Umbra ร้าว 7 กลาง / เต็ม', before: '27 / 46%', after: '42 / 69%' },
+      { label: 'Kit ชนะ Umbra ร้าว 10 กลาง / เต็ม', before: '10 / 13%', after: '19 / 38% ✓' },
+      { label: 'G1 ห่างค่าเฉลี่ยฮีโร่อื่น (ร้าว 5 / ร้าว 7, กลาง+เต็ม; ฮีโร่อื่น 85.5 / 71%)', before: '−24 / −34.5 จุด', after: '−14 ✓ / −15.5 ✗ (เกิน 0.5)' },
+      { label: 'Kit ที่ตื่นพลัง ชนะร้าว 5 / 7 / 10 (ไม่ตื่นพลัง 75 / 44 / 19%)', before: '52 / 30 / 4%', after: '70 / 64 / 38%' },
+      { label: 'ดาเมจที่โดนจากมอน + Elite ต่อนาที (ร้าว 5 / 7 / 10)', before: '126 / 160 / 192', after: '112 / 132 / 152' },
+      { label: 'G3 ส่วนดาเมจจากมอน + Elite (ร้าว 5 / 7 / 10) รวมทุกรอบ', before: '85.9 / 87.5 / 83.7%', after: '84.2 / 82.7 / 77.3% ✗ (ต้องลด 10 จุด)' },
+      { label: 'G3 เฉพาะรอบที่ตื่นพลัง (ร้าว 5 / 7 / 10)', before: '88.6 / 90.1 / 89.0%', after: '85.4 / 80.6 / 76.7%' },
+      { label: 'G2 ความยากปกติ Kit ร้านกลาง / เต็ม', before: '98 / 100%', after: '100 / 100% ✓' },
+      { label: 'G4 อัตราตื่นพลัง Kit (ร้าว 5–7)', before: '52–58%', after: '52–58% ✓ (ไม่เปลี่ยน)' },
+      { label: 'G5 ฮีโร่อื่น', before: '-', after: 'ไม่เปลี่ยน (96/96 รอบเหมือนเดิม) ✓' },
+    ],
+    findings: [
+      { level: 'bad', title: 'ตื่นพลังเคยทำให้ Kit แย่ลง', body: 'ก่อนรอบนี้ Kit ที่ตื่นพลังชนะน้อยกว่า Kit ที่ไม่ตื่นพลังทุกขั้นร้าว (ร้าว 7: 30% เทียบ 44%) เพราะเลเวลอัปไปลงสกิลสายที่ทำดาเมจแค่ 8–10%', status: 'แก้แล้ว: ตื่นพลังชนะ 64%' },
+      { level: 'warn', title: 'G3 รวมทุกรอบยังไม่ผ่าน', body: 'ราว 45% ของรอบ Kit ไม่ได้ตื่นพลัง (เหยี่ยวไม่วิวัฒน์ หรือ Link เต็มไม่ถึง 2) รอบเหล่านี้ไม่เปลี่ยนเลย ส่วนดาเมจจากมอนรวมจึงลดแค่ 2–6 จุด แม้รอบที่ตื่นพลังลด 3–12 จุดและโดนชนน้อยลง 32%', status: 'ต้องให้เจ้าของตัดสิน' },
+      { level: 'info', title: 'Thunder Hawk ไม่ได้เปลี่ยน', body: 'ลองให้ Thunder Hawk ทำให้มึน เพิ่มดาเมจและจำนวนกระโดด ไม่ช่วยอัตราชนะ จึงไม่ใส่', status: 'ตัดออก' },
+      { level: 'info', title: 'ไม่มีการป้องกันวนไม่รู้จบ', body: 'ลมระเบิดใช้ได้ทุก 1.5 วินาที ทำให้ช้า 1 วินาที (น้อยกว่าคูลดาวน์) ไม่ทำให้มึน บอสโดนดาเมจแต่ไม่ช้า ฝนธนูทำให้ช้าแบบเดียวกับ Frost Aura ไม่มีดาเมจตาม % HP และไม่มีมินเนียน', status: 'ตั้งใจ' },
+      { level: 'info', title: 'co-op: Kit ที่เป็นแขก', body: 'ความช้าและแรงผลักจากสกิลของแขกเป็นแค่ภาพ เหมือนการควบคุมฝูงอื่นของแขก ดาเมจส่งถึง host ตามปกติ', status: 'ข้อจำกัดเดิมของ co-op' },
+    ],
+    reasons: {
+      'shared.skills.arrowRain.near': 'ฝนธนูตกกลางฝูงที่แน่นที่สุดในระยะ 100 px รอบตัว Kit',
+      'shared.skills.arrowRain.slow': 'มอนใต้ฝนเดินช้าลง เข้าถึง Kit ช้าลง',
+      'shared.skills.arrowRain.dmg.base': 'ฝนธนูต้องฆ่าวงมอนรอบตัวให้ทันในบทท้าย',
+      'shared.skills.arrowRain.dmg.perLv': 'ฝนธนูต้องฆ่าวงมอนรอบตัวให้ทันในบทท้าย',
+      'shared.skills.arrowRain.r.base': 'คลุมวงล้อมรอบตัว Kit ได้ทั้งวง',
+      'shared.skills.arrowRain.r.perLv': 'คลุมวงล้อมรอบตัว Kit ได้ทั้งวง',
+      'shared.skills.galeStep.slow': 'ใบมีดลมและลมระเบิดทำให้มอนช้า 1 วินาที',
+      'shared.skills.galeStep.burstN': 'มอน 4 ตัวในรัศมีนับว่าโดนล้อม',
+      'shared.skills.galeStep.burstR': 'รัศมีลมระเบิดรอบตัว Kit',
+      'shared.skills.galeStep.burstMul': 'ลมระเบิดแรงพอฆ่าวงมอนที่ประชิด',
+      'shared.skills.galeStep.burstKb': 'ผลักวงมอนออกจากตัว Kit',
+      'shared.skills.galeStep.burstCd': 'ใช้ได้ทุก 1.5 วินาที ไม่ป้องกันวนไม่รู้จบ',
+    },
+    next: [
+      'เจ้าของตัดสิน: Kit ที่ไม่ได้ตื่นพลัง (~45% ของรอบ) ยังโดนมอนชนเท่าเดิม ต้องการเครื่องมือก่อนตื่นพลัง หรือเพิ่มอัตราตื่นพลังของ Kit หรือยอมรับ G3 แบบนับเฉพาะรอบที่ตื่นพลัง',
+      'คำอธิบายสกิล Arrow Rain / Gale Step ในเกม (i18n) ยังเป็นแบบเดิม ควรอัปเดตเมื่อ publish',
+      'หลัง publish: ดูข้อมูลจริงของ Kit ในร้าว 5–10',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09J, BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09K, BALANCE_PASS_2026_09J, BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

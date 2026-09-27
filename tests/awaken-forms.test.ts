@@ -136,6 +136,49 @@ describe('Stormhunter: Hawk Flock', () => {
   });
 });
 
+describe('Kit\'s crowd tools (2026-09k, all off by default)', () => {
+  const plain = (skills: BalanceConfigInput['shared']): BalanceConfigInput => ({ shared: { player: { dmgVariance: 0, crit: 0 }, ...skills } });
+
+  it('arrowRain.near: the rain lands on the thickest crowd around Kit, and arrowRain.slow slows it (never bosses)', () => {
+    const land = (patch: BalanceConfigInput): { x: number; slowed: number; king: number } => {
+      const { s, mob, crowd, run } = hero('ranger', { arrowRain: 4 }, patch, false);
+      for (let i = 0; i < 6; i++) mob(150 - i * 4, 90); // a line of monsters far away
+      const near = crowd(40, 0, 6);
+      const king = spawnEnemy(s, 'boss', 44, 0, false); king.hp = king.maxHp = 1e6; king.spd = 0;
+      run(0.6);
+      const f = s.effects.find((x) => x.type === 'rain')!;
+      return { x: f.x, slowed: near.filter((e) => e.slowT > 0).length, king: king.slowT };
+    };
+    const on = land(plain({ skills: { arrowRain: { near: 90, slow: 0.5 } } }));
+    expect(on.x).toBeLessThan(60);
+    expect(on.slowed).toBeGreaterThanOrEqual(4);
+    expect(on.king).toBeLessThanOrEqual(0);
+    expect(land(plain({})).slowed).toBe(0); // default: no slow
+  });
+
+  it('galeStep.burstN: a surrounded Kit bursts the wind out (damage, push, slow), at most once per burstCd; 0 = never', () => {
+    const G = { burstN: 5, burstR: 48, burstMul: 2, burstKb: 120, burstCd: 3, slow: 1 };
+    const { s, mob, run } = hero('ranger', { galeStep: 4 }, plain({ skills: { galeStep: G } }), false);
+    const ring = Array.from({ length: 6 }, (_, i) => mob(Math.cos(i) * 24, Math.sin(i) * 24));
+    run(0.4);
+    expect(s.P.burstAt).toBeDefined();
+    expect(ring.every((e) => e.hp < e.maxHp && e.slowT > 0)).toBe(true);
+    expect(ring.every((e) => Math.hypot(e.x - s.P.x, e.y - s.P.y) > 24)).toBe(true); // pushed out
+    let bursts = 0, last = s.P.burstAt;
+    for (let t = 0; t < 10 * 60; t++) {
+      ring.forEach((e, i) => { e.x = s.P.x + Math.cos(i) * 24; e.y = s.P.y + Math.sin(i) * 24; e.kx = 0; e.ky = 0; }); // stays surrounded
+      run(1 / 60);
+      if (s.P.burstAt !== last) { bursts++; last = s.P.burstAt; }
+    }
+    expect(bursts).toBeGreaterThanOrEqual(3);
+    expect(bursts).toBeLessThanOrEqual(4);
+    const off = hero('ranger', { galeStep: 4 }, plain({}), false);
+    Array.from({ length: 6 }, (_, i) => off.mob(Math.cos(i) * 24, Math.sin(i) * 24));
+    off.run(1);
+    expect(off.s.P.burstAt).toBeUndefined();
+  });
+});
+
 describe('Grand Alchemist: Giant Flask', () => {
   it('a giant flask bursts into small flasks of every element', () => {
     const { s, crowd, run } = hero('alchemist', { flask: 3 });
