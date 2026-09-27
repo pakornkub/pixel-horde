@@ -355,6 +355,9 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 
 /* Endless Run from the title: a note row until the Endless Score starts counting */
 .stats.score .sub{grid-column:1/-1;font-size:13px;opacity:.8}
+/* a title Endless Run that fell before Chapter 9: the Chapter reached is the headline */
+.stats.score .reach{grid-column:1/-1;justify-self:center;font-family:var(--pix);font-size:16px;line-height:1.4;color:var(--ink);background:var(--gold);padding:8px 12px;border-radius:4px;text-align:center}
+.stats.score .reach + .sub{font-family:var(--th);font-size:13px;text-align:center} /* not the value-column pixel font */
 /* title: Play + Endless (after the first win) side by side, so the column never gets taller */
 .tplay{display:flex;gap:10px;width:100%}
 .tplay .btn.play.big{flex:2}

@@ -139,6 +139,25 @@ describe('Endless Run from the title (mode endless)', () => {
     expect(endlessBreakdown(s).total).toBe(50);
     expect(scoreOf(s)).toBe(0);
   });
+
+  it('never draws the previous Chapter\'s Realm twice in a row, and the draws are the same for the same seed', () => {
+    const realms = (seed: number): string[] => {
+      const sim = createSim(botOptions(seed, { mode: 'endless', debug: { god: true }, events: quiet }));
+      const s = sim.view() as SimState;
+      const out: string[] = [];
+      for (let ch = 1; ch <= 40; ch++) {
+        s.phase = 'clear'; s.lastEnd = 'clear'; s.stage = ch;
+        sim.step({ mx: 0, my: 0 }, [{ type: 'next' }]);
+        out.push(s.realm);
+      }
+      return out;
+    };
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const r = realms(seed);
+      for (let i = 1; i < r.length; i++) expect(r[i], `seed ${seed}, Chapter ${i + 2}`).not.toBe(r[i - 1]);
+      expect(realms(seed)).toEqual(r);
+    }
+  });
 });
 
 describe('Heart Crack', () => {

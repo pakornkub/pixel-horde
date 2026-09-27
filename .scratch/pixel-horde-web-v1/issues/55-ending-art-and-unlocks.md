@@ -25,6 +25,10 @@ Proposed:
 - Pictures: (1) Umbra shatters, the last shard breaks free (2) the Heart beats whole, light over every Realm ("Lumora is
   saved") (3) the Kings wake up embarrassed, the four Heroes celebrate (4) a new red crack in the Heart. Drafts approved.
 
+- Review follow-ups (2026-09-27, option A each): a title-Endless Run that falls before Chapter 9 shows "Chapter reached N"
+  with "Endless Score starts at Chapter 9" instead of a 0 Score; its Realm draws never repeat the previous Chapter's Realm
+  (seeded `route` stream; Endless after Umbra draws as before so its replays are unchanged).
+
 **Built:**
 - `apps/game/public/ending/p1–p4-{wide,tall}.webp` (Gemini, 1376×768 / 768×1376, 51–163 KB); raw renders in `generated-images/ending/`.
 - `apps/game/src/ui/unlocks.ts` (pure rules + test), `ui/ending.ts` (story, Unlocked page, `winUnlocks()` read before the win is

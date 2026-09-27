@@ -75,3 +75,27 @@ test('the title shows Endless only after a win, and it starts an Endless Run', a
   await expect(page.locator('#ovTitle')).toBeHidden();
   await expect(page.locator('#pauseBtn')).toBeVisible();
 });
+
+test('a title Endless Run that falls before Chapter 9 shows the Chapter reached, not a 0 Score', async ({ page }, info) => {
+  await page.route('**/*.supabase.co/**', (r) => r.abort());
+  const patch = Buffer.from(JSON.stringify({ shared: { player: { hp: 1 } } })).toString('base64url');
+  await page.addInitScript(() => {
+    localStorage.setItem('pixelhorde-named', '1');
+    const m = JSON.parse(localStorage.getItem('pixelhorde-meta') || '{}');
+    localStorage.setItem('pixelhorde-meta', JSON.stringify({ ...m, crackMax: 1 }));
+  });
+  await page.goto('/?offline#draftcfg=' + patch);
+  await page.click('#endlessRunBtn');
+  const over = page.locator('#ovOver.on');
+  for (let i = 0; i < 300 && !(await over.count()); i++) {
+    if (await page.locator('#ovRevive.on').count()) await page.click('#giveUpBtn');
+    if (await page.locator('#ovLevel.on').count()) await page.locator('#opts .opt').first().click();
+    await page.waitForTimeout(200);
+  }
+  await expect(over).toBeVisible();
+  await expect(page.locator('#scoreBox')).toBeHidden();
+  await expect(page.locator('#endlessBox .reach')).toHaveText(/Chapter( reached)? 1$/); // "Chapter reached 1" / "ไปถึง Chapter 1"
+  await expect(page.locator('#endlessBox .sub')).toContainText('9');
+  await expect(page.locator('#endlessBox .tot')).toHaveCount(0); // no big 0
+  await page.screenshot({ path: info.outputPath('endless-over.png') });
+});

@@ -173,7 +173,8 @@ export function afterStage(s: SimState): void {
     // Endless: random available Realms, rising difficulty, no route choice
     // an Endless Run from the title (mode 'endless') scores only beyond the last Chapter, like Endless after Umbra
     if (!s.endlessFrom && chapter > G.chapters) s.endlessFrom = { kills: s.kills, combos: s.combos, escapes: s.escapes };
-    const pool = ROUTE_REALMS.filter((r) => REALMS[r].available);
+    // a title Endless Run never repeats the previous Chapter's Realm (owner, 2026-09-27); Endless after Umbra draws as before
+    const pool = ROUTE_REALMS.filter((r) => REALMS[r].available && !(s.mode === 'endless' && r === s.realm));
     s.realm = pool[s.rng.route.int(pool.length)];
     s.visited.push(s.realm);
     startStage(s, chapter);

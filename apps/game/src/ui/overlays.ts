@@ -523,9 +523,11 @@ function showScore(v: Readonly<SimState>): void {
   countUpBox($('scoreBox'), scoreBreakdown(v));
   const eb = $('endlessBox');
   eb.hidden = !v.endless;
-  if (v.endless) {
+  if (v.endless && !v.endlessFrom) {
+    // a title Endless Run that fell before its Endless Score starts: the Chapter reached is the result, not a big 0 (owner, 2026-09-27)
+    eb.innerHTML = `<span class="reach">${t('score.reached', { n: v.stage })}</span><span class="sub">${t('score.endlessFrom', { n: v.cfg.stage.chapters + 1 })}</span>`;
+  } else if (v.endless) {
     countUpBox(eb, endlessBreakdown(v));
-    if (!v.endlessFrom) eb.insertAdjacentHTML('afterbegin', `<span class="sub">${t('score.endlessFrom', { n: v.cfg.stage.chapters + 1 })}</span>`); // .sub spans both columns: no empty cell
     eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`);
   }
 }
