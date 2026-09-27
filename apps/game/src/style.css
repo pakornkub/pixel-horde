@@ -199,8 +199,6 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench .sk .tx{display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0}
 .bench .pair{display:flex;gap:4px}
 .bench .pair>.sk:first-child{flex:1;min-width:0}
-.bench .sk .sigtag{font-style:normal;font-size:11px;font-weight:700;color:#b0309f}
-.bench .sk .need{font-size:11px;opacity:.75;font-weight:400}
 .bench .sk .lv{font-family:var(--pix);font-weight:400;font-size:9px;background:var(--ink);color:var(--paper);border-radius:3px;padding:3px 4px;flex:none}
 .bench .sk.sig{box-shadow:inset 4px 4px 0 -1px #ff5cf4}
 .bench button.sk.del{min-width:40px;justify-content:center;color:#c2361f;font-weight:700;border-color:#c2361f}

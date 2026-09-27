@@ -475,31 +475,6 @@ let benchSel = -1;
 type SlotGroup = 'atk' | 'awk' | 'pas';
 interface BoardActions { onSwap?: (bench: number, slot: SkillId | PassiveId | null) => void; onDiscard?: (bench: number) => void; denied?: boolean }
 
-/** What a skill still needs, in one short line: its Awakening Link progress, else its Evolution; or ''.
- *  A benched skill (`bench`) counts for neither until it is back in a slot. */
-function skillNeed(v: Readonly<SimState>, id: SkillId, bench?: BenchSkill): string {
-  const P = v.P, max = v.cfg.skills[id].max, lv = bench ? bench.lv : P.skills[id] || 0, evo = bench ? bench.evo : !!P.evo[id];
-  if (!P.awakened && SKILL_LINES[P.ch].includes(id)) {
-    if (lv < max) return t('need.link', { lv, max });
-    const left = v.cfg.awaken.stages - (bench ? 0 : P.linkStages[id] || 0);
-    return left > 0 ? t('need.linkStage', { n: left }) : t('need.linkOk');
-  }
-  const pas = EVO_PASSIVE[id];
-  if (pas && !evo) {
-    if (lv < max) return t('need.evo', { max, p: passiveName(pas) });
-    if (!P.pas[pas]) return t('need.evoPas', { p: passiveName(pas) });
-    return bench ? t('need.evoEquip') : t('need.evoNext');
-  }
-  return id === signatureOf(P.ch) && !P.awakened ? t('need.sigOk') : '';
-}
-
-/** A passive's use: the Skill (equipped first, else on the Bench) it still has to evolve, or ''. */
-function passiveNeed(v: Readonly<SimState>, id: PassiveId): string {
-  const P = v.P, pairs = (k: SkillId, evo: boolean): boolean => EVO_PASSIVE[k] === id && !evo;
-  const s = (Object.keys(P.skills) as SkillId[]).find((k) => pairs(k, !!P.evo[k])) ?? P.bench.find((b) => !b.pas && pairs(b.id, b.evo))?.id;
-  return s ? t('need.pasFor', { s: skillName(s as SkillId) }) : '';
-}
-
 /** Clear screen: swap Bench entries into their slots (the slots a pick can go to blink). */
 export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot: SkillId | PassiveId | null) => void, denied = false, onDiscard?: (bench: number) => void): void {
   skillBoard($('benchBox'), v, { onSwap, onDiscard, denied });
@@ -520,8 +495,8 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   const groupOf = (b: BenchSkill): SlotGroup => (b.pas ? 'pas' : inLineSlot(s, b.id) ? 'awk' : 'atk');
   const pick = sel ? groupOf(sel) : null;
   const nameOf = (b: BenchSkill): string => (b.pas ? passiveName(b.id) : skillName(b.id));
-  const chip = (b: BenchSkill, need = ''): string => (b.pas ? iconHtml(b.id, PASSIVE_ICON[b.id]) : iconHtml(b.id, SKILL_ICON[b.id], b.evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''))
-    + `<span class="tx"><span class="nm">${nameOf(b)}</span>${need ? `<small class="need">${need}</small>` : ''}</span><b class="lv">LV ${b.lv}</b>`;
+  const chip = (b: BenchSkill): string => (b.pas ? iconHtml(b.id, PASSIVE_ICON[b.id]) : iconHtml(b.id, SKILL_ICON[b.id], b.evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''))
+    + `<span class="tx"><span class="nm">${nameOf(b)}</span></span><b class="lv">LV ${b.lv}</b>`;
   const step = !edit ? 'bench.view' : pick ? ({ atk: 'bench.step2', awk: 'bench.step2a', pas: 'bench.step2p' } as const)[pick] : P.bench.length ? 'bench.step1' : 'bench.stepEmpty';
   const stepTxt = pick && !afford ? t('bench.short') : t(step, { name: sel ? nameOf(sel) : '' });
   box.innerHTML = (edit ? `<div class="lbl">${t('bench.title')}</div>` : '') + `<div class="step${pick && !afford ? ' warn' : ''}">${stepTxt}</div>`;
@@ -542,10 +517,9 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
     };
     for (const o of owned) {
       const el = cell('');
-      el.innerHTML = chip(o, o.pas ? passiveNeed(v, o.id) : skillNeed(v, o.id));
+      el.innerHTML = chip(o);
       if (g === 'atk' && o.id === sig) { // always equipped: a lock tag, not a greyed-out cell
         el.classList.add('sig'); el.title = t('bench.locked'); if (el instanceof HTMLButtonElement) el.disabled = true;
-        el.querySelector('.nm')?.insertAdjacentHTML('afterend', `<em class="sigtag">🔒 ${t('bench.sigTag')}</em>`);
       }
       else arm(el, o.id);
       row.appendChild(el);
@@ -575,7 +549,7 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   P.bench.forEach((b, i) => {
     const el = cell(i === benchSel ? ' sel' : ''), pair = document.createElement('div');
     pair.className = 'pair';
-    el.innerHTML = chip(b, b.pas ? passiveNeed(v, b.id) : skillNeed(v, b.id, b));
+    el.innerHTML = chip(b);
     if (edit) el.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; skillBoard(box, v, { ...act, denied: false }); });
     pair.appendChild(el);
     bench.appendChild(pair);
