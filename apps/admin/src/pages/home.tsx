@@ -2,7 +2,7 @@
 import type { AdminApi, Attention } from '../api';
 import { Card, Kpi, Loading, Tag, toast, useData } from '../ui';
 
-const ICON: Record<string, string> = { dropoff: '!', suspicious: '?', error: '⚠', gold: '$', quota: '▲', coop_review: '✓', skill: '↑', decision: '?', pr: '⇡' };
+const ICON: Record<string, string> = { dropoff: '!', suspicious: '?', error: '⚠', gold: '$', quota: '▲', coop_review: '✓', offline_review: '✓', skill: '↑', decision: '?', pr: '⇡' };
 
 function describe(a: Attention): { title: string; detail: string } {
   switch (a.kind) {
@@ -12,6 +12,7 @@ function describe(a: Attention): { title: string; detail: string } {
     case 'gold': return { title: `Gold สูงผิดปกติ: ${a.name}`, detail: `${Number(a.gold).toLocaleString()} Gold` };
     case 'quota': return { title: `ใกล้เต็มโควตาฟรี: ${a.what === 'database' ? 'ฐานข้อมูล' : 'จำนวนผู้เล่น'}`, detail: `${a.used} / ${a.limit}` };
     case 'coop_review': return { title: `co-op รอตรวจ ${a.count} อันดับ`, detail: 'อันดับต้นๆ ของ co-op ต้องตรวจก่อนนับเป็นยืนยัน' };
+    case 'offline_review': return { title: `Run ออฟไลน์รอตรวจ ${a.count} รอบ`, detail: 'เล่นช่วงปิดปรับปรุง ต้องเลือกขึ้นบอร์ดหรือข้ามทีละรอบ' };
     case 'decision': return { title: `ผู้ช่วยรอคุณตัดสินใจ: ${a.title}`, detail: String(a.question ?? '') };
     case 'pr': return { title: `มี PR แก้ไขรอ merge ${a.count} งาน`, detail: String(a.titles ?? '') };
     case 'skill': return { title: `${a.skill} อาจ${a.dir === 'up' ? 'แรงเกิน' : 'อ่อนเกิน'}`, detail: `รอบที่ใช้ไปถึง Ch6+ ${a.reach}% (เฉลี่ย ${a.avg}%)` };
@@ -69,6 +70,7 @@ export function Home({ api, go }: { api: AdminApi; go: (page: string, arg?: stri
                 {a.kind === 'error' && <button onClick={() => act('ปิดมังกรชั่วคราวแล้ว', () => api.setFlag('dragon', false))}>ปิดมังกรชั่วคราว</button>}
                 {(a.kind === 'decision' || a.kind === 'pr') && <button onClick={() => go('work')}>{a.kind === 'decision' ? 'ตอบ' : 'ดูงาน'}</button>}
                 {a.kind === 'coop_review' && <button onClick={() => go('leaderboard', 'coop')}>ตรวจ co-op</button>}
+                {a.kind === 'offline_review' && <button onClick={() => go('leaderboard', 'offline')}>ตรวจ Run ออฟไลน์</button>}
                 {a.kind === 'skill' && <button onClick={() => go('balance', 'skills.' + String(a.skill))}>ปรับสกิล</button>}
               </div>
             </div>
