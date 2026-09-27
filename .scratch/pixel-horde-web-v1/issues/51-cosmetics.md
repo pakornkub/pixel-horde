@@ -8,8 +8,8 @@ Owner decisions (2026-09-27, ticket 56 session), replacing the looks-only idea:
   `has_won(uid)`). Monster HP grows late in a Run and Heart Crack now goes to tier 10, so they add real power.
 - 3 slots × 4 element sets. The slot decides the stat, the same for every set: hat damage +2% per level (additive like
   Might), body max HP +8 per level, cloak crit +1% per level (still under the crit cap).
-- Wearing all three pieces of one set gives a set bonus: damage against that set's monsters, `setBase` 15% +
-  `setPerLv` 2% × the lowest piece level (17–25%). Ember: Burning; Frost: Frozen or chilled; Storm: Shocked;
+- Wearing all three pieces of one set gives a set bonus: damage against that set's monsters, `setBase` 5% +
+  `setPerLv` 4% × the lowest piece level (9–25%; QA option A, owner 2026-09-27: was 15% + 2%, 17–25%). Ember: Burning; Frost: Frozen or chilled; Storm: Shocked;
   Shadow: Kings, Guardians and Umbra.
 - Each piece is bought with Gold (first level) and upgraded to `outfits.max` 5, price `base` 500 × `growth` 1.6^level
   (500 / 800 / 1,280 / 2,048 / 3,277 = 7,905 per piece, about 95k for all 12). Pieces work for every Hero.

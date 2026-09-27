@@ -436,8 +436,8 @@ const shared = obj({
     hatDmg: n(0.02, 0, 0.5, 'Outfit hat: damage + per level'),
     bodyHp: n(8, 0, 100, 'Outfit body: max HP + per level'),
     cloakCrit: n(0.01, 0, 0.2, 'Outfit cloak: crit chance + per level (still capped)'),
-    setBase: n(0.15, 0, 2, 'Full outfit set: damage + against its monsters (Burning / Frozen or chilled / Shocked / bosses)'),
-    setPerLv: n(0.02, 0, 0.5, 'Full outfit set: bonus + per level of its lowest piece'),
+    setBase: n(0.05, 0, 2, 'Full outfit set: damage + against its monsters (Burning / Frozen or chilled / Shocked / bosses)'),
+    setPerLv: n(0.04, 0, 0.5, 'Full outfit set: bonus + per level of its lowest piece'),
   }, 'Outfits (special shop, after the first win)'),
   economy: obj({
     kingSkillPoints: int(1, 0, 10, 'Skill Points per King killed'),
