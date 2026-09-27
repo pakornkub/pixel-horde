@@ -37,6 +37,18 @@ describe('Mora (ticket 57)', () => {
     expect(e.hp).toBeLessThan(e.maxHp);
   });
 
+  it('Skeletons chasing the same monster keep apart', () => {
+    const { s, mob, run } = hero('necromancer');
+    s.P.skills.soulRise = s.cfg.skills.soulRise.max; s.P.evo.soulRise = true;
+    mob(40, 0);
+    run(6);
+    const sk = skels(s);
+    expect(sk.length).toBeGreaterThan(2);
+    let closest = Infinity;
+    for (const a of sk) for (const b of sk) if (a !== b) closest = Math.min(closest, Math.hypot(a.x - b.x, a.y - b.y));
+    expect(closest).toBeGreaterThan(s.cfg.skills.soulRise.space * 0.5);
+  });
+
   it('Bone Legion: a crumbling Skeleton bursts', () => {
     const { s, mob, run } = hero('necromancer');
     s.P.skills.soulRise = s.cfg.skills.soulRise.max; s.P.evo.soulRise = true;

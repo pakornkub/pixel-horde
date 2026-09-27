@@ -723,6 +723,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Swing every (s)': { th: 'Skeleton ฟันทุกกี่วินาที', up: 'ฟันช้าลง ดาเมจรวมลดลง' },
   'Skeletons never chase farther than this from Mora': { th: 'Skeleton ไล่มอนไกลจาก Mora ได้สุดเท่านี้', up: 'Skeleton ไปไกลตัวขึ้น แต่คุ้มกัน Mora น้อยลง' },
   'A kill this close to Mora leaves a grave a Skeleton can rise from': { th: 'มอนตายในระยะนี้จาก Mora ทิ้งหลุมศพให้ Skeleton ลุกขึ้น', up: 'Skeleton เกิดใกล้ฝูงมอนบ่อยขึ้น' },
+  'Skeletons push apart until this far from each other (px)': { th: 'ระยะห่างที่ Skeleton ดันกันออก (พิกเซล)', up: 'Skeleton ยืนกระจายขึ้น ไม่ทับกันจนดูเป็นตัวเดียว' },
   'Hard cap on Skeletons (performance)': { th: 'เพดานจำนวน Skeleton (กันเครื่องกระตุก)', up: 'ยืนได้มากขึ้นถ้าสูตรเลเวลอนุญาต แต่เครื่องทำงานหนักขึ้น' },
   'Skeletons per raise': { th: 'จำนวน Skeleton ต่อการปลุกตอนวิวัฒน์', up: 'กองทัพเต็มเร็วขึ้น' },
   'Extra Skeletons standing': { th: 'Skeleton ยืนได้เพิ่มตอนวิวัฒน์', up: 'กองทัพใหญ่ขึ้น' },

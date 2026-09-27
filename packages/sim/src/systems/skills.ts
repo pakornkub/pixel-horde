@@ -990,6 +990,14 @@ function stepSkeleton(s: SimState, f: Effect, dt: number): void {
   const gx = o ? o.e.x : home.x + cos(f.a0!) * 16, gy = o ? o.e.y : home.y + sin(f.a0!) * 12, dx = gx - f.x, dy = gy - f.y, d = hypot(dx, dy);
   const stop = o ? f.r! * 0.6 + o.e.r : 2;
   if (d > stop) { const m = Math.min(d - stop, spd * dt); f.vx = (dx / d) * spd; f.vy = (dy / d) * spd; f.x += (dx / d) * m; f.y += (dy / d) * m; } else { f.vx = 0; f.vy = 0; }
+  // Skeletons on the same prey push apart so two or three never look like one
+  for (const g of s.effects) {
+    if (g === f || g.type !== 'skel' || g.fired) continue;
+    const ox = f.x - g.x, oy = f.y - g.y, od = hypot(ox, oy);
+    if (od >= c.space) continue;
+    const k = Math.min(c.space - od, spd * dt) * 0.5;
+    if (od > 0.01) { f.x += (ox / od) * k; f.y += (oy / od) * k; } else { f.x += cos(f.a0!) * k; f.y += sin(f.a0!) * k; }
+  }
   f.tick! -= dt;
   if (f.tick! > 0 || !o || d > f.r! + o.e.r + 2) return;
   f.tick = c.hitCd;
