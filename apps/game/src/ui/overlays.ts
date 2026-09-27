@@ -348,7 +348,9 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   const escaped = v.lastEnd === 'escape';
   $('clearTitle').textContent = escaped ? t('clear.escapedTitle') : t('clear.title', { n: v.stage });
   $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
-  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  const sp = v.coop?.split, split: [string, string][] = sp && sp.st === v.stage && sp.total > 0
+    ? [[t('stat.teamGold'), t('coop.split', { total: Math.round(sp.total), n: sp.players, mine: Math.round(sp.mine), got: sp.got })]] : [];
+  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
@@ -558,6 +560,27 @@ export function showOver(v: Readonly<SimState>, runGold: number, newAch: string[
   na.textContent = newAch.length ? t('over.newAch', { list: newAch.map((a) => t(`ach.${a}.name`)).join(', ') }) : '';
   show('ovOver');
   focusSoon('retryBtn');
+}
+
+const REJECT_REASONS = ['TOO_FAST', 'GOLD_CEILING', 'KILL_CEILING', 'STALE_CHECKPOINT'];
+/** Run-end screen: the server did not accept the Run (its reject reason), or null to clear the note. */
+export function setRunRejected(reason: string | null): void {
+  const el = $('runRejected');
+  el.hidden = reason === null;
+  el.textContent = reason === null ? '' : t('over.rejected', { why: t(`over.reject.${REJECT_REASONS.includes(reason) ? reason : 'other'}`) });
+}
+
+let rankNoteT = 0;
+/** An unranked Run: a line on the Run-end screen, plus (announce) a short note as it starts; null clears both. */
+export function setRunUnranked(why: string | null, announce = false): void {
+  const line = why === null ? '' : t('rank.off', { why: t(`rank.why.${why}`) });
+  const over = $('runUnranked'), note = $('rankNote');
+  over.hidden = why === null || !$('runRejected').hidden; // a rejected Run shows only the rejection
+  over.textContent = line;
+  clearTimeout(rankNoteT);
+  note.hidden = !announce || why === null;
+  note.textContent = line;
+  if (!note.hidden) rankNoteT = window.setTimeout(() => { note.hidden = true; }, 7000);
 }
 
 export function showPause(): void {

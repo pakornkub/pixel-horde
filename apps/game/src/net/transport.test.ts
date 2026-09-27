@@ -55,6 +55,56 @@ describe('co-op room transport (in-memory hub)', () => {
     expect(closed(gs[0])).toBe('left'); // the old socket of "a" was replaced
   });
 
+  it('a host whose connection drops mid-Run is waited for; the same host takes the seat back, anyone else cannot', () => {
+    const hub = createMemoryHub();
+    const h = hub.connect({ code: 'PQRST', role: 'host', name: 'H', pid: 'h' });
+    const g = watch(hub.connect({ code: 'PQRST', role: 'guest', name: 'G', pid: 'g' }));
+    hub.flush();
+    h.lock(true); // the Run started
+    hub.dropHost('PQRST');
+    hub.flush();
+    expect(closed(g)).toBeUndefined(); // still in the room
+    expect(hub.rooms.get('PQRST')!.hostAway).toBe(true);
+    const stranger = watch(hub.connect({ code: 'PQRST', role: 'host', name: 'X', pid: 'x' }));
+    hub.flush();
+    expect(closed(stranger)).toBe('taken');
+    const h2 = hub.connect({ code: 'PQRST', role: 'host', name: 'H', pid: 'h' });
+    const hl = watch(h2);
+    hub.flush();
+    expect(hl[0]).toMatchObject({ t: 'open' });
+    const back = (g.filter((e) => e.t === 'peers').pop() as { peers: { role: string; pid: string }[] }).peers;
+    expect(back.find((p) => p.role === 'host')?.pid).toBe('h'); // guests learn the host's new connection
+    h2.send({ k: 'snap' });
+    hub.flush();
+    expect(msgs(g)).toContainEqual({ k: 'snap' });
+    expect(hub.rooms.get('PQRST')!.hostAway).toBe(false);
+  });
+
+  it('the wait ends: the room closes when the host is not back in time, or at once when the host leaves on purpose', () => {
+    const hub = createMemoryHub();
+    const h = hub.connect({ code: 'UVWXY', role: 'host', name: 'H', pid: 'h' });
+    const g = watch(hub.connect({ code: 'UVWXY', role: 'guest', name: 'G', pid: 'g' }));
+    hub.flush();
+    h.lock(true);
+    hub.dropHost('UVWXY');
+    hub.flush();
+    const r = hub.rooms.get('UVWXY')!;
+    r.hostTimeout(r.awaySeq - 1); // an older wait's timer: ignored
+    hub.flush();
+    expect(closed(g)).toBeUndefined();
+    r.hostTimeout(r.awaySeq);
+    hub.flush();
+    expect(closed(g)).toBe('host-left');
+    // leaving on purpose (bye) during a Run closes at once
+    const h2 = hub.connect({ code: 'ZZ234', role: 'host', name: 'H', pid: 'h' });
+    const g2 = watch(hub.connect({ code: 'ZZ234', role: 'guest', name: 'G', pid: 'g' }));
+    hub.flush();
+    h2.lock(true);
+    h2.close();
+    hub.flush();
+    expect(closed(g2)).toBe('host-left');
+  });
+
   it('closes for everyone when the host leaves', () => {
     const hub = createMemoryHub();
     const h = hub.connect({ code: 'HJKMN', role: 'host', name: 'H', pid: 'h' });

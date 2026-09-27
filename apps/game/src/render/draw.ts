@@ -900,6 +900,16 @@ function bar(x: number, y: number, w: number, h: number, val: number, col: strin
   ctx.fillStyle = col; ctx.fillRect(x, y, w * clamp(val, 0, 1), h);
 }
 
+/** Co-op team pot (`coop.goldSplit`): this player's share so far, paid at the Stage end — " (+45)". */
+function potShare(v: Readonly<SimState>): string {
+  const c = v.coop;
+  if (!c || !v.cfg.coop.goldSplit) return '';
+  let total = 0;
+  for (const k in c.pot) total += c.pot[k];
+  const share = Math.floor(total / (1 + c.mates.length));
+  return share > 0 ? ' (+' + share + ')' : '';
+}
+
 export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: number): void {
   // D = one HUD pixel: grows with the screen (screen.UI) so the HUD keeps its share of big screens
   const { HD: D, DPR, UI, SAFE } = screen, VW = screen.VW / UI;
@@ -949,7 +959,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     }
     ctx.textAlign = 'right';
     outlined('KO ' + v.kills, right, top + 16 * D, 10 * D, '#ffffff');
-    outlined(runGoldShown + ' G', right, top + 32 * D, 9 * D, '#ffd23f');
+    outlined(runGoldShown + ' G' + potShare(v), right, top + 32 * D, 9 * D, '#ffd23f');
   } else {
     outlined('LV ' + P.lv, left, top + 18 * D, 11 * D, '#ffffff');
     const hw = Math.min(150, VW * 0.32) * D;
@@ -968,7 +978,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
     ctx.textAlign = 'right';
     outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
-    outlined(runGoldShown + ' G', right, top + 36 * D, 10 * D, '#ffd23f');
+    outlined(runGoldShown + ' G' + potShare(v), right, top + 36 * D, 10 * D, '#ffd23f');
     if (v.sp > 0) outlined(t('hud.sp', { n: v.sp }), right - 90 * D, top + 36 * D, 10 * D, '#c9a8ff');
     hudBottom = top + 62 * D;
     if (v.streak >= 10) { // centred under the Chapter: on the right it ran into the pause button
@@ -1074,8 +1084,10 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     const prog = clamp(v.stageTime / v.stageDur, 0, 1);
     const hm = Math.pow(1.5, v.stage - 1) * (1 + 0.7 * prog) * (1 + 0.08 * (P.lv - 1)) * (0.85 + 0.15 * v.dir.v);
     const lines = [`DPS ${dps}`, `TTK ${ttk.toFixed(1)}s`, `DMG x${P.dmgMul.toFixed(2)}`, `CD -${Math.round(P.cdRed * 100)}%`, `CRIT ${Math.round(P.crit * 100)}% x${P.critMul.toFixed(1)}`,
-      `MOB HP x${hm.toFixed(1)}`, `DIRECTOR x${v.dir.v.toFixed(2)}`, `MOBS ${v.enemies.length}`];
-    const px = 8 * D, lh = 13 * D, bx = left, by2 = top + 84 * D, bw = 150 * D;
+      `MOB HP x${hm.toFixed(1)}`, `DIRECTOR x${v.dir.v.toFixed(2)}`, `MOBS ${v.enemies.length}`, ...MET.net];
+    const px = 8 * D, lh = 13 * D, bx = left, by2 = top + 84 * D;
+    ctx.font = font(px);
+    const bw = Math.max(150 * D, ...lines.map((l) => ctx.measureText(l).width + 12 * D)); // co-op lines are wider
     ctx.fillStyle = 'rgba(30,27,51,.72)'; ctx.fillRect(bx - 6 * D, by2 - 6 * D, bw, lines.length * lh + 10 * D);
     ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = font(px); ctx.fillStyle = '#e9f1ff';
     lines.forEach((l, i) => ctx.fillText(l, bx, by2 + i * lh));

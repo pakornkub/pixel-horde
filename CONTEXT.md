@@ -158,7 +158,7 @@ The player-facing changelog entries (balance / feature / fix / content / system)
 _Avoid_: release notes, news
 
 **Base Difficulty**:
-The Balance Config's own multipliers on its numbers (`shared.difficulty`), the same for every player and every Run. It replaced the six solo Difficulty Presets (removed 2026-09-27; its defaults are the old Relaxed preset). Players who want it harder pick a Heart Crack tier.
+The Balance Config's own multipliers on its numbers (`shared.difficulty`), the same for every player and every Run. It replaced the six solo Difficulty Presets (removed 2026-09-27; its defaults are the full old Relaxed preset, with Gold ×0.2 so a Run pays about what old Balanced did). Players who want it harder pick a Heart Crack tier.
 _Avoid_: difficulty preset, difficulty level, mode (Endless Mode is a mode)
 
 **Heart Crack**:

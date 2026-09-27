@@ -86,6 +86,20 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.pending()).toEqual([]);
   });
 
+  it('reports the server verdict on each submitted Run (rejected Runs pay nothing)', async () => {
+    const f = fakeBackend('online');
+    f.b.submitOfflineRun = async (r) => ({ status: r.gold > 1000 ? 'rejected' : 'offline', reason: r.gold > 1000 ? 'GOLD_CEILING' : null, meta: JSON.parse(JSON.stringify(f.server)) });
+    const ms = createMetaSync(f.b, memStore());
+    const seen: string[] = [];
+    ms.onRunChecked((id, out) => seen.push(`${id}:${out.status}:${out.reason ?? ''}`));
+    ms.bankLocal(5000);
+    ms.recordRun(run('big', 5000), null, false);
+    ms.recordRun(run('ok', 10), null, false);
+    await ms.sync();
+    expect(seen).toEqual(['big:rejected:GOLD_CEILING', 'ok:offline:']);
+    expect(ms.meta.gold).toBe(0); // the shown Gold goes back to the server's
+  });
+
   it('a Run still in progress is not submitted early', async () => {
     const f = fakeBackend('online');
     const ms = createMetaSync(f.b, memStore());

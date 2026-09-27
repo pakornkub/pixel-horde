@@ -21,7 +21,7 @@ import { parseDebug } from './debug';
 import { createTips, type TipId } from './tips';
 import { initLobby, leaveRoom, openLobby, refreshLobbyName } from './ui/lobby';
 import { createTeam } from './coop/team';
-import type { Session } from './coop/session';
+import type { NetStats, Session } from './coop/session';
 import type { CloseReason } from '@pixel-horde/coop';
 import { isMobile } from './platform/device';
 import { keys, readInput, touch } from './platform/input';
@@ -31,7 +31,7 @@ import { refreshUpdateNote, renderUpdateNote } from './ui/update-note';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
   $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
-  setPlayUI, show, showClear, showOver, showPause, applyStaticText,
+  setPlayUI, setRunRejected, setRunUnranked, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
 /* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|awaken|realm:<id> (comma separated) ---------- */
@@ -43,6 +43,9 @@ let queue: Command[] = [];
 let runBanked = 0;
 let walletBanked = 0;
 let ticket: RunTicket | null = null;
+/** Co-op: the Chapter this player joined at and the most players seen in the room. A guest's Run starts on the
+ *  server when they join, so the server's Run checks need both. */
+let coopJoin = 0, coopTeam = 1;
 let clientRunId = '';
 let runWallStart = 0;
 let starting = false;
@@ -76,6 +79,7 @@ function runResult(result: RunResult['result']): RunResult | null {
     endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack, facts: { ...runFacts(v) },
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
+    ...(coop ? { joinChapter: coopJoin || v.stage, team: coopTeam } : {}),
     summary: telemetry.summary(v),
   };
 }
@@ -88,6 +92,30 @@ function syncWallet(): void {
   if (ws > 0) metaSync.spendLocal(ws);
   runBanked = v.runGold; walletBanked = v.walletSpent;
 }
+
+/** Why the Run in progress will not reach the leaderboard (null = ranked). Shown when it starts and on the Run-end screen. */
+type Unranked = 'offline' | 'slow' | 'refused' | 'debug' | 'closed' | 'season' | 'noTicket' | 'server';
+let unranked: Unranked | null = null;
+
+/** The server picks the seed and registers the Run when online; give it a moment, then play unranked with a local seed. */
+async function requestTicket(mode: 'solo' | 'coop'): Promise<RunTicket | null> {
+  if (mode === 'solo' && debug.awaken) { unranked = 'debug'; return null; } // ?debug=awaken (start Awakened) is never ranked
+  if (backend.status() !== 'online') { unranked = 'offline'; return null; }
+  const late = Symbol('late');
+  const r = await Promise.race([backend.startRun(META.ch, mode, META.weapon).catch(() => null), new Promise<typeof late>((res) => setTimeout(() => res(late), 2500))]);
+  if (r === late) { unranked = 'slow'; return null; }
+  unranked = !r ? 'refused' : live.flags().scoreSubmit === false ? 'closed' : null;
+  return r;
+}
+
+metaSync.onRunChecked((id, out) => {
+  if (id !== clientRunId) return;
+  // The Run that just ended was rejected by the server's Run checks: say so on the Run-end screen (it may already be open).
+  // That replaces the unranked line (an offline Run can be rejected too): one note per Run.
+  if (out.status === 'rejected') { setRunUnranked(null); setRunRejected(out.reason ?? 'other'); }
+  // Its ticket was unknown to the server, so it was taken as an offline Run (Gold, no rank).
+  else if (out.status === 'offline' && !unranked) { unranked = 'server'; setRunUnranked(unranked); }
+});
 
 /** Stage clear / Run end: show the Gold in the wallet now; the server credits it on submit. */
 function bank(final?: RunResult['result']): void {
@@ -113,9 +141,7 @@ async function newRun(): Promise<void> {
   clearSave();
   starting = true;
   initAudio();
-  // The server picks the seed when online; give it a moment, then fall back to a local seed.
-  ticket = debug.awaken ? null // ?debug=awaken (start Awakened) is never ranked
-    : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  ticket = await requestTicket('solo');
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined;
@@ -156,10 +182,11 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
   initAudio();
   clearSave();
   const config = s.role === 'guest' ? (await configFor(cfgVersion)) ?? active.cfg : active.cfg; // guests use the host's Balance Config
-  ticket = await Promise.race([backend.startRun(META.ch, 'coop', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  ticket = await requestTicket('coop');
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined; usedHash = undefined;
   teamPhase = '';
+  coopJoin = 0; coopTeam = 1;
   beginRun(createSim({
     seed: s.role === 'host' ? seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
@@ -173,7 +200,23 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
     if (e.t === 'ready') team.setReady(e.id, e.on);
     else if (e.t === 'vote') team.vote(e.id, e.i);
     else if (e.t === 'team') renderTeam(e.ready, e.votes, e.left);
+    else if (e.t === 'netGap') telemetry.event({ k: 'netGap', ms: e.ms, role: s.role, st: sim?.view().stage ?? 0 });
   });
+}
+
+/** Co-op lines of the I meter: how the connection is doing (guest) or what the host sends. */
+function netLines(n: NetStats, role: 'host' | 'guest'): string[] {
+  const kb = (x: number): string => (x / 1024).toFixed(1) + 'KB/s';
+  return role === 'host'
+    ? ['— CO-OP HOST —', `OUT ${kb(n.tx)} IN ${kb(n.rx)}`, `FPS ${n.hostFps}`, `TRIMMED ${n.trims}`]
+    : ['— CO-OP —', `PING ${n.ping}ms`, `SNAP ${n.gapAvg}±${n.jitter}ms MAX ${n.gapMax}`, `IN ${kb(n.rx)} OUT ${kb(n.tx)}`, `HOST FPS ${n.hostFps}`, `TRIMMED ${n.trims}`];
+}
+
+/** Co-op: note the Chapter this player joined at (a guest learns it from the host's first snapshot) and the room size. */
+function coopTrack(v: Readonly<SimState>): void {
+  if (!v.coop) return;
+  if (!coopJoin && (v.coop.role === 'host' || v.coop.last.st > 0)) coopJoin = v.stage;
+  coopTeam = Math.max(coopTeam, 1 + v.coop.mates.length);
 }
 
 /** Co-op: time left to pick a level-up / stop the chest before a pick is made (the room keeps playing). */
@@ -249,6 +292,8 @@ function beginRun(s: Sim): void {
   runWallStart = performance.now();
   telemetry.startRun();
   hide('ovTitle'); hide('ovOver');
+  setRunRejected(null);
+  setRunUnranked(unranked, unranked !== 'season'); // a new Season already has its own banner
   clearVfx();
   queue = [];
   runBanked = s.view().runGold; // Gold up to a checkpoint was already shown in the wallet
@@ -328,6 +373,7 @@ async function continueRun(): Promise<void> {
     if (!base) { showMsg(t('save.noConfig')); return; }
     const config = base;
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
+    unranked = !ticket ? 'noTicket' : seasonNote ? 'season' : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
     const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
       config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
@@ -346,6 +392,7 @@ async function continueRun(): Promise<void> {
 
 function toTitle(): void {
   if (coop) { coop = null; leaveRoom(); }
+  setRunUnranked(null);
   guestMenu = false;
   downShown = false;
   ($('reviveBtn') as HTMLButtonElement).hidden = false;
@@ -439,9 +486,17 @@ function frame(now: number): void {
   last = now;
   rclock += rdt;
   try {
+    // co-op: the host went quiet (guest), or this host's connection dropped and is coming back — the world waits
+    const rejoining = !!sim && !!coop && coop.reconnecting;
+    const waiting = rejoining || (!!sim && !!coop && coop.silent() > sim.view().cfg.coop.hostWait);
+    const hw = $('hostWait');
+    if (hw.hidden === waiting) hw.hidden = !waiting;
+    if (waiting) hw.textContent = rejoining ? t('coop.reconnecting') : t('coop.hostWait', { s: Math.floor(coop!.silent()) });
+    MET.net = MET.on && coop ? netLines(coop.stats(), coop.role) : [];
     if (sim) {
       if (chestTick(rdt)) cmd({ type: 'chestStop' });
-      acc += vfx.slowmo > 0 ? rdt * sim.view().cfg.fx.slowmoScale : rdt; // King-death slow motion (presentation only)
+      if (waiting) acc = 0;
+      else acc += vfx.slowmo > 0 ? rdt * sim.view().cfg.fx.slowmoScale : rdt; // King-death slow motion (presentation only)
       let steps = 0;
       while (acc >= DT && steps < 8) {
         const input = readInput();
@@ -474,9 +529,10 @@ function frame(now: number): void {
         consume(events, sim.view());
       }
       if (coop) {
+        coopTrack(sim.view());
         coopDown(sim.view());
         hostTeam(rdt);
-        if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostLost)) setTimeout(() => coopClosed('host-left'), 0);
+        if (!coop.tick(rdt, sim.view(), sim.view().cfg.coop.hostGone)) setTimeout(() => coopClosed('host-left'), 0);
       }
       syncOverlays();
       const v = sim.view();
@@ -578,6 +634,9 @@ $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle')
 $('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
 initCollection();
 initTitle();
+// co-op host reconnecting: the network is back / the page is visible again → try at once
+addEventListener('online', () => coop?.retryNow());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') coop?.retryNow(); });
 initLobby({ name: () => backend.account()?.nickname ?? 'Hero', pid: playerPid, onStart: (s, seed, cfg) => void startCoop(s, seed, cfg), onClosed: coopClosed });
 // invite link: join once the account (and its nickname) is ready, so the room shows the right name
 let inviteCode: string | null = new URLSearchParams(location.search).get('join');

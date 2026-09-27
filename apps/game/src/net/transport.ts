@@ -1,6 +1,6 @@
 // Co-op transport (ticket 41): one interface, two adapters — a WebSocket to the room Durable Object
 // and an in-memory hub (tests, and a local "second tab" dev mode). Rules: @pixel-horde/coop.
-import { RoomCore, type CloseReason, type PeerInfo, type Role, type ServerMsg } from '@pixel-horde/coop';
+import { HOST_GRACE_MS, RoomCore, type CloseReason, type PeerInfo, type Role, type ServerMsg } from '@pixel-horde/coop';
 
 export type TransportEvent =
   | { t: 'open'; id: string; host: string; peers: PeerInfo[] }
@@ -16,6 +16,8 @@ export interface Transport {
   /** Host: stop (or allow) new players joining. */
   lock(on: boolean): void;
   onEvent(fn: (e: TransportEvent) => void): () => void;
+  /** Characters received / sent so far (the co-op net meter). */
+  stats(): { rx: number; tx: number };
   close(): void;
 }
 
@@ -47,22 +49,34 @@ export function wsConnect(base: string): Connect {
     let opened = false;
     try { ws = new WebSocket(url); } catch { queueMicrotask(() => ev.emit({ t: 'closed', reason: 'network' })); }
     const out: string[] = [];
-    const raw = (s: string): void => { if (ws && ws.readyState === 1) ws.send(s); else if (ws && ws.readyState === 0) out.push(s); };
+    let rx = 0, tx = 0;
+    const raw = (s: string): void => { tx += s.length; if (ws && ws.readyState === 1) ws.send(s); else if (ws && ws.readyState === 0) out.push(s); };
+    // closing the tab or leaving the page is leaving on purpose: say `bye` so the room closes at once instead of
+    // waiting HOST_GRACE_MS. A page kept in the back/forward cache (persisted) or a screen turning off is not.
+    const onHide = (e: PageTransitionEvent): void => { if (!e.persisted && ws && ws.readyState === 1) ws.send(JSON.stringify({ ctl: 'bye' })); };
     if (ws) {
       ws.onopen = () => { for (const s of out.splice(0)) ws!.send(s); };
       ws.onmessage = (e) => {
-        try { const m = JSON.parse(String(e.data)) as ServerMsg; if (m.t === 'welcome') opened = true; ev.emit(toEvent(m)); } catch { /* ignore */ }
+        const str = String(e.data);
+        rx += str.length;
+        try { const m = JSON.parse(str) as ServerMsg; if (m.t === 'welcome') opened = true; ev.emit(toEvent(m)); } catch { /* ignore */ }
       };
       // never welcomed → the server refused (quota, 503) or could not be reached
-      ws.onclose = () => ev.emit({ t: 'closed', reason: opened ? 'network' : 'full' });
+      ws.onclose = () => { if (typeof removeEventListener === 'function') removeEventListener('pagehide', onHide); ev.emit({ t: 'closed', reason: opened ? 'network' : 'full' }); };
     }
+    if (ws && typeof addEventListener === 'function') addEventListener('pagehide', onHide);
     return {
       code: o.code,
       role: o.role,
       send: (data, to) => raw(JSON.stringify(to ? { d: data, to } : { d: data })),
       lock: (on) => raw(JSON.stringify({ ctl: on ? 'lock' : 'unlock' })),
       onEvent: ev.on,
-      close: () => { ev.emit({ t: 'closed', reason: 'left' }); try { ws?.close(1000); } catch { /* ignore */ } },
+      stats: () => ({ rx, tx }),
+      // `bye` first: leaving on purpose closes the room at once (a dropped host is waited for)
+      close: () => {
+        if (typeof removeEventListener === 'function') removeEventListener('pagehide', onHide);
+        raw(JSON.stringify({ ctl: 'bye' })); ev.emit({ t: 'closed', reason: 'left' }); try { ws?.close(1000); } catch { /* ignore */ }
+      },
     };
   };
 }
@@ -76,6 +90,7 @@ export function createMemoryHub(auto = false) {
   const rooms = new Map<string, RoomCore>();
   const inbox = new Map<string, ReturnType<typeof emitter>>();
   const queue: [string, ServerMsg | null][] = []; // null = the connection was dropped by the room
+  const rxOf = new Map<string, number>(), txOf = new Map<string, number>();
   let seq = 0, scheduled = false;
   const schedule = (): void => { if (auto && !scheduled) { scheduled = true; queueMicrotask(() => { scheduled = false; flush(); }); } };
   function flush(): number {
@@ -84,7 +99,7 @@ export function createMemoryHub(auto = false) {
       const [id, m] = queue.shift()!;
       const ev = inbox.get(id);
       if (!ev) continue;
-      if (m) ev.emit(toEvent(m)); else { inbox.delete(id); ev.emit({ t: 'closed', reason: 'left' }); }
+      if (m) { rxOf.set(id, (rxOf.get(id) ?? 0) + JSON.stringify(m).length); ev.emit(toEvent(m)); } else { inbox.delete(id); ev.emit({ t: 'closed', reason: 'left' }); }
       n++;
     }
     return n;
@@ -104,11 +119,23 @@ export function createMemoryHub(auto = false) {
     return {
       code: o.code,
       role: o.role,
-      send: (data, to) => { r.message(id, JSON.stringify(to ? { d: data, to } : { d: data })); },
+      send: (data, to) => { const str = JSON.stringify(to ? { d: data, to } : { d: data }); txOf.set(id, (txOf.get(id) ?? 0) + str.length); r.message(id, str); },
       lock: (on) => r.message(id, JSON.stringify({ ctl: on ? 'lock' : 'unlock' })),
       onEvent: ev.on,
-      close: () => { ev.emit({ t: 'closed', reason: 'left' }); inbox.delete(id); r.leave(id); },
+      stats: () => ({ rx: rxOf.get(id) ?? 0, tx: txOf.get(id) ?? 0 }),
+      close: () => { r.message(id, JSON.stringify({ ctl: 'bye' })); ev.emit({ t: 'closed', reason: 'left' }); inbox.delete(id); r.leave(id); afterLeave(r); },
     };
   };
-  return { connect, flush, rooms };
+  const afterLeave = (r: RoomCore): void => { if (auto && r.hostAway) { const seq = r.awaySeq; setTimeout(() => r.hostTimeout(seq), HOST_GRACE_MS); } };
+  /** Tests: the host's connection drops (no `bye`), like a phone screen turning off. */
+  function dropHost(code: string): void {
+    const r = rooms.get(code), id = r?.hostConn;
+    if (!r || !id) return;
+    const ev = inbox.get(id);
+    inbox.delete(id);
+    r.leave(id);
+    afterLeave(r);
+    ev?.emit({ t: 'closed', reason: 'network' });
+  }
+  return { connect, flush, rooms, dropHost };
 }

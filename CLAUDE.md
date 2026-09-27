@@ -154,9 +154,9 @@ changing built-in defaults (version 0 must equal the migration seed). Passes loa
 and patch notes. Live history: v4 = pass 2026-09, v5 = 2026-09b, v6 = 2026-09c (Director). Base difficulty (ticket 48,
 `packages/config/src/difficulty.ts`): the Balance Config group `shared.difficulty` multiplies the numbers written in the
 config (monster/boss HP and damage, spawns, EXP, boss warnings, King pace, player HP, hearts, Ultimate charge, Director
-max); `resolveConfig` applies it, so every number the sim or the website reads already includes it. Its defaults are the
-old "Relaxed" preset with Gold ×1 (owner decision 2026-09-27: the six solo presets were removed, every Run is ranked,
-harder play comes from Heart Crack). Tests of one mechanic's exact numbers use `asWritten()` from `tests/bot.ts`.
+max, in-Run Gold); `resolveConfig` applies it, so every number the sim or the website reads already includes it. Its defaults
+are the full old "Relaxed" preset with Gold ×0.2, so a fresh account earns about what old Balanced paid per Run (owner
+decisions 2026-09-27: the six solo presets were removed, every Run is ranked, harder play comes from Heart Crack; option C). Tests of one mechanic's exact numbers use `asWritten()` from `tests/bot.ts`.
 Changelog (patch notes, `packages/config/src/changelog.ts`, table `changelog`): every config publish writes a `balance`
 entry (player-facing lines from the pass's `changelog`, else auto-generated from the diff); every code release that players
 would notice gets an entry in Admin → อัปเดตเกม (kind feature/fix/content/system, lines per category, Thai + English).

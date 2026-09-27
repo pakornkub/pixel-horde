@@ -50,6 +50,7 @@ export type Command =
   | { type: 'setEvents'; events: EventSwitches } // feature flags for events: apply at the next Stage start
   // co-op (ticket 41/42)
   | { type: 'mates'; mates: MateWire[] } // host: latest guest presence
+  | { type: 'coopId'; id: string } // co-op host: its connection id changed (it dropped and got back into the room)
   | { type: 'remoteHits'; hits: number[]; from?: string; q?: number } // host: guest damage [enemyId, dmg, …] (dmg < 0 = Ultimate hit, capped on bosses); q = that guest's batch number, acknowledged in the snapshot
   | { type: 'snap'; snap: HostSnap }; // guest: the host's world
 
@@ -113,8 +114,8 @@ export interface MateWire {
 }
 /** Another player in this Run (host: the guests; guest: everyone else, host included). */
 export interface Mate extends MateWire {
-  /** Smoothed render position. */
-  rx: number; ry: number;
+  /** Smoothed render position; speed between the last two positions and the clock when the last one came. */
+  rx: number; ry: number; vx?: number; vy?: number; at?: number;
 }
 
 /** Host → guests ~15 Hz. Enemies are packed 11 characters each (see systems/coop.ts). */
@@ -125,12 +126,17 @@ export interface HostSnap {
   eh?: string;
   /** Last guest damage batch applied, per guest id (guests stop predicting that damage). */
   ak?: Record<string, number>;
+  /** Host tick (60/s) when the snapshot was made; how many times it was trimmed to fit the relay limit. */
+  ck?: number; trim?: number;
   /** Bosses: [role k|k2|d|r, enemy id, HP %]. */
   bs: [string, number, number][];
   /** Team counters: EXP and Gold picked up by anyone, kills, Kings killed, Guardians tamed (+ last kind), Rivals beaten. */
   xp: number; kc: number; bk: number; gd: number; gk: GuardianKind; rk: number;
   /** Shared drops: Gold and chests picked up by anyone, heart healing (fraction of max HP) per player id. */
   tg?: number; tc?: number; hl?: Record<string, number>;
+  /** `coop.goldSplit`: Gold each player picked up this Stage (the team pot), dropped chests taken per guest id,
+   *  and the last Stage-end split [split number, Stage, pot total, players]. */
+  gp?: Record<string, number>; cp?: Record<string, number>; gs?: [number, number, number, number];
   /** Shared drops: Shield pickups granted per player id (the picker and allies close by). */
   sg?: Record<string, number>;
   /** Shared drops on the ground, packed 7 characters each (kind, x, y) relative to ox/oy. */
@@ -165,6 +171,12 @@ export interface CoopState {
   revivedStage: string[];
   /** Last damage batch applied per guest id (sent back as `ak`). */
   acks: Record<string, number>;
+  /** `coop.goldSplit`: Gold (before Greed) each player picked up this Stage, and dropped chests taken per guest id. */
+  pot: Record<string, number>; chestsTo: Record<string, number>;
+  /** Host: this Stage's pot was split (once per Stage). */
+  splitDone: boolean;
+  /** The last Stage-end split (both roles; the clear screen shows it). `got` = this player's Gold after Greed. */
+  split: CoopSplit | null;
   // guest
   hostPhase: HostPhase;
   /** Damage waiting to be sent to the host, per enemy id (Ultimate hits apart: the host caps them on bosses). */
@@ -172,10 +184,13 @@ export interface CoopState {
   /** Damage batches sent but not yet acknowledged by the host (`seq` = the last batch number). */
   pend: { q: number; d: Record<number, number> }[];
   seq: number;
-  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number; sg: number };
+  last: { xp: number; kc: number; bk: number; gd: number; rk: number; rv: number; es: number; st: number; realm: RealmId | null; ph: HostPhase; tg: number; tc: number; hl: number; sg: number; gp: number; cp: number; gs: number };
   /** The host's drops on the ground (drawn only; the host decides pickups). */
   drops: Gem[];
 }
+
+/** A Stage-end Gold split (`coop.goldSplit`): `n` counts splits this Run. */
+export interface CoopSplit { n: number; st: number; total: number; players: number; mine: number; got: number }
 
 export type GuardianKind = 'inferno' | 'frost' | 'storm';
 export type CompanionKind = GuardianKind | 'tri';
@@ -245,6 +260,9 @@ export interface Enemy {
   tx?: number; ty?: number;
   /** Guest mirror: `hp` is the host's HP minus this guest's unconfirmed damage (kills are predicted); unset = HP unknown or a boss %. */
   predHp?: boolean;
+  /** Guest mirror: the last snapshot position, host tick and the speed between the last two (monsters keep moving
+   *  when a snapshot is late instead of stopping), seconds since it arrived. */
+  mir?: { x: number; y: number; ck: number; vx: number; vy: number; age: number };
   type: EnemyId;
   x: number; y: number;
   hp: number; maxHp: number;
@@ -398,6 +416,8 @@ export interface Gem {
   mag: boolean;
   sp?: number;
   got?: boolean;
+  /** A King's coin (co-op: every player already gets the King's Gold, so it never goes to the team). */
+  king?: boolean;
 }
 
 export type LevelOption =

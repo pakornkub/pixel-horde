@@ -226,6 +226,11 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .coll .crow.locked{opacity:.45}
 .coll .crow img,.coll .crow .ph{width:32px;height:32px;image-rendering:pixelated;display:grid;place-items:center;font-weight:700}
 
+/* co-op guest: the host went quiet */
+#hostWait{position:fixed;left:50%;transform:translateX(-50%);top:calc(40% + env(safe-area-inset-top,0px));z-index:4;max-width:calc(100% - 32px);
+  background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:4px;padding:10px 14px;font-family:var(--th);font-weight:700;font-size:15px;text-align:center}
+#hostWait[hidden]{display:none}
+html[lang="en"] #hostWait{font-family:var(--pix);font-size:10px;line-height:1.7}
 /* low-FPS suggestion (ticket 39) */
 #fpsTip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:4;
   display:flex;gap:8px;align-items:center;max-width:calc(100% - 32px);background:var(--paper);color:var(--ink);border:3px solid var(--ink);
@@ -298,6 +303,11 @@ html[lang="en"] .tagline{font-size:10px}
 #tipBar[hidden]{display:none}
 /* over a menu the box ends above the hint, so the hint never covers the menu's buttons */
 body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+/* an unranked Run: a short note at the top as it starts (never blocks input) */
+#rankNote{position:fixed;left:50%;transform:translateX(-50%);top:calc(128px + env(safe-area-inset-top,0px));z-index:7;pointer-events:none;
+  max-width:min(520px,calc(100% - 32px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--hp);border-radius:4px;
+  padding:6px 12px;font-family:var(--th);font-weight:700;font-size:14px;line-height:1.45;text-align:center;animation:tipIn .25s ease-out}
+#rankNote[hidden]{display:none}
 @keyframes tipIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion: reduce){#tipBar{animation:none}}
 

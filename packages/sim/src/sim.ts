@@ -16,7 +16,7 @@ import { isWeapon } from './data/weapons';
 import { usableWeapons } from './systems/combat';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
-import { applyRemoteHits, applySnap, attacksPaused, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates } from './systems/coop';
+import { applyRemoteHits, applySnap, attacksPaused, renameSelf, chooseStep, choosing, coopGems, guestEnemies, hostStep, initCoop, setMates, smoothMates, splitGold } from './systems/coop';
 
 
 export interface Sim {
@@ -133,6 +133,7 @@ export function createSim(opts: SimOptions): Sim {
     if (s.coop?.role === 'guest' && (c.type === 'next' || c.type === 'route' || c.type === 'endless' || c.type === 'pause' || c.type === 'resume')) return;
     switch (c.type) {
       case 'mates': setMates(s, c.mates); break;
+      case 'coopId': renameSelf(s, c.id); break;
       case 'remoteHits': applyRemoteHits(s, c.hits, c.from, c.q); break;
       case 'snap': applySnap(s, c.snap); break;
       case 'pick': choose(s, c.index); break;
@@ -324,6 +325,7 @@ export function createSim(opts: SimOptions): Sim {
       // let the end-of-Stage vacuum finish (a King's chest may still be flying in), then open every
       // reward still waiting — chests, level-ups, the Blood Moon chest — before the Stage-end screen
       if (s.clearT <= 0 && (s.gems.length === 0 || s.clearT < -s.cfg.stage.clearDelay * 2)) {
+        splitGold(s); // co-op: the team's Gold, split once the vacuum is done (coop.goldSplit)
         if (stageEndRewards(s, 'clearing')) return;
         if (s.victory && !s.endless && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) {
           // the main Score is final now; the player may continue in Endless

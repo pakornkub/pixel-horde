@@ -2,7 +2,7 @@
 // browser runs the simulation. Rules live in @pixel-horde/room (shared with the in-memory hub).
 //   GET /ws/<CODE>?role=host|guest&name=..&pid=..  → WebSocket
 //   GET /health                                    → "ok"
-import { RoomCore, isCode, normalizeCode, parseJoin, type ServerMsg } from '@pixel-horde/coop';
+import { HOST_GRACE_MS, RoomCore, isCode, normalizeCode, parseJoin, type ServerMsg } from '@pixel-horde/coop';
 
 interface Env { ROOM: DurableObjectNamespace }
 
@@ -38,7 +38,13 @@ export class Room implements DurableObject {
     const id = 'c' + (++this.seq).toString(36);
     this.sockets.set(id, server);
     server.addEventListener('message', (e) => this.core.message(id, typeof e.data === 'string' ? e.data : ''));
-    const gone = (): void => { if (this.sockets.delete(id)) this.core.leave(id); };
+    const gone = (): void => {
+      if (!this.sockets.delete(id)) return;
+      const core = this.core;
+      core.leave(id);
+      // the host's connection dropped mid-Run: the room waits for it (open guest sockets keep this object alive)
+      if (core.hostAway) { const seq = core.awaySeq; setTimeout(() => core.hostTimeout(seq), HOST_GRACE_MS); }
+    };
     server.addEventListener('close', gone);
     server.addEventListener('error', gone);
     if (this.core.isClosed) this.core = this.makeCore(); // a closed room's code can be used again

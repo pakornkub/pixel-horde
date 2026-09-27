@@ -2,7 +2,7 @@
 // snapshots the way the client does (JSON round-trips, 15 Hz snapshots, 10 Hz guest messages).
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { createSim, decHp, encHp, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
+import { createSim, decHp, encHp, fitSnap, hostSnapshot, packEnemies, selfWire, takeHits, unpackEnemies, type Command, type HostSnap, type SimState } from '@pixel-horde/sim';
 import { botOptions } from './bot';
 
 const quiet = { bloodMoon: false, dragon: false, rival: false };
@@ -40,6 +40,39 @@ function room(nGuests: number, extra: Parameters<typeof botOptions>[1] = {}) {
 }
 
 describe('co-op host / guest', () => {
+  it('a snapshot too big for the relay is trimmed (hazards, drops, then monsters) and stays consistent; bosses stay', () => {
+    const sim = createSim(botOptions(3, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
+    const s = sim.view() as SimState;
+    for (let i = 0; i < 300; i++) s.enemies.push({ ...s.enemies[0] ?? {}, id: i + 10, type: 'slime', x: s.P.x + i, y: s.P.y, dead: false, hp: 50, maxHp: 50, boss: i === 299 } as never);
+    for (let i = 0; i < 400; i++) s.gems.push({ kind: 'xp', x: s.P.x + i, y: s.P.y + 3, v: 1, mag: false });
+    for (let i = 0; i < 60; i++) s.hz.push({ id: i, kind: 'ring', x: s.P.x + i * 3.3333, y: s.P.y - i * 1.777, r: 40.123, t: 0.5, dur: 1.25, dmg: 12.5, note: 'x'.repeat(120) } as never);
+    const full = hostSnapshot(s);
+    expect(JSON.stringify(full).length).toBeGreaterThan(9000);
+    const fit = fitSnap(full, 6000);
+    expect(JSON.stringify(fit).length).toBeLessThanOrEqual(6000);
+    expect(fit.trim).toBeGreaterThan(0);
+    expect(fit.eh!.length).toBe((fit.e.length / 11) * 4); // HP still lines up with the monsters
+    expect(unpackEnemies(fit.e, fit.ox, fit.oy)[0].id).toBe(309); // the boss is packed first and kept
+    expect(fitSnap(hostSnapshot(sim.view() as SimState), 1e6).trim).toBeUndefined(); // small enough: untouched
+  });
+
+  it('guests keep monsters moving at their last speed for a moment when a snapshot is late', () => {
+    const r = room(1, { debug: { god: true } });
+    r.step(3 * 60);
+    const h = r.hs(), g = r.gs();
+    const he = h.enemies.find((e) => !e.boss)!;
+    const snapAt = (x: number, ck: number): HostSnap => { he.x = x; he.y = h.P.y + 80; const sn = rt(hostSnapshot(h)); sn.ck = ck; return sn; };
+    r.guests[0].step({ mx: 0, my: 0 }, [{ type: 'snap', snap: snapAt(h.P.x + 60, 1000) }]);
+    r.guests[0].step({ mx: 0, my: 0 }, [{ type: 'snap', snap: snapAt(h.P.x + 66, 1006) }]); // 6 px in 0.1 s = 60 px/s
+    const ge = g.enemies.find((e) => e.id === he.id)!;
+    expect(ge.mir!.vx).toBeCloseTo(60, 0);
+    const tx0 = ge.tx!;
+    for (let i = 0; i < 12; i++) r.guests[0].step({ mx: 0, my: 0 }, []); // 0.2 s, no snapshot
+    expect(ge.tx! - tx0).toBeGreaterThan(9); // kept going (about 12 px)
+    for (let i = 0; i < 60; i++) r.guests[0].step({ mx: 0, my: 0 }, []);
+    expect(ge.tx! - tx0).toBeLessThan(17); // but only for LEAD (0.25 s)
+  });
+
   it('packs monsters in 11 characters each and snapshots stay under 6 KB', () => {
     const sim = createSim(botOptions(3, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
     const s = sim.view() as SimState;
@@ -296,6 +329,39 @@ describe('co-op host / guest', () => {
     expect(r.gs().phase).toBe('over');
   });
 
+  it('coop.goldSplit: Gold goes to a team pot split evenly at the Stage end; a dropped chest is the picker\'s alone', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6 }, coop: { goldSplit: 1 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    r.step(30);
+    const h = r.hs(), g = r.gs();
+    g.P.x = h.P.x + 300; g.P.y = h.P.y; // far apart
+    r.step(12);
+    const hg0 = h.runGold, gg0 = g.runGold, hq0 = h.chestQueue + h.coop!.teamChests;
+    h.gems.push({ kind: 'coin', x: g.P.x + 2, y: g.P.y, v: 30, mag: false }, { kind: 'coin', x: h.P.x + 2, y: h.P.y, v: 10, mag: false },
+      { kind: 'chest', x: g.P.x - 2, y: g.P.y, v: 0, mag: false });
+    r.step(20);
+    // picked up: counted per player, nobody's Gold moves yet; the chest went to the guest only
+    expect(r.hs().coop!.pot).toMatchObject({ G0: 30, H: 10 });
+    expect(r.gs().coop!.pot).toMatchObject({ G0: 30, H: 10 }); // the guest sees the pot too (HUD share)
+    expect(r.hs().chestQueue + r.hs().coop!.teamChests).toBe(hq0);
+    expect(r.gs().runGold - gg0).toBe(cfg.loot.chestGold); // its chest's Gold only
+    expect(r.hs().runGold).toBe(hg0);
+    // the Stage ends (King killed): 40 G ÷ 2 each, no Greed in this test
+    for (let i = 0; i < 60 * 60 && r.hs().phase !== 'clear'; i++) {
+      const hh = r.hs();
+      r.host.step({ mx: 0, my: 0 }, hh.boss ? [{ type: 'remoteHits', hits: [hh.boss.id, 1e9] }] : []);
+      r.step(1);
+    }
+    r.step(8);
+    const hs = r.hs().coop!.split!, gsp = r.gs().coop!.split!;
+    expect(hs).toMatchObject({ st: 1, total: 40, players: 2, mine: 10, got: 20 });
+    expect(gsp).toMatchObject({ st: 1, total: 40, players: 2, mine: 30, got: 20 });
+    // King Gold still reaches both in full (guests through the King kill, never also through the team)
+    const kingG = cfg.stage.kingGold;
+    expect(r.hs().runGold - hg0).toBeGreaterThanOrEqual(20 + kingG);
+    expect(r.gs().runGold - gg0).toBe(cfg.loot.chestGold + 20 + kingG);
+  });
+
   it('guests follow the host into the next Stage', () => {
     const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6 } } }));
     const r = room(1, { debug: { god: true }, config: cfg });
@@ -333,6 +399,29 @@ describe('co-op host / guest', () => {
     expect(r.gs().escapes).toBe(1);
     r.step(20); // later snapshots do not count it again
     expect(r.gs().escapes).toBe(1);
+  });
+
+  it('a guest who joins mid-Run is not paid what the team earned before (EXP catches up)', () => {
+    const cfg = resolveConfig(parseBalanceConfig({ shared: { stage: { durBase: 6 } } }));
+    const r = room(1, { debug: { god: true }, config: cfg });
+    for (let i = 0; i < 60 * 60 && r.hs().phase !== 'clear'; i++) {
+      const hh = r.hs();
+      r.host.step({ mx: 0, my: 0 }, hh.boss ? [{ type: 'remoteHits', hits: [hh.boss.id, 1e9] }] : []);
+      r.step(1);
+    }
+    const h = r.hs();
+    h.coop!.teamGold += 500; h.coop!.teamChests += 2; // Gold and chests the team already picked up
+    expect(h.kills).toBeGreaterThan(0);
+    expect(h.coop!.kingKills).toBeGreaterThan(0);
+    const late = createSim(botOptions(300, { events: quiet, coop: { role: 'guest', self: 'L' }, debug: { god: true }, config: cfg }));
+    late.step({ mx: 0, my: 0 }, [{ type: 'snap', snap: rt(hostSnapshot(h)) }]);
+    const s = late.view() as SimState;
+    expect(s.kills).toBe(0);
+    expect(s.runGold).toBe(0);
+    expect(s.kingsKilled).toEqual([]);
+    expect(s.sp).toBe(0);
+    expect(s.chestQueue).toBe(0);
+    expect(s.P.xp + s.pendingLv).toBeGreaterThan(0); // team EXP so far: catching up
   });
 
   it('runs 4 minutes with three guests without errors', () => {
