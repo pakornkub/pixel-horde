@@ -303,6 +303,11 @@ html[lang="en"] .tagline{font-size:10px}
 #tipBar[hidden]{display:none}
 /* over a menu the box ends above the hint, so the hint never covers the menu's buttons */
 body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+/* an unranked Run: a short note at the top as it starts (never blocks input) */
+#rankNote{position:fixed;left:50%;transform:translateX(-50%);top:calc(128px + env(safe-area-inset-top,0px));z-index:7;pointer-events:none;
+  max-width:min(520px,calc(100% - 32px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--hp);border-radius:4px;
+  padding:6px 12px;font-family:var(--th);font-weight:700;font-size:14px;line-height:1.45;text-align:center;animation:tipIn .25s ease-out}
+#rankNote[hidden]{display:none}
 @keyframes tipIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion: reduce){#tipBar{animation:none}}
 
