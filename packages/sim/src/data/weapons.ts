@@ -1,6 +1,8 @@
 // Weapons (ticket 27): one per Realm plus the default Judgement. A Weapon changes only the
 // Ultimate's form (and the Status it leaves) — never the player's stats.
 import type { RealmId } from '../content/lumora/realms';
+import type { ResolvedConfig } from '@pixel-horde/config';
+import { ipow } from '../core/fmath';
 
 export const WEAPON_IDS = ['judgement', 'thornwhip', 'sunblade', 'boneScythe', 'glacierLance', 'magmaMaul', 'plagueCenser', 'stormBow', 'coralTrident', 'gearCannon', 'lichTome'] as const;
 export type WeaponId = (typeof WEAPON_IDS)[number];
@@ -34,3 +36,18 @@ export const isWeapon = (k: unknown): k is WeaponId => typeof k === 'string' && 
 /** Stored in meta_progress.weapons as "<world>:<id>" so each World keeps its own collection. */
 export const weaponKey = (id: WeaponId, world = 'lumora'): string => `${world}:${id}`;
 export const weaponOfRealm = (r: RealmId): Weapon | null => Object.values(WEAPONS).find((w) => w.realm === r && w.available) ?? null;
+
+/* ---------- Weapon forge (ticket 56): Gold levels that strengthen a Weapon's own effect ---------- */
+/** Forge levels live in meta_progress.shop under this key, so account merges keep the higher level. */
+export const forgeKey = (id: WeaponId, world = 'lumora'): string => `forge:${weaponKey(id, world)}`;
+/** Price of the next forge level. */
+export function forgeCost(cfg: ResolvedConfig, level: number): number {
+  return Math.round(cfg.forge.base * ipow(cfg.forge.growth, level));
+}
+/** A Weapon's forge level, clamped to the config's max. */
+export const forgeLevel = (cfg: ResolvedConfig, forge: Partial<Record<WeaponId, number>> | undefined, id: WeaponId): number =>
+  Math.max(0, Math.min(cfg.forge.max, Math.floor(forge?.[id] || 0)));
+/** Multiplier on a forged Weapon's own effect (Judgement: stun seconds instead, see `forgeStun`). */
+export const forgeMul = (cfg: ResolvedConfig, id: WeaponId, level: number): number => (id === 'judgement' ? 1 : 1 + cfg.forge[id] * level);
+/** Judgement: seconds a surviving normal monster is stunned. */
+export const forgeStun = (cfg: ResolvedConfig, level: number): number => cfg.forge.judgement * level;
