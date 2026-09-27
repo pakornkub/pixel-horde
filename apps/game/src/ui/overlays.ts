@@ -121,6 +121,8 @@ function renderCracks(): void {
 
 /* ---------- shop ---------- */
 let shopFrom = 'ovTitle';
+/** Shop message for a refused purchase. */
+const shopBuyError = (err: { code: string } | null): string => (!err ? '' : err.code === 'NOT_ENOUGH_GOLD' ? t('special.noGold') : t('special.err'));
 function renderShop(): void {
   $('shopGold').textContent = 'GOLD ' + META.gold;
   const list = $('shopList');
@@ -137,6 +139,9 @@ function renderShop(): void {
     bt.addEventListener('click', async () => {
       bt.disabled = true;
       const err = await metaSync.buy(id);
+      const msgEl = $('shopMsg');
+      msgEl.textContent = shopBuyError(err);
+      msgEl.hidden = !err;
       if (!err) sfx('lv');
       renderShop();
     });
@@ -147,6 +152,7 @@ function renderShop(): void {
 export function openShop(from: string): void {
   shopFrom = from;
   hide(from);
+  $('shopMsg').hidden = true;
   renderShop();
   show('ovShop');
   focusSoon('shopBack');

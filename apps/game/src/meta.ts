@@ -170,7 +170,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (lv >= active.cfg.shop[id].max) return new BackendError('MAXED');
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.buyUpgrade(id)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.buyUpgrade(id)); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.up[id] = lv + 1;
@@ -184,7 +184,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     const cost = active.cfg.heroes[k].cost;
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.unlockHero(k)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.unlockHero(k)); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.owned.push(k);
@@ -207,7 +207,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (lv >= active.cfg.forge.max) return new BackendError('MAXED');
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.forgeWeapon(w)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.forgeWeapon(w)); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.forge[w] = lv + 1;
