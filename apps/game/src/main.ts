@@ -111,7 +111,8 @@ async function requestTicket(mode: 'solo' | 'coop'): Promise<RunTicket | null> {
 metaSync.onRunChecked((id, out) => {
   if (id !== clientRunId) return;
   // The Run that just ended was rejected by the server's Run checks: say so on the Run-end screen (it may already be open).
-  if (out.status === 'rejected') setRunRejected(out.reason ?? 'other');
+  // That replaces the unranked line (an offline Run can be rejected too): one note per Run.
+  if (out.status === 'rejected') { setRunUnranked(null); setRunRejected(out.reason ?? 'other'); }
   // Its ticket was unknown to the server, so it was taken as an offline Run (Gold, no rank).
   else if (out.status === 'offline' && !unranked) { unranked = 'server'; setRunUnranked(unranked); }
 });

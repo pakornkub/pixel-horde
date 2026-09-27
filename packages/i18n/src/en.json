@@ -723,7 +723,7 @@
  "over.reject.KILL_CEILING": "more kills than the play time allows",
  "over.reject.STALE_CHECKPOINT": "continued from a save the server does not know",
  "over.reject.other": "the Run's numbers are invalid",
- "rank.off": "This Run is unranked ({why}): Gold as usual, but no leaderboard",
+ "rank.off": "This Run is unranked ({why}), so Gold is recorded but no rank",
  "rank.why.offline": "not connected to the server",
  "rank.why.slow": "the server was slow when the Run started",
  "rank.why.refused": "the server did not start the Run, e.g. a new Run too soon",

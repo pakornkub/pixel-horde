@@ -575,7 +575,7 @@ let rankNoteT = 0;
 export function setRunUnranked(why: string | null, announce = false): void {
   const line = why === null ? '' : t('rank.off', { why: t(`rank.why.${why}`) });
   const over = $('runUnranked'), note = $('rankNote');
-  over.hidden = why === null;
+  over.hidden = why === null || !$('runRejected').hidden; // a rejected Run shows only the rejection
   over.textContent = line;
   clearTimeout(rankNoteT);
   note.hidden = !announce || why === null;
