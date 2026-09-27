@@ -335,7 +335,7 @@ const shared = obj({
   heroes: obj({
     mage: obj({ cost: pos(0, 'Unlock price'), dmg: frac(0.1, 'Skill damage bonus') }, 'Lyra'),
     knight: obj({ cost: pos(0, 'Unlock price'), hp: pos(40, 'Max HP bonus'), spd: frac(0.05, 'Speed penalty') }, 'Bram'),
-    ranger: obj({ cost: pos(500, 'Unlock price'), spd: frac(0.12, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus'), hp: n(0, 0, 200, 'Max HP bonus') }, 'Kit'),
+    ranger: obj({ cost: pos(500, 'Unlock price'), spd: frac(0.12, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus'), hp: n(0, 0, 200, 'Max HP bonus'), crit: frac(0, "Hunter's Eye: crit chance bonus (still under the crit cap)") }, 'Kit'),
     alchemist: obj({ cost: pos(1000, 'Unlock price'), cd: frac(0.08, 'Cooldown reduction'), status: frac(0.2, 'Statuses last longer by') }, 'Vex'),
   }, 'Heroes'),
   secondWind: obj({ hp: frac(0.5, 'HP after revive'), inv: sec(2.5, 'Invulnerability (s)'), r: pos(110, 'Blast radius'), dmg: pos(150, 'Blast damage'), dmgGrowth: mul(1.45, 'Blast × per stage') }, 'Second Wind revive'),
