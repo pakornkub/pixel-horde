@@ -1,5 +1,5 @@
-import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
-import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
+import { EVO_PASSIVE, PASSIVE_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
+import { AWAKENING, SKILL_LINES, generalSkills, signatureOf } from '../data/heroes';
 import { ipow } from '../core/fmath';
 import type { LevelOption, LimitBreakId, SimState } from '../types';
 import { rollStage } from './events';
@@ -35,6 +35,7 @@ export function startStage(s: SimState, n: number): void {
   const D = s.cfg.director;
   if (D.stageReset > 0) s.dir.v += (D.start - s.dir.v) * D.stageReset; // pressure built up last Stage eases off
   s.enemies = []; s.bolts = []; s.effects = [];
+  if (s.graves) s.graves = [];
   for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v * xpShare(s); if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
   s.gems = [];
   levelCheck(s);
@@ -230,7 +231,7 @@ export function buildOptions(s: SimState): LevelOption[] {
   const c: { o: LevelOption; w: number }[] = [];
   const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
   const slotFree = owned < attackSlots(s), benchFree = P.bench.length < benchSize(s);
-  for (const id of [...SKILL_IDS, sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
+  for (const id of [...generalSkills(P.ch, s.cfg.heroes.necromancer.pool), sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max || s.banished.includes(id)) continue;
     if (!lv) {

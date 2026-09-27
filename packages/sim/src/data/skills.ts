@@ -1,13 +1,16 @@
 import type { ResolvedConfig } from '@pixel-horde/config';
 // Skill, passive and evolution gameplay data (numbers only; names/descriptions live in the game UI).
 
-/** The 12 general Skills any Hero can pick. */
-export const SKILL_IDS = ['bolt', 'orbit', 'chain', 'nova', 'meteor', 'frost', 'lance', 'boomer', 'cyclone', 'toxic', 'laser', 'hole'] as const;
+/** The 15 general Skills any Hero can pick (the last three, Mora's Links, go to the other Heroes only with
+ *  `heroes.necromancer.pool` 1: see `generalSkills`). */
+export const SKILL_IDS = ['bolt', 'orbit', 'chain', 'nova', 'meteor', 'frost', 'lance', 'boomer', 'cyclone', 'toxic', 'laser', 'hole', 'soulDrain', 'bonePrison', 'wailSkull'] as const;
+/** Mora's Links (ticket 57): general Skills, offered to the other Heroes only with `heroes.necromancer.pool` 1. */
+export const NECRO_SKILLS: readonly SkillId[] = ['soulDrain', 'bonePrison', 'wailSkull'];
 /** Signature Skills: one per Hero, in the locked slot, never offered to other Heroes. */
-export const SIGNATURE_IDS = ['sigil', 'shield', 'hawk', 'flask'] as const;
+export const SIGNATURE_IDS = ['sigil', 'shield', 'hawk', 'flask', 'soulRise'] as const;
 export type SignatureId = (typeof SIGNATURE_IDS)[number];
 /** Skill Line skills: unlocked by the Hero's Awakening; no Evolution. */
-export const LINE_IDS = ['manaNova', 'timeWarp', 'starfall', 'sacredBlades', 'judgePillar', 'aegisDome', 'arrowRain', 'galeStep', 'thunderHawk', 'cauldron', 'transmute', 'elixirRain'] as const;
+export const LINE_IDS = ['manaNova', 'timeWarp', 'starfall', 'sacredBlades', 'judgePillar', 'aegisDome', 'arrowRain', 'galeStep', 'thunderHawk', 'cauldron', 'transmute', 'elixirRain', 'boneSpear', 'soulfire', 'boneWard'] as const;
 export type LineId = (typeof LINE_IDS)[number];
 export type SkillId = (typeof SKILL_IDS)[number] | SignatureId | LineId;
 export const ALL_SKILL_IDS: SkillId[] = [...SKILL_IDS, ...SIGNATURE_IDS, ...LINE_IDS];
@@ -21,6 +24,7 @@ export const EVO_PASSIVE: Partial<Record<SkillId, PassiveId>> = {
   bolt: 'haste', orbit: 'swift', chain: 'crit', nova: 'might', meteor: 'vital', frost: 'magnet',
   lance: 'crit', boomer: 'magnet', cyclone: 'haste', toxic: 'vital', laser: 'swift', hole: 'might',
   sigil: 'might', shield: 'vital', hawk: 'swift', flask: 'haste',
+  soulDrain: 'vital', bonePrison: 'might', wailSkull: 'crit', soulRise: 'magnet',
 };
 
 export interface SkillStats {
@@ -43,6 +47,16 @@ export interface SkillStats {
   stun: boolean;
   /** Smart Flask picks the element that combos. */
   smart: boolean;
+  /** Soul Rise: Skeletons standing at most. */
+  max: number;
+  /** Bone Legion: a crumbling Skeleton bursts. */
+  burst: boolean;
+  /** Soul Feast: a tether whose monster dies jumps on. */
+  jump: boolean;
+  /** Banshee: a skull that kills splits. */
+  split: boolean;
+  /** Soul Drain: HP healed when a tethered monster dies. */
+  heal: number;
 }
 
 type Lin = { base: number; perLv: number; min?: number; max?: number };
@@ -60,7 +74,7 @@ const step = (c: Step, lv: number): number => c.base + Math.floor((lv - c.offset
 export const skillMax = (cfg: ResolvedConfig, id: SkillId): number => cfg.skills[id].max;
 export const passiveMax = (cfg: ResolvedConfig, id: PassiveId): number => cfg.passives.max[id];
 
-const EMPTY: SkillStats = { dmg: 0, cd: 0, n: 0, r: 0, pierce: 0, jumps: 0, spd: 0, range: 0, dur: 0, len: 0, boom: 0, freeze: false, twin: false, absorb: false, stun: false, smart: false };
+const EMPTY: SkillStats = { dmg: 0, cd: 0, n: 0, r: 0, pierce: 0, jumps: 0, spd: 0, range: 0, dur: 0, len: 0, boom: 0, freeze: false, twin: false, absorb: false, stun: false, smart: false, max: 0, burst: false, jump: false, split: false, heal: 0 };
 
 /** Stats of a skill at a level, optionally evolved (numbers from the Balance Config). */
 export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: boolean): SkillStats {
@@ -94,6 +108,13 @@ export function skillStats(cfg: ResolvedConfig, id: SkillId, lv: number, evo: bo
     case 'cauldron': { const c = K.cauldron; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = lin(c.dur, lv); break; }
     case 'transmute': { const c = K.transmute; s.r = lin(c.r, lv); break; }
     case 'elixirRain': { const c = K.elixirRain; s.cd = lin(c.cd, lv); break; }
+    case 'soulDrain': { const c = K.soulDrain; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = step(c.n, lv); s.dur = lin(c.dur, lv); s.range = c.range; s.heal = lin(c.heal, lv); if (evo) { s.n += c.evo.nAdd; s.dmg *= c.evo.dmgMul; s.jump = true; } break; }
+    case 'bonePrison': { const c = K.bonePrison; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); s.dur = lin(c.root, lv); s.n = 1; if (evo) { s.n = c.evo.n; s.dmg *= c.evo.dmgMul; } break; }
+    case 'wailSkull': { const c = K.wailSkull; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = step(c.n, lv); s.range = c.range; if (evo) { s.split = true; s.dmg *= c.evo.dmgMul; } break; }
+    case 'soulRise': { const c = K.soulRise; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = 1; s.max = Math.floor(lin(c.army, lv)); s.dur = c.life; s.r = c.reach; if (evo) { s.n = c.evo.n; s.max += c.evo.maxAdd; s.burst = true; } break; }
+    case 'boneSpear': { const c = K.boneSpear; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = Math.floor(lin(c.n, lv)); s.range = c.range; break; }
+    case 'soulfire': { const c = K.soulfire; s.dmg = lin(c.dmg, lv); s.cd = lin(c.cd, lv); s.n = Math.floor(lin(c.n, lv)); s.r = lin(c.r, lv); break; }
+    case 'boneWard': { const c = K.boneWard; s.cd = lin(c.cd, lv); s.r = c.r; break; }
     case 'hole': { const c = K.hole; s.dmg = lin(c.dmg, lv); s.boom = lin(c.boom, lv); s.cd = lin(c.cd, lv); s.r = lin(c.r, lv); if (evo) { s.boom *= c.evo.boomMul; s.r *= c.evo.rMul; } break; }
   }
   if (evo) s.dmg = Math.round(s.dmg);
@@ -142,6 +163,13 @@ export const SKILL_TAGS: Record<SkillId, HitTag> = {
   cauldron: {},
   transmute: {},
   elixirRain: {},
+  soulDrain: { el: 'dark' },
+  bonePrison: { heavy: true },
+  wailSkull: { el: 'ice' },
+  soulRise: { sweep: true },
+  boneSpear: { heavy: true },
+  soulfire: { el: 'fire', applies: 'burning' },
+  boneWard: {},
 };
 /** Volatile Flask: the element of each flask decides its tag. */
 export const FLASK_TAGS: Record<'fire' | 'ice' | 'poison', HitTag> = {
@@ -151,6 +179,8 @@ export const FLASK_TAGS: Record<'fire' | 'ice' | 'poison', HitTag> = {
 };
 /** Black Hole's collapse is a heavy hit. */
 export const HOLE_BOOM: HitTag = { el: 'dark', heavy: true };
+/** Bone Legion: a crumbling Skeleton bursts (heavy: Shatter on the Frozen). */
+export const BONE_BURST: HitTag = { heavy: true };
 /** Pet fire dragon: fire that leaves Burning (counts as the owner's Skill). */
 export const PET_FIRE: HitTag = { el: 'fire', applies: 'burning' };
 export const PET_DIVE: HitTag = { el: 'fire', heavy: true, applies: 'burning' };
@@ -169,13 +199,16 @@ export const AWK_TAGS = {
   flock: { heavy: true, sweep: true, el: 'lightning', applies: 'shocked' },
   /** Arrow Rain as fire arrows: Overload on Shocked prey. */
   arrow: { el: 'fire', applies: 'burning' },
+  /** Lich: a Frost Wraith's swing still sweeps (Grinder) and adds a frost stack (3 = Frozen). */
+  wraith: { sweep: true, el: 'ice' },
 } as const satisfies Record<string, HitTag>;
 /** Which Skill each awakened tag belongs to (damage attribution). */
-export const AWK_TAG_SKILL: [HitTag, SkillId][] = [[AWK_TAGS.slam, 'shield'], [AWK_TAGS.pillar, 'judgePillar'], [AWK_TAGS.star, 'starfall'], [AWK_TAGS.flock, 'hawk'], [AWK_TAGS.arrow, 'arrowRain']];
+export const AWK_TAG_SKILL: [HitTag, SkillId][] = [[AWK_TAGS.slam, 'shield'], [AWK_TAGS.pillar, 'judgePillar'], [AWK_TAGS.star, 'starfall'], [AWK_TAGS.flock, 'hawk'], [AWK_TAGS.arrow, 'arrowRain'], [AWK_TAGS.wraith, 'soulRise']];
 
 /** Status each Skill leaves on monsters (Frost Aura freezes by stacking; pulls gather). */
 export const SKILL_STATUS: Partial<Record<SkillId, StatusId>> = {
   frost: 'frozen', cyclone: 'gathered', hole: 'gathered', nova: 'burning', meteor: 'burning', chain: 'shocked', laser: 'shocked', toxic: 'poisoned',
+  bonePrison: 'gathered', wailSkull: 'frozen',
 };
 
 /** The Combo a hit with `tag` starts on a monster carrying `status`, if any (catalyst: any Status). */
@@ -193,11 +226,11 @@ export function comboOf(status: StatusId, tag: HitTag): ComboId | null {
 /** Every hit tag a Skill can carry (Black Hole's pull and collapse, each Volatile Flask element);
  *  `awk`: with the awakened forms (`awaken.form` 1 and Awakened), which add their own tags. */
 export function hitTagsOf(id: SkillId, awk = false): HitTag[] {
-  const base = id === 'hole' ? [SKILL_TAGS.hole, HOLE_BOOM] : id === 'flask' ? Object.values(FLASK_TAGS) : [SKILL_TAGS[id]];
+  const base = id === 'hole' ? [SKILL_TAGS.hole, HOLE_BOOM] : id === 'flask' ? Object.values(FLASK_TAGS) : id === 'soulRise' ? [SKILL_TAGS.soulRise, BONE_BURST] : [SKILL_TAGS[id]];
   return awk ? [...base, ...AWK_TAG_SKILL.filter(([, k]) => k === id).map(([t]) => t)] : base;
 }
-/** Statuses the awakened forms add: shield slams, wandering sigils and Gale Step gather; Time Warp freezes. */
-const AWK_STATUS: Partial<Record<SkillId, StatusId>> = { shield: 'gathered', sigil: 'gathered', galeStep: 'gathered', timeWarp: 'frozen' };
+/** Statuses the awakened forms add: shield slams, wandering sigils and Gale Step gather; Time Warp and Frost Wraiths freeze. */
+const AWK_STATUS: Partial<Record<SkillId, StatusId>> = { shield: 'gathered', sigil: 'gathered', galeStep: 'gathered', timeWarp: 'frozen', soulRise: 'frozen' };
 /** Every Status a Skill can leave on monsters. */
 export function statusesOf(id: SkillId, awk = false): StatusId[] {
   const out: StatusId[] = [];
