@@ -136,10 +136,9 @@ const AURAS = new Set<SkillId>(['orbit', 'frost', 'shield', 'timeWarp', 'galeSte
 const CLONE_SKIP = new Set<SkillId>(['transmute', 'elixirRain', 'aegisDome', 'boneWard']);
 const CLONE_COL = '#b58cff';
 
-/** One cast of Skill `id` from `o`. Returns 0 when it fired, a retry delay (s) when there was nothing to hit,
- *  or WAIT. The clone passes stats whose damage is already scaled down. */
 /** Hawk Gust (`skills.hawk.gustKb` > 0): when the Hawk defends a surrounded Kit, monsters around Kit are pushed back and
- *  stunned, at most once every `gustCd` s. Crowd control only: no damage, never bosses. */
+ *  stunned, at most once every `gustCd` s. Crowd control only: no damage, never bosses; elites get the full
+ *  push and stun (no `player.kbElite`, owner 2026-09-28). */
 function hawkGust(s: SimState, o: Caster): void {
   const H = s.cfg.skills.hawk, P = s.P;
   if (H.gustKb <= 0 || s.clock - (P.gustAt ?? -1e9) < H.gustCd) return;
@@ -154,6 +153,8 @@ function hawkGust(s: SimState, o: Caster): void {
   burst(s, o.x, o.y, '#d8f3e0', 14, 90, 0.4);
 }
 
+/** One cast of Skill `id` from `o`. Returns 0 when it fired, a retry delay (s) when there was nothing to hit,
+ *  or WAIT. The clone passes stats whose damage is already scaled down. */
 function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): number {
   const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills, cl = o.clone;
   if (id === 'bolt') {

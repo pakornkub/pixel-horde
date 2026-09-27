@@ -73,7 +73,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Ramp: monster damage + per tier': { th: 'Ramp: ดาเมจมอนเพิ่มต่อขั้น', up: 'มอนตีแรงขึ้นทุกขั้นร้าว' },
   'Ramp: spawn rate + per tier': { th: 'Ramp: อัตราเกิดมอนเพิ่มต่อขั้น', up: 'มอนแน่นขึ้นทุกขั้นร้าว' },
   'Heart Crack bonus: Score × (1 + this × tier)': { th: 'โบนัสคะแนนหัวใจร้าว: คะแนน × (1 + ค่านี้ × ขั้น)', up: 'เล่นร้าวสูงได้คะแนนมากขึ้นในตารางอันดับ' },
-  'Hawk Gust: when the Hawk defends, monsters around Kit are pushed back this hard (0 = no gust)': { th: 'ลมเหยี่ยว: ตอนเหยี่ยวป้องกัน ผลักมอนรอบตัว Kit ถอยแรงเท่านี้ (0 = ปิด)', up: 'Kit หลุดจากวงล้อมได้ง่ายขึ้น' },
+  'Hawk Gust: when the Hawk defends, monsters around Kit are pushed back this hard, elites at full strength (0 = no gust)': { th: 'ลมเหยี่ยว: ตอนเหยี่ยวป้องกัน ผลักมอนรอบตัว Kit ถอยแรงเท่านี้ Elite ก็เต็มแรง (0 = ปิด)', up: 'Kit หลุดจากวงล้อมได้ง่ายขึ้น' },
   'Hawk Gust: monsters it pushes are stunned (s); bosses never': { th: 'ลมเหยี่ยว: มอนที่โดนผลักมึน (วินาที) ไม่รวมบอส', up: 'มอนรอบตัว Kit หยุดโจมตีนานขึ้น' },
   'Hawk Gust radius around Kit': { th: 'ลมเหยี่ยว: รัศมีรอบตัว Kit', up: 'ผลักมอนได้กว้างขึ้น' },
   'Hawk Gust: at most one gust every (s), however often the Hawk defends': { th: 'ลมเหยี่ยว: ใช้ได้ไม่เกินครั้งละกี่วินาที', up: 'ลมเหยี่ยวออกห่างขึ้น ช่วยน้อยลง' },
