@@ -593,7 +593,7 @@
  "unlock.weapon": "อาวุธใหม่จาก Umbra: {name} (เปลี่ยนท่าไม้ตาย)",
  "unlock.gold": "เก็บอาวุธครบแล้ว: ได้ {n} Gold แทน",
  "unlock.ach": "ความสำเร็จ: {name}",
- "unlock.special": "ร้านพิเศษเปิดแล้ว: ใช้ Gold ตีบวกอาวุธให้ท่าไม้ตายเก่งขึ้น",
+ "unlock.special": "ร้านพิเศษเปิดแล้ว: ใช้ Gold ตีบวกอาวุธและสะสมชุดเซต",
  "unlock.hero": "ฮีโร่ใหม่วางขายแล้วที่หน้าเลือกฮีโร่: {name} ({cost} G)",
  "title.endless": "Endless",
  "title.endlessHint": "Endless: เริ่มบท 1 สุ่มดินแดน เล่นไม่มีจบ",
