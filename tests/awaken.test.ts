@@ -134,11 +134,52 @@ describe('Awakening', () => {
   });
 
   it('by default (version 0) Awakening adds no slot', async () => {
-    const { attackSlots } = await import('@pixel-horde/sim');
+    const { attackSlots, lineSlots } = await import('@pixel-horde/sim');
     const { s, endStage, next, maxLinks } = setup('mage');
     maxLinks(2);
     endStage(); next(); endStage();
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
+    expect(lineSlots(s)).toBe(0);
+  });
+
+  it('awaken.lineSlots: three Awakened-only slots next to full normal slots (4 + 3 = 7)', async () => {
+    const { attackSlots, lineSlots, slotUse } = await import('@pixel-horde/sim');
+    const { buildOptions, swapBench } = await import('../packages/sim/src/systems/progress');
+    const { s, endStage, next, maxLinks } = setup('ranger');
+    s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, lineSlots: 3, grant: 1, grantLv: 6 } };
+    maxLinks(3); // Signature + three Links: every normal slot is full
+    expect(lineSlots(s)).toBe(0); // not Awakened yet
+    endStage(); next(); endStage();
+    expect(s.P.awakened).toBe(true);
+    expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
+    expect(lineSlots(s)).toBe(3);
+    const [first, second, third] = AWAKENING.ranger.line;
+    expect(s.P.skills[first]).toBe(6); // the granted skill takes an Awakened slot, not the Bench
+    expect(slotUse(s, first)).toEqual({ used: 1, max: 3 });
+    expect(slotUse(s, 'boomer')).toEqual({ used: 4, max: 4 });
+    // Awakened skills are still offered into their own slots; general Skills only to the Bench
+    let lineIn = 0;
+    for (let i = 0; i < 80; i++) for (const o of buildOptions(s)) {
+      if (o.kind !== 'skill' || s.P.skills[o.id]) continue;
+      if (AWAKENING.ranger.line.includes(o.id as never)) { expect(o.toBench).toBeUndefined(); lineIn++; } else expect(o.toBench).toBe(true);
+    }
+    expect(lineIn).toBeGreaterThan(0);
+    s.P.skills[second] = 1; s.P.skills[third] = 1;
+    expect(Object.keys(s.P.skills).length).toBe(7);
+    // an Awakened skill never swaps into a normal slot, nor a general Skill into an Awakened one
+    s.runGold = 1e6;
+    s.P.bench = [{ id: 'bolt', lv: 2, evo: false }];
+    swapBench(s, 0, first);
+    expect(s.P.skills.bolt).toBeUndefined();
+    swapBench(s, 0, 'boomer');
+    expect(s.P.skills.bolt).toBe(2);
+    expect(s.P.bench).toEqual([{ id: 'boomer', lv: s.cfg.skills.boomer.max, evo: false }]);
+    s.P.bench = [{ id: third, lv: 4, evo: false }];
+    delete s.P.skills[third];
+    swapBench(s, 0, 'bolt');
+    expect(s.P.skills[third]).toBeUndefined();
+    swapBench(s, 0, null); // the empty Awakened slot
+    expect(s.P.skills[third]).toBe(4);
   });
 
 });

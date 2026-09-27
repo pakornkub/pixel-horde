@@ -242,19 +242,20 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
 // ── 5. slots ────────────────────────────────────────────
 {
   const slot = (inner: Node | null, lock = false): HTMLElement => el(`div.slot${inner ? '' : '.empty'}`, null, inner, lock ? T('g.slots.lock', undefined, 'span', 'lock') : null);
-  const b = C.bench, aw = C.awaken.slots;
+  const b = C.bench, aw = C.awaken.slots, al = C.awaken.lineSlots;
   /** A slot that opens later (a Chapter or Awakening). */
   const later = (label: Node): HTMLElement => el('div.slot.empty', { style: 'opacity:.5' }, el('span.lock', { style: 'background:var(--night3)' }, label));
   const fill = <X>(items: X[], n: number): (X | null)[] => Array.from({ length: n }, (_, i) => items[i] ?? null);
   const atk = fill([skillIcon('sigil'), skillIcon('bolt'), skillIcon('frost')], C.maxAttackSlots).map((x, i) => slot(x, i === 0));
   const pas = fill([passiveIcon('haste'), passiveIcon('might')], C.passiveSlots).map((x) => slot(x));
   const bench = fill([skillIcon('toxic')], b.start).map((x) => slot(x));
-  sec('slots', 'g.slots.h', parts('p', '', ['g.slots.p', { a: C.maxAttackSlots, p: C.passiveSlots }], aw > 0 && ['g.slots.awp', { n: aw, ss: pl(aw) }]),
+  sec('slots', 'g.slots.h', parts('p', '', ['g.slots.p', { a: C.maxAttackSlots, p: C.passiveSlots }], aw > 0 && ['g.slots.awp', { n: aw, ss: pl(aw) }], al > 0 && ['g.slots.awl', { n: al }]),
     el('div.slots.demo', null,
       el('div.slotgrp', null, T('g.slots.atk', undefined, 'p'), el('div.slotrow', null, ...atk, ...Array.from({ length: aw }, () => later(T('g.slots.aw'))))),
+      al > 0 ? el('div.slotgrp', null, T('g.slots.awk', undefined, 'p'), el('div.slotrow', null, ...Array.from({ length: al }, () => later(T('g.slots.aw'))))) : null,
       el('div.slotgrp', null, T('g.slots.pas', undefined, 'p'), el('div.slotrow', null, ...pas)),
       el('div.slotgrp', null, T('g.slots.bench', undefined, 'p'), el('div.slotrow', null, ...bench, later(document.createTextNode(`CH${b.growAt1}+`)), later(document.createTextNode(`CH${b.growAt2}+`))))),
-    parts('div', 'note', ['g.slots.benchp'], !!b.discard && ['g.slots.benchDel'], [b.passives ? 'g.slots.benchPas' : 'g.slots.benchNoPas'],
+    parts('div', 'note', ['g.slots.benchp'], ['g.slots.board'], !!b.discard && ['g.slots.benchDel'], [b.passives ? 'g.slots.benchPas' : 'g.slots.benchNoPas'],
       ['g.slots.benchGrow', { n: b.start, ss: pl(b.start), a: b.growAt1, b: b.growAt2 }]));
 }
 
@@ -413,13 +414,14 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
         skillIcon(sig, 'sm'), el('span', null, '+'), ...SKILL_LINES[h].map((id) => skillIcon(id, 'sm')), el('span', null, '→'),
         G(`form.${A.form}`, undefined, 'b', 'chip line'))));
   }));
-  // The rule follows the Balance Config: awaken.keep (Links stay or are used up), awaken.slots, awaken.grant/grantLv.
+  // The rule follows the Balance Config: awaken.keep (Links stay or are used up), awaken.slots, awaken.lineSlots, awaken.grant/grantLv.
   const A = C.awaken, nLine = AWAKENING.mage.line.length;
   const rule = parts('div', 'note',
     ['g.awaken.need', { n: A.links, of: SKILL_LINES.mage.length, st: A.stages, ss: pl(A.stages) }],
     ['g.awaken.gain', { d: A.sigDmg }],
     A.keep ? ['g.awaken.keep1'] : ['g.awaken.keep0', { n: A.links }],
     A.slots > 0 && ['g.awaken.slots', { n: A.slots, ss: pl(A.slots) }],
+    A.lineSlots > 0 && ['g.awaken.lineSlots', { n: A.lineSlots }],
     A.grant > 0 ? ['g.awaken.grant', { g: Math.min(A.grant, nLine), lv: A.grantLv }] : ['g.awaken.nogrant', { k: nLine }]);
   sec('awakening', 'g.awaken.h', T('g.awaken.p', undefined, 'p'), lines, rule, el('p', null, el('a', { href: './skills.html#lines' }, T('g.awaken.more'))));
 }

@@ -32,7 +32,7 @@ import { drawHud, drawTexts, renderWorld } from './render/draw';
 import { refreshUpdateNote, renderUpdateNote } from './ui/update-note';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
-  $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
+  $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSkillView, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
   setPlayUI, setRunRejected, setRunUnranked, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
@@ -405,7 +405,7 @@ function toTitle(): void {
   tips.reset();
   showTip(null);
   $('retryBtn').hidden = false;
-  ['ovCoop', 'ovHero', 'ovOver', 'ovPause', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
+  ['ovCoop', 'ovHero', 'ovOver', 'ovPause', 'ovSkills', 'ovLevel', 'ovClear', 'ovRoute', 'ovRevive', 'ovEnding', 'ovMsg'].forEach(hide);
   cancelChest();
   clearVfx();
   setPlayUI(false);
@@ -574,6 +574,7 @@ function pause(): void {
   showPause();
 }
 function resume(): void {
+  hide('ovSkills');
   if (guestMenu) { guestMenu = false; hide('ovPause'); return; }
   if (!sim || sim.view().phase !== 'pause') return;
   hide('ovPause');
@@ -597,6 +598,7 @@ addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code === 'Space' && playing()) cmd({ type: 'ult' });
   if (e.code === 'Escape' && settingsOpen()) { closeSettings(); return; }
+  if (e.code === 'Escape' && skillsOpen()) { closeSkills(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { if (guestMenu) resume(); else if (playing()) pause(); else if (sim && sim.view().phase === 'pause') resume(); }
   if (e.code === 'KeyM') setMuted(!audio.muted);
   if (e.code === 'KeyI') toggleMet();
@@ -623,6 +625,11 @@ $('ultBtn').addEventListener('click', () => cmd({ type: 'ult' }));
 $('pauseBtn').addEventListener('click', () => (guestMenu || (sim && sim.view().phase === 'pause') ? resume() : pause()));
 $('resumeBtn').addEventListener('click', resume);
 $('metBtn').addEventListener('click', toggleMet);
+/** Pause menu → the skill board, read-only (swaps happen at the Stage end). */
+const skillsOpen = (): boolean => $('ovSkills').classList.contains('on');
+function closeSkills(): void { hide('ovSkills'); show('ovPause'); }
+$('skillsBtn').addEventListener('click', () => { if (!sim) return; renderSkillView(sim.view()); hide('ovPause'); show('ovSkills'); });
+$('skillsBack').addEventListener('click', closeSkills);
 $('homeBtn').addEventListener('click', toTitle);
 $('leaveBtn').addEventListener('click', () => {
   if (!leaveArmed) { leaveArmed = true; $('leaveBtn').textContent = t('pause.confirm'); return; }

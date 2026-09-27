@@ -469,6 +469,7 @@ const shared = obj({
     wLine: mul(1, 'Level-up offer weight × for Skill Line skills after Awakening'),
     keep: int(0, 0, 1, 'Awakening keeps the Links equipped (1) or consumes them (0)'),
     slots: int(0, 0, 2, 'Extra attack slots after Awakening'),
+    lineSlots: int(0, 0, 3, 'Attack slots after Awakening that hold only Skill Line (Awakened) skills; they then never take a normal attack slot (0 = they share the normal slots)'),
     form: int(0, 0, 1, 'Awakened Signature takes a new form and the Skill Line skills combo with it (1), or it only hits harder (0)'),
     mark: sec(1.5, 'Skill Line skills aim at the Awakened Signature\'s latest strike when it is this recent (s)'),
   }, 'Awakening'),

@@ -83,13 +83,13 @@ function awaken(s: SimState): void {
   const P = s.P, A = s.cfg.awaken;
   // original rule: the Links are consumed; `keep` leaves them equipped (the new slots make room instead)
   if (!A.keep) for (const id of qualifiedLinks(s).slice(0, A.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
-  P.awakened = true; // before the grant: attackSlots() counts the Awakening slots
+  P.awakened = true; // before the grant: attackSlots() / lineSlots() count the Awakening slots
   s.awakenNew = true;
   // the first Skill Line skills arrive at once in free slots, so the transformation is felt; with the attack slots
   // full (e.g. keep 1 + slots 0) they wait on the Bench instead, and only a full Bench too drops the rest
   for (const id of AWAKENING[P.ch].line.slice(0, A.grant)) {
     const lv = (cur = 0): number => Math.min(s.cfg.skills[id].max, Math.max(cur, A.grantLv));
-    if (P.skills[id] || Object.keys(P.skills).length < attackSlots(s)) { P.skills[id] = lv(P.skills[id]); continue; }
+    if (P.skills[id] || slotFree(s, id)) { P.skills[id] = lv(P.skills[id]); continue; }
     const b = P.bench.find((x) => x.id === id);
     if (b) b.lv = lv(b.lv);
     else if (P.bench.length < benchSize(s)) P.bench.push({ id, lv: lv(), evo: false });
@@ -220,6 +220,22 @@ export function benchSize(s: SimState): number {
 /** Attack slots (Signature included): the base count, plus `awaken.slots` once Awakened. */
 export const attackSlots = (s: SimState): number => s.cfg.maxAttackSlots + (s.P.awakened ? s.cfg.awaken.slots : 0);
 
+/** Awakened-only attack slots (`awaken.lineSlots`, ticket 53): open once Awakened. */
+export const lineSlots = (s: SimState): number => (s.P.awakened ? s.cfg.awaken.lineSlots : 0);
+
+/** True when this skill sits in the Awakened slots instead of the normal ones (only while `awaken.lineSlots` > 0). */
+export const inLineSlot = (s: Readonly<SimState>, id: SkillId): boolean => s.cfg.awaken.lineSlots > 0 && isLine(id);
+
+/** Equipped / total attack slots of the group `id` belongs to (normal: general Skills + Signature; or Awakened). */
+export function slotUse(s: SimState, id: SkillId): { used: number; max: number } {
+  const line = inLineSlot(s, id);
+  const used = (Object.keys(s.P.skills) as SkillId[]).filter((k) => inLineSlot(s, k) === line).length;
+  return { used, max: line ? lineSlots(s) : attackSlots(s) };
+}
+
+/** A free attack slot for `id` in its own group. */
+export const slotFree = (s: SimState, id: SkillId): boolean => { const u = slotUse(s, id); return u.used < u.max; };
+
 /** Offer rules (ticket 21): 4 attack slots, then new Skills go to the Bench while it has room;
  *  benched Skills are never offered; new passives only while a passive slot is free. */
 export function buildOptions(s: SimState): LevelOption[] {
@@ -229,15 +245,15 @@ export function buildOptions(s: SimState): LevelOption[] {
     if (pas && P.skills[id]! >= K[id].max && !P.evo[id] && (P.pas[pas] || 0) >= 1 && out.length < L.offers) out.push({ kind: 'evo', id });
   }
   const c: { o: LevelOption; w: number }[] = [];
-  const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
-  const slotFree = owned < attackSlots(s), benchFree = P.bench.length < benchSize(s);
+  const sig = signatureOf(P.ch), benchFree = P.bench.length < benchSize(s);
   for (const id of [...SKILL_IDS, sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max || s.banished.includes(id)) continue;
     if (!lv) {
       if (P.bench.some((b) => b.id === id)) continue;
-      if (!slotFree && !benchFree) continue;
-      c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * (isLine(id) ? s.cfg.awaken.wLine : 1) });
+      const free = slotFree(s, id);
+      if (!free && !benchFree) continue;
+      c.push({ o: free ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * (isLine(id) ? s.cfg.awaken.wLine : 1) });
     } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
   }
   const pasFree = Object.keys(P.pas).length < s.cfg.passiveSlots, pasBench = !!s.cfg.bench.passives && benchFree;
@@ -324,7 +340,7 @@ export function swapBench(s: SimState, bi: number, slot: SkillId | PassiveId | n
   }
   const out = slot as SkillId | null;
   if (out === signatureOf(P.ch)) return;
-  if (out ? !P.skills[out] : Object.keys(P.skills).length >= attackSlots(s)) return;
+  if (out ? !P.skills[out] || inLineSlot(s, out) !== inLineSlot(s, b.id) : !slotFree(s, b.id)) return;
   if (!spendGold(s, swapCost(s))) { s.events.push({ t: 'swapDenied' }); return; }
   s.swaps++;
   P.bench.splice(bi, 1);
