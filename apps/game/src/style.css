@@ -33,6 +33,7 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .btn:focus-visible,.opt:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .stats{display:grid;grid-template-columns:1fr auto;gap:4px 16px;margin:0 0 16px;font-size:15px}
 .stats span:nth-child(even){font-family:var(--pix);font-size:12px;align-self:center;text-align:right}
+.stats .money{font-size:14px;color:var(--gold)}
 .best{font-size:13px;opacity:.75;margin-top:10px;text-align:center}
 
 .slots{font-size:14px;margin:-6px 0 12px;opacity:.8}
