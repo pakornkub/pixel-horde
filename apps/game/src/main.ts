@@ -31,7 +31,7 @@ import { refreshUpdateNote, renderUpdateNote } from './ui/update-note';
 import { MET, ambient, clearVfx, consume, setBanner, stepVfx, vfx } from './render/vfx';
 import {
   $, renderTitleStats, cancelChest, chestTick, closeShop, hide, openChest, openShop, renderAwaken, renderBench, renderCompanions, renderSp, renderWeaponSwitch, showRevive, renderChars, renderLevelUp, renderRoute,
-  setPlayUI, setRunRejected, show, showClear, showOver, showPause, applyStaticText,
+  setPlayUI, setRunRejected, setRunUnranked, show, showClear, showOver, showPause, applyStaticText,
 } from './ui/overlays';
 
 /* ---------- debug flags: ?debug=dragon|frostdragon|stormdragon|rival|bloodmoon|god|awaken|realm:<id> (comma separated) ---------- */
@@ -93,8 +93,29 @@ function syncWallet(): void {
   runBanked = v.runGold; walletBanked = v.walletSpent;
 }
 
-// The Run that just ended was rejected by the server's Run checks: say so on the Run-end screen (it may already be open).
-metaSync.onRunChecked((id, out) => { if (id === clientRunId && out.status === 'rejected') setRunRejected(out.reason ?? 'other'); });
+/** Why the Run in progress will not reach the leaderboard (null = ranked). Shown when it starts and on the Run-end screen. */
+type Unranked = 'offline' | 'slow' | 'refused' | 'debug' | 'closed' | 'season' | 'noTicket' | 'server';
+let unranked: Unranked | null = null;
+
+/** The server picks the seed and registers the Run when online; give it a moment, then play unranked with a local seed. */
+async function requestTicket(mode: 'solo' | 'coop'): Promise<RunTicket | null> {
+  if (mode === 'solo' && debug.awaken) { unranked = 'debug'; return null; } // ?debug=awaken (start Awakened) is never ranked
+  if (backend.status() !== 'online') { unranked = 'offline'; return null; }
+  const late = Symbol('late');
+  const r = await Promise.race([backend.startRun(META.ch, mode, META.weapon).catch(() => null), new Promise<typeof late>((res) => setTimeout(() => res(late), 2500))]);
+  if (r === late) { unranked = 'slow'; return null; }
+  unranked = !r ? 'refused' : live.flags().scoreSubmit === false ? 'closed' : null;
+  return r;
+}
+
+metaSync.onRunChecked((id, out) => {
+  if (id !== clientRunId) return;
+  // The Run that just ended was rejected by the server's Run checks: say so on the Run-end screen (it may already be open).
+  // That replaces the unranked line (an offline Run can be rejected too): one note per Run.
+  if (out.status === 'rejected') { setRunUnranked(null); setRunRejected(out.reason ?? 'other'); }
+  // Its ticket was unknown to the server, so it was taken as an offline Run (Gold, no rank).
+  else if (out.status === 'offline' && !unranked) { unranked = 'server'; setRunUnranked(unranked); }
+});
 
 /** Stage clear / Run end: show the Gold in the wallet now; the server credits it on submit. */
 function bank(final?: RunResult['result']): void {
@@ -120,9 +141,7 @@ async function newRun(): Promise<void> {
   clearSave();
   starting = true;
   initAudio();
-  // The server picks the seed when online; give it a moment, then fall back to a local seed.
-  ticket = debug.awaken ? null // ?debug=awaken (start Awakened) is never ranked
-    : await Promise.race([backend.startRun(META.ch, 'solo', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  ticket = await requestTicket('solo');
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined;
@@ -163,7 +182,7 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
   initAudio();
   clearSave();
   const config = s.role === 'guest' ? (await configFor(cfgVersion)) ?? active.cfg : active.cfg; // guests use the host's Balance Config
-  ticket = await Promise.race([backend.startRun(META.ch, 'coop', META.weapon).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 2500))]);
+  ticket = await requestTicket('coop');
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined; usedHash = undefined;
   teamPhase = '';
@@ -274,6 +293,7 @@ function beginRun(s: Sim): void {
   telemetry.startRun();
   hide('ovTitle'); hide('ovOver');
   setRunRejected(null);
+  setRunUnranked(unranked, unranked !== 'season'); // a new Season already has its own banner
   clearVfx();
   queue = [];
   runBanked = s.view().runGold; // Gold up to a checkpoint was already shown in the wallet
@@ -353,6 +373,7 @@ async function continueRun(): Promise<void> {
     if (!base) { showMsg(t('save.noConfig')); return; }
     const config = base;
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
+    unranked = !ticket ? 'noTicket' : seasonNote ? 'season' : null;
     clientRunId = pick.clientRunId || (globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
     const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
       config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
@@ -371,6 +392,7 @@ async function continueRun(): Promise<void> {
 
 function toTitle(): void {
   if (coop) { coop = null; leaveRoom(); }
+  setRunUnranked(null);
   guestMenu = false;
   downShown = false;
   ($('reviveBtn') as HTMLButtonElement).hidden = false;

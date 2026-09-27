@@ -570,6 +570,19 @@ export function setRunRejected(reason: string | null): void {
   el.textContent = reason === null ? '' : t('over.rejected', { why: t(`over.reject.${REJECT_REASONS.includes(reason) ? reason : 'other'}`) });
 }
 
+let rankNoteT = 0;
+/** An unranked Run: a line on the Run-end screen, plus (announce) a short note as it starts; null clears both. */
+export function setRunUnranked(why: string | null, announce = false): void {
+  const line = why === null ? '' : t('rank.off', { why: t(`rank.why.${why}`) });
+  const over = $('runUnranked'), note = $('rankNote');
+  over.hidden = why === null || !$('runRejected').hidden; // a rejected Run shows only the rejection
+  over.textContent = line;
+  clearTimeout(rankNoteT);
+  note.hidden = !announce || why === null;
+  note.textContent = line;
+  if (!note.hidden) rankNoteT = window.setTimeout(() => { note.hidden = true; }, 7000);
+}
+
 export function showPause(): void {
   $('leaveBtn').textContent = t('pause.leave');
   $('pauseTxt').textContent = t('pause.text');
