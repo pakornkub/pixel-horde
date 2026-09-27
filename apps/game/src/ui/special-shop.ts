@@ -6,6 +6,7 @@ import { sfx } from '../audio/sfx';
 import { active } from '../config';
 import { META, metaSync } from '../meta';
 import { HELD_SPR } from '../render/sprites';
+import { fmtN } from '../fmt';
 import { $, hide, show } from './overlays';
 
 type Tab = 'forge' | 'mastery' | 'outfits';
@@ -62,7 +63,7 @@ function powerLine(lv: number, maxed: boolean): string {
 function priceButton(bt: HTMLButtonElement, cost: number, maxed: boolean): void {
   const short = !maxed && META.gold < cost;
   bt.className = 'buy' + (short ? ' short' : '');
-  bt.textContent = maxed ? t('shop.maxed') : short ? t('forge.need', { n: cost - META.gold }) : t('shop.buy', { cost });
+  bt.textContent = maxed ? t('shop.maxed') : short ? t('forge.need', { n: fmtN(cost - META.gold) }) : t('shop.buy', { cost: fmtN(cost) });
   bt.disabled = maxed || short;
 }
 /** Shop message for a refused purchase. */
@@ -124,7 +125,7 @@ function forgeRows(box: HTMLElement): void {
 }
 
 function render(): void {
-  $('specialGold').textContent = 'GOLD ' + META.gold;
+  $('specialGold').textContent = 'GOLD ' + fmtN(META.gold);
   document.querySelectorAll<HTMLButtonElement>('#specialTabs button').forEach((b) => {
     const x = b.dataset.tab as Tab;
     b.classList.toggle('sel', x === tab);

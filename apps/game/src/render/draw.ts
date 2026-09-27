@@ -970,7 +970,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
       hudBottom = Math.max(hudBottom, top + 68 * D);
     }
     ctx.textAlign = 'right';
-    outlined('KO ' + v.kills, right, top + 16 * D, 10 * D, '#ffffff');
+    outlined('KO ' + fmtN(v.kills), right, top + 16 * D, 10 * D, '#ffffff');
     outlined(fmtN(runGoldShown) + ' G' + potShare(v), right, top + 32 * D, 9 * D, '#ffd23f');
   } else {
     outlined('LV ' + P.lv, left, top + 18 * D, 11 * D, '#ffffff');
@@ -989,7 +989,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     }
     outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
     ctx.textAlign = 'right';
-    outlined('KO ' + v.kills, right, top + 18 * D, 11 * D, '#ffffff');
+    outlined('KO ' + fmtN(v.kills), right, top + 18 * D, 11 * D, '#ffffff');
     outlined(fmtN(runGoldShown) + ' G' + potShare(v), right, top + 36 * D, 10 * D, '#ffd23f');
     if (v.sp > 0) outlined(t('hud.sp', { n: v.sp }), right - 90 * D, top + 36 * D, 10 * D, '#c9a8ff');
     hudBottom = top + 62 * D;

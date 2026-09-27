@@ -35,7 +35,7 @@ export function renderTitleStats(): void {
 
 export function bestLine(): string {
   const bb = getBest();
-  return t('title.best', { gold: META.gold }) + (bb ? t('title.bestRecord', { stage: bb.stage, kills: bb.kills }) : '');
+  return t('title.best', { gold: fmtN(META.gold) }) + (bb ? t('title.bestRecord', { stage: bb.stage, kills: fmtN(bb.kills) }) : '');
 }
 
 export function statRows(rows: [string, string | number, string?][]): string {
@@ -65,14 +65,14 @@ export function renderChars(): void {
     bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked');
     const im = document.createElement('img'); im.alt = ''; im.src = charImg(k);
     const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = name;
-    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : t('hero.unlock', { cost: c.cost });
+    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : t('hero.unlock', { cost: fmtN(c.cost) });
     bt.append(im, cn, cc);
     bt.addEventListener('click', () => {
       void (async () => {
         if (!owned) {
-          if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
+          if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: fmtN(c.cost), gold: fmtN(META.gold) }); return; }
           const err = await metaSync.unlockHero(k);
-          if (err) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
+          if (err) { $('chDesc').textContent = t('hero.needGold', { name, cost: fmtN(c.cost), gold: fmtN(META.gold) }); return; }
           sfx('lv');
         }
         metaSync.selectHero(k);
@@ -125,7 +125,7 @@ let shopFrom = 'ovTitle';
 /** Shop message for a refused purchase. */
 const shopBuyError = (err: { code: string } | null): string => (!err ? '' : err.code === 'NOT_ENOUGH_GOLD' ? t('special.noGold') : t('special.err'));
 function renderShop(): void {
-  $('shopGold').textContent = 'GOLD ' + META.gold;
+  $('shopGold').textContent = 'GOLD ' + fmtN(META.gold);
   const list = $('shopList');
   list.innerHTML = '';
   for (const id of SHOP_IDS) {
@@ -135,7 +135,7 @@ function renderShop(): void {
     row.innerHTML = `<span class="ico" style="background:${m.col}">${m.g}</span><span><span class="nm">${shopName(id)} ${lv}/${max}</span><span class="ds">${shopDesc(id)}</span></span>`;
     const bt = document.createElement('button');
     bt.className = 'buy';
-    bt.textContent = maxed ? t('shop.maxed') : t('shop.buy', { cost: c });
+    bt.textContent = maxed ? t('shop.maxed') : t('shop.buy', { cost: fmtN(c) });
     bt.disabled = maxed || META.gold < c;
     bt.addEventListener('click', async () => {
       bt.disabled = true;
@@ -252,7 +252,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
     } else if (o.kind === 'gold') {
       meta = { col: '#ffd23f', g: 'G' };
       name = t('level.gold');
-      desc = t('level.goldDesc', { n: goldBag(v) });
+      desc = t('level.goldDesc', { n: fmtN(goldBag(v)) });
     } else {
       meta = { col: '#ffa6c2', g: '♥' };
       name = t('level.recover');
@@ -359,7 +359,7 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearTitle').textContent = escaped ? t('clear.escapedTitle') : t('clear.title', { n: v.stage });
   $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
   const sp = v.coop?.split, split: [string, string][] = sp && sp.st === v.stage && sp.total > 0
-    ? [[t('stat.teamGold'), t('coop.split', { total: Math.round(sp.total), n: sp.players, mine: Math.round(sp.mine), got: sp.got })]] : [];
+    ? [[t('stat.teamGold'), t('coop.split', { total: fmtN(sp.total), n: sp.players, mine: fmtN(sp.mine), got: sp.got })]] : [];
   $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), fmtN(runGold) + ' G', 'money'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
@@ -387,7 +387,7 @@ export function renderSp(v: Readonly<SimState>, onUp: (id: SkillId) => void, onB
   box.hidden = v.sp <= 0 && !shop; // nothing to spend (Skill Points come from Kings, or the shop when it is on)
   box.innerHTML = `<span class="lbl">${t('sp.count', { n: v.sp })}</span>`;
   if (shop) {
-    const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: Math.round(E.spCost * v.stage) });
+    const buy = document.createElement('button'); buy.className = 'buysp'; buy.textContent = t('sp.buy', { cost: fmtN(E.spCost * v.stage) });
     buy.addEventListener('click', onBuy!);
     box.appendChild(buy);
   }
@@ -405,7 +405,7 @@ export function renderSp(v: Readonly<SimState>, onUp: (id: SkillId) => void, onB
 
 export function showRevive(v: Readonly<SimState>, cost: number): void {
   const wallet = Math.max(0, (v.meta.wallet || 0) - v.walletSpent), run = Math.min(v.runGold, cost);
-  $('reviveTxt').textContent = t('revive.text', { cost, run, wallet: Math.min(wallet, cost - run) });
+  $('reviveTxt').textContent = t('revive.text', { cost: fmtN(cost), run: fmtN(run), wallet: fmtN(Math.min(wallet, cost - run)) });
   show('ovRevive');
   focusSoon('reviveBtn');
 }
@@ -518,7 +518,7 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
     }
   });
   const c = document.createElement('div'); c.className = 'cost' + (afford ? '' : ' warn');
-  c.textContent = denied || !afford ? t('bench.short') + ' — ' + t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun }) : t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun });
+  c.textContent = denied || !afford ? t('bench.short') + ' — ' + t('bench.cost', { cost: fmtN(cost), run: fmtN(fromRun), wallet: fmtN(cost - fromRun) }) : t('bench.cost', { cost: fmtN(cost), run: fmtN(fromRun), wallet: fmtN(cost - fromRun) });
   box.append(...rows, bench, c);
 }
 
@@ -543,7 +543,7 @@ function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; 
   const rows = lines.filter((l) => l.points !== 0 || l.key === 'kills');
   box.innerHTML = '';
   const cells = rows.map((l) => {
-    const a = document.createElement('span'); a.textContent = t(`score.${l.key}`, { n: l.count });
+    const a = document.createElement('span'); a.textContent = t(`score.${l.key}`, { n: fmtN(l.count) });
     const b = document.createElement('span'); b.textContent = '0';
     box.append(a, b);
     return { b, to: l.points };
