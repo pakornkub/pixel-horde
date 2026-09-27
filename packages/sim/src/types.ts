@@ -262,6 +262,8 @@ export interface Player {
   guard: number; guardT: number;
   /** Sim clock of Kit's last Hawk Gust (`skills.hawk.gustCd`); missing = never. */
   gustAt?: number;
+  /** Sim clock of Kit's last Gale Burst (`skills.galeStep.burstCd`); missing = never. */
+  burstAt?: number;
 }
 
 export interface Enemy {
@@ -394,6 +396,10 @@ export interface Effect {
   heal?: number;
   /** Bone Prison: seconds the monsters inside are rooted. */
   root?: number;
+  /** Nova ring knockback override (Gale Burst). */
+  kb?: number;
+  /** Seconds the non-boss monsters it hits are slowed (Gale Burst). */
+  slow?: number;
 }
 
 /**
