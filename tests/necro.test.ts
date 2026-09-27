@@ -1,7 +1,7 @@
 // Ticket 57: Mora (Necromancer): Soul Rise Skeletons, her three Links, the Lich and Bone Ward.
 import { describe, expect, it } from 'vitest';
 import { parseBalanceConfig, resolveConfig } from '@pixel-horde/config';
-import { NECRO_SKILLS, createSim, type Enemy, type HeroId, type SimState } from '@pixel-horde/sim';
+import { AWK_TAGS, BONE_BURST, NECRO_SKILLS, createSim, hitTagsOf, type Enemy, type HeroId, type HitTag, type SimState } from '@pixel-horde/sim';
 import { hurtP } from '../packages/sim/src/systems/combat';
 import { buildOptions } from '../packages/sim/src/systems/progress';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
@@ -101,6 +101,13 @@ describe('Mora (ticket 57)', () => {
     d.mob(40, 0, 30);
     d.run(3);
     expect(d.s.P.hp).toBeGreaterThan(20);
+  });
+
+  it('her hits are Skill hits: never the Ultimate (raw / strike) or forge-scaled', () => {
+    for (const id of ['soulRise', 'soulDrain', 'bonePrison', 'wailSkull', 'boneSpear', 'soulfire', 'boneWard'] as const) {
+      for (const tag of hitTagsOf(id, true)) expect([id, !!tag.raw, !!tag.strike]).toEqual([id, false, false]);
+    }
+    expect([BONE_BURST, AWK_TAGS.wraith].some((t: HitTag) => t.raw || t.strike)).toBe(false);
   });
 
   it('her Links go to the other Heroes only with heroes.necromancer.pool 1', () => {
