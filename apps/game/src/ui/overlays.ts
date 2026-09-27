@@ -9,6 +9,7 @@ import { t } from '@pixel-horde/i18n';
 import { iconHtml } from './icons';
 import { onHeroPath } from './path';
 import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, formDesc, skillDescIn, skillDetail, skillName } from './text';
+import { realmIcon } from './realm-icon';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -338,7 +339,7 @@ export function renderRoute(v: Readonly<SimState>, onPick: (i: number) => void):
     if (advice.length) lines.push(t('route.advice', { list: advice.map((k) => skillName(k as SkillId)).join(', ') }));
     const bt = document.createElement('button');
     bt.className = 'opt';
-    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico" style="background:${REALM_ICON[id]}">${realmName(id)[0]}</span><span class="body"><span class="nm">${realmName(id)}</span>${lines.map((l) => `<span class="route-meta">${l}</span>`).join('')}</span>`;
+    bt.innerHTML = `<span class="key">${idx + 1}</span><span class="ico realm" style="background-color:${REALM_ICON[id]};--img:url(${realmIcon(id)})"></span><span class="body"><span class="nm">${realmName(id)}</span>${lines.map((l) => `<span class="route-meta">${l}</span>`).join('')}</span>`;
     bt.addEventListener('click', () => onPick(idx));
     bt.dataset.k = String(idx + 1);
     box.appendChild(bt);
