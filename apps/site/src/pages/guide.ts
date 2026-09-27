@@ -397,7 +397,8 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
       card(groundBg(el('div.pic.moon', null, el('div', { style: 'display:flex;gap:2px' }, enemy('slime', 2), enemy('bat', 2), enemy('slime', 2))), 0, 6, 6, 8), 'g.ev.moon.h', 'g.ev.moon.p', { s: E.bloodMoonSpawn, c: E.bloodMoonCoin }),
       card(groundBg(el('div.pic', null, enemy('dragon', 1)), 5, 6, 6, 1), 'g.ev.dragon.h', 'g.ev.dragon.p', { ch: Math.max(E.dragonFrom, E.bloodMoonFrom), k: 1 + C.companion.stored }),
       card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:6px' }, hero('mage', 3), enemy('rival', 3))), 2, 6, 6, 2), 'g.ev.rival.h', 'g.ev.rival.p', { s: C.rival.life, n: C.rival.shards }),
-      card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:4px' }, enemy('bossE', 2), enemy('bossS', 2))), 3, 6, 6, 5), 'g.ev.double.h', 'g.ev.double.p', { ch: E.doubleKingFrom, hp: pct(E.doubleKingHp) })));
+      card(groundBg(el('div.pic', null, el('div', { style: 'display:flex;gap:4px' }, enemy('bossE', 2), enemy('bossS', 2))), 3, 6, 6, 5), 'g.ev.double.h', 'g.ev.double.p', { ch: E.doubleKingFrom, hp: pct(E.doubleKingHp) })),
+    note('g.events.note', 'warn'));
 }
 
 // ── 12. Skill Points ───────────────────────────────────

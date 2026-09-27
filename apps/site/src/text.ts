@@ -109,7 +109,7 @@ export const TXT = {
   'g.goal.click': { th: 'กดที่ดินแดนเพื่อดูว่าเจออะไรบ้าง', en: 'Click a Realm to see what lives there' },
   'g.goal.end': { th: 'ชนะ Umbra = ช่วย Lumora สำเร็จ! แล้วเล่นต่อโหมด Endless ได้ และหน้าเมนูหลักจะมีปุ่ม Endless: เริ่มตั้งแต่ Chapter 1 สุ่มดินแดนทุก Chapter เล่นไปจนกว่าจะแพ้ คะแนน Endless เริ่มนับที่ Chapter {n}', en: 'Beat Umbra and Lumora is saved! Then keep going in Endless Mode, and the title screen gets an Endless button: start at Chapter 1 with a random Realm every Chapter and play until you fall. The Endless Score counts from Chapter {n}.' },
   'g.goal.pick': { th: 'เลือก 1 ใน 2', en: 'pick 1 of 2' },
-  'g.goal.lost': { th: 'ตายเมื่อไหร่ รอบนั้นจบ ของทุกอย่างในรอบหายหมด <b>ยกเว้น Gold</b> ที่เอาไปอัปเกรดถาวรได้', en: 'If you fall, the Run ends. Everything from that Run is lost <b>except Gold</b>, which buys permanent upgrades.' },
+  'g.goal.lost': { th: 'ตายเมื่อไหร่ รอบนั้นจบ สกิลและของที่ได้ในรอบหายหมด แต่ <b>Gold</b> ที่ได้ยังอยู่ ไว้ซื้ออัปเกรดถาวร (อาวุธที่ราชาดรอปให้ก็เก็บไว้ได้)', en: 'If you fall, the Run ends. Your skills and everything else from that Run are lost, but the <b>Gold</b> you earned stays and buys permanent upgrades (so does a Weapon a King dropped).' },
 
   'g.stage.h': { th: 'ในหนึ่งด่านเกิดอะไรบ้าง', en: 'What happens in a Stage' },
   'g.stage.p': { th: 'แต่ละ Chapter คือด่านจับเวลา 1 ด่าน มอนจะเยอะขึ้นเรื่อย ๆ ตามเวลา ลากแถบเพื่อดูแต่ละช่วง', en: 'Each Chapter is one timed Stage. Monsters keep growing in number. Drag the slider to see each moment.' },
@@ -204,6 +204,8 @@ export const TXT = {
   'g.ev.rival.p': { th: 'ร่างเงาหน้าตาเหมือนคุณ ใช้สกิลคล้ายคุณ มีเวลา {s} วิ ชนะได้ = ได้ร่างโคลนช่วยยิง หรือเศษเงา ({n} เศษ = ร่างโคลน)', en: 'A shadow wearing your face, using skills like yours. You have {s} s. Win for a Shadow Clone that copies your casts, or a shard ({n} shards = a clone).' },
   'g.ev.double.h': { th: 'ราชา 2 องค์', en: 'Double King' },
   'g.ev.double.p': { th: 'Chapter {ch}+ มีโอกาสเจอราชา 2 องค์พร้อมกัน เลือดคนละ {hp}% ได้รางวัลทั้งคู่', en: 'From Chapter {ch}, two Kings may show up at once, each at {hp}% HP. You get both rewards.' },
+
+  'g.events.note': { th: 'รางวัลจากด่านพิเศษอยู่แค่ในรอบนี้: มังกรคู่หูและร่างโคลน (เหมือน Skill Point และสกิลที่เก็บในรอบ) หายไปเมื่อจบรอบ ไม่ว่าชนะหรือแพ้ ส่วนของถาวร เช่น Gold อาวุธที่ได้ ระดับหัวใจร้าว ของจากร้านพิเศษ ฮีโร่ และความสำเร็จ ยังอยู่ครบ', en: 'Event rewards last only for this Run: the Companion dragon and the Shadow Clone (like your Skill Points and in-Run skills) are gone once it ends, win or lose. Permanent things stay: Gold, Weapons you found, Heart Crack tiers, Special shop items, Heroes and achievements.' },
 
   'g.sp.h': { th: 'Skill Point', en: 'Skill Points' },
   'g.sp.p': { th: 'ได้จาก <b>ราชา</b> เท่านั้น (ราชาละ {n} SP) ใช้ได้เฉพาะในรอบนั้น จบรอบแล้วหายไป:', en: 'Only <b>Kings</b> give them ({n} SP each). They last for that Run only:' },
