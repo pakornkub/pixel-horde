@@ -198,6 +198,24 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.meta.outfits).toEqual({ 'frost:hat': 2, 'ember:cloak': 1 });
   });
 
+  it('outfits: buying a piece for a filled slot never takes off what is worn (a full set stays whole)', async () => {
+    for (const status of ['offline', 'online'] as const) {
+      const f = fakeBackend(status);
+      f.server.stats = { heartCrack: 1 }; f.server.gold = 5000;
+      const ms = createMetaSync(f.b, memStore());
+      ms.unlockCrack(0);
+      if (status === 'offline') ms.bankLocal(5000); else await ms.sync();
+      for (const slot of ['hat', 'body', 'cloak'] as const) expect(await ms.buyOutfit('ember', slot)).toBeNull();
+      const set = { hat: { set: 'ember', lv: 1 }, body: { set: 'ember', lv: 1 }, cloak: { set: 'ember', lv: 1 } };
+      expect(ms.worn(), status).toEqual(set);
+      expect(await ms.buyOutfit('frost', 'hat')).toBeNull(); // bought, but the Ember hat stays on
+      expect(ms.worn(), status).toEqual(set);
+      expect(ms.outfitLv('frost', 'hat'), status).toBe(1);
+      ms.wearOutfit('hat', 'frost'); // the player puts it on by hand
+      expect(ms.worn().hat, status).toEqual({ set: 'frost', lv: 1 });
+    }
+  });
+
   it('uploads an old artifact save exactly once, before anything else', async () => {
     const f = fakeBackend('online');
     const store = memStore({ 'pixelhorde-meta': JSON.stringify({ gold: 900, up: { power: 2 }, owned: ['ranger'], ch: 'ranger' }) });

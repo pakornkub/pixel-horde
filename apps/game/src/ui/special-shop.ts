@@ -11,6 +11,8 @@ import { $, hide, show } from './overlays';
 type Tab = 'forge' | 'mastery' | 'outfits';
 let tab: Tab = 'forge';
 let msg = '';
+/** The message is good news (e.g. bought but not worn), not a refusal. */
+let msgOk = false;
 /** Tutorial-hint id marking that the player has seen the unlocked special shop (clears the NEW badge). */
 const SEEN = 'special';
 
@@ -104,6 +106,7 @@ function forgeRows(box: HTMLElement): void {
       bt.disabled = true;
       const err = await metaSync.forgeWeapon(w);
       msg = buyError(err);
+      msgOk = false;
       if (!err) sfx('lv');
       render();
     });
@@ -127,72 +130,96 @@ function forgeRows(box: HTMLElement): void {
 const SET_COL: Record<OutfitSet, string> = { ember: '#ff7a3d', frost: '#9fd8ff', storm: '#ffe35c', shadow: '#9a7aff' };
 const SLOT_GLYPH: Record<OutfitSlot, string> = { hat: 'H', body: 'B', cloak: 'C' };
 
-/** A piece's stat at a level, as shown in the shop. */
+/** A piece's stat at a level, value only (the legend above the sets names the stat of each slot). */
 function slotValue(slot: OutfitSlot, lv: number): string {
   const O = active.cfg.outfits;
-  if (slot === 'hat') return t('outfit.stat.hat', { v: round(O.hatDmg * lv * 100) });
-  if (slot === 'body') return t('outfit.stat.body', { v: round(O.bodyHp * lv, 0) });
-  return t('outfit.stat.cloak', { v: round(O.cloakCrit * lv * 100) });
+  if (slot === 'hat') return `+${round(O.hatDmg * lv * 100)}%`;
+  if (slot === 'body') return `+${round(O.bodyHp * lv, 0)}`;
+  return `+${round(O.cloakCrit * lv * 100)}%`;
 }
 /** The full-set bonus (%) with its lowest piece at a level. */
 const setPct = (lv: number): string => round((active.cfg.outfits.setBase + active.cfg.outfits.setPerLv * lv) * 100, 0);
 
 function outfitRows(box: HTMLElement): void {
   const C = active.cfg, max = C.outfits.max, full = outfitSet(C, metaSync.worn());
-  const p = (text: string, cls = 'slots'): void => { const e = document.createElement('p'); e.className = cls; e.textContent = text; box.appendChild(e); };
+  const p = (text: string, cls = 'slots'): HTMLElement => { const e = document.createElement('p'); e.className = cls; e.textContent = text; box.appendChild(e); return e; };
   p(t('outfit.note'));
-  p(full ? t('outfit.active', { set: t(`outfit.set.${full.set}.name`), bonus: t(`outfit.set.${full.set}.bonus`, { v: setPct(full.lv) }) }) : t('outfit.none'), 'slots goldline');
+  p(t('outfit.legend'), 'slots legend');
+  // the worn set as a chip: green when complete, small grey hint otherwise
+  p(full ? t('outfit.active', { set: t(`outfit.set.${full.set}.name`), bonus: t(`outfit.set.${full.set}.bonus`, { v: setPct(full.lv) }) }) : t('outfit.none'), full ? 'ochip on' : 'ochip');
+  const grid = document.createElement('div');
+  grid.className = 'osets';
+  box.appendChild(grid);
   for (const set of OUTFIT_SETS) {
-    const h = document.createElement('h3');
-    h.className = 'oset';
-    h.style.borderColor = SET_COL[set];
-    h.textContent = `${t(`outfit.set.${set}.name`)} · ${t(`outfit.set.${set}.bonus`, { v: setPct(1) + '–' + setPct(max) })}`;
-    box.appendChild(h);
+    const card = document.createElement('div');
+    card.className = 'ocard';
+    card.style.borderColor = SET_COL[set];
+    const lows = OUTFIT_SLOTS.map((slot) => metaSync.outfitLv(set, slot)), low = Math.min(...lows);
+    const h = document.createElement('div');
+    h.className = 'ohead';
+    const b = document.createElement('b');
+    b.textContent = t(`outfit.set.${set}.name`);
+    const d = document.createElement('small');
+    d.textContent = `${t(`outfit.set.${set}.target`)} · ${t('outfit.bonusLine', { now: low ? `+${setPct(low)}%` : t('forge.none'), max: `+${setPct(max)}%` })}`;
+    h.append(b, d);
+    card.appendChild(h);
+    const row = document.createElement('div');
+    row.className = 'opieces';
     for (const slot of OUTFIT_SLOTS) {
       const lv = metaSync.outfitLv(set, slot), maxed = lv >= max, cost = outfitCost(C, lv), wearing = META.wear[slot] === set && lv > 0;
-      const row = document.createElement('div');
-      row.className = 'srow' + (lv ? '' : ' locked');
+      const cell = document.createElement('div');
+      cell.className = 'opiece' + (lv ? '' : ' unowned');
       const ico = document.createElement('span');
       ico.className = 'ico';
       ico.style.background = SET_COL[set];
       ico.textContent = SLOT_GLYPH[slot];
-      const txt = document.createElement('span');
       const nm = document.createElement('span');
       nm.className = 'nm';
+      nm.textContent = t(`outfit.slot.${slot}`);
       const lvs = document.createElement('span');
       lvs.className = 'lv';
       lvs.textContent = t('forge.lv', { lv, max });
-      nm.append(t(`outfit.slot.${slot}`) + ' ', lvs);
       const ds = document.createElement('span');
       ds.className = 'ds';
       ds.textContent = lv === 0 ? slotValue(slot, 1) : maxed ? slotValue(slot, lv) : `${slotValue(slot, lv)} → ${slotValue(slot, lv + 1)}`;
-      txt.append(nm, ds);
-      const btns = document.createElement('span');
-      btns.className = 'btns';
       const bt = document.createElement('button');
       priceButton(bt, cost, maxed);
-      if (!lv && !bt.disabled) bt.textContent = t('outfit.get', { cost });
+      if (!maxed && !bt.classList.contains('short')) bt.textContent = t(lv ? 'outfit.up' : 'outfit.get', { cost });
       bt.addEventListener('click', async () => {
         bt.disabled = true;
         const err = await metaSync.buyOutfit(set, slot);
         msg = buyError(err);
-        if (!err) sfx('lv');
+        msgOk = false;
+        if (!err) {
+          sfx('lv');
+          if (!lv && META.wear[slot] !== set) { msg = t('outfit.bought'); msgOk = true; } // kept the worn piece on
+        }
         render();
       });
-      btns.appendChild(bt);
-      if (lv) {
+      cell.append(ico, nm, lvs, ds, bt);
+      if (wearing) {
+        const w = document.createElement('span');
+        w.className = 'oworn';
+        w.textContent = t('outfit.worn');
+        const off = document.createElement('button');
+        off.className = 'link';
+        off.textContent = t('outfit.off');
+        off.addEventListener('click', () => { metaSync.wearOutfit(slot, null); render(); });
+        w.append(' ', off);
+        cell.appendChild(w);
+      } else if (lv) {
         const wb = document.createElement('button');
-        wb.className = 'buy ghost' + (wearing ? ' on' : '');
-        wb.textContent = wearing ? t('outfit.worn') : t('outfit.wear');
-        wb.addEventListener('click', () => { metaSync.wearOutfit(slot, wearing ? null : set); render(); });
-        btns.appendChild(wb);
+        wb.className = 'buy ghost';
+        wb.textContent = t('outfit.wear');
+        wb.addEventListener('click', () => { metaSync.wearOutfit(slot, set); msg = ''; render(); });
+        cell.appendChild(wb);
       }
-      row.append(ico, txt, btns);
-      box.appendChild(row);
+      row.appendChild(cell);
     }
+    card.appendChild(row);
+    grid.appendChild(card);
   }
 }
-
 
 function render(): void {
   $('specialGold').textContent = 'GOLD ' + META.gold;
@@ -210,6 +237,7 @@ function render(): void {
   else p(t(`special.${tab}Soon`));
   const m = $('specialMsg');
   m.textContent = msg;
+  m.classList.toggle('err', !msgOk);
   m.hidden = !msg;
 }
 

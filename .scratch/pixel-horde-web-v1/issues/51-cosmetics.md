@@ -23,9 +23,12 @@ Owner decisions (2026-09-27, ticket 56 session), replacing the looks-only idea:
 - [x] Balance Config group `shared.outfits` (+ Thai descriptions, changelog category economy)
 - [x] Sim: `packages/sim/src/data/outfits.ts` (sets, slots, `outfitStats`, `outfitSet`, `outfitTarget`, `outfitCost`,
       `outfitKey`), `Meta.outfit` (worn pieces + levels), `recompute` adds the stats, `hit()` adds the set bonus
-- [x] Game: `metaSync.outfitLv / buyOutfit / wearOutfit / worn` (bought offline = queued; a new piece is worn at once;
-      what is worn is a local choice like the picked Weapon), backend `buyOutfit` → RPC `buy_outfit`
-- [x] Special shop Outfits tab: the worn full set, 4 sets × 3 pieces with level, stat now → next, buy / upgrade, wear
+- [x] Game: `metaSync.outfitLv / buyOutfit / wearOutfit / worn` (bought offline = queued; a new piece is worn at once
+      only when its slot is empty, so a worn set never breaks; what is worn is a local choice like the picked Weapon), backend `buyOutfit` → RPC `buy_outfit`
+- [x] Special shop Outfits tab (after the PR #55 UX review): a stat legend, the worn set as a chip (green when full),
+      one card per set (target + "now / up to" bonus) with its 3 pieces side by side: level, value now → next, Buy / Upgrade
+      (red "Need nG" when short), Wear or "✓ Worn · Take off"; unowned pieces fade only their icon and name; "Bought · tap
+      Wear" when a new piece did not replace a worn one
 - [x] Migration `20260930000041_outfit_gear.sql`: `config_schema` group `shared.outfits`, `outfit_num`, `outfit_cost`,
       RPC `buy_outfit(p_set, p_slot)` (security definer; UNKNOWN_ITEM, SHOP_LOCKED via `has_won`, MAXED,
       NOT_ENOUGH_GOLD); levels in `meta_progress.shop` as `outfit:<set>:<slot>`; supabase/tests/019_outfit_gear.test.sql
