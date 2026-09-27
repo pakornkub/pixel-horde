@@ -4,10 +4,10 @@
 
 **Blocked by:** 08 (Anonymous Player Accounts, nicknames and one-place-at-a-time sessions); 11 (Link Google and merge accounts); 12 (Feature flags, maintenance mode, minimum build and announcements); 31 (Suspend and resume a Run)
 
-**Status:** needs-info — code done; waiting for the owner to generate/choose the two Gemini backgrounds
+**Status:** done — owner picked the "daytime crossroad meadow" backgrounds; wired into `TITLE_BG`
 
 - [x] Backgrounds are WebP ≤ ~300 KB each with a solid color while loading
-- [ ] Owner chooses among several generated backgrounds
+- [x] Owner chooses among several generated backgrounds
 - [x] Layout works in portrait mobile and landscape desktop
 
 ## Notes (implementation)
@@ -21,5 +21,7 @@
 - **Owner:** generate several 16:9 and 9:16 pixel-art backgrounds (Gemini), choose one of each, export WebP ≤ ~300 KB.
 
 **Update 2026-09-26:** the title fits small phones (a `max-height: 720px` step), shows a "New update! {date}" notice with the latest patch note linking to the website Updates page (`apps/game/src/ui/update-note.ts`), has a Feedback button, and in in-app browsers explains that Google sign-in is blocked (Open in Chrome / Copy game link, `apps/game/src/platform/inapp.ts`). `TITLE_BG` is still empty, so the backgrounds are still with the owner.
+
+**Update 2026-09-28:** owner picked the "daytime crossroad meadow" style from 3 Gemini-generated 16:9 candidates (2026-09-28, via the game Q&A Operator session). Final WebPs (`title-wide.webp` 87 KB, `title-tall.webp` 105 KB) copied to `apps/game/public/bg/`; `TITLE_BG.wide`/`.tall` in `apps/game/src/ui/title.ts` now point to them. Verified in-browser at desktop and mobile (portrait) widths: picture loads behind the title UI, no layout shift or horizontal scroll. `npm run check` passes (lint, typecheck, 397 Vitest tests, both builds); the Chromium/Firefox/WebKit binaries for `tests/browser/title.spec.ts` are not installed on this host and the sandbox has no network access to download them, so that Playwright spec could not be executed here — its assertions (element visibility, no horizontal overflow, Hero panel) were re-checked manually in the browser pane at both viewports with no diff to what `title.spec.ts` locks in. Ticket closed out.
 
 Spec: `.scratch/pixel-horde-web-v1/spec.md` · Decisions: `docs/blueprint/pixel-horde-blueprint.md`
