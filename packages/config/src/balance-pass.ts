@@ -505,6 +505,42 @@ export const BALANCE_PASS_2026_09F: BalancePass = {
   },
 };
 
+/** Follow-up to 2026-09f (load both on one draft): with no Awakened skill handed out, Awakened skills show up more often. */
+export const BALANCE_PASS_2026_09G: BalancePass = {
+  id: '2026-09g',
+  note: 'Awakened skills show up more often in level-ups (wLine 2 → 3), so Awakening without a handed-out skill still brings one',
+  patch: { shared: { awaken: { wLine: 3 } } },
+  changelog: {
+    titleTh: 'สกิลตื่นพลังโผล่ในการ์ดเลเวลอัปบ่อยขึ้น',
+    titleEn: 'Awakened skills show up more often in level-ups',
+    items: [
+      { cat: 'skill', th: 'หลังตื่นพลัง สกิลตื่นพลังโผล่ในการ์ดเลเวลอัปบ่อยกว่าสกิลอื่น 3 เท่า (เดิม 2 เท่า)', en: 'After Awakening, Awakened skills show up in level-ups three times as often as other skills (was twice)' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09g: สกิลตื่นพลังโผล่บ่อยขึ้น (คู่กับ 2026-09f)',
+    summary: '2026-09f เลิกแจกสกิลตื่นพลังตัวแรกตอนตื่นพลัง (awaken.grant 0) บอทพบว่า 17–25% ของรอบที่ตื่นพลังจบโดยไม่มีสกิลตื่นพลังเลย '
+      + 'และส่วนดาเมจของสกิลตื่นพลังหลังตื่นพลังลดครึ่ง (10% → 5%) ตื่นพลังจึงรู้สึกว่างลง ชุดนี้ให้สกิลตื่นพลังโผล่ในการ์ดเลเวลอัปบ่อยขึ้น (wLine 2 → 3) '
+      + 'รอบที่ตื่นพลังแล้วมีสกิลตื่นพลังกลับมาเป็น 92–97% โดยความยากไม่เปลี่ยน',
+    method: 'บอท playtest (scripts/playtest) บน main 426162a ความยากพื้นฐานใหม่ (ticket 48) 4 ฮีโร่ × 16 seed ต่อช่อง เทียบ v8 (ถึง 2026-09-coop2), v8 + 09f และ v8 + 09f + wLine 3 '
+      + 'ที่ Crack 0 (บัญชีใหม่/ร้านกลาง/ร้านเต็ม) และ Heart Crack 3 (ร้านกลาง/ร้านเต็ม) วัดดาเมจของ Shadow Clone แยกจากผู้เล่น',
+    metrics: [
+      { label: 'ร้าว 3: ชนะ Umbra ร้านกลาง / เต็ม', before: 'v8 89 / 100%, +09f 88 / 97%', after: '86 / 98% (เท่าเดิมในช่วงสุ่ม ±10)' },
+      { label: 'รอบที่ตื่นพลังแล้วจบโดยมีสกิลตื่นพลัง (ร้านกลาง / เต็ม)', before: 'v8 100 / 100%, +09f 78 / 83%', after: '92 / 97%' },
+      { label: 'ส่วนดาเมจของสกิลตื่นพลังหลังตื่นพลัง (ร้านกลาง / เต็ม)', before: 'v8 10 / 10%, +09f 5 / 4%', after: '7 / 6%' },
+      { label: 'Shadow Clone (09f): ได้ Clone / ส่วนดาเมจเมื่อได้', before: '-', after: '25–41% ของรอบ / ~5%' },
+      { label: 'อัตราตื่นพลัง (อัตโนมัติ)', before: '56% ที่ด่าน ~4–5 (เท่ากับตอนบอทกดรับเอง)', after: 'เท่าเดิม' },
+    ],
+    findings: [
+      { level: 'warn', title: 'ตื่นพลังโดยไม่ได้สกิลตื่นพลัง', body: 'หลัง 09f ราว 1 ใน 5 ของรอบที่ตื่นพลังจบโดยไม่มีสกิลตื่นพลัง บอทเลือกสกิลตื่นพลังทุกครั้งที่เห็น ผู้เล่นจริงอาจได้น้อยกว่านี้', status: 'แก้ด้วย awaken.wLine 3' },
+      { level: 'info', title: 'Shadow Clone แบบใหม่พอดี', body: 'ช่วยดาเมจราว 4–9% เมื่อได้ Clone ไม่แรงเกินและไม่ไร้ประโยชน์', status: 'ไม่ต้องแก้' },
+      { level: 'info', title: 'ความยากพื้นฐานเห็นผลน้อย', body: 'ที่ Crack 0 ทุกชุดชนะ Umbra 92–100% ผลต่างเห็นได้ที่หัวใจร้าวเท่านั้น', status: 'ข้อมูล' },
+    ],
+    reasons: {
+      'shared.awaken.wLine': 'สกิลตื่นพลังไม่แจกแล้ว (09f) จึงให้โผล่ในการ์ดเลเวลอัปบ่อยขึ้น',
+    },
+    next: ['หลัง publish ดูข้อมูลจริง: สกิลตื่นพลังที่ผู้เล่นมีตอนจบรอบ'],
+
 /** v6 audit follow-up on the new base difficulty (ticket 48): Heart Crack as a ramp of 10 tiers, a Score bonus per tier,
  *  and Kit's late game. Needs migration 20260930000033 (new fields, tiers above 3 on the server). */
 export const BALANCE_PASS_2026_09E: BalancePass = {
@@ -574,4 +610,4 @@ export const BALANCE_PASS_2026_09E: BalancePass = {
 };
 
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
