@@ -69,3 +69,20 @@ test('pause menu: View skills shows the board read-only (Awakened row, no swappi
   await page.click('#resumeBtn');
   await expect(page.locator('#ovPause.on')).toHaveCount(0);
 });
+
+test('before Awakening: the three Awakened slots are one compact locked row with the progress checklist', async ({ page }) => {
+  await page.route('**/*.supabase.co/**', (r) => r.abort());
+  await page.addInitScript(() => localStorage.setItem('pixelhorde-named', '1'));
+  await page.goto('/?offline&debug=god#draftcfg=' + draft({ shared: { awaken: { lineSlots: 3, slots: 0, keep: 1 } } }));
+  await page.click('#startBtn');
+  await expect(page.locator('#pauseBtn')).toBeVisible();
+  await page.click('#pauseBtn');
+  await page.click('#skillsBtn');
+  const view = page.locator('#ovSkills.on #skillsView');
+  const locks = view.locator('.row.awk.locked .sk.lock');
+  await expect(locks).toHaveCount(3);
+  const ys = await locks.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  expect(new Set(ys).size).toBe(1); // all three on one line, even on a phone
+  await expect(view.locator('.awk-prog')).toContainText('☐');
+  if (SHOTS) await view.screenshot({ path: `${SHOTS}/locked-${tag()}.png` });
+});
