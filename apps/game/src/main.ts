@@ -612,6 +612,9 @@ $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle')
 $('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
 initCollection();
 initTitle();
+// co-op host reconnecting: the network is back / the page is visible again → try at once
+addEventListener('online', () => coop?.retryNow());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') coop?.retryNow(); });
 initLobby({ name: () => backend.account()?.nickname ?? 'Hero', pid: playerPid, onStart: (s, seed, cfg) => void startCoop(s, seed, cfg), onClosed: coopClosed });
 // invite link: join once the account (and its nickname) is ready, so the room shows the right name
 let inviteCode: string | null = new URLSearchParams(location.search).get('join');

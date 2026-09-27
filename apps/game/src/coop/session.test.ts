@@ -115,7 +115,9 @@ describe('co-op session over the in-memory hub', () => {
     expect(hev.some((e) => e.t === 'reconnecting')).toBe(true);
     run(30);
     expect(guest.silent()).toBeGreaterThan(0.4); // nothing from the host meanwhile
-    timers.shift()!(); // the first retry
+    host.retryNow(); // the network came back: no need to wait for the timer
+    hub.flush();
+    timers.shift()!(); // the timer's retry fires later: nothing happens twice
     hub.flush();
     expect(host.reconnecting).toBe(false);
     expect(hev.some((e) => e.t === 'reconnected')).toBe(true);

@@ -20,6 +20,7 @@ let the same host (same `pid`) come back and carry on; guests keep showing "wait
 - [x] Host session: on a dropped connection during the Run it reconnects with the same code / pid
       (`REJOIN_DELAYS`: 0.5, 1, 2, 3 s then every 5 s, ending inside the grace); its world waits and
       "Connection lost, getting back into the room…" shows; `reconnecting` / `reconnected` events
+- [x] Host: tries again at once when the network comes back (`online`) or the page is visible again (`retryNow()`)
 - [x] Host sim: `coopId` command moves `coop.self` (and its pot entry) to the new connection id
 - [x] Tests: `apps/game/src/net/transport.test.ts` (wait, rejoin, stranger refused, timeout, bye),
       `apps/game/src/coop/session.test.ts` (drop → retry → back, sim id, guests carry on)
@@ -30,6 +31,8 @@ let the same host (same `pid`) come back and carry on; guests keep showing "wait
 
 ## Notes
 
+- Owner decision 2026-09-27: a host who reloads or closes the page mid-Run ends the room (the room waits 45 s, then
+  closes; everyone keeps what they earned). Resuming a co-op Run from a saved checkpoint was not taken (bigger job).
 - The host's world keeps its state while reconnecting (it pauses); a guest who waited longer than `coop.hostGone`
   (60 s) has left by then — the grace (45 s) is shorter on purpose.
 - A host who comes back after the room closed claims a new empty room with the same code and plays on alone.

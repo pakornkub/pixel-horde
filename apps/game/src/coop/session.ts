@@ -59,7 +59,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
   const emit = (e: SessionEvent): void => { for (const f of [...fns]) f(e); };
   let selfId = '', hostId = '', peers: PeerInfo[] = [], open = false, closed = false;
   // host reconnect: tries so far, and a new connection id the sim still has to learn (coopId command)
-  let rejoin = -1, leaving = false, newId = false;
+  let rejoin = -1, leaving = false, newId = false, connecting = false, retryToken = 0;
   const me: LobbyPlayer = { id: '', name: o.name, hero: o.hero, weapon: o.weapon, ready: o.role === 'host', host: o.role === 'host', build: o.build ?? 0 };
   const lobby = new Map<string, LobbyPlayer>();
   let started: { seed: number; cfg: number } | null = null;
@@ -93,7 +93,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
   const onEvent = (e: TransportEvent): void => {
     if (e.t === 'open') {
       const back = rejoin >= 0;
-      open = true; selfId = e.id; me.id = e.id; hostId = e.host; peers = e.peers;
+      connecting = false; open = true; selfId = e.id; me.id = e.id; hostId = e.host; peers = e.peers;
       if (back) { rejoin = -1; newId = true; tr.lock(true); emit({ t: 'reconnected' }); return; }
       hello(); pushLobby(); return;
     }
@@ -109,12 +109,14 @@ export function createSession(connect: Connect, o: SessionOptions) {
       return;
     }
     if (e.t === 'closed') {
+      connecting = false;
       // the host's connection dropped during the Run (or a retry failed): the room waits for it — try to get back in
       const retry = o.role === 'host' && !!started && !leaving && e.reason !== 'left' && e.reason !== 'taken';
       if (retry && rejoin + 1 < REJOIN_DELAYS.length) {
         open = false; rejoin++;
         emit({ t: 'reconnecting', tries: rejoin + 1 });
-        later(REJOIN_DELAYS[rejoin], () => { if (!leaving) attach(); });
+        const token = ++retryToken;
+        later(REJOIN_DELAYS[rejoin], () => { if (!leaving && token === retryToken && !connecting) attach(); });
         return;
       }
       closed = true; emit({ t: 'closed', reason: e.reason }); return;
@@ -153,7 +155,7 @@ export function createSession(connect: Connect, o: SessionOptions) {
       else if (m.k === 'team') emit({ t: 'team', ready: m.ready, votes: m.votes, left: m.left });
     }
   };
-  function attach(): void { tr = connect({ code: o.code, role: o.role, name: o.name, pid: o.pid }); tr.onEvent(onEvent); }
+  function attach(): void { connecting = true; tr = connect({ code: o.code, role: o.role, name: o.name, pid: o.pid }); tr.onEvent(onEvent); }
   attach();
 
   return {
@@ -163,6 +165,8 @@ export function createSession(connect: Connect, o: SessionOptions) {
     get isOpen(): boolean { return open && !closed; },
     /** Host: the connection dropped during the Run and it is getting back in (the room waits; so does this world). */
     get reconnecting(): boolean { return rejoin >= 0 && !closed; },
+    /** Host reconnecting: try now (the network came back, the page is visible again) instead of waiting for the timer. */
+    retryNow(): void { if (rejoin >= 0 && !closed && !leaving && !connecting) { retryToken++; attach(); } },
     get started(): boolean { return !!started; },
     players,
     names,
