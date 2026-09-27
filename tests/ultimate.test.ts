@@ -216,6 +216,20 @@ describe('Weapon forge (ticket 56)', () => {
     expect(onBoss('gearCannon', 0, 1, 'boss', 20 * 60)).toBeLessThan(0.085);
   });
 
+  it('ult.bossHit never raises Plague Censer poison on a boss (poison follows the strike before the floor)', () => {
+    const pois = (bossHit: number): number => {
+      const { s, step } = fresh({ weapon: 'plagueCenser', config: asWritten({ shared: { ult: { bossHit } } }), meta: { up: {}, weapons: [weaponKey('plagueCenser')] } });
+      s.P.skills = {};
+      const king = spawnEnemy(s, 'boss', -30, 0, false); king.hp = king.maxHp = 1e6; king.spd = 0;
+      s.ult = s.cfg.ult.max;
+      step(1, [{ type: 'ult' }]);
+      for (let i = 0; i < 60 && !king.poisDps; i++) step();
+      return king.poisDps!;
+    };
+    expect(pois(0)).toBeGreaterThan(0);
+    expect(pois(1)).toBeCloseTo(pois(0), 9);
+  });
+
   it('Judgement: forged levels stun the monsters that survive', () => {
     expect(forgedStrike('judgement', {}).mob.stun ?? 0).toBe(0);
     const f = forgedStrike('judgement', { judgement: 3 });

@@ -98,8 +98,6 @@ const forged = (s: SimState): number => forgeLevel(s.cfg, s.meta.forge, s.weapon
 function ultStrike(s: SimState, e: Enemy, dmg: number, heal: { left: number }): void {
   const w = WEAPONS[s.weapon], W = s.cfg.weapons, S = s.cfg.status, P = s.P, lv = forged(s), fm = forgeMul(s.cfg, s.weapon, lv);
   if (w.form === 'reap' && !e.boss && e.hp < e.maxHp * Math.min(1, W.execute * fm)) dmg = e.hp; // reaped outright
-  // bosses: at least bossHit × this player's (forged) cap; only this strike, never turret shots or other raw follow-ups
-  if (e.boss) dmg = Math.max(dmg, e.maxHp * ultCap(s.cfg, e.type === 'umbra', lv) * s.cfg.ult.bossHit);
   const kb = s.cfg.ult.kb * (w.form === 'crash' ? W.crashKb * fm : 1);
   hit(s, e, dmg, w.col, kb, w.form === 'burn' || w.form === 'crash' ? ULT_STRIKE_BURN : ULT_STRIKE);
   if (w.form === 'harvest' && heal.left > 0) { const h = Math.min(heal.left, P.maxHp * W.harvestHeal * fm); heal.left -= h; P.hp = Math.min(P.maxHp, P.hp + h); }
