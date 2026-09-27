@@ -142,6 +142,23 @@ describe('Awakening', () => {
     expect(lineSlots(s)).toBe(0);
   });
 
+  it('awaken.lineSlots: Mora\'s Awakened skills (Bone Spear, Soulfire, Bone Ward) take the Awakened slots too', async () => {
+    const { lineSlots, slotUse } = await import('@pixel-horde/sim');
+    const { buildOptions } = await import('../packages/sim/src/systems/progress');
+    const { s, endStage, next, maxLinks } = setup('necromancer');
+    s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, lineSlots: 3, grant: 3, grantLv: 1 } };
+    maxLinks(3); // Signature + three Links: every normal slot is full
+    endStage(); next(); endStage();
+    expect(s.P.awakened).toBe(true);
+    expect(lineSlots(s)).toBe(3);
+    for (const id of AWAKENING.necromancer.line) expect(s.P.skills[id]).toBe(1); // all three in their own slots, none benched
+    expect(AWAKENING.necromancer.line).toEqual(['boneSpear', 'soulfire', 'boneWard']);
+    expect(slotUse(s, 'boneSpear')).toEqual({ used: 3, max: 3 });
+    expect(slotUse(s, signatureOf('necromancer'))).toEqual({ used: 4, max: s.cfg.maxAttackSlots });
+    expect(s.P.bench.some((b) => AWAKENING.necromancer.line.includes(b.id as never))).toBe(false);
+    for (let i = 0; i < 30; i++) for (const o of buildOptions(s)) if (o.kind === 'skill' && AWAKENING.necromancer.line.includes(o.id as never)) expect(o.toBench).toBeUndefined();
+  });
+
   it('awaken.lineSlots: three Awakened-only slots next to full normal slots (4 + 3 = 7)', async () => {
     const { attackSlots, lineSlots, slotUse } = await import('@pixel-horde/sim');
     const { buildOptions, swapBench } = await import('../packages/sim/src/systems/progress');
