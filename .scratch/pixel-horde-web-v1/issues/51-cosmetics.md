@@ -31,7 +31,7 @@ Owner decisions (2026-09-27, ticket 56 session), replacing the looks-only idea:
       Wear" when a new piece did not replace a worn one
 - [x] Migration `20260930000041_outfit_gear.sql`: `config_schema` group `shared.outfits`, `outfit_num`, `outfit_cost`,
       RPC `buy_outfit(p_set, p_slot)` (security definer; UNKNOWN_ITEM, SHOP_LOCKED via `has_won`, MAXED,
-      NOT_ENOUGH_GOLD); levels in `meta_progress.shop` as `outfit:<set>:<slot>`; supabase/tests/019_outfit_gear.test.sql
+      NOT_ENOUGH_GOLD); levels in `meta_progress.shop` as `outfit:<set>:<slot>`; supabase/tests/020_outfit_gear.test.sql
 - [x] Tests: tests/outfits.test.ts, apps/game/src/meta.test.ts
 - [ ] Art (follow-up): outfit sprites for every Hero (5 Heroes × 4 sets × 3 pieces, side / down / up walk frames) and
       12 shop icons; then the Hero preview in the Outfits tab
