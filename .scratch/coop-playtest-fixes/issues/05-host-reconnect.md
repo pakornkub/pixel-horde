@@ -31,8 +31,10 @@ let the same host (same `pid`) come back and carry on; guests keep showing "wait
 
 ## Notes
 
-- Owner decision 2026-09-27: a host who reloads or closes the page mid-Run ends the room (the room waits 45 s, then
-  closes; everyone keeps what they earned). Resuming a co-op Run from a saved checkpoint was not taken (bigger job).
+- Owner decision 2026-09-27: a host who reloads or closes the page mid-Run ends the room (everyone keeps what they
+  earned). Resuming a co-op Run from a saved checkpoint was not taken (bigger job). The page says `bye` on a
+  non-persisted `pagehide` (wsConnect), so the room closes at once instead of waiting 45 s; a screen turning off, an
+  app switch or a page kept in the back/forward cache still get the grace.
 - The host's world keeps its state while reconnecting (it pauses); a guest who waited longer than `coop.hostGone`
   (60 s) has left by then — the grace (45 s) is shorter on purpose.
 - A host who comes back after the room closed claims a new empty room with the same code and plays on alone.
