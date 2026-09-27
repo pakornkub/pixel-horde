@@ -572,6 +572,7 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         b.save(); b.globalAlpha = 0.35 * end; b.fillStyle = f.awk ? '#9fd8ff' : '#7dffb0'; b.beginPath(); b.ellipse(x + 6, Math.round(f.y + oy), 5, 2, 0, 0, TAU); b.fill(); b.restore();
         b.save(); b.globalAlpha = (f.awk ? 0.85 : 1) * end; if (f.cl) b.filter = 'hue-rotate(60deg)';
         const h = Math.max(1, Math.round(12 * rise));
+        b.drawImage(rim(img), 0, 0, 14, h + 2, x - 1, y + 11 - h, 14, h + 2); // white rim like the Hero's: an ally, never the enemy Skeleton Archer
         b.drawImage(img, 0, 0, 12, h, x, y + 12 - h, 12, h); b.restore();
         continue;
       }
