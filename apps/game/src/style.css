@@ -33,6 +33,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .btn:focus-visible,.opt:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .stats{display:grid;grid-template-columns:1fr auto;gap:4px 16px;margin:0 0 16px;font-size:15px}
 .stats span:nth-child(even){font-family:var(--pix);font-size:12px;align-self:center;text-align:right}
+/* gold text on the paper background was unreadable (see the score total's own fix below); ink on a gold chip instead */
+.stats .money{color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:3px}
 .best{font-size:13px;opacity:.75;margin-top:10px;text-align:center}
 
 .slots{font-size:14px;margin:-6px 0 12px;opacity:.8}
