@@ -297,11 +297,18 @@ export function cloneStep(s: SimState, dt: number): void {
   c.y += (ty - c.y) * Math.min(1, dt * 7);
 }
 
-/** The clone repeats bolt/lance/boomer/chain/nova/meteor casts at 35–60% damage. */
+/** The clone's damage × (35–60% of the player's, growing with the clone level). */
+export function cloneMul(s: SimState): number {
+  const CL = s.cfg.clone;
+  return Math.min(CL.dmgMax, CL.dmg + CL.dmgPerLv * ((s.P.clone?.lv ?? 1) - 1));
+}
+
+/** Old rule (`clone.every` 0): the clone repeats bolt/lance/boomer/chain/nova/meteor casts at 35–60% damage.
+ *  With `clone.every` > 0 it casts on its own timer instead (cloneTick in skills.ts). */
 export function cloneCast(s: SimState, id: SkillId, t: SkillStats): void {
   const P = s.P, c = P.clone, R = s.rng.skills;
-  if (!c || P.down) return;
-  const CL = s.cfg.clone, f = Math.min(CL.dmgMax, CL.dmg + CL.dmgPerLv * (c.lv - 1));
+  if (!c || P.down || s.cfg.clone.every > 0) return;
+  const f = cloneMul(s);
   if (id === 'bolt') {
     const tg = nearest(s, c.x, c.y, 200);
     if (!tg) return;

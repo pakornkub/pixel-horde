@@ -10,11 +10,11 @@ export function nearest(s: SimState, x: number, y: number, max: number, skip?: S
   return best;
 }
 
-export function nearestN(s: SimState, n: number, max: number): Enemy[] {
-  const P = s.P;
+/** The n nearest monsters within max of (x, y), the player by default. */
+export function nearestN(s: SimState, n: number, max: number, x = s.P.x, y = s.P.y): Enemy[] {
   return s.enemies
     .filter((e) => !e.dead && !e.hide)
-    .map((e) => [e, (e.x - P.x) * (e.x - P.x) + (e.y - P.y) * (e.y - P.y)] as [Enemy, number])
+    .map((e) => [e, (e.x - x) * (e.x - x) + (e.y - y) * (e.y - y)] as [Enemy, number])
     .filter((a) => a[1] < max * max)
     .sort((a, c) => a[1] - c[1])
     .slice(0, n)

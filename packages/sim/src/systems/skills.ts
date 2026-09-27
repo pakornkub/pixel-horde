@@ -17,7 +17,7 @@ function smartElement(e: Enemy): 'fire' | 'ice' | 'poison' {
 }
 import type { Enemy, SimState } from '../types';
 import { hit } from './combat';
-import { cloneCast } from './events';
+import { cloneCast, cloneMul } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, nearestN, visibleEnemies } from './query';
 
@@ -113,287 +113,310 @@ const ULT_BURN: HitTag = { raw: true, applies: 'burning' };
 /** Skills whose cooldown ran out this tick (a cast event is emitted when they actually fired). */
 const castSeen: SkillId[] = [];
 
+/** Who casts a Skill: the player, or the Shadow Clone copying one from where it stands. */
+interface Caster { x: number; y: number; clone: boolean }
+/** Returned by fire() when a ready Skill holds its cast (waiting for the Awakened Signature's strike). */
+const WAIT = -1;
+/** Skills that work all the time around the player (no cast); the Shadow Clone copies them as one pulse. */
+const AURAS = new Set<SkillId>(['orbit', 'frost', 'shield', 'timeWarp', 'galeStep']);
+/** Skills the Shadow Clone never copies: they only help the player (heal, invulnerability, EXP). */
+const CLONE_SKIP = new Set<SkillId>(['transmute', 'elixirRain', 'aegisDome']);
+const CLONE_COL = '#b58cff';
+
+/** One cast of Skill `id` from `o`. Returns 0 when it fired, a retry delay (s) when there was nothing to hit,
+ *  or WAIT. The clone passes stats whose damage is already scaled down. */
+function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): number {
+  const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills, cl = o.clone;
+  if (id === 'bolt') {
+    const c = K.bolt, list = nearestN(s, t.n, c.range, o.x, o.y);
+    if (!list.length) return 0.1;
+    for (let i = 0; i < t.n; i++) {
+      const e = list[i % list.length];
+      const a = atan2(e.y - o.y, e.x - o.x) + (i >= list.length ? R.range(-0.3, 0.3) : 0);
+      s.bolts.push({ kind: 'bolt', x: o.x, y: o.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, life: c.life, dmg: t.dmg, pierce: t.pierce, hit: new Set(), col: cl ? CLONE_COL : '#ff5cf4', rad: 3, kb: c.kb, tag: T.bolt, ...(cl ? { cl } : {}) });
+    }
+    if (!cl) cloneCast(s, id, t);
+  } else if (id === 'chain') {
+    const c = K.chain, first = nearest(s, o.x, o.y, c.range);
+    if (!first) return 0.15;
+    const set = new Set<Enemy>([first]), pts: [number, number][] = [[o.x, o.y - 4], [first.x, first.y]];
+    let cur = first;
+    for (let j = 0; j < t.jumps; j++) {
+      const n = nearest(s, cur.x, cur.y, c.jumpRange, set);
+      if (!n) break;
+      set.add(n); pts.push([n.x, n.y]); cur = n;
+    }
+    for (const e of set) hit(s, e, t.dmg, cl ? '#d9b8ff' : '#fff35c', c.kb, T.chain);
+    s.effects.push({ type: 'chain', pts, t: 0, dur: 0.2, x: o.x, y: o.y, dmg: 0, ...(cl ? { cl } : {}) });
+    if (!cl) flash(s, 0.05, '#fff9c4', true);
+    sfx(s, 'zap');
+    if (!cl) cloneCast(s, id, t);
+  } else if (id === 'nova') {
+    if (!nearest(s, o.x, o.y, t.r + 10)) return 0.2;
+    s.effects.push({ type: 'nova', x: o.x, y: o.y, R: t.r, t: 0, dur: K.nova.dur, hit: new Set(), dmg: t.dmg, ...(cl ? { cl, col: CLONE_COL } : {}) });
+    if (!cl) shake(s, 2.5);
+    sfx(s, 'nova');
+    if (!cl) cloneCast(s, id, t);
+  } else if (id === 'meteor') {
+    const vis = visibleEnemies(s);
+    if (!vis.length) return 0.2;
+    for (let i = 0; i < t.n; i++) {
+      const e = vis[R.int(vis.length)];
+      s.effects.push({ type: 'meteor', x: e.x + R.range(-6, 6), y: e.y + R.range(-6, 6), t: 0, dur: 0, delay: K.meteor.delay + i * K.meteor.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0, ...(cl ? { cl, col: CLONE_COL } : {}) });
+    }
+    if (!cl) cloneCast(s, id, t);
+  } else if (id === 'lance') {
+    const c = K.lance, near = nearest(s, o.x, o.y, c.range);
+    if (!near) return 0.1;
+    let a0 = atan2(P.dy, P.dx);
+    if (c.aim > 0) { // at the thickest crowd in range: the lances pierce, so a line through many monsters pays most
+      const inRange = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < c.range);
+      const tgt = densest(inRange, c.aim, R);
+      a0 = atan2(tgt.y - o.y, tgt.x - o.x);
+    }
+    for (let i = 0; i < t.n; i++) {
+      const a = a0 + (i - (t.n - 1) / 2) * c.spread;
+      s.bolts.push({ kind: 'lance', x: o.x, y: o.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, a, life: c.life, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: cl ? CLONE_COL : '#ffe9a8', rad: 4, kb: c.kb, tag: T.lance, ...(cl ? { cl } : {}) });
+    }
+    sfx(s, 'lance');
+    if (!cl) cloneCast(s, id, t);
+  } else if (id === 'boomer') {
+    const c = K.boomer, list = nearestN(s, t.n, c.target, o.x, o.y);
+    if (!list.length) return 0.15;
+    for (let i = 0; i < t.n; i++) {
+      const e = list[i % list.length];
+      const a = atan2(e.y - o.y, e.x - o.x) + (i >= list.length ? R.range(-0.5, 0.5) : 0);
+      s.bolts.push({ kind: 'boom', x: o.x, y: o.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, spd: c.speed, d: 0, range: t.range, ret: false, life: 3, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: cl ? CLONE_COL : '#7dffb0', rad: 5, kb: c.kb, spin: 0, tag: T.boomer, ...(cl ? { cl } : {}) });
+    }
+    if (!cl) cloneCast(s, id, t);
+  } else if (id === 'cyclone') {
+    if (!nearest(s, o.x, o.y, 200)) return 0.2;
+    for (let i = 0; i < t.n; i++) {
+      const a = R.next() * TAU;
+      s.effects.push({ type: 'cyclone', x: o.x, y: o.y, vx: cos(a) * K.cyclone.speed, vy: sin(a) * K.cyclone.speed, t: 0, dur: t.dur, r: t.r, dmg: t.dmg, tick: 0, ...(cl ? { cl } : {}) });
+    }
+  } else if (id === 'toxic') {
+    const vis = visibleEnemies(s);
+    if (!vis.length) return 0.2;
+    for (let i = 0; i < t.n; i++) {
+      const e = vis[R.int(vis.length)];
+      s.effects.push({ type: 'toxic', x: e.x, y: e.y, t: 0, dur: t.dur, r: t.r, dmg: t.dmg, tick: 0, ...(cl ? { cl } : {}) });
+    }
+  } else if (id === 'laser') {
+    if (!nearest(s, o.x, o.y, t.len)) return 0.2;
+    s.effects.push({ type: 'laser', t: 0, dur: t.dur, x: o.x, y: o.y, a0: R.next() * TAU, a: 0, len: t.len, dmg: t.dmg, hit: new Set(), hit2: new Set(), twin: t.twin, ...(cl ? { cl } : {}) });
+    sfx(s, 'laser');
+  } else if (id === 'sigil') {
+    if (awkForm(s)) {
+      // Archmage: bigger sigils rise at Lyra's feet and wander after the thickest crowds
+      const A = K.sigil.awk, vis = visibleEnemies(s);
+      if (!vis.length) return 0.2;
+      const r = t.r * A.rMul, n = t.n + A.nAdd, prey = crowds(vis, n, r, R);
+      for (let i = 0; i < n; i++) {
+        const a = R.next() * TAU, d = i ? r * 0.6 : 0, e = prey[i % prey.length];
+        s.effects.push({ type: 'sigil', awk: true, x: o.x + cos(a) * d, y: o.y + sin(a) * d, r, t: 0, dur: t.dur * A.durMul, dmg: t.dmg, tick: 0, bt: 0, targets: [{ e, x: e.x, y: e.y }], ...(cl ? { cl } : {}) });
+      }
+      sfx(s, 'nova');
+      return 0;
+    }
+    if (!nearest(s, o.x, o.y, t.r + 40)) return 0.2;
+    for (let i = 0; i < t.n; i++) {
+      const a = R.next() * TAU, d = i ? t.r * 1.3 : 0;
+      s.effects.push({ type: 'sigil', x: o.x + cos(a) * d, y: o.y + sin(a) * d, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, ...(cl ? { cl } : {}) });
+    }
+    sfx(s, 'nova');
+  } else if (id === 'hawk') {
+    // hunts the biggest monsters in range; defends Kit (nearest first) once enough monsters close in
+    let prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < t.range).sort((a, b) => b.hp - a.hp || a.id - b.id);
+    if (K.hawk.guardN) {
+      const close = prey.filter((e) => hypot(e.x - o.x, e.y - o.y) < K.hawk.guardR);
+      if (close.length >= K.hawk.guardN) prey = close.sort((a, b) => hypot(a.x - o.x, a.y - o.y) - hypot(b.x - o.x, b.y - o.y) || a.id - b.id);
+    }
+    if (!prey.length) return 0.2;
+    if (awkForm(s)) {
+      // Stormhunter: a flock of storm hawks, each on its own prey, every dive leaves Shocked
+      const A = K.hawk.awk, n = A.n + t.n - 1;
+      for (let i = 0; i < n; i++) {
+        const e = prey[i % prey.length];
+        s.effects.push({ type: 'hawk', x: o.x + (i - (n - 1) / 2) * 5, y: o.y - 10 - (i % 2) * 4, t: 0, dur: K.hawk.flight + i * 0.03, dmg: t.dmg * A.dmgMul, r: Math.max(t.r, A.r), targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun, tag: AWK_TAGS.flock, ...(cl ? { cl } : {}) });
+      }
+      return 0;
+    }
+    for (let i = 0; i < t.n; i++) {
+      const e = prey[i % prey.length];
+      s.effects.push({ type: 'hawk', x: o.x, y: o.y - 10, t: 0, dur: K.hawk.flight, dmg: t.dmg, r: t.r, targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun, ...(cl ? { cl } : {}) });
+    }
+  } else if (id === 'flask') {
+    const vis = visibleEnemies(s).filter((e) => hypot(e.x - o.x, e.y - o.y) < t.range);
+    if (!vis.length) return 0.2;
+    // bosses first, then the thickest crowd (not a random monster); the flask follows its target in flight
+    const bosses = vis.filter((e) => e.boss), big = awkForm(s), A = K.flask.awk; // Grand Alchemist: a giant flask
+    for (let i = 0; i < t.n; i++) {
+      const e = i < bosses.length ? bosses[i] : densest(vis, t.r, R);
+      const el = t.smart ? smartElement(e) : FLASKS[R.int(3)];
+      s.effects.push({ type: 'flask', x: e.x, y: e.y, pts: [[o.x, o.y - 6]], t: 0, dur: K.flask.flight, r: big ? t.r * A.rMul : t.r, dmg: big ? t.dmg * A.dmgMul : t.dmg, el, fired: false, targets: [{ e, x: e.x, y: e.y }], awk: big, ...(cl ? { cl } : {}) });
+    }
+  } else if (id === 'manaNova') {
+    if (!nearest(s, o.x, o.y, t.r + 10)) return 0.2;
+    s.effects.push({ type: 'nova', x: o.x, y: o.y, R: t.r, t: 0, dur: t.dur, hit: new Set(), dmg: t.dmg, tag: T.manaNova, col: cl ? CLONE_COL : '#e08cff', ...(cl ? { cl } : {}) });
+    if (awkForm(s)) { // the wave echoes out of every wandering sigil
+      const echo = K.sigil.awk.echo;
+      for (const f of s.effects) if (f.type === 'sigil' && f.awk) s.effects.push({ type: 'nova', x: f.x, y: f.y, R: f.r!, t: 0, dur: t.dur * 0.7, hit: new Set(), dmg: t.dmg * echo, tag: T.manaNova, col: '#e08cff' });
+    }
+    sfx(s, 'nova');
+  } else if (id === 'starfall') {
+    const vis = visibleEnemies(s);
+    if (!vis.length) return 0.2;
+    // Archmage: arcane stars fall into the wandering sigils first (Catalyst on the monsters they gather)
+    const seals = awkForm(s) ? s.effects.filter((f) => f.type === 'sigil' && f.awk) : [];
+    for (let i = 0; i < t.n; i++) {
+      if (seals.length) {
+        const f = seals[i % seals.length], a = R.next() * TAU, d = R.next() * f.r! * 0.5;
+        s.effects.push({ type: 'meteor', x: f.x + cos(a) * d, y: f.y + sin(a) * d, t: 0, dur: 0, delay: K.starfall.delay + i * K.starfall.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: AWK_TAGS.star, col: cl ? CLONE_COL : '#e08cff', ...(cl ? { cl } : {}) });
+        continue;
+      }
+      const e = vis[R.int(vis.length)];
+      s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: K.starfall.delay + i * K.starfall.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: awkForm(s) ? AWK_TAGS.star : T.starfall, col: cl ? CLONE_COL : '#e08cff', ...(cl ? { cl } : {}) });
+    }
+  } else if (id === 'sacredBlades') {
+    if (!nearest(s, o.x, o.y, t.r)) return 0.1;
+    let a = atan2(P.dy, P.dx);
+    const arc = K.sacredBlades.arc;
+    if (awkForm(s)) { // Paladin: the swing turns to a fresh shield slam within reach, else the thickest crowd (Grinder on the Gathered)
+      const mk = freshMark(s);
+      if (mk && hypot(mk.x - o.x, mk.y - o.y) < t.r) a = atan2(mk.y - o.y, mk.x - o.x);
+      else {
+        const near = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < t.r + e.r);
+        const c = densest(near, t.r * 0.4, R);
+        a = atan2(c.y - o.y, c.x - o.x);
+      }
+    }
+    for (const e of s.enemies) {
+      if (e.dead) continue;
+      const dx = e.x - o.x, dy = e.y - o.y, d = hypot(dx, dy);
+      if (d < t.r + e.r && Math.abs(wrapAngle(atan2(dy, dx) - a)) < arc + e.r / Math.max(d, 1)) hit(s, e, t.dmg, '#fff8c0', K.sacredBlades.kb, T.sacredBlades);
+    }
+    s.effects.push({ type: 'slash', x: o.x, y: o.y, a, r: t.r, sp: arc, t: 0, dur: t.dur, dmg: 0, ...(cl ? { cl } : {}) });
+    sfx(s, 'lance');
+  } else if (id === 'judgePillar') {
+    const vis = visibleEnemies(s);
+    if (!vis.length) return 0.2;
+    // Paladin: holy fire onto the latest shield slam (Firestorm on the monsters it gathered)
+    const awk = awkForm(s), mk = awk ? freshMark(s) : null;
+    if (awk && !cl && waitMark(s, id)) return WAIT; // wait for the Signature's strike
+    const e = mk ?? vis.reduce((b, x) => ((x.boss || x.elite) && !(b.boss || b.elite)) || ((x.boss || x.elite) === (b.boss || b.elite) && x.hp > b.hp) ? x : b);
+    s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: K.judgePillar.delay, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: awk ? AWK_TAGS.pillar : T.judgePillar, col: cl ? CLONE_COL : '#fff8c0', ...(cl ? { cl } : {}) });
+  } else if (id === 'aegisDome') {
+    if (!nearest(s, P.x, P.y, 60) && !s.hz.length) return 0.3;
+    P.inv = Math.max(P.inv, t.dur);
+    for (const e of s.enemies) {
+      if (e.dead) continue;
+      const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy) || 1;
+      if (d < t.r + e.r) { const k = K.aegisDome.kb * (e.boss ? 0.2 : 1); e.kx += (dx / d) * k; e.ky += (dy / d) * k; }
+    }
+    s.effects.push({ type: 'dome', x: P.x, y: P.y, r: t.r, t: 0, dur: t.dur, dmg: 0 });
+    if (awkForm(s) && sk.shield) { // Paladin: every shield bursts outward at once
+      const A = K.shield.awk;
+      s.effects.push({ type: 'nova', x: P.x, y: P.y, R: A.domeR, t: 0, dur: 0.35, hit: new Set(), dmg: st(s, 'shield', sk.shield).dmg * A.domeMul, tag: AWK_TAGS.slam, col: '#ffd23f' });
+      shake(s, 4);
+    }
+    flash(s, 0.15, '#fff8c0');
+    sfx(s, 'ult');
+  } else if (id === 'arrowRain') {
+    const vis = visibleEnemies(s).filter((e) => hypot(e.x - o.x, e.y - o.y) < t.range);
+    if (!vis.length) return 0.2;
+    // Stormhunter: fire arrows onto the flock's latest prey (Overload on the Shocked)
+    const awk = awkForm(s), mk = awk ? freshMark(s) : null;
+    if (awk && !cl && waitMark(s, id)) return WAIT; // wait for the Signature's strike
+    const e = mk && hypot(mk.x - o.x, mk.y - o.y) < t.range ? mk : vis[R.int(vis.length)];
+    s.effects.push({ type: 'rain', x: e.x, y: e.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, ...(awk ? { tag: AWK_TAGS.arrow } : {}), ...(cl ? { cl } : {}) });
+  } else if (id === 'thunderHawk') {
+    const c = K.thunderHawk, first = nearest(s, o.x, o.y, t.range);
+    if (!first) return 0.15;
+    const set = new Set<Enemy>([first]), pts: [number, number][] = [[o.x, o.y - 10], [first.x, first.y]];
+    // Stormhunter: the bolt leaps further toward monsters the flock left Shocked, and hits them harder
+    const A = awkForm(s) ? K.hawk.awk : null;
+    let cur = first;
+    for (let j = 0; j < t.jumps; j++) {
+      let n: Enemy | null = null;
+      if (A) {
+        let bd = c.jumpRange * A.shockJump * c.jumpRange * A.shockJump;
+        for (const e of s.enemies) {
+          if (e.dead || e.hide || set.has(e) || !((e.shock || 0) > 0)) continue;
+          const d = (e.x - cur.x) * (e.x - cur.x) + (e.y - cur.y) * (e.y - cur.y);
+          if (d < bd) { bd = d; n = e; }
+        }
+      }
+      n ??= nearest(s, cur.x, cur.y, c.jumpRange, set);
+      if (!n) break;
+      set.add(n); pts.push([n.x, n.y]); cur = n;
+    }
+    for (const e of set) hit(s, e, A && (e.shock || 0) > 0 ? t.dmg * A.shockMul : t.dmg, cl ? '#d9b8ff' : '#fff35c', c.kb, T.thunderHawk);
+    s.effects.push({ type: 'chain', pts, t: 0, dur: 0.25, x: o.x, y: o.y, dmg: 0, ...(cl ? { cl } : {}) });
+    sfx(s, 'zap');
+  } else if (id === 'cauldron') {
+    // Grand Alchemist: the cauldron lands where the giant flask burst, brewing on its Statuses
+    const mk = awkForm(s) ? freshMark(s) : null;
+    if (awkForm(s) && !cl && waitMark(s, id)) return WAIT; // wait for the Signature's strike
+    if (!mk && !nearest(s, o.x, o.y, t.r + 60)) return 0.3;
+    s.effects.push({ type: 'cauldron', x: mk ? mk.x : o.x, y: mk ? mk.y : o.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, n: 0, ...(cl ? { cl } : {}) });
+  } else if (id === 'elixirRain') {
+    if (P.hp >= P.maxHp && !Object.values(P.cds).some((v) => (v || 0) > 1)) return 0.5;
+    const c = K.elixirRain, heal = Math.round(P.maxHp * linAt(c.heal, lv)), cut = linAt(c.cdCut, lv);
+    P.hp = Math.min(P.maxHp, P.hp + heal);
+    for (const k of Object.keys(P.cds) as SkillId[]) if (k !== id) P.cds[k] = Math.max(0, (P.cds[k] || 0) - cut);
+    if (awkForm(s)) P.cds.flask = 0; // Grand Alchemist: the next giant flask is ready at once
+    s.events.push({ t: 'text', x: P.x, y: P.y - 14, v: '+' + heal, col: '#6fe36a', cr: false });
+    s.effects.push({ type: 'elixir', x: P.x, y: P.y, t: 0, dur: 0.8, dmg: 0 });
+  } else if (id === 'hole') {
+    const vis = visibleEnemies(s);
+    if (vis.length < K.hole.minTargets) return 0.3;
+    const best = densest(vis, t.r, R);
+    s.effects.push({ type: 'hole', x: best.x, y: best.y, t: 0, dur: K.hole.dur, r: t.r, dmg: t.dmg, boom: t.boom, tick: 0, boomed: false, bt: 0, ...(cl ? { cl } : {}) });
+  }
+  return 0;
+}
+
+/** The Shadow Clone's copy of an always-on Skill (Orbit, Frost Aura, Holy Shield, Time Warp, Gale Step): one pulse
+ *  around it, carrying that Skill's element. */
+function pulse(s: SimState, id: SkillId, t: SkillStats, o: Caster): number {
+  const CL = s.cfg.clone, r = Math.max(t.r, CL.pulseR);
+  if (!nearest(s, o.x, o.y, r + 10)) return 0.2;
+  s.effects.push({ type: 'nova', x: o.x, y: o.y, R: r, t: 0, dur: 0.35, hit: new Set(), dmg: t.dmg * CL.auraMul, tag: T[id], col: CLONE_COL, cl: true });
+  sfx(s, 'nova');
+  return 0;
+}
+
+/** Shadow Clone (`clone.every` > 0): every few seconds it copies ONE of the player's Skills, picked at random, from
+ *  where it stands, at its own damage fraction. */
+function cloneTick(s: SimState, dt: number): void {
+  const P = s.P, c = P.clone, CL = s.cfg.clone;
+  if (!c || P.down || CL.every <= 0) return;
+  c.t = (c.t ?? CL.every) - dt;
+  if (c.t > 0) return;
+  const ids = (Object.keys(P.skills) as SkillId[]).filter((id) => !CLONE_SKIP.has(id));
+  if (!ids.length) { c.t = CL.every; return; }
+  const id = ids[s.rng.skills.int(ids.length)], t = st(s, id, P.skills[id]!), f = cloneMul(s);
+  const tc: SkillStats = { ...t, dmg: t.dmg * f, boom: t.boom * f }, o: Caster = { x: c.x, y: c.y, clone: true };
+  const r = AURAS.has(id) ? pulse(s, id, tc, o) : fire(s, id, tc, P.skills[id]!, o);
+  c.t = r > 0 ? r : CL.every;
+  if (r === 0) burst(s, c.x, c.y - 4, CLONE_COL, 6, 40, 0.3);
+}
+
 export function updSkills(s: SimState, dt: number): void {
   const P = s.P, sk = P.skills, R = s.rng.skills, K = s.cfg.skills;
   castSeen.length = 0;
+  const me: Caster = { x: P.x, y: P.y, clone: false };
   for (const id of Object.keys(sk) as SkillId[]) {
     const lv = sk[id]!, t = st(s, id, lv);
-    if (id === 'orbit' || id === 'frost' || id === 'shield' || id === 'timeWarp' || id === 'galeStep' || id === 'transmute') continue;
+    if (AURAS.has(id) || id === 'transmute') continue;
     P.cds[id] = (P.cds[id] || 0) - dt;
     if (P.cds[id]! > 0) continue;
     castSeen.push(id);
-    if (id === 'bolt') {
-      const c = K.bolt, list = nearestN(s, t.n, c.range);
-      if (!list.length) { P.cds[id] = 0.1; continue; }
-      for (let i = 0; i < t.n; i++) {
-        const e = list[i % list.length];
-        const a = atan2(e.y - P.y, e.x - P.x) + (i >= list.length ? R.range(-0.3, 0.3) : 0);
-        s.bolts.push({ kind: 'bolt', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, life: c.life, dmg: t.dmg, pierce: t.pierce, hit: new Set(), col: '#ff5cf4', rad: 3, kb: c.kb, tag: T.bolt });
-      }
-      cloneCast(s, id, t);
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'chain') {
-      const c = K.chain, first = nearest(s, P.x, P.y, c.range);
-      if (!first) { P.cds[id] = 0.15; continue; }
-      const set = new Set<Enemy>([first]), pts: [number, number][] = [[P.x, P.y - 4], [first.x, first.y]];
-      let cur = first;
-      for (let j = 0; j < t.jumps; j++) {
-        const n = nearest(s, cur.x, cur.y, c.jumpRange, set);
-        if (!n) break;
-        set.add(n); pts.push([n.x, n.y]); cur = n;
-      }
-      for (const e of set) hit(s, e, t.dmg, '#fff35c', c.kb, T.chain);
-      s.effects.push({ type: 'chain', pts, t: 0, dur: 0.2, x: P.x, y: P.y, dmg: 0 });
-      flash(s, 0.05, '#fff9c4', true);
-      sfx(s, 'zap');
-      cloneCast(s, id, t);
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'nova') {
-      if (!nearest(s, P.x, P.y, t.r + 10)) { P.cds[id] = 0.2; continue; }
-      s.effects.push({ type: 'nova', x: P.x, y: P.y, R: t.r, t: 0, dur: K.nova.dur, hit: new Set(), dmg: t.dmg });
-      shake(s, 2.5);
-      sfx(s, 'nova');
-      cloneCast(s, id, t);
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'meteor') {
-      const vis = visibleEnemies(s);
-      if (!vis.length) { P.cds[id] = 0.2; continue; }
-      for (let i = 0; i < t.n; i++) {
-        const e = vis[R.int(vis.length)];
-        s.effects.push({ type: 'meteor', x: e.x + R.range(-6, 6), y: e.y + R.range(-6, 6), t: 0, dur: 0, delay: K.meteor.delay + i * K.meteor.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0 });
-      }
-      cloneCast(s, id, t);
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'lance') {
-      const c = K.lance, near = nearest(s, P.x, P.y, c.range);
-      if (!near) { P.cds[id] = 0.1; continue; }
-      let a0 = atan2(P.dy, P.dx);
-      if (c.aim > 0) { // at the thickest crowd in range: the lances pierce, so a line through many monsters pays most
-        const inRange = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < c.range);
-        const tgt = densest(inRange, c.aim, R);
-        a0 = atan2(tgt.y - P.y, tgt.x - P.x);
-      }
-      for (let i = 0; i < t.n; i++) {
-        const a = a0 + (i - (t.n - 1) / 2) * c.spread;
-        s.bolts.push({ kind: 'lance', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, a, life: c.life, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: '#ffe9a8', rad: 4, kb: c.kb, tag: T.lance });
-      }
-      sfx(s, 'lance');
-      cloneCast(s, id, t);
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'boomer') {
-      const c = K.boomer, list = nearestN(s, t.n, c.target);
-      if (!list.length) { P.cds[id] = 0.15; continue; }
-      for (let i = 0; i < t.n; i++) {
-        const e = list[i % list.length];
-        const a = atan2(e.y - P.y, e.x - P.x) + (i >= list.length ? R.range(-0.5, 0.5) : 0);
-        s.bolts.push({ kind: 'boom', x: P.x, y: P.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, spd: c.speed, d: 0, range: t.range, ret: false, life: 3, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: '#7dffb0', rad: 5, kb: c.kb, spin: 0, tag: T.boomer });
-      }
-      cloneCast(s, id, t);
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'cyclone') {
-      if (!nearest(s, P.x, P.y, 200)) { P.cds[id] = 0.2; continue; }
-      for (let i = 0; i < t.n; i++) {
-        const a = R.next() * TAU;
-        s.effects.push({ type: 'cyclone', x: P.x, y: P.y, vx: cos(a) * K.cyclone.speed, vy: sin(a) * K.cyclone.speed, t: 0, dur: t.dur, r: t.r, dmg: t.dmg, tick: 0 });
-      }
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'toxic') {
-      const vis = visibleEnemies(s);
-      if (!vis.length) { P.cds[id] = 0.2; continue; }
-      for (let i = 0; i < t.n; i++) {
-        const e = vis[R.int(vis.length)];
-        s.effects.push({ type: 'toxic', x: e.x, y: e.y, t: 0, dur: t.dur, r: t.r, dmg: t.dmg, tick: 0 });
-      }
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'laser') {
-      if (!nearest(s, P.x, P.y, t.len)) { P.cds[id] = 0.2; continue; }
-      s.effects.push({ type: 'laser', t: 0, dur: t.dur, x: P.x, y: P.y, a0: R.next() * TAU, a: 0, len: t.len, dmg: t.dmg, hit: new Set(), hit2: new Set(), twin: t.twin });
-      sfx(s, 'laser');
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'sigil') {
-      if (awkForm(s)) {
-        // Archmage: bigger sigils rise at Lyra's feet and wander after the thickest crowds
-        const A = K.sigil.awk, vis = visibleEnemies(s);
-        if (!vis.length) { P.cds[id] = 0.2; continue; }
-        const r = t.r * A.rMul, n = t.n + A.nAdd, prey = crowds(vis, n, r, R);
-        for (let i = 0; i < n; i++) {
-          const a = R.next() * TAU, d = i ? r * 0.6 : 0, e = prey[i % prey.length];
-          s.effects.push({ type: 'sigil', awk: true, x: P.x + cos(a) * d, y: P.y + sin(a) * d, r, t: 0, dur: t.dur * A.durMul, dmg: t.dmg, tick: 0, bt: 0, targets: [{ e, x: e.x, y: e.y }] });
-        }
-        sfx(s, 'nova');
-        P.cds[id] = t.cd * P.cdMul;
-        continue;
-      }
-      if (!nearest(s, P.x, P.y, t.r + 40)) { P.cds[id] = 0.2; continue; }
-      for (let i = 0; i < t.n; i++) {
-        const a = R.next() * TAU, d = i ? t.r * 1.3 : 0;
-        s.effects.push({ type: 'sigil', x: P.x + cos(a) * d, y: P.y + sin(a) * d, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0 });
-      }
-      sfx(s, 'nova');
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'hawk') {
-      // hunts the biggest monsters in range; defends Kit (nearest first) once enough monsters close in
-      let prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < t.range).sort((a, b) => b.hp - a.hp || a.id - b.id);
-      if (K.hawk.guardN) {
-        const close = prey.filter((e) => hypot(e.x - P.x, e.y - P.y) < K.hawk.guardR);
-        if (close.length >= K.hawk.guardN) prey = close.sort((a, b) => hypot(a.x - P.x, a.y - P.y) - hypot(b.x - P.x, b.y - P.y) || a.id - b.id);
-      }
-      if (!prey.length) { P.cds[id] = 0.2; continue; }
-      if (awkForm(s)) {
-        // Stormhunter: a flock of storm hawks, each on its own prey, every dive leaves Shocked
-        const A = K.hawk.awk, n = A.n + t.n - 1;
-        for (let i = 0; i < n; i++) {
-          const e = prey[i % prey.length];
-          s.effects.push({ type: 'hawk', x: P.x + (i - (n - 1) / 2) * 5, y: P.y - 10 - (i % 2) * 4, t: 0, dur: K.hawk.flight + i * 0.03, dmg: t.dmg * A.dmgMul, r: Math.max(t.r, A.r), targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun, tag: AWK_TAGS.flock });
-        }
-        P.cds[id] = t.cd * P.cdMul;
-        continue;
-      }
-      for (let i = 0; i < t.n; i++) {
-        const e = prey[i % prey.length];
-        s.effects.push({ type: 'hawk', x: P.x, y: P.y - 10, t: 0, dur: K.hawk.flight, dmg: t.dmg, r: t.r, targets: [{ e, x: e.x, y: e.y }], fired: false, stun: t.stun });
-      }
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'flask') {
-      const vis = visibleEnemies(s).filter((e) => hypot(e.x - P.x, e.y - P.y) < t.range);
-      if (!vis.length) { P.cds[id] = 0.2; continue; }
-      // bosses first, then the thickest crowd (not a random monster); the flask follows its target in flight
-      const bosses = vis.filter((e) => e.boss), big = awkForm(s), A = K.flask.awk; // Grand Alchemist: a giant flask
-      for (let i = 0; i < t.n; i++) {
-        const e = i < bosses.length ? bosses[i] : densest(vis, t.r, R);
-        const el = t.smart ? smartElement(e) : FLASKS[R.int(3)];
-        s.effects.push({ type: 'flask', x: e.x, y: e.y, pts: [[P.x, P.y - 6]], t: 0, dur: K.flask.flight, r: big ? t.r * A.rMul : t.r, dmg: big ? t.dmg * A.dmgMul : t.dmg, el, fired: false, targets: [{ e, x: e.x, y: e.y }], awk: big });
-      }
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'manaNova') {
-      if (!nearest(s, P.x, P.y, t.r + 10)) { P.cds[id] = 0.2; continue; }
-      s.effects.push({ type: 'nova', x: P.x, y: P.y, R: t.r, t: 0, dur: t.dur, hit: new Set(), dmg: t.dmg, tag: T.manaNova, col: '#e08cff' });
-      if (awkForm(s)) { // the wave echoes out of every wandering sigil
-        const echo = K.sigil.awk.echo;
-        for (const f of s.effects) if (f.type === 'sigil' && f.awk) s.effects.push({ type: 'nova', x: f.x, y: f.y, R: f.r!, t: 0, dur: t.dur * 0.7, hit: new Set(), dmg: t.dmg * echo, tag: T.manaNova, col: '#e08cff' });
-      }
-      sfx(s, 'nova');
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'starfall') {
-      const vis = visibleEnemies(s);
-      if (!vis.length) { P.cds[id] = 0.2; continue; }
-      // Archmage: arcane stars fall into the wandering sigils first (Catalyst on the monsters they gather)
-      const seals = awkForm(s) ? s.effects.filter((f) => f.type === 'sigil' && f.awk) : [];
-      for (let i = 0; i < t.n; i++) {
-        if (seals.length) {
-          const f = seals[i % seals.length], a = R.next() * TAU, d = R.next() * f.r! * 0.5;
-          s.effects.push({ type: 'meteor', x: f.x + cos(a) * d, y: f.y + sin(a) * d, t: 0, dur: 0, delay: K.starfall.delay + i * K.starfall.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: AWK_TAGS.star, col: '#e08cff' });
-          continue;
-        }
-        const e = vis[R.int(vis.length)];
-        s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: K.starfall.delay + i * K.starfall.stagger, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: awkForm(s) ? AWK_TAGS.star : T.starfall, col: '#e08cff' });
-      }
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'sacredBlades') {
-      if (!nearest(s, P.x, P.y, t.r)) { P.cds[id] = 0.1; continue; }
-      let a = atan2(P.dy, P.dx);
-      const arc = K.sacredBlades.arc;
-      if (awkForm(s)) { // Paladin: the swing turns to a fresh shield slam within reach, else the thickest crowd (Grinder on the Gathered)
-        const mk = freshMark(s);
-        if (mk && hypot(mk.x - P.x, mk.y - P.y) < t.r) a = atan2(mk.y - P.y, mk.x - P.x);
-        else {
-          const near = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - P.x, e.y - P.y) < t.r + e.r);
-          const c = densest(near, t.r * 0.4, R);
-          a = atan2(c.y - P.y, c.x - P.x);
-        }
-      }
-      for (const e of s.enemies) {
-        if (e.dead) continue;
-        const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy);
-        if (d < t.r + e.r && Math.abs(wrapAngle(atan2(dy, dx) - a)) < arc + e.r / Math.max(d, 1)) hit(s, e, t.dmg, '#fff8c0', K.sacredBlades.kb, T.sacredBlades);
-      }
-      s.effects.push({ type: 'slash', x: P.x, y: P.y, a, r: t.r, sp: arc, t: 0, dur: t.dur, dmg: 0 });
-      sfx(s, 'lance');
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'judgePillar') {
-      const vis = visibleEnemies(s);
-      if (!vis.length) { P.cds[id] = 0.2; continue; }
-      // Paladin: holy fire onto the latest shield slam (Firestorm on the monsters it gathered)
-      const awk = awkForm(s), mk = awk ? freshMark(s) : null;
-      if (awk && waitMark(s, id)) continue; // wait for the Signature's strike
-      const e = mk ?? vis.reduce((b, o) => ((o.boss || o.elite) && !(b.boss || b.elite)) || ((o.boss || o.elite) === (b.boss || b.elite) && o.hp > b.hp) ? o : b);
-      s.effects.push({ type: 'meteor', x: e.x, y: e.y, t: 0, dur: 0, delay: K.judgePillar.delay, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: awk ? AWK_TAGS.pillar : T.judgePillar, col: '#fff8c0' });
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'aegisDome') {
-      if (!nearest(s, P.x, P.y, 60) && !s.hz.length) { P.cds[id] = 0.3; continue; }
-      P.inv = Math.max(P.inv, t.dur);
-      for (const e of s.enemies) {
-        if (e.dead) continue;
-        const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy) || 1;
-        if (d < t.r + e.r) { const k = K.aegisDome.kb * (e.boss ? 0.2 : 1); e.kx += (dx / d) * k; e.ky += (dy / d) * k; }
-      }
-      s.effects.push({ type: 'dome', x: P.x, y: P.y, r: t.r, t: 0, dur: t.dur, dmg: 0 });
-      if (awkForm(s) && sk.shield) { // Paladin: every shield bursts outward at once
-        const A = K.shield.awk;
-        s.effects.push({ type: 'nova', x: P.x, y: P.y, R: A.domeR, t: 0, dur: 0.35, hit: new Set(), dmg: st(s, 'shield', sk.shield).dmg * A.domeMul, tag: AWK_TAGS.slam, col: '#ffd23f' });
-        shake(s, 4);
-      }
-      flash(s, 0.15, '#fff8c0');
-      sfx(s, 'ult');
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'arrowRain') {
-      const vis = visibleEnemies(s).filter((e) => hypot(e.x - P.x, e.y - P.y) < t.range);
-      if (!vis.length) { P.cds[id] = 0.2; continue; }
-      // Stormhunter: fire arrows onto the flock's latest prey (Overload on the Shocked)
-      const awk = awkForm(s), mk = awk ? freshMark(s) : null;
-      if (awk && waitMark(s, id)) continue; // wait for the Signature's strike
-      const e = mk && hypot(mk.x - P.x, mk.y - P.y) < t.range ? mk : vis[R.int(vis.length)];
-      s.effects.push({ type: 'rain', x: e.x, y: e.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, ...(awk ? { tag: AWK_TAGS.arrow } : {}) });
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'thunderHawk') {
-      const c = K.thunderHawk, first = nearest(s, P.x, P.y, t.range);
-      if (!first) { P.cds[id] = 0.15; continue; }
-      const set = new Set<Enemy>([first]), pts: [number, number][] = [[P.x, P.y - 10], [first.x, first.y]];
-      // Stormhunter: the bolt leaps further toward monsters the flock left Shocked, and hits them harder
-      const A = awkForm(s) ? K.hawk.awk : null;
-      let cur = first;
-      for (let j = 0; j < t.jumps; j++) {
-        let n: Enemy | null = null;
-        if (A) {
-          let bd = c.jumpRange * A.shockJump * c.jumpRange * A.shockJump;
-          for (const e of s.enemies) {
-            if (e.dead || e.hide || set.has(e) || !((e.shock || 0) > 0)) continue;
-            const d = (e.x - cur.x) * (e.x - cur.x) + (e.y - cur.y) * (e.y - cur.y);
-            if (d < bd) { bd = d; n = e; }
-          }
-        }
-        n ??= nearest(s, cur.x, cur.y, c.jumpRange, set);
-        if (!n) break;
-        set.add(n); pts.push([n.x, n.y]); cur = n;
-      }
-      for (const e of set) hit(s, e, A && (e.shock || 0) > 0 ? t.dmg * A.shockMul : t.dmg, '#fff35c', c.kb, T.thunderHawk);
-      s.effects.push({ type: 'chain', pts, t: 0, dur: 0.25, x: P.x, y: P.y, dmg: 0 });
-      sfx(s, 'zap');
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'cauldron') {
-      // Grand Alchemist: the cauldron lands where the giant flask burst, brewing on its Statuses
-      const mk = awkForm(s) ? freshMark(s) : null;
-      if (awkForm(s) && waitMark(s, id)) continue; // wait for the Signature's strike
-      if (!mk && !nearest(s, P.x, P.y, t.r + 60)) { P.cds[id] = 0.3; continue; }
-      s.effects.push({ type: 'cauldron', x: mk ? mk.x : P.x, y: mk ? mk.y : P.y, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, n: 0 });
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'elixirRain') {
-      if (P.hp >= P.maxHp && !Object.values(P.cds).some((v) => (v || 0) > 1)) { P.cds[id] = 0.5; continue; }
-      const c = K.elixirRain, heal = Math.round(P.maxHp * linAt(c.heal, lv)), cut = linAt(c.cdCut, lv);
-      P.hp = Math.min(P.maxHp, P.hp + heal);
-      for (const k of Object.keys(P.cds) as SkillId[]) if (k !== id) P.cds[k] = Math.max(0, (P.cds[k] || 0) - cut);
-      if (awkForm(s)) P.cds.flask = 0; // Grand Alchemist: the next giant flask is ready at once
-      s.events.push({ t: 'text', x: P.x, y: P.y - 14, v: '+' + heal, col: '#6fe36a', cr: false });
-      s.effects.push({ type: 'elixir', x: P.x, y: P.y, t: 0, dur: 0.8, dmg: 0 });
-      P.cds[id] = t.cd * P.cdMul;
-    } else if (id === 'hole') {
-      const vis = visibleEnemies(s);
-      if (vis.length < K.hole.minTargets) { P.cds[id] = 0.3; continue; }
-      const best = densest(vis, t.r, R);
-      s.effects.push({ type: 'hole', x: best.x, y: best.y, t: 0, dur: K.hole.dur, r: t.r, dmg: t.dmg, boom: t.boom, tick: 0, boomed: false, bt: 0 });
-      P.cds[id] = t.cd * P.cdMul;
-    }
+    const r = fire(s, id, t, lv, me);
+    if (r !== WAIT) P.cds[id] = r > 0 ? r : t.cd * P.cdMul;
   }
+  cloneTick(s, dt);
   if (sk.orbit) {
     const t = st(s, 'orbit', sk.orbit);
     P.orbitA += t.spd * dt;
@@ -502,7 +525,7 @@ export function stepBolts(s: SimState, dt: number): void {
       bo.spin! += dt * 20;
       if (!bo.ret && bo.d! > bo.range!) { bo.ret = true; bo.hit.clear(); }
       if (bo.ret) {
-        const dx = P.x - bo.x, dy = P.y - bo.y, l = hypot(dx, dy) || 1;
+        const home = bo.cl && P.clone ? P.clone : P, dx = home.x - bo.x, dy = home.y - bo.y, l = hypot(dx, dy) || 1; // back to whoever threw it
         bo.vx = (dx / l) * bo.spd! * 1.2;
         bo.vy = (dy / l) * bo.spd! * 1.2;
         if (l < 8) bo.life = 0;
@@ -592,11 +615,12 @@ export function updEffects(s: SimState, dt: number): void {
       }
     } else if (f.type === 'laser') {
       f.a = f.a0! + TAU * Math.min(1, f.t / f.dur);
+      const at = f.cl && P.clone ? P.clone : P; // the beam turns around whoever cast it
       const beams: [number, Set<Enemy>][] = f.twin ? [[f.a, f.hit!], [f.a + PI, f.hit2!]] : [[f.a, f.hit!]];
       for (const [ba, hs] of beams) {
         for (const e of s.enemies) {
           if (e.dead || hs.has(e)) continue;
-          const dx = e.x - P.x, dy = e.y - P.y, d = hypot(dx, dy) || 1;
+          const dx = e.x - at.x, dy = e.y - at.y, d = hypot(dx, dy) || 1;
           if (d > f.len! + e.r) continue;
           const da = wrapAngle(atan2(dy, dx) - ba);
           if (Math.abs(da) < K.laser.width + (e.r + 3) / d) { hs.add(e); hit(s, e, f.dmg, '#5cf4ff', K.laser.kb, T.laser); burst(s, e.x, e.y, '#bff9ff', 3, 50, 0.3); }

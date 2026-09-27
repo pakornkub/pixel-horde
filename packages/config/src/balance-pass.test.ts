@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE_PASSES, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09,BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
+import { BALANCE_PASSES, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09,BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
 
 describe('balance pass 2026-09', () => {
   it('is a valid patch whose every value is inside its field range and differs from version 0', () => {
@@ -18,7 +18,7 @@ describe('balance pass 2026-09', () => {
     const changed = listFields().filter((f) => get(c, f.path) !== get(v4, f.path)).map((f) => f.path);
     expect(changed.sort()).toEqual(['shared.awaken.keep', 'shared.awaken.slots', 'shared.heroes.ranger.hp', 'shared.scaling.lvCapBase', 'shared.scaling.lvCapPerCh', 'shared.skills.hawk.guardN'].sort());
     for (const p of changed) expect(get(v4, p)).toBe(get(DEFAULT_CONFIG, p));
-    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
+    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
   });
 });
 
@@ -66,5 +66,15 @@ describe('balance pass reports', () => {
       expect(pass.report.summary.length).toBeGreaterThan(20);
       expect(get(withOverrides(DEFAULT_CONFIG, pass.patch), patched[0])).toBeDefined();
     }
+  });
+});
+
+describe('balance pass 2026-09f', () => {
+  it('stops handing out an Awakened skill and turns on the clone that copies one Skill at a time, on top of every earlier pass', () => {
+    const before = BALANCE_PASSES.slice(1).reverse().reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
+    const c = withOverrides(before, BALANCE_PASS_2026_09F.patch);
+    expect([before.shared.awaken.grant, before.shared.clone.every]).toEqual([1, 0]);
+    expect([c.shared.awaken.grant, c.shared.clone.every]).toEqual([0, 1]);
+    expect([DEFAULT_CONFIG.shared.awaken.grant, DEFAULT_CONFIG.shared.clone.every]).toEqual([0, 0]); // version 0 unchanged
   });
 });
