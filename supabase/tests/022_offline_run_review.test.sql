@@ -1,7 +1,7 @@
 -- Owner-approved (2026-09-28): admin review of Runs that flushed via submit_offline_run while
 -- `maintenance` blocked the server-verified path, so record_leaderboard "kept them unranked".
 begin;
-select plan(16);
+select plan(18);
 
 insert into auth.users (id, raw_user_meta_data) values
   ('11111111-1111-1111-1111-111111111111', '{"nickname":"Alice"}'),
@@ -61,6 +61,20 @@ reset role;
 select is((select offline_review from public.runs where client_run_id = 'm2'), 'rejected', 'marked rejected, not ranked');
 select is((select count(*)::int from public.leaderboard where user_id = '11111111-1111-1111-1111-111111111111' and board = 'solo'), 1,
           'the rejected Run never touches the leaderboard');
+
+-- ranking a Run that scores lower than the player's existing best marks it reviewed but never overtakes the board
+insert into public.runs (user_id, client_run_id, hero, mode, status, score, chapter, kills, gold_earned, started_at, ended_at) values
+  ('11111111-1111-1111-1111-111111111111', 'm3', 'mage', 'solo', 'offline', 100, 1, 5, 2, now() - interval '5 min', now());
+create temp table t_run3 as select id from public.runs where client_run_id = 'm3';
+grant select on t_run3 to authenticated;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","role":"authenticated"}';
+select is((public.admin_rank_offline_run((select id from t_run3)) ->> 'appliedSolo')::boolean, false, 'a lower-scoring Run does not overtake the existing best');
+select is((
+  select (elem ->> 'onSolo')::boolean from jsonb_array_elements(public.admin_offline_runs(now() - interval '1 hour', now(), true) -> 'rows') elem
+  where elem ->> 'id' = (select id::text from t_run3)
+), false, 'the listing reflects that ranking did not put it on the solo board');
 
 select * from finish();
 rollback;

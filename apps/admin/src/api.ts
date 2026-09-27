@@ -18,6 +18,8 @@ export interface OfflineRunRow {
   id: string; userId: string; name: string; hero: string; startedAt: string; endedAt: string | null;
   chapter: number; score: number | null; kills: number | null; gold: number | null; playSeconds: number;
   goldCeilingPct: number; result: string | null; review: 'ranked' | 'rejected' | null; reviewedAt: string | null;
+  /** Whether a 'ranked' review actually beat the player's existing best on that board (it may not). */
+  onSolo: boolean; onAlltime: boolean;
 }
 export interface OfflineRunsResult { since: string; until: string; rows: OfflineRunRow[] }
 export interface PlayerRow {
@@ -202,9 +204,10 @@ function demoApi(): AdminApi {
   ];
   const ago = (h: number): string => new Date(Date.now() - h * 36e5).toISOString();
   const offlineRuns: OfflineRunRow[] = [
-    { id: 'off1', userId: 'u2', name: 'speedyyy', hero: 'ranger', startedAt: ago(30), endedAt: ago(29.6), chapter: 7, score: 42000, kills: 900, gold: 1200, playSeconds: 1560, goldCeilingPct: 41, result: 'dead', review: null, reviewedAt: null },
-    { id: 'off2', userId: 'u4', name: 'ด.ช.มอนเยอะ', hero: 'knight', startedAt: ago(28), endedAt: ago(27.6), chapter: 5, score: 21000, kills: 500, gold: 800, playSeconds: 1300, goldCeilingPct: 25, result: 'dead', review: null, reviewedAt: null },
-    { id: 'off3', userId: 'u5', name: 'Pim', hero: 'alchemist', startedAt: ago(26), endedAt: ago(25.7), chapter: 3, score: 8200, kills: 210, gold: 300, playSeconds: 900, goldCeilingPct: 18, result: 'quit', review: 'ranked', reviewedAt: ago(1) },
+    { id: 'off1', userId: 'u2', name: 'speedyyy', hero: 'ranger', startedAt: ago(30), endedAt: ago(29.6), chapter: 7, score: 42000, kills: 900, gold: 1200, playSeconds: 1560, goldCeilingPct: 41, result: 'dead', review: null, reviewedAt: null, onSolo: false, onAlltime: false },
+    { id: 'off2', userId: 'u4', name: 'ด.ช.มอนเยอะ', hero: 'knight', startedAt: ago(28), endedAt: ago(27.6), chapter: 5, score: 21000, kills: 500, gold: 800, playSeconds: 1300, goldCeilingPct: 25, result: 'dead', review: null, reviewedAt: null, onSolo: false, onAlltime: false },
+    // Pim's existing board score (45,900) already beats this, so review='ranked' but onSolo/onAlltime stay false
+    { id: 'off3', userId: 'u5', name: 'Pim', hero: 'alchemist', startedAt: ago(26), endedAt: ago(25.7), chapter: 3, score: 8200, kills: 210, gold: 300, playSeconds: 900, goldCeilingPct: 18, result: 'quit', review: 'ranked', reviewedAt: ago(1), onSolo: false, onAlltime: false },
   ];
   const work: WorkItem[] = [
     { id: 3, kind: 'balance', source: 'feedback', refs: [{ type: 'feedback', id: 2 }], title: 'Vex: ขวดปาไม่ค่อยโดนบอส', status: 'needs_decision',
@@ -272,9 +275,15 @@ function demoApi(): AdminApi {
       const o = offlineRuns.find((x) => x.id === id);
       if (!o) throw new Error('RUN_NOT_FOUND');
       if (o.review) throw new Error('ALREADY_REVIEWED');
-      o.review = 'ranked'; o.reviewedAt = now();
-      note('rank_offline_run', 'runs', { runId: id, user: o.userId });
-      return { appliedSolo: true, appliedAlltime: true };
+      const existing = board.find((x) => x.userId === o.userId);
+      const beats = !existing || (o.score ?? 0) > existing.score;
+      o.review = 'ranked'; o.reviewedAt = now(); o.onSolo = beats; o.onAlltime = beats;
+      if (beats) {
+        if (existing) { existing.score = o.score ?? existing.score; existing.chapter = o.chapter; existing.hero = o.hero; existing.status = 'pending'; }
+        else board.push({ userId: o.userId, name: o.name, score: o.score ?? 0, chapter: o.chapter, hero: o.hero, weapon: null, hidden: false, banned: false, at: now(), status: 'pending' });
+      }
+      note('rank_offline_run', 'runs', { runId: id, user: o.userId, onSolo: beats, onAlltime: beats });
+      return { appliedSolo: beats, appliedAlltime: beats };
     },
     async rejectOfflineRun(id, n) {
       const o = offlineRuns.find((x) => x.id === id);

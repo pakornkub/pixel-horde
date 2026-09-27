@@ -48,7 +48,12 @@ begin
       'chapter', r.chapter, 'score', r.score, 'kills', r.kills, 'gold', r.gold_earned,
       'playSeconds', round(extract(epoch from (r.ended_at - r.started_at))),
       'goldCeilingPct', round(100 * r.gold_earned / greatest(public.gold_ceiling(r.config_version, coalesce(r.chapter, 1)), 1)),
-      'result', r.result, 'review', r.offline_review, 'reviewedAt', r.offline_reviewed_at) order by r.score desc nulls last)
+      'result', r.result, 'review', r.offline_review, 'reviewedAt', r.offline_reviewed_at,
+      -- whether ranking actually beat the player's current best on each board (a ranked Run can still lose to it)
+      'onSolo', exists (select 1 from public.leaderboard l where l.world = r.world and l.season_id = public.active_season(r.world)
+                        and l.board = 'solo' and l.user_id = r.user_id and l.best_run_id = r.id),
+      'onAlltime', exists (select 1 from public.leaderboard l where l.world = r.world and l.season_id = 0
+                        and l.board = 'alltime' and l.user_id = r.user_id and l.best_run_id = r.id)) order by r.score desc nulls last)
     from public.runs r join public.profiles p on p.id = r.user_id
     where r.status = 'offline' and r.started_at between p_since and p_until and (p_include_reviewed or r.offline_review is null)
     limit 300), '[]'::jsonb));
