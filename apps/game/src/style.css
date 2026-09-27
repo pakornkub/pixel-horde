@@ -203,6 +203,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench button.sk.del:hover{background:#ffe0dc}
 .bench .sk.empty{border-style:dashed;opacity:.7;min-width:64px;justify-content:center}
 .bench .sk.lock{opacity:.45;background:#eee}
+.bench .row.locked{grid-template-columns:repeat(auto-fill,56px)}
+.bench .row.locked .sk.lock{min-width:0;min-height:36px;padding:4px}
 .bench .sk.sel{background:var(--gold);outline:3px solid var(--ink);outline-offset:1px}
 .bench .sk.target{opacity:1;box-shadow:0 0 0 3px #8fdcff;animation:pickme 1s steps(2) infinite}
 @keyframes pickme{50%{box-shadow:0 0 0 3px #3a7a2c}}

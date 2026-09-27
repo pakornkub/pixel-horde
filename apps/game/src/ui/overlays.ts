@@ -514,19 +514,21 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   const chip = (b: BenchSkill, need = ''): string => (b.pas ? iconHtml(b.id, PASSIVE_ICON[b.id]) : iconHtml(b.id, SKILL_ICON[b.id], b.evo ? ';box-shadow:0 0 0 2px #ffd23f' : ''))
     + `<span class="tx"><span class="nm">${nameOf(b)}</span>${need ? `<small class="need">${need}</small>` : ''}</span><b class="lv">LV ${b.lv}</b>`;
   const step = !edit ? 'bench.view' : pick ? ({ atk: 'bench.step2', awk: 'bench.step2a', pas: 'bench.step2p' } as const)[pick] : P.bench.length ? 'bench.step1' : 'bench.stepEmpty';
-  box.innerHTML = (edit ? `<div class="lbl">${t('bench.title')}</div>` : '') + `<div class="step">${t(step, { name: sel ? nameOf(sel) : '' })}</div>`;
+  const stepTxt = pick && !afford ? t('bench.short') : t(step, { name: sel ? nameOf(sel) : '' });
+  box.innerHTML = (edit ? `<div class="lbl">${t('bench.title')}</div>` : '') + `<div class="step${pick && !afford ? ' warn' : ''}">${stepTxt}</div>`;
   box.classList.toggle('picking', !!sel);
   box.classList.toggle('ro', !edit);
   const cell = (cls: string): HTMLElement => { const el = document.createElement(edit ? 'button' : 'div'); el.className = 'sk' + cls; return el; };
   /** One row of slots; while a Bench entry is picked only the slots of its group take it (and blink). */
   const slotRow = (label: string, g: SlotGroup, owned: BenchSkill[], slots: number, locked = false): HTMLElement => {
-    const row = document.createElement('div'); row.className = 'row ' + g;
+    const row = document.createElement('div'); row.className = 'row ' + g + (locked ? ' locked' : '');
     row.innerHTML = `<span class="lbl">${label} ${locked ? '🔒' : `${owned.length}/${slots}`}</span>`;
     const take = (id: SkillId | PassiveId | null): void => { if (sel && pick === g && afford) { act.onSwap!(benchSel, id); benchSel = -1; } };
     const arm = (el: HTMLElement, id: SkillId | PassiveId | null): void => {
       if (!(el instanceof HTMLButtonElement)) return;
-      el.disabled = !!pick && pick !== g;
-      if (pick === g) el.classList.add('target');
+      const fits = pick === g && afford; // short of Gold: nothing blinks, nothing takes the pick
+      el.disabled = !!pick && !fits;
+      if (fits) el.classList.add('target');
       el.addEventListener('click', () => take(id));
     };
     for (const o of owned) {
