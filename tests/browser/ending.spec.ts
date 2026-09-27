@@ -28,7 +28,7 @@ for (const [name, viewport] of SIZES) {
     }
     expect(new Set(caps).size).toBe(4);
     await expect(page.locator('#endUnlock')).toBeVisible();
-    await expect(page.locator('#endList li')).toHaveCount(5); // Heart Crack 1, Endless, a Weapon, two achievements
+    await expect(page.locator('#endList li')).toHaveCount(6); // Heart Crack 1, Endless, special shop, a Weapon, two achievements
     await expect(page.locator('#endlessBtn')).toBeInViewport();
     await page.screenshot({ path: info.outputPath('unlocked.png') });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

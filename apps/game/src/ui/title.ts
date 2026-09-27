@@ -25,8 +25,7 @@ function applyBackground(): void {
 
 /** Endless button next to Play once the account has beaten Umbra (Heart Crack unlocked or a Hero in heroesWon). */
 export function renderTitleEndless(): void {
-  const won = META.crackMax >= 1 || (META.life?.heroesWon?.length ?? 0) > 0;
-  $('endlessRunBtn').hidden = !won;
+  $('endlessRunBtn').hidden = !metaSync.hasWon();
   $('endlessRunBtn').title = t('title.endlessHint');
 }
 

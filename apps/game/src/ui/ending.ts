@@ -3,7 +3,7 @@
 import { onLangChange, t } from '@pixel-horde/i18n';
 import { HERO_IDS, newAchievements, runFacts, type HeroId, type SimState, type WeaponId } from '@pixel-horde/sim';
 import { active } from '../config';
-import { META, ownsHero } from '../meta';
+import { META, metaSync, ownsHero } from '../meta';
 import { HELD_SPR } from '../render/sprites';
 import { $, charImg, show } from './overlays';
 import { unlocksOf, unlockText, type Unlock } from './unlocks';
@@ -16,7 +16,7 @@ const AFTER_WIN_HERO = 'necromancer';
  * lifetime totals). `craterWeapons` = Weapons found in the Heart Crater this Run (Umbra's).
  */
 export function winUnlocks(v: Readonly<SimState>, craterWeapons: WeaponId[]): { firstWin: boolean; unlocks: Unlock[] } {
-  const firstWin = META.crackMax < 1 && !(META.life?.heroesWon?.length);
+  const firstWin = !metaSync.hasWon();
   const heroIn = (HERO_IDS as readonly string[]).includes(AFTER_WIN_HERO) && !ownsHero(AFTER_WIN_HERO as HeroId);
   const heroCost = (active.cfg.heroes as Record<string, { cost?: number } | undefined>)[AFTER_WIN_HERO]?.cost ?? 0;
   return {
@@ -27,7 +27,7 @@ export function winUnlocks(v: Readonly<SimState>, craterWeapons: WeaponId[]): { 
       maxTier: v.cfg.heartCrack.maxTier,
       weapons: craterWeapons, umbraGold: v.cfg.weapons.umbraGold,
       ach: newAchievements(runFacts(v), META.life, META.ach),
-      special: document.getElementById('specialBtn') !== null, // the special shop's title button (ticket 56)
+      special: true, // the special shop opens with the first win (ticket 56)
       hero: heroIn ? { id: AFTER_WIN_HERO, name: t(`hero.${AFTER_WIN_HERO}.name`), cost: heroCost } : null,
     }),
   };
@@ -108,7 +108,7 @@ export function debugEnding(search: string): void {
   openEnding(!later, unlocksOf({
     firstWin: !later, crack: later ? 1 : 0, crackMaxBefore: later ? 1 : 0, maxTier,
     weapons: later ? [] : ['glacierLance'], umbraGold: active.cfg.weapons.umbraGold, ach: later ? ['winBram'] : ['heartKeeper', 'kingslayer'],
-    special: document.getElementById('specialBtn') !== null,
+    special: true,
     hero: heroIn ? { id: AFTER_WIN_HERO, name: t(`hero.${AFTER_WIN_HERO}.name`), cost: 0 } : null,
   }));
 }

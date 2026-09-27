@@ -64,6 +64,8 @@ export interface Meta {
   wallet?: number;
   /** Owned Weapons ("lumora:thornwhip"); Kings only drop ones not owned. */
   weapons?: string[];
+  /** Weapon forge levels (ticket 56); missing = 0. */
+  forge?: Partial<Record<WeaponId, number>>;
 }
 
 export type DebugEvent = 'dragon' | 'frostdragon' | 'stormdragon' | 'rival' | 'bloodmoon';

@@ -282,6 +282,11 @@ html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);fo
 .tmenu button small{display:block;font-size:11px;font-weight:500}
 .tmenu button small[hidden]{display:none}
 .tmenu button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.tmenu button.special{grid-column:1/-1;background:#ffe27a}
+.tmenu button.special:hover{background:#fff3b8}
+.srow.locked{opacity:.5}
+.ico.wpn{background:#3a3363}
+.ico.wpn img{width:32px;height:32px;image-rendering:pixelated}
 .tfoot{width:100%;background:rgba(244,247,228,.92);color:var(--ink);border:3px solid var(--ink);border-radius:4px;padding:6px 10px;font-family:var(--th)}
 .tfoot{display:flex;flex-direction:column;gap:8px;padding:10px 12px;font-size:14px;line-height:1.35}
 .tstats{display:flex;gap:8px;flex-wrap:wrap}

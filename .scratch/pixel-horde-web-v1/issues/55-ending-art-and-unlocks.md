@@ -29,7 +29,7 @@ Proposed:
 - `apps/game/public/ending/p1–p4-{wide,tall}.webp` (Gemini, 1376×768 / 768×1376, 51–163 KB); raw renders in `generated-images/ending/`.
 - `apps/game/src/ui/unlocks.ts` (pure rules + test), `ui/ending.ts` (story, Unlocked page, `winUnlocks()` read before the win is
   recorded, `?debug=ending|ending:later`). Heart Crack line reads the top tier from `heartCrack.maxTier`.
-  Special shop line (56) shows when `#specialBtn` exists; 5th Hero line (57) when `HERO_IDS` has `necromancer` and it is not owned.
+  Special shop line (56, merged) on every first win; 5th Hero line (57) when `HERO_IDS` has `necromancer` and it is not owned.
 - Sim: `mode: 'endless'` starts `endless` with a frozen main Score of 0; `endlessFrom` is set when Chapter 9 starts.
 - Title: `#endlessRunBtn` next to Play when `crackMax ≥ 1` or `heroesWon` is not empty. Retry repeats the mode.
 - Tests: `tests/endgame.test.ts` (Endless Run), `apps/game/src/ui/unlocks.test.ts`, `tests/browser/ending.spec.ts` (desktop + phone).

@@ -22,7 +22,7 @@ export interface WinFacts {
   weapons: WeaponId[]; umbraGold: number;
   /** Achievements this Run earns (not owned before). */
   ach: string[];
-  /** Features from later tickets, only when they are in the build: the special shop (56) and a Hero sold after the first win (57). */
+  /** Opened by the first win: the special shop (ticket 56) and, once the build has it, a Hero sold after the first win (57). */
   special?: boolean;
   hero?: { id: string; name: string; cost: number } | null;
 }
