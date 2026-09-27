@@ -1,4 +1,5 @@
 import './style.css';
+import './ui/heading-font';
 import { createSim, DT, isHero, isWeapon, type Command, type Sim, type SimState, type SkillId, type PassiveId, type WeaponId, endlessBreakdown, reviveCost, runFacts } from '@pixel-horde/sim';
 import { lang, onLangChange, t } from '@pixel-horde/i18n';
 import { initAudio, audio, playMusic, setMuted } from './audio/sfx';
