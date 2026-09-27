@@ -141,6 +141,7 @@ const skills = obj({
     r: n(0, 0, 200, 'Dive splash radius: monsters this close to the prey are hit too (0 = prey only)'),
     guardN: int(0, 0, 50, 'Monsters this close to Kit that make the Hawk defend: it dives the nearest one instead of the biggest (0 = never)'),
     guardR: pos(40, 'Hawk defend radius around Kit'),
+    nearCh: int(0, 0, 20, 'Through this Chapter the Hawk dives the nearest monster instead of the biggest (0 = never)'),
     evo: evo({ n: int(2, 1, 4, 'Hawks'), stun: sec(0.8, 'Stun (s); bosses are slowed') }),
     awk: obj({
       n: int(5, 1, 12, 'Hawks in the flock'), dmgMul: mul(0.6, 'Damage × per hawk'), r: pos(16, 'Splash radius of each dive'),
@@ -437,6 +438,11 @@ const shared = obj({
     hp1: mul(1.25, 'Tier 1: monster HP ×'), dmg1: mul(1.15, 'Tier 1: monster damage ×'), spawn1: mul(1.15, 'Tier 1: spawn rate ×'),
     hp2: mul(1.5, 'Tier 2: monster HP ×'), dmg2: mul(1.3, 'Tier 2: monster damage ×'), spawn2: mul(1.3, 'Tier 2: spawn rate ×'),
     hp3: mul(1.8, 'Tier 3: monster HP ×'), dmg3: mul(1.45, 'Tier 3: monster damage ×'), spawn3: mul(1.45, 'Tier 3: spawn rate ×'),
+    // Ramp (balance pass 2026-09e): every tier is the same step up from the base difficulty, up to maxTier
+    ramp: int(0, 0, 1, 'Tiers follow the per-tier ramp below (1) or the Tier 1–3 table above (0)'),
+    maxTier: int(3, 1, 20, 'Highest Heart Crack tier a player can unlock'),
+    undoPer: frac(0, 'Ramp: share of the base difficulty help (shared.difficulty, except Gold) each tier takes away'),
+    hpPer: n(0, 0, 1, 'Ramp: monster HP + per tier'), dmgPer: n(0, 0, 1, 'Ramp: monster damage + per tier'), spawnPer: n(0, 0, 1, 'Ramp: spawn rate + per tier'),
   }, 'Heart Crack difficulty tiers (unlocked by beating Umbra)'),
   awaken: obj({
     links: int(2, 1, 3, 'Max-level Links needed (consumed unless keep is 1)'),
@@ -544,6 +550,7 @@ const shared = obj({
     fastMul: pos(10, 'Fast finish: points per second under the budget'),
     escape: pos(3000, 'Minus per King that escaped'),
     revivePenalty: frac(0.15, 'Share of the Score lost when buying a revive'),
+    crack: n(0, 0, 5, 'Heart Crack bonus: Score × (1 + this × tier)'),
   }, 'Arcade Score'),
   antiCheat: obj({
     minTimeFactor: frac(0.9, 'Real play time needed ≥ this × the length of the Stages cleared'),
