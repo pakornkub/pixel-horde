@@ -162,7 +162,7 @@ const skills = obj({
     r: n(0, 0, 200, 'Dive splash radius: monsters this close to the prey are hit too (0 = prey only)'),
     guardN: int(0, 0, 50, 'Monsters this close to Kit that make the Hawk defend: it dives the nearest one instead of the biggest (0 = never)'),
     guardR: pos(40, 'Hawk defend radius around Kit'),
-    gustKb: pos(0, 'Hawk Gust: when the Hawk defends, monsters around Kit are pushed back this hard (0 = no gust)'),
+    gustKb: n(0, 0, 400, 'Hawk Gust: when the Hawk defends, monsters around Kit are pushed back this hard (0 = no gust)'),
     gustStun: sec(0, 'Hawk Gust: monsters it pushes are stunned (s); bosses never'), gustR: pos(42, 'Hawk Gust radius around Kit'),
     gustCd: sec(3, 'Hawk Gust: at most one gust every (s), however often the Hawk defends'),
     stunBase: sec(0, 'Every Hawk dive stuns the non-boss monsters it strikes (s); the evolved Hawk uses its own stun'),
