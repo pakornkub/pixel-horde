@@ -4,7 +4,7 @@ import { chillTick } from './combos';
 import { signatureOf } from '../data/heroes';
 import { awkForm, bashScale, outerAngle, shieldPoints } from './shield';
 import { stepIceWall } from './guardians';
-import { WEAPONS } from '../data/weapons';
+import { WEAPONS, forgeDmg, forgeLevel, forgeMul, forgeStun, ultCap } from '../data/weapons';
 import { chapterMobHp } from './spawner';
 
 const FLASKS = ['fire', 'ice', 'poison'] as const;
@@ -16,7 +16,7 @@ function smartElement(e: Enemy): 'fire' | 'ice' | 'poison' {
   return 'ice';
 }
 import type { Enemy, SimState } from '../types';
-import { hit, ultCap } from './combat';
+import { hit } from './combat';
 import { cloneCast, cloneMul } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, nearestN, visibleEnemies } from './query';
@@ -82,7 +82,7 @@ export function useUlt(s: SimState): void {
   if (s.phase !== 'play' || s.ult < U.max) return;
   s.ult = 0;
   const targets = visibleEnemies(s);
-  const dmg = U.mobHp * chapterMobHp(s); // relative to this Chapter's monsters, never to player bonuses
+  const dmg = U.mobHp * chapterMobHp(s) * forgeDmg(s.cfg, forged(s)); // relative to this Chapter's monsters (and the forge), never to player bonuses
   s.effects.push({ type: 'judge', col: WEAPONS[s.weapon].col, t: 0, dur: 1.0, x: s.P.x, y: s.P.y, fired: false, targets: targets.map((e) => ({ e, x: e.x, y: e.y })), dmg });
   s.slowT = U.slow;
   flash(s, 0.25, '#fff8c0', false, true);
@@ -91,21 +91,28 @@ export function useUlt(s: SimState): void {
   banner(s, 'judgement', 1.1, true, { weapon: s.weapon });
 }
 
-/** One Ultimate strike in the form of the equipped Weapon. */
+/** Forge level of the equipped Weapon (0 = unforged, the plain effect). */
+const forged = (s: SimState): number => forgeLevel(s.cfg, s.meta.forge, s.weapon);
+
+/** One Ultimate strike in the form of the equipped Weapon; forge levels stretch the form's own effect, never its damage. */
 function ultStrike(s: SimState, e: Enemy, dmg: number, heal: { left: number }): void {
-  const w = WEAPONS[s.weapon], W = s.cfg.weapons, S = s.cfg.status, P = s.P;
-  if (w.form === 'reap' && !e.boss && e.hp < e.maxHp * W.execute) dmg = e.hp; // reaped outright
-  if (e.boss) dmg = Math.max(dmg, e.maxHp * ultCap(s, e) * s.cfg.ult.bossHit); // bosses: at least this share of the cap
-  const kb = s.cfg.ult.kb * (w.form === 'crash' ? W.crashKb : 1);
+  const w = WEAPONS[s.weapon], W = s.cfg.weapons, S = s.cfg.status, P = s.P, lv = forged(s), fm = forgeMul(s.cfg, s.weapon, lv);
+  if (w.form === 'reap' && !e.boss && e.hp < e.maxHp * Math.min(1, W.execute * fm)) dmg = e.hp; // reaped outright
+  // bosses: at least bossHit × this player's (forged) cap; only this strike, never turret shots or other raw follow-ups
+  const cap = e.boss ? ultCap(s.cfg, e.type === 'umbra', lv) : 0;
+  if (e.boss) dmg = Math.max(dmg, e.maxHp * cap * s.cfg.ult.bossHit);
+  const kb = s.cfg.ult.kb * (w.form === 'crash' ? W.crashKb * fm : 1);
   hit(s, e, dmg, w.col, kb, w.form === 'burn' || w.form === 'crash' ? ULT_BURN : ULT_TAG);
-  if (w.form === 'harvest' && heal.left > 0) { const h = Math.min(heal.left, P.maxHp * W.harvestHeal); heal.left -= h; P.hp = Math.min(P.maxHp, P.hp + h); }
+  if (w.form === 'harvest' && heal.left > 0) { const h = Math.min(heal.left, P.maxHp * W.harvestHeal * fm); heal.left -= h; P.hp = Math.min(P.maxHp, P.hp + h); }
   if (e.dead) return;
   const dx = e.x - P.x, dy = e.y - P.y, l = hypot(dx, dy) || 1;
-  if (w.form === 'root') { if (e.boss) e.slowT = Math.max(e.slowT, W.root); else e.stun = W.root; }
-  else if (w.form === 'freeze') { if (e.boss) e.slowT = Math.max(e.slowT, W.freeze); else e.frz = W.freeze; }
-  else if (w.form === 'plague') { e.pois = S.poisoned * P.statusMul; e.poisDps = dmg * W.plagueDps; }
-  else if (w.form === 'shock') e.shock = S.shocked * P.statusMul;
-  else if (w.form === 'push' && !e.boss) { e.kx += (dx / l) * W.push; e.ky += (dy / l) * W.push; }
+  if (w.form === 'judgement') { if (lv > 0 && !e.boss) e.stun = Math.max(e.stun || 0, forgeStun(s.cfg, lv)); }
+  else if (w.form === 'burn') { if (lv > 0 && e.burn) e.burn *= fm; }
+  else if (w.form === 'root') { if (e.boss) e.slowT = Math.max(e.slowT, W.root * fm); else e.stun = W.root * fm; }
+  else if (w.form === 'freeze') { if (e.boss) e.slowT = Math.max(e.slowT, W.freeze * fm); else e.frz = W.freeze * fm; }
+  else if (w.form === 'plague') { e.pois = S.poisoned * P.statusMul; e.poisDps = (e.boss ? Math.min(dmg, e.maxHp * cap) : dmg) * W.plagueDps * fm; } // bosses: poison from the capped strike
+  else if (w.form === 'shock') e.shock = S.shocked * P.statusMul * fm;
+  else if (w.form === 'push' && !e.boss) { e.kx += (dx / l) * W.push * fm; e.ky += (dy / l) * W.push * fm; }
   else if (w.form === 'harvest' && !e.boss) { e.kx -= (dx / l) * W.harvestPull; e.ky -= (dy / l) * W.harvestPull; }
 }
 const ULT_TAG: HitTag = { raw: true };
@@ -790,8 +797,9 @@ export function updEffects(s: SimState, dt: number): void {
         f.fired = true;
         flash(s, 0.45, '#ffffff', false, true); shake(s, 11);
         s.hitstop = 0.08;
-        const heal = { left: s.P.maxHp * s.cfg.weapons.harvestHealMax }, spark = s.weapon === 'judgement' ? '#fff8c0' : WEAPONS[s.weapon].col;
-        if (WEAPONS[s.weapon].form === 'turret') s.effects.push({ type: 'gturret', x: s.P.x, y: s.P.y - 6, t: 0, dur: s.cfg.weapons.turretDur, dmg: f.dmg * s.cfg.weapons.turretDmg, tick: 0 });
+        const form = WEAPONS[s.weapon].form, fm = forgeMul(s.cfg, s.weapon, forged(s));
+        const heal = { left: s.P.maxHp * s.cfg.weapons.harvestHealMax * (form === 'harvest' ? fm : 1) }, spark = s.weapon === 'judgement' ? '#fff8c0' : WEAPONS[s.weapon].col;
+        if (form === 'turret') s.effects.push({ type: 'gturret', x: s.P.x, y: s.P.y - 6, t: 0, dur: s.cfg.weapons.turretDur * fm, dmg: f.dmg * s.cfg.weapons.turretDmg, tick: 0 });
         for (const o of f.targets!) {
           if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; ultStrike(s, o.e, f.dmg, heal); }
           burst(s, o.x, o.y, spark, 8, 80, 0.6);

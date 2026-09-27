@@ -136,6 +136,7 @@ export function createSupabaseBackend(): Backend {
     async sendFeedback(f) { online(); await rpc('submit_feedback', { p_category: f.category, p_message: f.message, p_context: f.context }); },
     async resumeRun(runId, hash) { online(); return rpc<{ ok: boolean; seasonChanged: boolean }>('resume_run', { p_run: runId, p_hash: hash }); },
     async buyUpgrade(item) { online(); return rpc<ServerMeta>('buy_upgrade', { p_item: item }); },
+    async forgeWeapon(weapon) { online(); return rpc<ServerMeta>('forge_weapon', { p_weapon: weapon }); },
     async unlockHero(hero) { online(); return rpc<ServerMeta>('unlock_hero', { p_hero: hero }); },
     async importLegacy(save) { online(); return rpc<ServerMeta>('import_legacy_meta', { p: save }); },
     async getLeaderboard(board, hero) { online(); return rpc<BoardView>('get_leaderboard', { p_board: board, p_hero: hero ?? null }); },

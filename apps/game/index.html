@@ -35,6 +35,7 @@
       <button id="shopBtn1" data-i18n="title.shop"></button>
       <button id="collBtn" data-i18n="coll.open"></button>
       <button id="settingsBtn1" data-i18n="title.settings"></button>
+      <button id="specialBtn" class="special"></button>
     </div>
     <div class="news" id="news" hidden></div>
     <div class="updnote" id="updNote" hidden></div>
@@ -140,6 +141,17 @@
   <h2 id="msgTitle" data-i18n="msg.title"></h2>
   <p id="msgTxt"></p>
   <button class="btn" id="msgBtn" data-i18n="over.home"></button>
+</div></div>
+
+<div class="overlay" id="ovSpecial"><div class="box">
+  <h2 data-i18n="special.title"></h2>
+  <div class="goldline" id="specialGold"></div>
+  <div class="weapons" id="specialTabs">
+    <button data-tab="forge"></button><button data-tab="mastery"></button><button data-tab="outfits"></button>
+  </div>
+  <div id="specialBody"></div>
+  <p class="note err" id="specialMsg" role="status" hidden></p>
+  <button class="btn ghost" id="specialBack" data-i18n="shop.back"></button>
 </div></div>
 
 <div class="overlay" id="ovShop"><div class="box">

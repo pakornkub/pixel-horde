@@ -1,8 +1,8 @@
 // One headless playtest Run with the bot, plus what a balance pass needs to know about it.
 // Damage attribution comes from hooks the build step (build.mjs) wraps around hit() and hurtP().
 import {
-  AWK_TAG_SKILL, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig,
-  type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId,
+  AWK_TAG_SKILL, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig, weaponKey,
+  type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId, type WeaponId,
 } from '@pixel-horde/sim';
 import { BALANCE_PASSES, DEFAULT_CONFIG, withOverrides, type BalanceConfigInput } from '@pixel-horde/config';
 import { createBot, DEFAULT_PROFILE, type BotProfile } from './bot';
@@ -15,6 +15,8 @@ export interface Job {
   patch?: BalanceConfigInput;
   /** Heart Crack tier 0–3 (the difficulty ladder unlocked by beating Umbra). */
   crack?: number;
+  /** Equipped Weapon and its forge level (PT_FORGE=<weapon>:<level>); default Judgement, unforged. */
+  weapon?: WeaponId; forge?: number;
   /** Start from the recommended balance passes (packages/config/src/balance-pass.ts): true / '1' = all of them,
    *  a pass id = the passes up to and including that one. */
   pass?: boolean | string;
@@ -90,7 +92,7 @@ export function runOne(job: Job): RunMetrics {
   const base = passes.slice(0, job.pass ? upTo : 0).reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
   const cfg = resolveConfig(withOverrides(base, job.patch ?? {}));
   const profile = { ...DEFAULT_PROFILE, ...job.profile };
-  const sim = createSim({ seed: job.seed, hero: job.hero, meta: { up: { ...job.shop } }, viewport: { w: 338, h: 190 }, config: cfg, crack: job.crack ?? 0 });
+  const sim = createSim({ seed: job.seed, hero: job.hero, meta: { up: { ...job.shop }, ...(job.weapon ? { weapons: [weaponKey(job.weapon)], forge: { [job.weapon]: job.forge ?? 0 } } : {}) }, viewport: { w: 338, h: 190 }, config: cfg, crack: job.crack ?? 0, ...(job.weapon ? { weapon: job.weapon } : {}) });
   const bot = createBot(job.seed, profile);
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
@@ -104,7 +106,8 @@ export function runOne(job: Job): RunMetrics {
   globalThis.__PT = {
     cur: null,
     onHit(s, _e, tag, d) {
-      const k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : this.src?.cl ? 'clone' : tagName(tag);
+      let k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : this.src?.cl ? 'clone' : tagName(tag);
+      if (k === 'ultimate' && _e.boss) k = 'ultimate:boss';
       const src = this.src;
       if (src?.type === 'judge' && tag?.raw) { // one Ultimate strike
         const u = ultAt(s.stage);
@@ -115,7 +118,7 @@ export function runOne(job: Job): RunMetrics {
       }
       m.dmg[k] = (m.dmg[k] || 0) + d;
       if (s.P.awakened) m.dmgAfterAwaken[k] = (m.dmgAfterAwaken[k] || 0) + d;
-      if (k !== 'ultimate') chDmg[s.stage] = (chDmg[s.stage] || 0) + d;
+      if (!k.startsWith('ultimate')) chDmg[s.stage] = (chDmg[s.stage] || 0) + d;
     },
     onHurt(s, d) {
       const c = this.cur;

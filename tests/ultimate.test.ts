@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WEAPON_IDS, createSim, weaponKey, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { WEAPON_IDS, createSim, weaponKey, type SimEvent, type SimState, type WeaponId } from '@pixel-horde/sim';
 import { killE } from '../packages/sim/src/systems/combat';
 import { chapterMobHp, spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { asWritten, botOptions } from './bot';
@@ -130,5 +130,52 @@ describe('Weapons', () => {
     killE(b.s, spawnEnemy(b.s, 'umbra', 10, 0, false));
     expect(b.s.foundWeapons).toEqual([]);
     expect(b.s.runGold).toBe(gold + 500);
+  });
+});
+
+describe('Weapon forge (ticket 56)', () => {
+  /** Fires the Ultimate at one tough monster; returns it right after the strike lands. */
+  function forgedStrike(weapon: WeaponId, forge: Record<string, number>, hpFrac = 1) {
+    const { s, step } = fresh({ weapon, meta: { up: {}, weapons: WEAPON_IDS.map((w) => weaponKey(w)), forge } });
+    s.P.skills = {};
+    const mob = spawnEnemy(s, 'mush', 30, 0, false); mob.maxHp = 1e9; mob.hp = 1e9 * hpFrac; mob.armor = 0;
+    s.ult = s.cfg.ult.max;
+    step(1, [{ type: 'ult' }]);
+    for (let i = 0; i < 60 && mob.hp === 1e9 * hpFrac && !mob.dead; i++) step();
+    return { s, mob };
+  }
+
+  it('levels stretch the Weapon\'s own effect and add Ultimate damage (level 0 = unchanged)', () => {
+    const plain = forgedStrike('thornwhip', {}), forged = forgedStrike('thornwhip', { thornwhip: 4 });
+    expect(forged.mob.stun! - plain.mob.stun!).toBeCloseTo(plain.s.cfg.weapons.root * plain.s.cfg.forge.thornwhip * 4, 5);
+    const hitPlain = 1e9 - plain.mob.hp, hitForged = 1e9 - forged.mob.hp;
+    expect(hitPlain).toBe(Math.round(plain.s.cfg.ult.mobHp * chapterMobHp(plain.s)));
+    expect(hitForged / hitPlain).toBeCloseTo(1 + plain.s.cfg.forge.dmg * 4, 1); // both hits are rounded
+  });
+
+  it('raises the boss cap: a King takes 8% + 1% per level', () => {
+    const hitKing = (lv: number): number => {
+      const { s, step } = fresh({ weapon: 'judgement', meta: { up: {}, forge: { judgement: lv } } });
+      s.P.skills = {}; s.stage = 8;
+      const king = spawnEnemy(s, 'boss', -30, 0, false); king.hp = king.maxHp = 5000;
+      s.ult = s.cfg.ult.max;
+      step(60, [{ type: 'ult' }]);
+      return 5000 - king.hp;
+    };
+    expect(hitKing(0)).toBe(400);
+    expect(hitKing(5)).toBe(650);
+  });
+
+  it('Judgement: forged levels stun the monsters that survive', () => {
+    expect(forgedStrike('judgement', {}).mob.stun ?? 0).toBe(0);
+    const f = forgedStrike('judgement', { judgement: 3 });
+    expect(f.mob.stun).toBeCloseTo(f.s.cfg.forge.judgement * 3 - 1 / 60, 5); // one tick has already run down
+  });
+
+  it('Bone Scythe: a higher reap threshold, and the level is capped at the config max', () => {
+    expect(forgedStrike('boneScythe', {}, 0.3).mob.dead).toBe(false); // 30% HP is above the 20% threshold
+    expect(forgedStrike('boneScythe', { boneScythe: 5 }, 0.3).mob.dead).toBe(true); // 20% × 1.75 = 35%
+    const over = forgedStrike('thornwhip', { thornwhip: 99 }), max = forgedStrike('thornwhip', { thornwhip: over.s.cfg.forge.max });
+    expect(over.mob.stun).toBe(max.mob.stun);
   });
 });
