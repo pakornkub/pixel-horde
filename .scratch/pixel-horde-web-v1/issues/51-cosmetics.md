@@ -18,7 +18,8 @@ Owner decisions (2026-09-27, ticket 56 session), replacing the looks-only idea:
 
 **Blocked by:** —
 
-**Status:** ready-for-human (owner playtest; art follow-up; migration 0041 goes live with the build)
+**Status:** ready-for-human (merged 2026-09-27 in PR #55; migration 0041 is applied. Waiting for an owner playtest; the art
+is ticket 60)
 
 - [x] Balance Config group `shared.outfits` (+ Thai descriptions, changelog category economy)
 - [x] Sim: `packages/sim/src/data/outfits.ts` (sets, slots, `outfitStats`, `outfitSet`, `outfitTarget`, `outfitCost`,

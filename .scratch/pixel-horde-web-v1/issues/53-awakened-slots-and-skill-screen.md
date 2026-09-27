@@ -17,7 +17,8 @@ Proposed (to confirm with the owner):
 
 **Blocked by:** 52
 
-**Status:** ready-for-human (code done; migration + pass publish + playtest are owner steps)
+**Status:** ready-for-human (merged 2026-09-27 in PR #54; migration 0038 is applied and pass `2026-09h` is live in config v11.
+Waiting for an owner playtest)
 
 ## Owner decisions (2026-09-27, confirmed in session)
 - HUD: a separate gold "AWK n/3" row above SKILL, shown only once Awakened.
@@ -34,4 +35,5 @@ Proposed (to confirm with the owner):
 - [x] Pass `2026-09h` (lineSlots 3, slots 0) first in BALANCE_PASSES; migration `20260930000038_awaken_line_slots.sql`
 - [x] Site guide (slots demo + Awakening rule), CLAUDE.md
 - [x] Tests: tests/awaken.test.ts (lineSlots), balance-pass.test.ts, tests/browser/skills.spec.ts (swap + blink, pause view)
-- [ ] Owner: apply the migration, publish pass `2026-09h` after the build is live; playtest an Awakened Run
+- [x] Owner: apply the migration, publish pass `2026-09h` after the build is live (config v11)
+- [ ] Owner: playtest an Awakened Run
