@@ -14,6 +14,9 @@ PT_PASS=1 npm run playtest -- cracks 10  # every Heart Crack tier on top of all 
 node scripts/playtest/exp.mjs patches.json 12 mid   # compare Balance Config patches on the same seeds
 ```
 
+Per-job gear for the `patch` suite (and `exp.mjs` patch entries as `"forge"` / `"outfit"`): `PT_FORGE=<weapon>:<level>`
+(equipped Weapon and its forge level), `PT_OUTFIT=<set>:<level>` (all three pieces of one outfit set), `PT_CRACK=<tier>`.
+
 Suites (`suites.mjs`): `heroes` (fresh), `veteran`/`max` (Shop levels),
 `casual` (random picks, slower reactions), `cracks` (`PT_CRACKS=0,3` limits the list), `patch`
 (env `PT_PATCH_JSON`, `PT_SHOP`, `PT_CRACK`, `PT_MAXCH=1` stop after Chapter 1). Env for every suite: `PT_PASS=1`
