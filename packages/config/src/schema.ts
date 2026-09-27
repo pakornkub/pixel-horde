@@ -429,6 +429,16 @@ const shared = obj({
     gearCannon: frac(0.15, 'Forge Gear Cannon: turret time + per level'),
     lichTome: frac(0.15, 'Forge Lich Tome: healing (and its limit) + per level'),
   }, 'Weapon forge (special shop, after the first win)'),
+  outfits: obj({
+    max: int(5, 0, 20, 'Outfits: levels per piece'),
+    base: pos(500, 'Outfits: price of a piece (its first level, Gold)'),
+    growth: mul(1.6, 'Outfits: price × per level'),
+    hatDmg: n(0.02, 0, 0.5, 'Outfit hat: damage + per level'),
+    bodyHp: n(8, 0, 100, 'Outfit body: max HP + per level'),
+    cloakCrit: n(0.01, 0, 0.2, 'Outfit cloak: crit chance + per level (still capped)'),
+    setBase: n(0.15, 0, 2, 'Full outfit set: damage + against its monsters (Burning / Frozen or chilled / Shocked / bosses)'),
+    setPerLv: n(0.02, 0, 0.5, 'Full outfit set: bonus + per level of its lowest piece'),
+  }, 'Outfits (special shop, after the first win)'),
   economy: obj({
     kingSkillPoints: int(1, 0, 10, 'Skill Points per King killed'),
     kingChest: int(1, 0, 5, 'Chest wheels per King killed'),

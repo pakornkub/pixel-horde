@@ -39,6 +39,13 @@ function fakeBackend(start: BackendStatus = 'offline') {
       if (server.gold < cost) throw new BackendError('NOT_ENOUGH_GOLD');
       server.gold -= cost; server.shop[k] = lv + 1; return clone();
     },
+    buyOutfit: async (set, slot) => {
+      guard(); calls.push(`outfit:${set}:${slot}`);
+      if (!((server.stats?.heartCrack ?? 0) >= 1)) throw new BackendError('SHOP_LOCKED');
+      const k = `outfit:${set}:${slot}`, lv = server.shop[k] || 0, cost = Math.round(500 * 1.6 ** lv);
+      if (server.gold < cost) throw new BackendError('NOT_ENOUGH_GOLD');
+      server.gold -= cost; server.shop[k] = lv + 1; return clone();
+    },
     unlockHero: async (h) => { guard(); calls.push('hero:' + h); server.heroes.push(h); return clone(); },
     importLegacy: async (s) => {
       guard(); calls.push('legacy');
@@ -167,6 +174,28 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(f.calls).toEqual(['forge:judgement', 'forge:judgement', 'getMeta']);
     expect(ms.meta.forge).toEqual({ judgement: 2 });
     expect(ms.meta.gold).toBe(960);
+  });
+
+  it('outfits: locked before the first win, a new piece is worn at once, the sim gets the worn levels', async () => {
+    const f = fakeBackend('offline');
+    const ms = createMetaSync(f.b, memStore());
+    ms.bankLocal(3000);
+    expect((await ms.buyOutfit('frost', 'hat'))?.code).toBe('SHOP_LOCKED');
+    ms.unlockCrack(0);
+    expect(await ms.buyOutfit('frost', 'hat')).toBeNull();
+    expect(await ms.buyOutfit('frost', 'hat')).toBeNull();
+    expect(await ms.buyOutfit('ember', 'cloak')).toBeNull();
+    expect(ms.meta.gold).toBe(3000 - 500 - 800 - 500);
+    expect(ms.worn()).toEqual({ hat: { set: 'frost', lv: 2 }, cloak: { set: 'ember', lv: 1 } });
+    ms.wearOutfit('cloak', null);
+    ms.wearOutfit('body', 'frost'); // not owned: ignored
+    expect(ms.worn()).toEqual({ hat: { set: 'frost', lv: 2 } });
+    // back online: the queue replays and the server's shop keys become piece levels
+    f.server.gold = 3000; f.server.stats = { heartCrack: 1 };
+    f.status.set('online');
+    expect(await ms.sync()).toBe(true);
+    expect(f.calls).toEqual(['outfit:frost:hat', 'outfit:frost:hat', 'outfit:ember:cloak', 'getMeta']);
+    expect(ms.meta.outfits).toEqual({ 'frost:hat': 2, 'ember:cloak': 1 });
   });
 
   it('uploads an old artifact save exactly once, before anything else', async () => {

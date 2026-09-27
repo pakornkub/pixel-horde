@@ -54,6 +54,7 @@ export function createOfflineBackend(store: KeyValue = browserStore): Backend {
     sendFeedback: offlineErr,
     buyUpgrade: offlineErr,
     forgeWeapon: offlineErr,
+    buyOutfit: offlineErr,
     unlockHero: offlineErr,
     importLegacy: offlineErr,
     getLeaderboard: offlineErr,

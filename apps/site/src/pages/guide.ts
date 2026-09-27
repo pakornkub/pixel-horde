@@ -430,7 +430,8 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
     el('div', null, G(`shop.${id}.name`, undefined, 'b'), el('br'), G(`shop.${id}.desc`, undefined, 'span', 'muted'), el('div', { style: 'margin-top:4px' }, el('span.chip.gold', null, `${C.shop[id].base}G+`), ' ', el('span.chip', null, `MAX ${C.shop[id].max}`))))));
   const heroes = el('div.grid.g4', null, ...HERO_IDS.map((h) => el('div.panel', { style: 'display:flex;gap:10px;align-items:center;padding:12px' }, hero(h, 3), el('div', null, G(`hero.${h}.name`, undefined, 'b'), el('br'), el('span.chip.gold', null, C.heroes[h].cost ? `${C.heroes[h].cost}G` : s('home.free'))))));
   sec('gold', 'g.gold.h', T('g.gold.p', undefined, 'p'),
-    el('h3.subh', null, T('g.gold.shop')), shop, el('h3.subh', null, T('g.gold.heroes')), heroes, note('g.gold.run', '', { p: pct(C.score.revivePenalty) }));
+    el('h3.subh', null, T('g.gold.shop')), shop, el('h3.subh', null, T('g.gold.heroes')), heroes, note('g.gold.run', '', { p: pct(C.score.revivePenalty) }),
+    T('g.gold.special', { h: pct(C.outfits.hatDmg), b: C.outfits.bodyHp, c: pct(C.outfits.cloakCrit), n: C.outfits.max, s: pct(C.outfits.setBase + C.outfits.setPerLv) }, 'p'));
 }
 
 // ── 15. co-op ──────────────────────────────────────────

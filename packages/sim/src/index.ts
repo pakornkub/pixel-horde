@@ -9,6 +9,7 @@ export * from './data/heroes';
 export * from './data/shop';
 export * from './data/themes';
 export * from './data/weapons';
+export * from './data/outfits';
 export * from './data/achievements';
 export { xpNeed } from './systems/player';
 export { usableWeapons } from './systems/combat';

@@ -57,7 +57,7 @@ export function catOfPath(path: string): ChangeCat {
   if (/^(heroes|player|passives)\./.test(p)) return 'hero';
   if (/^(skills|combos|status|awaken|ult|pet|companion|clone|weapons)\./.test(p)) return 'skill';
   if (/^(events|heartCrack|endless)\./.test(p)) return 'event';
-  if (/^(loot|shop|forge|economy|chest|bench|score)\./.test(p)) return 'economy';
+  if (/^(loot|shop|forge|outfits|economy|chest|bench|score)\./.test(p)) return 'economy';
   if (/^coop\./.test(p)) return 'coop';
   if (/^(spawn|scaling|director|stage|xp|levelup|difficulty|tutorial)\./.test(p)) return 'difficulty';
   if (/^fx\./.test(p)) return 'ui';

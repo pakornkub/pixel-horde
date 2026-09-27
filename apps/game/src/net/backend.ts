@@ -140,6 +140,8 @@ export interface Backend {
   buyUpgrade(item: string): Promise<ServerMeta>;
   /** Weapon forge (ticket 56): next level of an owned Weapon; refused (LOCKED) before the first win. */
   forgeWeapon(weapon: string): Promise<ServerMeta>;
+  /** Outfits (ticket 51): buy or level up a piece; refused (SHOP_LOCKED) before the first win. */
+  buyOutfit(set: string, slot: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;
   getLeaderboard(board: BoardId, hero?: string | null): Promise<BoardView>;

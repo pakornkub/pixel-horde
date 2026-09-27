@@ -221,6 +221,7 @@ export const TXT = {
   'g.gold.p': { th: '<b>Gold</b> คือของอย่างเดียวที่อยู่ข้ามรอบ ได้จากมอนและราชา เข้ากระเป๋าตอนผ่านด่านหรือตาย ใช้ซื้อ:', en: '<b>Gold</b> is the only thing that survives a Run. It comes from monsters and Kings, and goes to your wallet on a Stage clear or when you fall. Spend it on:' },
   'g.gold.shop': { th: 'อัปเกรดถาวร (ร้านค้า)', en: 'Permanent upgrades (Shop)' },
   'g.gold.heroes': { th: 'ปลดล็อกฮีโร่', en: 'Unlock Heroes' },
+  'g.gold.special': { th: '<b>ร้านพิเศษ</b> (หลังชนะ Umbra ครั้งแรก): ตีบวกอาวุธ และ <b>ชุดเซต</b> 4 ธาตุ ชิ้นละช่อง หมวก (ดาเมจ +{h}%/ขั้น) เสื้อ (HP +{b}/ขั้น) ผ้าคลุม (คริ +{c}%/ขั้น) อัปได้ {n} ขั้น ใส่ครบ 3 ชิ้นเซตเดียวกันได้ดาเมจใส่มอนของธาตุนั้นเพิ่ม {s}% ขึ้นไป', en: '<b>Special shop</b> (after your first win over Umbra): the Weapon forge and <b>outfit sets</b> in 4 elements. Hat (+{h}% damage per level), body (+{b} HP per level), cloak (+{c}% crit per level), up to {n} levels; wear all 3 pieces of one set for {s}%+ damage against that element\'s monsters.' },
   'g.gold.run': { th: 'ในรอบ: สลับของใน Bench และซื้อชีวิตเพิ่ม 1 ครั้ง (คะแนน −{p}%)', en: 'Inside a Run: Bench swaps and one bought revive (−{p}% Score)' },
 
   'g.coop.h': { th: 'เล่นกับเพื่อน (Co-op)', en: 'Co-op with friends' },

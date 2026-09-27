@@ -7,6 +7,7 @@ import type { HeroId } from './data/heroes';
 import type { PassiveId, SkillId } from './data/skills';
 import type { ShopId } from './data/shop';
 import type { WeaponId } from './data/weapons';
+import type { OutfitSet, OutfitWear } from './data/outfits';
 
 export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'crack' | 'revive'; count: number; points: number }
 
@@ -66,6 +67,8 @@ export interface Meta {
   weapons?: string[];
   /** Weapon forge levels (ticket 56); missing = 0. */
   forge?: Partial<Record<WeaponId, number>>;
+  /** Outfit pieces worn and their levels (ticket 51); missing = none. */
+  outfit?: OutfitWear;
 }
 
 export type DebugEvent = 'dragon' | 'frostdragon' | 'stormdragon' | 'rival' | 'bloodmoon';
@@ -234,6 +237,9 @@ export interface Player {
   linkStages: Partial<Record<SkillId, number>>;
   /** Statuses this player leaves last × this (Vex). */
   statusMul: number;
+  /** Full outfit set worn and its damage bonus against that set's monsters (ticket 51). */
+  outfitSet?: OutfitSet | null;
+  outfitDmg?: number;
   /** Holy Shield rotation. */
   shieldA: number;
   /** Shield Bash: seconds into the current swing out and back (0 = none). */
