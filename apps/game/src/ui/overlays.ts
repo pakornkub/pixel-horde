@@ -103,7 +103,7 @@ function renderWeapons(): void {
     bt.addEventListener('click', () => { metaSync.selectWeapon(w); renderWeapons(); });
     row.appendChild(bt);
   }
-  const d = document.createElement('span'); d.textContent = t(`weapon.${META.weapon}.desc`); d.style.flexBasis = '100%';
+  const d = document.createElement('span'); d.className = 'wdesc'; d.textContent = t(`weapon.${META.weapon}.desc`);
   row.appendChild(d);
 }
 
