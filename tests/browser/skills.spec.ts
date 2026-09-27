@@ -37,6 +37,7 @@ test('Stage end: a benched Skill swaps only into a blinking attack slot; the Awa
   await expect(board.locator('.row.atk .sk.sig .sigtag')).toBeVisible(); // the Signature says it is locked, not broken
   const benched = board.locator('.bench-row .sk:not(.empty):not(.del)');
   test.skip(!(await benched.count()), 'no Skill reached the Bench this Run');
+  await expect(benched.first().locator('.need')).toBeVisible(); // Bench entries say what they still need too (every general Skill has an Evolution)
   await benched.first().click();
   await expect(board).toHaveClass(/picking/);
   // only the non-Signature attack slot blinks; Awakened and passive slots are disabled

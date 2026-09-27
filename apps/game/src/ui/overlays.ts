@@ -466,23 +466,29 @@ let benchSel = -1;
 type SlotGroup = 'atk' | 'awk' | 'pas';
 interface BoardActions { onSwap?: (bench: number, slot: SkillId | PassiveId | null) => void; onDiscard?: (bench: number) => void; denied?: boolean }
 
-/** What an owned skill still needs, in one short line: its Awakening Link progress, else its Evolution; or ''. */
-function skillNeed(v: Readonly<SimState>, id: SkillId): string {
-  const P = v.P, max = v.cfg.skills[id].max, lv = P.skills[id] || 0;
+/** What a skill still needs, in one short line: its Awakening Link progress, else its Evolution; or ''.
+ *  A benched skill (`bench`) counts for neither until it is back in a slot. */
+function skillNeed(v: Readonly<SimState>, id: SkillId, bench?: BenchSkill): string {
+  const P = v.P, max = v.cfg.skills[id].max, lv = bench ? bench.lv : P.skills[id] || 0, evo = bench ? bench.evo : !!P.evo[id];
   if (!P.awakened && SKILL_LINES[P.ch].includes(id)) {
     if (lv < max) return t('need.link', { lv, max });
-    const left = v.cfg.awaken.stages - (P.linkStages[id] || 0);
+    const left = v.cfg.awaken.stages - (bench ? 0 : P.linkStages[id] || 0);
     return left > 0 ? t('need.linkStage', { n: left }) : t('need.linkOk');
   }
   const pas = EVO_PASSIVE[id];
-  if (pas && !P.evo[id]) return lv < max ? t('need.evo', { max, p: passiveName(pas) }) : P.pas[pas] ? t('need.evoNext') : t('need.evoPas', { p: passiveName(pas) });
+  if (pas && !evo) {
+    if (lv < max) return t('need.evo', { max, p: passiveName(pas) });
+    if (!P.pas[pas]) return t('need.evoPas', { p: passiveName(pas) });
+    return bench ? t('need.evoEquip') : t('need.evoNext');
+  }
   return id === signatureOf(P.ch) && !P.awakened ? t('need.sigOk') : '';
 }
 
-/** A passive's use: the equipped Skill it still has to evolve, or ''. */
+/** A passive's use: the Skill (equipped first, else on the Bench) it still has to evolve, or ''. */
 function passiveNeed(v: Readonly<SimState>, id: PassiveId): string {
-  const P = v.P, s = (Object.keys(P.skills) as SkillId[]).find((k) => EVO_PASSIVE[k] === id && !P.evo[k]);
-  return s ? t('need.pasFor', { s: skillName(s) }) : '';
+  const P = v.P, pairs = (k: SkillId, evo: boolean): boolean => EVO_PASSIVE[k] === id && !evo;
+  const s = (Object.keys(P.skills) as SkillId[]).find((k) => pairs(k, !!P.evo[k])) ?? P.bench.find((b) => !b.pas && pairs(b.id, b.evo))?.id;
+  return s ? t('need.pasFor', { s: skillName(s as SkillId) }) : '';
 }
 
 /** Clear screen: swap Bench entries into their slots (the slots a pick can go to blink). */
@@ -558,7 +564,7 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   P.bench.forEach((b, i) => {
     const el = cell(i === benchSel ? ' sel' : ''), pair = document.createElement('div');
     pair.className = 'pair';
-    el.innerHTML = chip(b);
+    el.innerHTML = chip(b, b.pas ? passiveNeed(v, b.id) : skillNeed(v, b.id, b));
     if (edit) el.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; skillBoard(box, v, { ...act, denied: false }); });
     pair.appendChild(el);
     bench.appendChild(pair);

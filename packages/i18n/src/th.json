@@ -998,5 +998,6 @@
  "skills.title": "สกิลของฉัน",
  "skills.back": "กลับ",
  "hud.panel.awk": "AWK",
- "bench.sigTag": "ประจำตัว"
+ "bench.sigTag": "ประจำตัว",
+ "need.evoEquip": "วิวัฒน์: ใส่ช่องโจมตีก่อน"
 }
