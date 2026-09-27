@@ -153,6 +153,34 @@ describe('Weapon forge (ticket 56)', () => {
     expect(hitForged / hitPlain).toBeCloseTo(1 + plain.s.cfg.forge.dmg * 4, 1); // both hits are rounded
   });
 
+  it('Gear Cannon and Plague Censer follow-ups use the unforged strike: level 5 stays within ×2 in total', () => {
+    const total = (weapon: WeaponId, lv: number): number => {
+      const { s, step } = fresh({ weapon, meta: { up: {}, weapons: WEAPON_IDS.map((w) => weaponKey(w)), forge: { [weapon]: lv } } });
+      s.P.skills = {};
+      const mob = spawnEnemy(s, 'mush', 30, 0, false); mob.hp = mob.maxHp = 1e9; mob.armor = 0; mob.spd = 0;
+      s.ult = s.cfg.ult.max;
+      step(20 * 60, [{ type: 'ult' }]); // strike + every turret shot / all the poison
+      return 1e9 - mob.hp;
+    };
+    for (const w of ['gearCannon', 'plagueCenser'] as const) {
+      const ratio = total(w, 5) / total(w, 0);
+      expect(ratio, w).toBeGreaterThan(1.3); // the forge still helps
+      expect(ratio, w).toBeLessThanOrEqual(2.05);
+    }
+  });
+
+  it('Plague Censer poison on a King is based on the capped strike (Toxic Burst stays under the cap)', () => {
+    const { s, step } = fresh({ weapon: 'plagueCenser', meta: { up: {}, weapons: [weaponKey('plagueCenser')], forge: { plagueCenser: 5 } } });
+    s.P.skills = {}; s.stage = 8;
+    const king = spawnEnemy(s, 'boss', -30, 0, false); king.hp = king.maxHp = 500; // small: the strike is above the cap
+    s.ult = s.cfg.ult.max;
+    step(1, [{ type: 'ult' }]);
+    for (let i = 0; i < 60 && !king.poisDps; i++) step();
+    const C = s.cfg, capped = (C.ult.bossCap + C.forge.bossCap * 5) * 500;
+    expect(C.ult.mobHp * chapterMobHp(s)).toBeGreaterThan(capped);
+    expect(king.poisDps).toBeCloseTo(capped * C.weapons.plagueDps * (1 + C.forge.plagueCenser * 5), 6);
+  });
+
   it('raises the boss cap: a King takes 8% + 1% per level', () => {
     const hitKing = (lv: number): number => {
       const { s, step } = fresh({ weapon: 'judgement', meta: { up: {}, forge: { judgement: lv } } });
