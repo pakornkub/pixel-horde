@@ -727,7 +727,7 @@
  "forge.none": "none",
  "forge.missingHead": "Not owned yet ({n})",
  "forge.lockLine": "{weapon} · King of {realm}",
- "forge.power": "Ultimate damage · King cap {v}",
+ "forge.power": "Ultimate damage {dmg} · King cap {cap} of HP",
  "forge.sec": "{n}s",
  "forge.fx.judgement": "Monsters that survive are stunned {v}",
  "forge.fx.thornwhip": "Root {v}",
