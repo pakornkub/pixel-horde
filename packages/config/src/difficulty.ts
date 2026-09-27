@@ -28,7 +28,7 @@ type Knobs = ResolvedConfig['difficulty'];
 /**
  * Heart Crack tier `tier` on a resolved config (balance pass 2026-09e, `heartCrack.ramp` 1): each tier takes back
  * `undoPer` of the base difficulty's help (every knob moves that share of the way to 1; Gold stays). The per-tier
- * monster HP / damage / spawn steps are applied by the sim. Ramp off or tier 0 → the same object back.
+ * monster HP / damage / spawn steps are applied by the sim. Ramp off or tier 0 â†’ the same object back.
  */
 export function crackConfig(cfg: ResolvedConfig, tier: number): ResolvedConfig {
   const H = cfg.heartCrack;
@@ -57,6 +57,7 @@ function scaleBy(cfg: ResolvedConfig, k: Knobs): ResolvedConfig {
   c.ult.fill *= k.ultFill;
   c.director.max = Math.max(c.director.min, c.director.max * k.director);
   c.loot.coinChance = clamp(c.loot.coinChance * k.gold, 0, 1); c.loot.eliteCoin *= k.gold; c.loot.bossCoin *= k.gold; c.loot.chestGold *= k.gold;
-  c.stage.kingGold *= k.gold; c.rival.gold *= k.gold; c.overflow.gold *= k.gold; c.weapons.umbraGold *= k.gold;
+  // the overflow Gold bag keeps its written amount (owner, 2026-09-27): ×0.2 left it a card nobody picks
+  c.stage.kingGold *= k.gold; c.rival.gold *= k.gold; c.weapons.umbraGold *= k.gold;
   return c;
 }
