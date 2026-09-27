@@ -13,7 +13,7 @@ export interface Account {
 export type BackendStatus = 'online' | 'offline' | 'replaced' | 'suspended';
 export type BackendErrorCode =
   | 'SESSION_REPLACED' | 'NICKNAME_REJECTED' | 'NOT_SIGNED_IN' | 'OFFLINE' | 'UNKNOWN'
-  | 'NOT_ENOUGH_GOLD' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE' | 'ACCOUNT_SUSPENDED' | 'FEEDBACK_LIMIT';
+  | 'NOT_ENOUGH_GOLD' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE' | 'ACCOUNT_SUSPENDED' | 'FEEDBACK_LIMIT' | 'SHOP_LOCKED' | 'WEAPON_LOCKED';
 
 export class BackendError extends Error {
   constructor(public code: BackendErrorCode, message?: string) { super(message || code); }
@@ -23,7 +23,7 @@ export class BackendError extends Error {
 export function toBackendError(e: unknown): BackendError {
   if (e instanceof BackendError) return e;
   const msg = String((e as { message?: string })?.message ?? e ?? '');
-  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED', 'FEEDBACK_LIMIT'] as const) {
+  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED', 'FEEDBACK_LIMIT', 'SHOP_LOCKED', 'WEAPON_LOCKED'] as const) {
     if (msg.includes(code)) return new BackendError(code, msg);
   }
   if (/fetch|network|Failed to|timeout|ECONN|503|502|504/i.test(msg)) return new BackendError('OFFLINE', msg);
@@ -138,6 +138,8 @@ export interface Backend {
   /** Feedback button (title + Settings); at most 5 per account per day (FEEDBACK_LIMIT). */
   sendFeedback(f: FeedbackInput): Promise<void>;
   buyUpgrade(item: string): Promise<ServerMeta>;
+  /** Weapon forge (ticket 56): next level of an owned Weapon; refused (LOCKED) before the first win. */
+  forgeWeapon(weapon: string): Promise<ServerMeta>;
   unlockHero(hero: string): Promise<ServerMeta>;
   importLegacy(save: unknown): Promise<ServerMeta>;
   getLeaderboard(board: BoardId, hero?: string | null): Promise<BoardView>;

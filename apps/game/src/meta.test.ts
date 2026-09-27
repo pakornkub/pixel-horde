@@ -32,6 +32,13 @@ function fakeBackend(start: BackendStatus = 'offline') {
       if (server.gold < cost) throw new BackendError('NOT_ENOUGH_GOLD');
       server.gold -= cost; server.shop[item] = lv + 1; return clone();
     },
+    forgeWeapon: async (w) => {
+      guard(); calls.push('forge:' + w);
+      if (!((server.stats?.heartCrack ?? 0) >= 1)) throw new BackendError('SHOP_LOCKED');
+      const k = 'forge:lumora:' + w, lv = server.shop[k] || 0, cost = Math.round(400 * 1.6 ** lv);
+      if (server.gold < cost) throw new BackendError('NOT_ENOUGH_GOLD');
+      server.gold -= cost; server.shop[k] = lv + 1; return clone();
+    },
     unlockHero: async (h) => { guard(); calls.push('hero:' + h); server.heroes.push(h); return clone(); },
     importLegacy: async (s) => {
       guard(); calls.push('legacy');
@@ -137,6 +144,29 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(await ms.sync()).toBe(true);
     expect(f.calls).toContain('run:m1');
     expect(ms.pending()).toEqual([]);
+  });
+
+  it('Weapon forge: locked before the first win, then levels an owned Weapon (queued offline)', async () => {
+    const f = fakeBackend('offline');
+    const ms = createMetaSync(f.b, memStore());
+    ms.bankLocal(2000);
+    expect(ms.hasWon()).toBe(false);
+    expect((await ms.forgeWeapon('judgement'))?.code).toBe('SHOP_LOCKED');
+    ms.unlockCrack(0); // beating Umbra
+    expect(ms.hasWon()).toBe(true);
+    expect((await ms.forgeWeapon('thornwhip'))?.code).toBe('WEAPON_LOCKED');
+    expect(await ms.forgeWeapon('judgement')).toBeNull();
+    expect(await ms.forgeWeapon('judgement')).toBeNull();
+    expect(ms.meta.gold).toBe(2000 - 400 - 640);
+    expect(ms.forgeLv('judgement')).toBe(2);
+    expect(ms.pending().map((o) => o.kind)).toEqual(['forge', 'forge']);
+    // back online: the server (which also knows the win) replays both and its shop keys become forge levels
+    f.server.gold = 2000; f.server.stats = { heartCrack: 1 };
+    f.status.set('online');
+    expect(await ms.sync()).toBe(true);
+    expect(f.calls).toEqual(['forge:judgement', 'forge:judgement', 'getMeta']);
+    expect(ms.meta.forge).toEqual({ judgement: 2 });
+    expect(ms.meta.gold).toBe(960);
   });
 
   it('uploads an old artifact save exactly once, before anything else', async () => {

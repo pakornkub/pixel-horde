@@ -8,7 +8,7 @@ import type { PassiveId, SkillId } from './data/skills';
 import type { ShopId } from './data/shop';
 import type { WeaponId } from './data/weapons';
 
-export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'revive'; count: number; points: number }
+export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'crack' | 'revive'; count: number; points: number }
 
 /** Fixed simulation rate. */
 export const TICK_HZ = 60;
@@ -64,6 +64,8 @@ export interface Meta {
   wallet?: number;
   /** Owned Weapons ("lumora:thornwhip"); Kings only drop ones not owned. */
   weapons?: string[];
+  /** Weapon forge levels (ticket 56); missing = 0. */
+  forge?: Partial<Record<WeaponId, number>>;
 }
 
 export type DebugEvent = 'dragon' | 'frostdragon' | 'stormdragon' | 'rival' | 'bloodmoon';

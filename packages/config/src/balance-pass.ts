@@ -543,5 +543,73 @@ export const BALANCE_PASS_2026_09G: BalancePass = {
   },
 };
 
+/** v6 audit follow-up on the new base difficulty (ticket 48): Heart Crack as a ramp of 10 tiers, a Score bonus per tier,
+ *  and Kit's late game. Needs migration 20260930000033 (new fields, tiers above 3 on the server). */
+export const BALANCE_PASS_2026_09E: BalancePass = {
+  id: '2026-09e',
+  note: 'Heart Crack 1–10: each tier takes back 10% of the base difficulty help and adds a little; Score +50% per tier; Kit: wider Hawk dives, Hunter\'s Eye, nearest prey early',
+  patch: {
+    shared: {
+      // the base (old Relaxed) is won ~100% with a few Shop levels; Crack 3 still 98% at a full Shop
+      heartCrack: { ramp: 1, maxTier: 10, undoPer: 0.1, hpPer: 0.035, dmgPer: 0.025, spawnPer: 0.015 },
+      // every solo Run is ranked: harder tiers must outscore farming the base
+      score: { crack: 0.5 },
+      // Kit falls behind late: 62% of its damage taken is from normal monsters (others 33–39%), late DPS ~30% lower
+      skills: { hawk: { r: 34, guardN: 3, nearCh: 2 } },
+      heroes: { ranger: { crit: 0.1 } },
+    },
+  },
+  changelog: {
+    titleTh: 'หัวใจร้าว 10 ขั้น ยากขึ้นทีละนิดแบบเป็นธรรมชาติ และ Kit เก่งขึ้น',
+    titleEn: 'Heart Crack goes to 10, each tier a natural step up, and a stronger Kit',
+    items: [
+      { cat: 'event', th: 'หัวใจร้าวมี 10 ขั้นแล้ว ทุกขั้นยากขึ้นเท่า ๆ กัน: ตัวช่วยของความยากปกติ (เตือนท่าบอสนาน, HP เพิ่ม, หัวใจดรอปบ่อย ฯลฯ) หายไปขั้นละ 10% และมอนแรงขึ้นทีละนิด ร้าว 10 ยากกว่าเกมก่อนปรับเป็นแบบเล่นเพลิน ๆ', en: 'Heart Crack now has 10 tiers, each an even step: the base difficulty\'s help (longer boss warnings, extra HP, more hearts…) fades 10% per tier and monsters get a little stronger; Crack 10 is harder than the game before the relaxed base' },
+      { cat: 'event', th: 'คะแนนหัวใจร้าว: ทุกขั้นได้คะแนน +50% (ร้าว 2 = ×2, ร้าว 10 = ×6)', en: 'Heart Crack Score: +50% per tier (Crack 2 = ×2, Crack 10 = ×6)' },
+      { cat: 'hero', th: 'Kit ได้ "ตาพราน": โอกาสคริติคอล +10%', en: 'Kit gets Hunter\'s Eye: +10% crit chance' },
+      { cat: 'skill', th: 'เหยี่ยวของ Kit: โฉบแล้วกระแทกกว้างขึ้น เข้าป้องกันเมื่อมอน 3 ตัวล้อม และช่วง Chapter 1–2 โฉบตัวที่ใกล้ที่สุดก่อน', en: 'Kit\'s Hawk: wider dive impact, defends once 3 monsters close in, and in Chapters 1–2 dives the nearest monster first' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09e: หัวใจร้าว 1–10 และ Kit (บนความยากพื้นฐานใหม่)',
+    summary: 'หลังความยากพื้นฐานกลายเป็นแบบเล่นเพลิน ๆ (ticket 48) บอทชนะ Umbra 92% ตั้งแต่บัญชีใหม่ และร้านเต็มใน 5–6 รอบ '
+      + 'หัวใจร้าวเดิมคูณแค่ HP/ดาเมจ/จำนวนมอน ร้าว 3 จึงยังชนะ 98% ที่ร้านเต็ม เพราะตัวช่วยอื่นของความยากพื้นฐาน (เตือนท่านาน, HP ผู้เล่น, หัวใจ, EXP) ยังอยู่ '
+      + 'ชุดนี้ทำหัวใจร้าวเป็นขั้นบันได 10 ขั้น: ขั้นละ 10% ของตัวช่วยหายไป (ร้าว 10 = ไม่มีตัวช่วย) บวก HP +3.5% ดาเมจ +2.5% มอน +1.5% ต่อขั้น '
+      + 'คะแนน +50% ต่อขั้นเพราะทุกรอบเดี่ยวติดอันดับ และแก้ Kit ที่อ่อนสุดในทุกขั้นร้าว',
+    method: 'บอท playtest (scripts/playtest) บน main หลัง ticket 48, config v7 + passes, 4 ฮีโร่ × 16 seed ต่อช่อง บัญชีใหม่ / ร้านกลาง / ร้านเต็ม '
+      + 'ร้าวแต่ละขั้นจำลองด้วย config ก่อนเขียนโค้ด (สูตรเดียวกัน) จำลองอาชีพผู้เล่น (scripts/playtest/career.mjs) สำหรับ Gold; Kit 24 seed ต่อทางเลือก '
+      + 'วัดก่อนระบบตื่นพลังอัตโนมัติ (ticket 52)',
+    metrics: [
+      { label: 'ชนะ Umbra ร้านกลาง: ร้าว 1 / 3 / 5 / 7 / 10', before: 'ร้าว 3 เดิม 89%', after: '98 / 94 / 78 / 66 / 27%' },
+      { label: 'ชนะ Umbra ร้านเต็ม: ร้าว 1 / 3 / 5 / 7 / 10', before: 'ร้าว 3 เดิม 98%', after: '100 / 100 / 91 / 81 / 56%' },
+      { label: 'ชนะ Umbra บัญชีใหม่: ร้าว 1 / 3 / 5 / 7 / 10', before: 'ร้าว 3 เดิม 63%', after: '89 / 66 / 41 / 13 / 2%' },
+      { label: 'Kit ร้าว 5 ร้านกลาง / ร้านเต็ม / ปกติบัญชีใหม่', before: '58 / 75 / 88%', after: '67 / 79 / 96% (เหยี่ยวกว้าง + ตาพราน 10%)' },
+    ],
+    findings: [
+      { level: 'bad', title: 'หัวใจร้าวไม่ท้าทายบนความยากพื้นฐานใหม่', body: 'ร้าว 3 ชนะ 89% ร้านกลาง 98% ร้านเต็ม เพราะร้าวคูณแค่ HP/ดาเมจ/มอน ตัวช่วยอื่นยังครบ', status: 'แก้ด้วย heartCrack.ramp + undoPer' },
+      { level: 'warn', title: 'Kit อ่อนสุดทุกขั้นร้าว', body: 'ท้ายเกม DPS ต่ำกว่าคนอื่น ~30% และ 62% ของดาเมจที่โดนมาจากมอนธรรมดา (คนอื่น 33–39%) ปรับเหยี่ยวอย่างเดียวช่วยนิดเดียว', status: 'แก้บางส่วน: hawk.r/guardN + heroes.ranger.crit' },
+      { level: 'info', title: 'ร้าว 1–3 แทบไม่ต่างสำหรับคนร้านเต็ม', body: 'ตั้งใจให้เป็นขั้นอุ่นเครื่องหลังชนะ Umbra ครั้งแรก ความยากจริงเริ่มร้าว 5', status: 'เจ้าของเลือกแบบนี้' },
+      { level: 'info', title: 'ร้านเต็มใน 5–6 รอบ', body: 'Gold ×0.2 ได้ราว 1.4–3k ต่อรอบ หลังร้านเต็ม Gold ไม่มีที่ใช้', status: 'ticket 49–51 (โรงตีอาวุธ, Hero Mastery, ของแต่งตัว)' },
+    ],
+    reasons: {
+      'shared.heartCrack.ramp': 'ใช้สูตรขั้นบันไดแทนตาราง 3 ขั้น',
+      'shared.heartCrack.maxTier': 'มีขั้นให้ไต่ถึง 10',
+      'shared.heartCrack.undoPer': 'ตัวช่วยของความยากพื้นฐานหายขั้นละ 10% (ร้าว 10 = เกมก่อนปรับเป็นเล่นเพลิน ๆ)',
+      'shared.heartCrack.hpPer': 'มอนอึดขึ้นทีละนิด ไม่ให้เป็นกระสอบทราย',
+      'shared.heartCrack.dmgPer': 'มอนตีแรงขึ้นทีละนิด',
+      'shared.heartCrack.spawnPer': 'มอนแน่นขึ้นทีละนิด',
+      'shared.score.crack': 'ร้าวสูงต้องได้คะแนนมากกว่าเล่นระดับปกติ (ทุกรอบติดอันดับ)',
+      'shared.skills.hawk.r': 'เหยี่ยวกระแทกโดนฝูงรอบเป้า ลดการโดนล้อม',
+      'shared.skills.hawk.guardN': 'เหยี่ยวเข้าป้องกันเร็วขึ้นเมื่อมอน 3 ตัวล้อม',
+      'shared.skills.hawk.nearCh': 'เจ้าของขอ: ช่วงต้นเกมเหยี่ยวโฉบตัวที่ใกล้ที่สุดก่อน',
+      'shared.heroes.ranger.crit': 'ตาพราน: Kit มีโบนัสดาเมจติดตัวเหมือนฮีโร่อื่น',
+    },
+    next: [
+      'หลังระบบตื่นพลังอัตโนมัติและ 09f/09g ลงจริง วัดบันไดร้าวใหม่อีกครั้ง',
+      'Kit ยังตามฮีโร่อื่น 10–20 จุดที่ร้าวกลาง ๆ: เครื่องมือเคลียร์ฝูงของสกิลสาย Kit (session Kit\'s late game)',
+      'ดูข้อมูลจริง: ผู้เล่นไต่ร้าวได้ถึงขั้นไหน และคะแนน ×6 ที่ร้าว 10 ไม่ครองตารางอันดับเกินไป',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
