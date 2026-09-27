@@ -33,6 +33,9 @@ export interface RunMetrics {
   revives: number; secondWinds: number;
   /** Chapter the Shadow Clone was first there (null = never earned). */
   cloneAt: number | null;
+  /** Ultimate per Chapter: casts, monsters on screen when cast, normal / elite monsters struck and killed, the sum of
+   *  (Ultimate damage ÷ max HP) over struck normal monsters, and each strike on a King / Umbra as a share of its max HP. */
+  ult: { casts: number; targets: number; mobs: number; mobKills: number; mobPct: number; elites: number; eliteKills: number; king: number[]; umbra: number[] }[];
   awakenAt: number | null; sigEvoAt: number | null; firstLinkMaxAt: number | null; evos: number;
   dmg: Record<string, number>; dmgAfterAwaken: Record<string, number>;
   hurt: Record<string, number>; deathBy: string | null; deathChapter: number | null;
@@ -63,7 +66,7 @@ export interface RunMetrics {
   benchMax: number;
 }
 
-interface Hooks { combo?: string | null; src?: { cl?: unknown } | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
+interface Hooks { combo?: string | null; src?: { cl?: unknown; type?: string; dmg?: number; targets?: unknown[] } | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
 declare global { var __PT: Hooks | undefined }
 
 const TAG_NAME = new Map<object, string>();
@@ -91,7 +94,7 @@ export function runOne(job: Job): RunMetrics {
   const bot = createBot(job.seed, profile);
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
-    revives: 0, secondWinds: 0, cloneAt: null, awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
+    revives: 0, secondWinds: 0, cloneAt: null, ult: [], awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
     dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, crowd: [], lvByChapter: [],
     goldByCh: [], spEarned: 0, spSpent: 0, spLeft: 0, offers: { total: 0, heal: 0, withBench: 0, onlyBench: 0, picksBench: 0 }, benchMax: 0,
   };
@@ -102,6 +105,14 @@ export function runOne(job: Job): RunMetrics {
     cur: null,
     onHit(s, _e, tag, d) {
       const k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : this.src?.cl ? 'clone' : tagName(tag);
+      const src = this.src;
+      if (src?.type === 'judge' && tag?.raw) { // one Ultimate strike
+        const u = ultAt(s.stage);
+        if (src !== lastJudge) { lastJudge = src; u.targets += src.targets?.length ?? 0; }
+        if (_e.boss) (_e.type === 'umbra' ? u.umbra : u.king).push(+(d / _e.maxHp).toFixed(4));
+        else if (_e.elite) { u.elites++; if (_e.dead) u.eliteKills++; }
+        else { u.mobs++; if (_e.dead) u.mobKills++; u.mobPct += Math.min(1, (src.dmg ?? 0) / _e.maxHp); }
+      }
       m.dmg[k] = (m.dmg[k] || 0) + d;
       if (s.P.awakened) m.dmgAfterAwaken[k] = (m.dmgAfterAwaken[k] || 0) + d;
       if (k !== 'ultimate') chDmg[s.stage] = (chDmg[s.stage] || 0) + d;
@@ -117,7 +128,8 @@ export function runOne(job: Job): RunMetrics {
   };
   const maxTicks = Math.round((job.maxMin ?? 45) * 3600);
   let kingAt = -1, kingRealm = '', kingKilled = 0, revives0 = sim.view().P.revives;
-  let gold0 = 0, sp0 = 0, lastLu: unknown = null;
+  let gold0 = 0, sp0 = 0, lastLu: unknown = null, lastJudge: unknown = null, ult0 = 0;
+  const ultAt = (ch: number): RunMetrics['ult'][number] => (m.ult[ch] ??= { casts: 0, targets: 0, mobs: 0, mobKills: 0, mobPct: 0, elites: 0, eliteKills: 0, king: [], umbra: [] });
   for (let i = 0; i < maxTicks; i++) {
     const v = sim.view() as SimState;
     if (v.phase === 'over' || (job.maxCh && v.stage > job.maxCh)) break;
@@ -164,6 +176,8 @@ export function runOne(job: Job): RunMetrics {
     if (P.revives < revives0) { m.secondWinds++; revives0 = P.revives; }
     if (P.awakened && m.awakenAt === null) m.awakenAt = s.stage;
     if (P.clone && m.cloneAt === null) m.cloneAt = s.stage;
+    if (s.ult < ult0 - 1) ultAt(st).casts++;
+    ult0 = s.ult;
     const sig = Object.keys(P.evo).length;
     if (sig > m.evos) m.evos = sig;
     if (m.sigEvoAt === null && P.evo[({ mage: 'sigil', knight: 'shield', ranger: 'hawk', alchemist: 'flask' } as const)[job.hero]]) m.sigEvoAt = s.stage;

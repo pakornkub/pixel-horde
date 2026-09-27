@@ -65,8 +65,7 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
 
 /** Co-op host: a guest's hit, already calculated on the guest (Ultimate hits still capped on bosses). */
 function remoteHit(s: SimState, e: Enemy, d: number, ult: boolean): void {
-  const U = s.cfg.ult;
-  if (ult && e.boss) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap));
+  if (ult && e.boss) d = Math.min(d, e.maxHp * ultCap(s, e));
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
   e.hp -= d;
@@ -91,12 +90,14 @@ function findWeapon(s: SimState, id: WeaponId): void {
   banner(s, 'weaponFound', 2.6, true, { id });
 }
 
+/** Most of a boss's max HP one Ultimate strike may take (Kings/Guardians/Rival `ult.bossCap`, Umbra `ult.umbraCap`). */
+export const ultCap = (s: SimState, e: Enemy): number => (e.type === 'umbra' ? s.cfg.ult.umbraCap : s.cfg.ult.bossCap);
+
 /** Ultimate damage: fixed, capped on Kings/Guardians (Umbra lower), leaves the Weapon's Status. */
 function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | undefined, tag: HitTag): void {
-  const U = s.cfg.ult;
   let d = base;
   const guest = isGuest(s);
-  if (e.boss && !guest) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap)); // guests: the host caps it
+  if (e.boss && !guest) d = Math.min(d, e.maxHp * ultCap(s, e)); // guests: the host caps it
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
   if (guest) { queueHit(s, e, d, true); if (e.predHp) e.hp -= d; } else e.hp -= d;

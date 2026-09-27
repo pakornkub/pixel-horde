@@ -16,7 +16,7 @@ function smartElement(e: Enemy): 'fire' | 'ice' | 'poison' {
   return 'ice';
 }
 import type { Enemy, SimState } from '../types';
-import { hit } from './combat';
+import { hit, ultCap } from './combat';
 import { cloneCast, cloneMul } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, nearestN, visibleEnemies } from './query';
@@ -95,6 +95,7 @@ export function useUlt(s: SimState): void {
 function ultStrike(s: SimState, e: Enemy, dmg: number, heal: { left: number }): void {
   const w = WEAPONS[s.weapon], W = s.cfg.weapons, S = s.cfg.status, P = s.P;
   if (w.form === 'reap' && !e.boss && e.hp < e.maxHp * W.execute) dmg = e.hp; // reaped outright
+  if (e.boss) dmg = Math.max(dmg, e.maxHp * ultCap(s, e) * s.cfg.ult.bossHit); // bosses: at least this share of the cap
   const kb = s.cfg.ult.kb * (w.form === 'crash' ? W.crashKb : 1);
   hit(s, e, dmg, w.col, kb, w.form === 'burn' || w.form === 'crash' ? ULT_BURN : ULT_TAG);
   if (w.form === 'harvest' && heal.left > 0) { const h = Math.min(heal.left, P.maxHp * W.harvestHeal); heal.left -= h; P.hp = Math.min(P.maxHp, P.hp + h); }
