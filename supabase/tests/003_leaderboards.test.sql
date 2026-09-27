@@ -1,6 +1,6 @@
 -- Ticket 10: best Run per board, tie order, co-op unverified, my rank + neighbours, Hero filter.
 begin;
-select plan(16);
+select plan(18);
 
 insert into auth.users (id, raw_user_meta_data)
 select ('00000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, jsonb_build_object('nickname', 'P' || i)
@@ -43,6 +43,11 @@ values ('00000000-0000-0000-0000-000000000006', 'mage', 'solo', 'submitted', 800
 select public.record_leaderboard((select id from public.runs where endless_score = 12345));
 select is((select score from public.leaderboard where board = 'endless' and user_id = '00000000-0000-0000-0000-000000000006'), 12345::bigint, 'Endless score lands on the Endless board');
 select is((select score from public.leaderboard where board = 'solo' and user_id = '00000000-0000-0000-0000-000000000006'), 80000::bigint, 'and the main score on the Season board');
+
+-- each row names the Heart Crack tier of the Run behind it
+update public.runs set crack = 2 where endless_score = 12345;
+select is((public.get_leaderboard('endless') -> 'top' -> 0 ->> 'crack')::int, 2, 'rows carry the Heart Crack tier of their Run');
+select is((public.get_leaderboard('coop') -> 'top' -> 0 ->> 'crack')::int, 0, 'Runs without a Crack show tier 0');
 
 -- view as player 5 (rank near the bottom, outside the top 100)
 set local role authenticated;

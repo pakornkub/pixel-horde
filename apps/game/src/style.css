@@ -161,6 +161,7 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .lb .meta{font-size:12px;opacity:.75}
 .lb .ttl{font-size:11px;opacity:.7;margin-left:4px}
 .lb .unv{font-size:11px;color:#9a6a00;margin-left:4px}
+.lb .crk{font-size:11px;font-weight:700;color:#fff;background:#b3263a;border-radius:3px;padding:0 4px;margin-right:6px}
 #boardMine:empty{display:none}
 #boardMine{border-top:3px solid var(--ink);margin-top:6px}
 

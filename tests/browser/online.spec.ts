@@ -42,7 +42,7 @@ async function mockSupabase(page: Page): Promise<Fake> {
         case 'buy_upgrade': f.meta.gold -= 30; f.meta.shop.power = 1; return json(route, f.meta);
         case 'get_leaderboard':
           return json(route, { board: args.p_board, season: 1, total: 2, around: [], me: null,
-            top: [{ rank: 1, userId: 'x', name: 'Pim', title: 'Dragon Tamer', score: 80900, chapter: 8, hero: 'ranger', weapon: null, verified: true, at: '', me: false },
+            top: [{ rank: 1, userId: 'x', name: 'Pim', title: 'Dragon Tamer', score: 80900, chapter: 8, hero: 'ranger', weapon: 'coralTrident', crack: 2, verified: true, at: '', me: false },
                   { rank: 2, userId: USER, name: f.nickname, title: null, score: 24150, chapter: 6, hero: 'mage', weapon: null, verified: false, at: '', me: true }] });
         default: return json(route, { message: 'unknown rpc ' + fn }, 404);
       }
@@ -73,6 +73,9 @@ test('online: sign in with a nickname, server Gold, shop, leaderboard, Run submi
   await page.click('#boardBtn');
   await expect(page.locator('#boardList li')).toHaveCount(2);
   await expect(page.locator('#boardList li.me')).toContainText('Pim');
+  await expect(page.locator('#boardList li').first().locator('.crk')).toHaveText(/2/);
+  await expect(page.locator('#boardList li').first()).toContainText('Coral Trident');
+  await expect(page.locator('#boardList li.me .crk')).toHaveCount(0);
   await page.click('#boardBack');
 
   await page.click('#startBtn');

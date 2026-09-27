@@ -139,8 +139,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
           else await backend.unlockHero(op.hero);
         } catch (e) {
           const code = e instanceof BackendError ? e.code : 'UNKNOWN';
-          // Refused by the rules (not enough Gold, duplicate…): drop it. Network/session problems: stop and retry later.
-          if (code === 'OFFLINE' || code === 'SESSION_REPLACED' || code === 'UNKNOWN' || code === 'RATE_LIMITED') return false;
+          // Refused by the rules (not enough Gold, duplicate…): drop it. Network/session problems and maintenance: stop and retry later.
+          if (code === 'OFFLINE' || code === 'SESSION_REPLACED' || code === 'UNKNOWN' || code === 'RATE_LIMITED' || code === 'MAINTENANCE') return false;
         }
         queue = queue.filter((q) => q !== op);
         save();
