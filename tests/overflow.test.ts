@@ -86,6 +86,7 @@ describe('fillers once the upgrades run out (ticket 47)', () => {
     pick(s, (o) => o.kind === 'gold');
     expect(s.runGold - g).toBe(goldBag(s));
     expect(goldBag(s)).toBe(Math.round(s.cfg.overflow.gold * 4));
+    expect(goldBag(s)).toBe(25 * 4); // the written 25G × Chapter: difficulty.gold (×0.2) leaves the Gold bag alone
   });
 
   it('a reroll draws a new set of fillers', () => {
