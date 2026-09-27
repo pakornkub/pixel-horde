@@ -38,4 +38,5 @@ Proposed:
 - Title: `#endlessRunBtn` next to Play when `crackMax ≥ 1` or `heroesWon` is not empty. Retry repeats the mode.
 - Tests: `tests/endgame.test.ts` (Endless Run), `apps/game/src/ui/unlocks.test.ts`, `tests/browser/ending.spec.ts` (desktop + phone).
 
-**Status:** ready-for-human (owner playtest: beat Umbra once on a fresh account, then an Endless Run from the title)
+**Status:** ready-for-human (merged 2026-09-27 in PR #51; no migration. Waiting for an owner playtest: beat Umbra once on a fresh
+account, then an Endless Run from the title. The server gate for title Endless is ticket 59, PR #59, still open)

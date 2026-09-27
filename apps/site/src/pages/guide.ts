@@ -152,7 +152,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   showRealm('greenvale', first);
   sec('goal', 'g.goal.h', T('g.goal.p', { n: last }, 'p'),
     el('p', null, tryTag(), T('g.goal.click')), el('div.panel', { style: 'padding:12px' }, route), el('div.demo', null, info),
-    note('g.goal.note'), note('g.goal.end', 'good'), note('g.goal.lost', 'warn'));
+    note('g.goal.note'), note('g.goal.end', 'good', { n: last + 1 }), note('g.goal.lost', 'warn'));
 }
 
 // ── 3. a Stage: timeline ────────────────────────────────
@@ -237,7 +237,8 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
     el('div.grid.g2.demo', { style: 'align-items:start' },
       el('div', null, el('p', null, tryTag(), T('g.exp.try')), box),
       el('div', null, el('h3', null, T('g.exp.curve')), bars, el('div.axis', null, el('span', null, 'LV1'), el('span', null, 'LV15'), el('span', null, 'LV30')))),
-    note('g.exp.cards'));
+    note('g.exp.cards'),
+    note('g.exp.overflow', '', { d: pct(C.overflow.dmg), h: pct(C.overflow.hp), s: pct(C.overflow.spd), c: pct(C.overflow.crit), m: C.overflow.max, g: C.overflow.gold }));
 }
 
 // ── 5. slots ────────────────────────────────────────────
@@ -294,6 +295,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   // kills add at most `killCap` × the time rate, so the fastest fill is fill / (1 + killCap)
   const U = C.ult;
   sec('ultimate', 'g.ult.h', T('g.ult.p', { s: U.fill, m: Math.round(U.fill / (1 + U.killCap)) }, 'p'), el('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, gauge, el('span.key.wide', null, 'SPACE')),
+    T(U.bossHit >= 1 ? 'g.ult.boss' : 'g.ult.bossMax', { k: pct(U.bossCap), u: pct(U.umbraCap) }, 'p'),
     T('g.ult.w', { p: pct(C.weapons.drop) }, 'p'),
     T('g.ult.forge', { n: C.forge.max, d: pct(C.forge.dmg), c: pct(C.forge.bossCap), p: pct(C.forge.thornwhip) }, 'p'),
     el('div.demo', null, el('div', { style: 'display:flex;gap:10px;align-items:end;margin-bottom:14px' }, ...HERO_IDS.map((h) => hero(h, 3, 'down'))), weps));
@@ -443,7 +445,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   sec('coop', 'g.coop.h', T('g.coop.p', undefined, 'p'),
     el('div.grid.g2.demo', { style: 'align-items:start' },
       el('div.panel', null, el('ol.coop-steps', { style: 'padding:0;margin:0' }, T('g.coop.1', undefined, 'li'), T('g.coop.2', undefined, 'li'), T('g.coop.3', undefined, 'li')), el('div', { style: 'margin-top:14px' }, code)),
-      el('div', null, T('g.coop.rules', undefined, 'h3'), el('ul', { style: 'display:grid;gap:8px;padding-left:20px' }, T('g.coop.r1', undefined, 'li'), T('g.coop.r2', { s: C.coop.pickTime }, 'li'), T('g.coop.r3', { s: C.coop.reviveTime }, 'li'), T('g.coop.r4', undefined, 'li')),
+      el('div', null, T('g.coop.rules', undefined, 'h3'), el('ul', { style: 'display:grid;gap:8px;padding-left:20px' }, T(C.coop.goldSplit ? 'g.coop.r1Pot' : 'g.coop.r1', undefined, 'li'), T('g.coop.r2', { s: C.coop.pickTime }, 'li'), T('g.coop.r3', { s: C.coop.reviveTime }, 'li'), T('g.coop.r4', undefined, 'li')),
         el('div', { style: 'display:flex;gap:6px;align-items:end;margin-top:10px' }, ...HERO_IDS.map((h) => hero(h, 3)), pickup('heart', 3)))));
 }
 
@@ -452,6 +454,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   const H = C.heartCrack;
   sec('settings', 'g.set.h',
     T('g.set.hud', undefined, 'p'),
+    C.awaken.lineSlots > 0 ? T('g.set.hudAwk', undefined, 'p') : null,
     T('g.set.streak', { s: C.streak.window, n: C.streak.popupEvery }, 'p'),
     H.ramp
       ? T('g.set.diffRamp', { n: H.maxTier, u: Math.round(H.undoPer * 100), h: +(H.hpPer * 100).toFixed(1), d: +(H.dmgPer * 100).toFixed(1), s: +(H.spawnPer * 100).toFixed(1), sc: Math.round(C.score.crack * 100), e: C.endless.hpGrowth }, 'p')
