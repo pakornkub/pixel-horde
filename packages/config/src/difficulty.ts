@@ -28,7 +28,7 @@ type Knobs = ResolvedConfig['difficulty'];
 /**
  * Heart Crack tier `tier` on a resolved config (balance pass 2026-09e, `heartCrack.ramp` 1): each tier takes back
  * `undoPer` of the base difficulty's help (every knob moves that share of the way to 1; Gold stays). The per-tier
- * monster HP / damage / spawn steps are applied by the sim. Ramp off or tier 0 â†’ the same object back.
+ * monster HP / damage / spawn steps are applied by the sim. Ramp off or tier 0 → the same object back.
  */
 export function crackConfig(cfg: ResolvedConfig, tier: number): ResolvedConfig {
   const H = cfg.heartCrack;
