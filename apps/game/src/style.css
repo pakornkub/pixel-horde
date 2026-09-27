@@ -185,18 +185,21 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench{margin:0 0 14px;font-size:15px;border:3px solid var(--ink);border-radius:6px;padding:10px 12px;background:#fff}
 .bench>.lbl{font-weight:700;margin-bottom:4px}
 .bench .step{font-size:14px;font-weight:700;background:#fff3b8;border-radius:4px;padding:4px 8px;margin:0 0 6px}
-.bench .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
-.bench .row>.lbl{flex-basis:100%;font-weight:700;font-size:13px;opacity:.8}
+.bench .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;align-items:stretch;margin:6px 0}
+.bench .row>.lbl{grid-column:1/-1;font-weight:700;font-size:13px;opacity:.8}
 .bench .row.awk>.lbl{color:#9a6a00;opacity:1}
 .bench .row.awk .sk:not(.empty){border-color:#c99400;background:#fff8d8}
 .bench .sk{display:inline-flex;align-items:center;gap:6px;border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;font-size:14px;padding:5px 8px;min-height:40px;text-align:left}
 .bench button.sk{cursor:pointer}
 .bench .sk .ico{width:24px;height:24px;font-size:11px;border-width:2px;flex:none}
-.bench .sk .tx{display:flex;flex-direction:column;line-height:1.15}
+.bench .sk .tx{display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0}
+.bench .pair{display:flex;gap:4px}
+.bench .pair>.sk:first-child{flex:1;min-width:0}
+.bench .sk .sigtag{font-style:normal;font-size:11px;font-weight:700;color:#b0309f}
 .bench .sk .need{font-size:11px;opacity:.75;font-weight:400}
 .bench .sk .lv{font-family:var(--pix);font-weight:400;font-size:9px;background:var(--ink);color:var(--paper);border-radius:3px;padding:3px 4px;flex:none}
 .bench .sk.sig{box-shadow:inset 4px 4px 0 -1px #ff5cf4}
-.bench button.sk.del{min-width:40px;justify-content:center;color:#c2361f;font-weight:700;border-color:#c2361f;margin-left:-4px}
+.bench button.sk.del{min-width:40px;justify-content:center;color:#c2361f;font-weight:700;border-color:#c2361f}
 .bench button.sk.del:hover{background:#ffe0dc}
 .bench .sk.empty{border-style:dashed;opacity:.7;min-width:64px;justify-content:center}
 .bench .sk.lock{opacity:.45;background:#eee}
@@ -204,11 +207,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .bench .sk.target{opacity:1;box-shadow:0 0 0 3px #8fdcff;animation:pickme 1s steps(2) infinite}
 @keyframes pickme{50%{box-shadow:0 0 0 3px #3a7a2c}}
 .bench button.sk:disabled{opacity:.4;cursor:default}
-.bench button.sk.sig:disabled{opacity:.75}
+.bench button.sk.sig:disabled{opacity:1}
 .bench .awk-prog{margin:2px 0 8px;font-size:13px;font-weight:700;color:#9a6a00}
 .bench .cost{margin-top:6px;font-size:13px;opacity:.85}
 .bench .warn{color:#e8434f;font-weight:700}
 .bench.ro{margin-bottom:10px;text-align:left}
+#skillsBack{position:sticky;bottom:-22px;box-shadow:0 -10px 12px var(--paper)}
 @media (prefers-reduced-motion: reduce){.bench .sk.target{animation:none}}
 .awaken{border:3px solid var(--gold);border-radius:6px;padding:10px 12px;margin:0 0 14px;background:#fff8d8}
 .awaken h3{margin:0 0 6px;font-family:var(--pix);font-size:13px}

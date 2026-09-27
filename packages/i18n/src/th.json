@@ -993,9 +993,10 @@
  "need.linkStage": "Link: ติดตัวที่เลเวลเต็มอีก {n} ด่าน",
  "need.linkOk": "Link พร้อม ✓",
  "need.pasFor": "คู่วิวัฒน์ {s}",
- "awk.progress": "🔒 ตื่นพลัง: สกิลประจำตัววิวัฒน์ {sig} · Link เลเวลเต็มติดตัวครบ {st} ด่าน {q}/{n}",
+ "awk.progress": "ตื่นพลังเมื่อ: {sig} สกิลประจำตัววิวัฒน์ · {links} Link เลเวลเต็ม {q}/{n} (ติดตัวครบ {st} ด่าน)",
  "pause.skills": "ดูสกิล",
  "skills.title": "สกิลของฉัน",
  "skills.back": "กลับ",
- "hud.panel.awk": "AWK"
+ "hud.panel.awk": "AWK",
+ "bench.sigTag": "ประจำตัว"
 }

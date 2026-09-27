@@ -33,6 +33,8 @@ test('Stage end: a benched Skill swaps only into a blinking attack slot; the Awa
   await expect(board.locator('.row.awk .sk:not(.empty)')).toHaveCount(3); // the three Awakened skills (debug=awaken)
   await expect(board.locator('.row.awk > .lbl')).toContainText('3/3');
   if (SHOTS) await board.screenshot({ path: `${SHOTS}/board-${tag()}.png` });
+  await expect(board.locator('.row').first()).toHaveClass(/bench-row/); // step ① starts at the Bench: it comes first
+  await expect(board.locator('.row.atk .sk.sig .sigtag')).toBeVisible(); // the Signature says it is locked, not broken
   const benched = board.locator('.bench-row .sk:not(.empty):not(.del)');
   test.skip(!(await benched.count()), 'no Skill reached the Bench this Run');
   await benched.first().click();

@@ -526,7 +526,10 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
     for (const o of owned) {
       const el = cell('');
       el.innerHTML = chip(o, o.pas ? passiveNeed(v, o.id) : skillNeed(v, o.id));
-      if (g === 'atk' && o.id === sig) { el.classList.add('sig'); el.title = t('bench.locked'); if (el instanceof HTMLButtonElement) el.disabled = true; }
+      if (g === 'atk' && o.id === sig) { // always equipped: a lock tag, not a greyed-out cell
+        el.classList.add('sig'); el.title = t('bench.locked'); if (el instanceof HTMLButtonElement) el.disabled = true;
+        el.querySelector('.nm')?.insertAdjacentHTML('afterend', `<em class="sigtag">🔒 ${t('bench.sigTag')}</em>`);
+      }
       else arm(el, o.id);
       row.appendChild(el);
     }
@@ -544,7 +547,8 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   if (v.cfg.awaken.lineSlots > 0) rows.push(slotRow(t('bench.awk'), 'awk', equipped.filter((id) => inLineSlot(s, id)).map(asEntry), v.cfg.awaken.lineSlots, !P.awakened));
   if (!P.awakened) {
     const pr = document.createElement('p'); pr.className = 'awk-prog';
-    pr.textContent = t('awk.progress', { sig: P.evo[sig] ? '✓' : '✗', st: v.cfg.awaken.stages, q: Math.min(qualifiedLinks(s).length, v.cfg.awaken.links), n: v.cfg.awaken.links });
+    const q = Math.min(qualifiedLinks(s).length, v.cfg.awaken.links), box2 = (ok: boolean): string => (ok ? '☑' : '☐');
+    pr.textContent = t('awk.progress', { sig: box2(!!P.evo[sig]), links: box2(q >= v.cfg.awaken.links), st: v.cfg.awaken.stages, q, n: v.cfg.awaken.links });
     rows.push(pr);
   }
   rows.push(slotRow(t('bench.passive'), 'pas', (Object.keys(P.pas) as PassiveId[]).map((id) => ({ id, lv: P.pas[id]!, evo: false, pas: true })), v.cfg.passiveSlots));
@@ -552,24 +556,30 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   const bSize = benchSize(s);
   bench.innerHTML = `<span class="lbl">${t('bench.bench')} ${P.bench.length}/${bSize}</span>`;
   P.bench.forEach((b, i) => {
-    const el = cell(i === benchSel ? ' sel' : '');
+    const el = cell(i === benchSel ? ' sel' : ''), pair = document.createElement('div');
+    pair.className = 'pair';
     el.innerHTML = chip(b);
     if (edit) el.addEventListener('click', () => { benchSel = benchSel === i ? -1 : i; skillBoard(box, v, { ...act, denied: false }); });
-    bench.appendChild(el);
+    pair.appendChild(el);
+    bench.appendChild(pair);
     if (edit && act.onDiscard && v.cfg.bench.discard) { // free removal; frees the Bench slot for a new Skill
       const x = document.createElement('button'); x.className = 'sk del'; x.textContent = '✕';
       x.title = x.ariaLabel = t('bench.discard', { name: nameOf(b) });
       x.addEventListener('click', () => { if (confirm(t('bench.discardAsk', { name: nameOf(b), lv: b.lv }))) { benchSel = -1; act.onDiscard!(i); } });
-      bench.appendChild(x);
+      pair.appendChild(x);
     }
   });
   for (let i = P.bench.length; i < bSize; i++) { const el = document.createElement('div'); el.className = 'sk empty'; el.textContent = t('bench.empty'); bench.appendChild(el); }
-  box.append(...rows, bench);
-  if (edit && P.bench.length) {
+  if (!edit) { box.append(...rows, bench); return; }
+  // editing: the Bench (where step ① starts) and the swap cost come first, right under the step line
+  box.append(bench);
+  if (P.bench.length) {
     const c = document.createElement('div'); c.className = 'cost' + (afford ? '' : ' warn');
     c.textContent = act.denied || !afford ? t('bench.short') + ' — ' + t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun }) : t('bench.cost', { cost, run: fromRun, wallet: cost - fromRun });
     box.append(c);
   }
+  box.append(...rows);
+  if (sel) box.querySelector('.target')?.scrollIntoView({ block: 'nearest' });
 }
 
 /** Itemised Score that counts up line by line (decision #15). */

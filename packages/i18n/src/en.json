@@ -993,9 +993,10 @@
  "need.linkStage": "Link: keep it equipped at max for {n} more Stage(s)",
  "need.linkOk": "Link ready ✓",
  "need.pasFor": "Evolves {s}",
- "awk.progress": "🔒 Awakening: Signature evolved {sig} · Links at max, equipped for {st} full Stage(s): {q}/{n}",
+ "awk.progress": "Awaken when: {sig} Signature evolved · {links} Links at max {q}/{n} (equipped {st} full Stage(s))",
  "pause.skills": "View skills",
  "skills.title": "My skills",
  "skills.back": "Back",
- "hud.panel.awk": "AWK"
+ "hud.panel.awk": "AWK",
+ "bench.sigTag": "Signature"
 }
