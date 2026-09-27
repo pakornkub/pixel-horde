@@ -653,5 +653,60 @@ export const BALANCE_PASS_2026_09H: BalancePass = {
   },
 };
 
+/** Ultimate audit (owner: "the Ultimate is weak"): a stronger strike on monsters, and bosses really lose the capped share.
+ *  Needs migration 20260930000042 (ult.bossHit) and the forge code (PR #50, ultCap). Option A of the audit. */
+export const BALANCE_PASS_2026_09I: BalancePass = {
+  id: '2026-09i',
+  note: 'Ultimate: 3 × the Chapter\'s monster HP (was 1.5), and every strike takes its full cap from a boss (King 8%, Umbra 5%, + forge levels)',
+  patch: {
+    shared: {
+      // one Ultimate killed only 50–60% of the normal monsters on screen in Chapters 2–7 and ~10% of elites
+      // Kings lost 0.8–2.5% per strike and Umbra 1.3%: the 8% / 5% caps never bound, so forge cap levels did nothing
+      ult: { mobHp: 3, bossHit: 1 },
+    },
+  },
+  changelog: {
+    titleTh: 'Ultimate แรงขึ้น: ฝูงมอนหายเกลี้ยง บอสเสียเลือดจริง',
+    titleEn: 'A stronger Ultimate: crowds vanish and bosses really feel it',
+    items: [
+      { cat: 'skill', th: 'Ultimate ทำดาเมจ 2 เท่าของเดิมใส่มอน ท้ายเกมฆ่ามอนบนจอได้ราว 9 ใน 10 ตัว (เดิมราวครึ่งเดียว)', en: 'The Ultimate deals twice its old damage to monsters: late in a Run it clears about 9 in 10 monsters on screen (was about half)' },
+      { cat: 'skill', th: 'Ultimate ตัด HP ราชา 8% และ Umbra 5% ทุกครั้ง (เดิมราว 1–2%) และตีอาวุธแล้วเพิ่มขึ้นอีก', en: 'The Ultimate takes 8% of a King\'s and 5% of Umbra\'s HP every time (was about 1–2%), more with a forged Weapon' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09i: Ultimate แรงขึ้น (ทางเลือก A)',
+    summary: 'เจ้าของรู้สึกว่า Ultimate อ่อน วัดแล้วจริง: Ultimate เป็นแค่ 1.4–2.6% ของดาเมจทั้งรอบ ฆ่ามอนบนจอได้ราวครึ่งเดียวในด่าน 2–7 และ Elite ราว 10% '
+      + 'ส่วนราชาเสียเลือดแค่ 0.8–2.5% ต่อครั้ง Umbra 1.3% เพราะดาเมจคิดจาก HP มอนธรรมดา (1.5 × มอนตัวแรกของ Realm) เพดาน 8% / 5% จึงไม่เคยถูกใช้ '
+      + 'และโบนัสเพดานของโรงตีอาวุธก็ไม่มีผล ชุดนี้ให้ Ultimate ทำดาเมจมอน 3 × และฟาดบอสเต็มเพดานทุกครั้ง (field ใหม่ ult.bossHit = สัดส่วนของเพดาน จึงโตตามเลเวลโรงตีอาวุธ) '
+      + 'ขั้นต่ำนี้ใช้กับการฟาดของ Ultimate เท่านั้น ป้อมปืน Gear Cannon และพิษ Plague ยังคิดจากดาเมจที่ติดเพดาน',
+    method: 'บอท playtest (scripts/playtest) บน main + โรงตีอาวุธ (PR #50) ชุด config v8 + 09f + 09g + 09e, 4 ฮีโร่ × 12 seed ต่อช่อง ร้านกลาง / ร้านเต็ม, '
+      + 'หัวใจร้าว 0 / 3 / 7 / 10 และโรงตีอาวุธ Judgement Lv0 เทียบ Lv5 (PT_FORGE=judgement:5) seed เดียวกันทุกทางเลือก วัดทุกครั้งที่ใช้ Ultimate: มอนบนจอ, ตาย, % HP ที่โดน, % ของราชา/Umbra',
+    metrics: [
+      { label: 'มอนธรรมดาบนจอที่ตายต่อครั้ง (ด่าน 4–7, ร้านเต็ม ร้าว 7)', before: '49–61%', after: '77–89%' },
+      { label: 'Elite ที่ตายต่อครั้ง (ด่าน 4–7)', before: '~10%', after: '~20%' },
+      { label: 'ราชาเสียต่อครั้ง (ค่ากลาง)', before: '0.8–2.5%', after: '8% (โรงตีอาวุธ Lv5: 13%)' },
+      { label: 'Umbra เสียต่อครั้ง', before: '1.3%', after: '5% (Lv5: 7.5%)' },
+      { label: 'Umbra HP ที่ Ultimate ตัดทั้งไฟต์ ร้าว 10 ร้านเต็ม (ค่ากลาง / p90)', before: '4% / 7%', after: 'Lv0 10% / 24%, Lv5 22% / 30%' },
+      { label: 'ชนะ Umbra ร้าว 10 ร้านเต็ม: Lv0 → Lv5', before: '46 → 46%', after: '52 → 60% (+8 จุด)' },
+      { label: 'ชนะ Umbra ร้าว 7 ร้านเต็ม', before: '75%', after: '77% (Lv5 79%)' },
+      { label: 'ส่วนดาเมจของ Ultimate ทั้งรอบ', before: '1.4–2.6%', after: '2.1–3.9% (Lv5 4.5–5.2%)' },
+    ],
+    findings: [
+      { level: 'bad', title: 'Ultimate ไม่ถึงเพดานบอสเลย', body: 'ดาเมจคิดจาก HP มอนธรรมดา ราชาเสีย 1–2% Umbra 1.3% เพดาน 8% / 5% และโบนัสเพดานโรงตีอาวุธจึงไม่มีผล', status: 'แก้ด้วย ult.bossHit (สัดส่วนของเพดาน)' },
+      { level: 'warn', title: 'ฆ่ามอนได้ราวครึ่งเดียว', body: 'ดาเมจ 1.5 × มอนตัวแรกของ Realm แต่มอนอีกสองชนิดอึดกว่า และ Elite HP ×7', status: 'แก้ด้วย ult.mobHp 3' },
+      { level: 'info', title: 'ทางเลือก B (ชาร์จเร็ว + เบากว่า)', body: 'fill 40 + mobHp 2 + bossHit 0.6: ใช้บ่อยขึ้นราว 1.5 เท่า ราชา 4.8% Umbra 3% ร้าว 10: Lv0 42% → Lv5 52% (+10) Umbra ทั้งไฟต์ Lv5 18% / p90 27%', status: 'ไม่เลือก: แต่ละครั้งไม่รู้สึกแรง' },
+      { level: 'info', title: 'ผ่านเงื่อนไข QA', body: 'Umbra HP จาก Ultimate ค่ากลาง ≤ 20% ที่ Lv0 และ ≤ 30% ที่ Lv5 (p90 30%) ร้าว 10 Lv5 ชนะเพิ่ม 8 จุด (≤ 10) ยังต้องวัดโรงตีอาวุธ Lv5 + ชุด Shadow Lv5 หลังชุดแต่งตัวเข้า main (เงื่อนไข ≤ +25 จุด)', status: 'รอชุดแต่งตัว' },
+    ],
+    reasons: {
+      'shared.ult.mobHp': 'ท้ายเกม Ultimate ฆ่ามอนบนจอได้ราวครึ่งเดียว ×3 ฆ่าได้ราว 9 ใน 10',
+      'shared.ult.bossHit': 'บอสเสียเต็มเพดานทุกครั้ง (ราชา 8% Umbra 5%) และโตตามเลเวลโรงตีอาวุธ',
+    },
+    next: [
+      'หลังชุดแต่งตัว (outfits) เข้า main: วัดร้าว 10 ร้านเต็ม ไม่ใส่อะไร เทียบ โรงตีอาวุธ Lv5 + ชุด Shadow Lv5 (เงื่อนไข ≤ +25 จุด) ถ้าเกิน ลด forge.umbraCap ก่อน',
+      'ดูข้อมูลจริง: ผู้เล่นใช้ Ultimate กี่ครั้งต่อด่าน และรู้สึกแรงพอไหม',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
