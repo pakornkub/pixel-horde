@@ -1,6 +1,6 @@
 // What beating Umbra unlocked (ticket 55): pure rules for the ending's "Unlocked" page.
 import { t } from '@pixel-horde/i18n';
-import type { WeaponId } from '@pixel-horde/sim';
+import { ACHIEVEMENTS, type WeaponId } from '@pixel-horde/sim';
 
 /** One line on the "Unlocked" page. */
 export type Unlock =
@@ -11,7 +11,11 @@ export type Unlock =
   | { k: 'hero'; id: string; name: string; cost: number }
   | { k: 'weapon'; id: WeaponId }
   | { k: 'gold'; n: number }
-  | { k: 'ach'; id: string };
+  | { k: 'ach'; id: string }
+  | { k: 'achs'; ids: string[] };
+
+/** More new achievements than this fold into one line, so a first win's list keeps the buttons on screen. */
+export const ACH_LINES = 2;
 
 export interface WinFacts {
   /** The account had never won before this Run (no Heart Crack tier, no Hero in heroesWon). */
@@ -40,7 +44,8 @@ export function unlocksOf(f: WinFacts): Unlock[] {
   }
   for (const id of f.weapons) out.push({ k: 'weapon', id });
   if (!f.weapons.length && f.umbraGold > 0) out.push({ k: 'gold', n: f.umbraGold });
-  for (const id of f.ach) out.push({ k: 'ach', id });
+  if (f.ach.length > ACH_LINES) out.push({ k: 'achs', ids: f.ach });
+  else for (const id of f.ach) out.push({ k: 'ach', id });
   return out;
 }
 
@@ -54,5 +59,9 @@ export function unlockText(u: Unlock): string {
     case 'weapon': return t('unlock.weapon', { name: t(`weapon.${u.id}.name`) });
     case 'gold': return t('unlock.gold', { n: u.n.toLocaleString('en-US') });
     case 'ach': return t('unlock.ach', { name: t(`ach.${u.id}.name`) });
+    case 'achs': { // name one that grants a Title (Heart Keeper on a first win), else the first
+      const star = u.ids.find((id) => ACHIEVEMENTS.find((a) => a.id === id)?.title) ?? u.ids[0];
+      return t('unlock.achs', { n: u.ids.length, name: t(`ach.${star}.name`) });
+    }
   }
 }

@@ -593,6 +593,7 @@
  "unlock.weapon": "New Weapon from Umbra: {name} (changes your Ultimate)",
  "unlock.gold": "Every Weapon collected: +{n} Gold instead",
  "unlock.ach": "Achievement: {name}",
+ "unlock.achs": "+{n} new achievements, including {name} (see Collection)",
  "unlock.special": "Special shop open: forge your Weapons and collect outfit sets with Gold",
  "unlock.hero": "New Hero for sale in the Hero panel: {name} ({cost} G)",
  "title.endless": "Endless",

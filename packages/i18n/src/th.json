@@ -593,6 +593,7 @@
  "unlock.weapon": "อาวุธใหม่จาก Umbra: {name} (เปลี่ยนท่าไม้ตาย)",
  "unlock.gold": "เก็บอาวุธครบแล้ว: ได้ {n} Gold แทน",
  "unlock.ach": "ความสำเร็จ: {name}",
+ "unlock.achs": "+{n} ความสำเร็จใหม่ เช่น {name} (ดูได้ที่หน้าสะสม)",
  "unlock.special": "ร้านพิเศษเปิดแล้ว: ใช้ Gold ตีบวกอาวุธและสะสมชุดเซต",
  "unlock.hero": "ฮีโร่ใหม่วางขายแล้วที่หน้าเลือกฮีโร่: {name} ({cost} G)",
  "title.endless": "Endless",

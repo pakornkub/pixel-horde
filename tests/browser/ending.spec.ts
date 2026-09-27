@@ -28,7 +28,8 @@ for (const [name, viewport] of SIZES) {
     }
     expect(new Set(caps).size).toBe(4);
     await expect(page.locator('#endUnlock')).toBeVisible();
-    await expect(page.locator('#endList li')).toHaveCount(6); // Heart Crack 1, Endless, special shop, a Weapon, two achievements
+    await expect(page.locator('#endList li')).toHaveCount(5); // Heart Crack 1, Endless, special shop, a Weapon, the achievements folded into one line
+    await expect(page.locator('#finishBtn')).toBeInViewport();
     await expect(page.locator('#endlessBtn')).toBeInViewport();
     await page.screenshot({ path: info.outputPath('unlocked.png') });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
@@ -60,11 +61,13 @@ test('the title shows Endless only after a win, and it starts an Endless Run', a
     const m = JSON.parse(localStorage.getItem('pixelhorde-meta') || '{}');
     localStorage.setItem('pixelhorde-meta', JSON.stringify({ ...m, crackMax: 1 }));
   });
-  for (const [, viewport] of SIZES) {
+  for (const viewport of [...SIZES.map(([, v]) => v), { width: 375, height: 667 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/?offline');
     await expect(page.locator('#endlessRunBtn')).toBeInViewport();
     await expect(page.locator('#startBtn')).toBeInViewport();
+    // the label stays inside the button on small phones
+    expect(await page.locator('#endlessRunBtn').evaluate((b) => b.scrollWidth <= b.clientWidth), `${viewport.width}px`).toBe(true);
   }
   await page.click('#endlessRunBtn');
   await expect(page.locator('#ovTitle')).toBeHidden();

@@ -360,6 +360,9 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 .tplay .btn.play.big{flex:2}
 .tplay .btn.play.endless{flex:1;min-width:0;padding:12px 8px;font-size:12px;background:#4fc3ff;white-space:nowrap}
 .tplay .btn.play.endless:hover{background:#9fe0ff}
+/* phones: Play 60 / Endless 40 and a smaller label, so "∞ Endless" never runs past the border (≈375 px) */
+@media (max-width:440px){.tplay .btn.play.big{flex:3}.tplay .btn.play.endless{flex:2;font-size:10px;padding:12px 4px}}
+@media (max-width:360px){.tplay .inf{display:none}}
 /* ending (ticket 55): full-screen story pictures, then the "Unlocked" page over the last one */
 .overlay.ending{background:#1e1b33;padding:16px}
 .overlay.ending.story{align-items:flex-end}
@@ -385,7 +388,7 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 .uico img{width:28px;height:28px;object-fit:contain;image-rendering:pixelated}
 .uico.crack,.uico.crackTop{background:var(--hp);color:#fff}
 .uico.endless{background:var(--xp)}
-.uico.gold,.uico.ach{background:var(--gold)}
+.uico.gold,.uico.ach,.uico.achs{background:var(--gold)}
 .ereplay{display:block;margin:10px auto 0}
 @media (max-width:480px){.ecap{font-size:16px}.estory{padding:12px 12px 10px}}
 /* UX pass 2026-09-27 */

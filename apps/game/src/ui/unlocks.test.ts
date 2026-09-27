@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { t } from '@pixel-horde/i18n';
 import { unlocksOf, unlockText, type WinFacts } from './unlocks';
 
 const win = (f: Partial<WinFacts> = {}): WinFacts => ({ firstWin: false, crack: 0, crackMaxBefore: 0, maxTier: 3, weapons: [], umbraGold: 500, ach: [], ...f });
@@ -33,8 +34,15 @@ describe('Unlocked page after beating Umbra', () => {
     expect(kinds({ crack: 1, crackMaxBefore: 1, special: true, hero })).toEqual(['crack', 'gold']);
   });
 
+  it('more than two new achievements fold into one line, so the buttons stay on screen', () => {
+    const ach = ['firstKing', 'chapter4', 'crater', 'heartKeeper'];
+    expect(unlocksOf(win({ ach })).filter((u) => u.k === 'achs' || u.k === 'ach')).toEqual([{ k: 'achs', ids: ach }]);
+    expect(kinds({ ach: ach.slice(0, 2) }).filter((k) => k === 'ach')).toHaveLength(2);
+    expect(unlockText({ k: 'achs', ids: ach })).toContain(t('ach.heartKeeper.name')); // the one with a Title is named
+  });
+
   it('every line has text with its numbers filled in', () => {
-    const u = unlocksOf(win({ firstWin: true, special: true, hero: { id: 'necromancer', name: 'Mora', cost: 2000 }, ach: ['heartKeeper'] }));
+    const u = unlocksOf(win({ firstWin: true, special: true, hero: { id: 'necromancer', name: 'Mora', cost: 2000 }, ach: ['heartKeeper'] })).concat(unlocksOf(win({ ach: ['firstKing', 'chapter4', 'crater'] })));
     for (const x of u) expect(unlockText(x)).not.toMatch(/^unlock\.|\{/);
   });
 });

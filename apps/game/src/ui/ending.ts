@@ -48,7 +48,7 @@ function unlockIcon(u: Unlock): HTMLElement {
   const el = document.createElement('span');
   el.className = 'uico ' + u.k;
   if (url) { const im = document.createElement('img'); im.src = url; im.alt = ''; el.append(im); }
-  else el.textContent = { crack: '♥', crackTop: '♛', endless: '∞', gold: 'G', ach: '★' }[u.k as string] ?? '•';
+  else el.textContent = { crack: '♥', crackTop: '♛', endless: '∞', gold: 'G', ach: '★', achs: '★' }[u.k as string] ?? '•';
   return el;
 }
 
@@ -107,7 +107,7 @@ export function debugEnding(search: string): void {
   const heroIn = (HERO_IDS as readonly string[]).includes(AFTER_WIN_HERO);
   openEnding(!later, unlocksOf({
     firstWin: !later, crack: later ? 1 : 0, crackMaxBefore: later ? 1 : 0, maxTier,
-    weapons: later ? [] : ['glacierLance'], umbraGold: active.cfg.weapons.umbraGold, ach: later ? ['winBram'] : ['heartKeeper', 'kingslayer'],
+    weapons: later ? [] : ['glacierLance'], umbraGold: active.cfg.weapons.umbraGold, ach: later ? ['winBram'] : ['firstKing', 'chapter4', 'crater', 'heartKeeper', 'kingslayer', 'winLyra'], // a real first win earns about this many
     special: true,
     hero: heroIn ? { id: AFTER_WIN_HERO, name: t(`hero.${AFTER_WIN_HERO}.name`), cost: 0 } : null,
   }));
