@@ -437,9 +437,9 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
       if ((e.stun || 0) > 0 && !e.boss) {
         const cx = Math.round(e.x + ox), cy = y - (e.elite ? 11 : 7);
         for (let i = 0; i < 3; i++) {
-          const a = clock * 6 + (i * TAU) / 3, sx = Math.round(cx + Math.cos(a) * 5), sy = Math.round(cy + Math.sin(a) * 1.5);
-          b.fillStyle = K; b.fillRect(sx - 1, sy - 1, 3, 3);
-          b.fillStyle = '#fff35c'; b.fillRect(sx, sy, 1, 1);
+          const a = clock * 6 + (i * TAU) / 3, sx = Math.round(cx + Math.cos(a) * 6), sy = Math.round(cy + Math.sin(a) * 1.5);
+          b.fillStyle = K; b.fillRect(sx - 1, sy - 2, 3, 5); b.fillRect(sx - 2, sy - 1, 5, 3); // a yellow plus, ink outline
+          b.fillStyle = '#fff35c'; b.fillRect(sx, sy - 1, 1, 3); b.fillRect(sx - 1, sy, 3, 1);
         }
       }
       if (e.armor) {
