@@ -635,7 +635,7 @@ export const BALANCE_PASS_2026_09_MORA: BalancePass = {
     metrics: [
       { label: 'ชนะ Umbra Crack 3 ร้านกลาง (Vex/Bram/Lyra/Kit)', before: '100/83/92/67% (pool 0)', after: 'pool 1: 92/83/75/58% · pool 1 + wLink 1.3: 100/83/92/58%' },
       { label: 'ตื่นพลัง (Vex/Bram/Lyra/Kit)', before: '50/42/67/75%', after: 'pool 1: 33/25/58/42% · + wLink: 50/50/67/50%' },
-      { label: 'Mora ชนะ Umbra Crack 3 ร้านกลาง', before: '—', after: '75% (Crack 2: 100%)' },
+      { label: 'Mora ชนะ Umbra ร้านกลาง (บน 2026-09e/09g)', before: '—', after: 'Crack 0: 92% · Crack 3: 83% · Crack 6: 50% (Kit 100/83/42%)' },
     ],
     findings: [
       { level: 'info', title: 'Mora อยู่กลางกลุ่ม', body: 'ค่าเริ่มต้นของ Mora จูนแล้วใน build (ดาเมจ Skeleton, Link ทั้ง 3, สกิลตื่นพลัง) ตายเพราะมอนธรรมดาเป็นหลักเหมือน Kit ถ้าอยากให้ตัวบางตามคอนเซปต์ ตั้ง heroes.necromancer.hp เป็น 10 (Crack 3 ชนะลดเหลือราว 67%)', status: 'ค่าเริ่มต้น hp 0' },

@@ -32,7 +32,7 @@ Every `cd` s Mora raises `n` Skeletons while fewer than `army` stand. A Skeleton
 within reach (a kill near Mora), else next to her; it walks to the nearest monster (never leaving `leash` around Mora),
 swings every `hitCd` s at everything within `reach` (a sweep hit: Grinder on the Gathered) and crumbles after `life` s.
 Monsters do not attack Skeletons (no extra targets for the horde AI).
-- Levels 1–7: dmg `12 + 7/lv` per swing (every 0.6 s), raise every `3 − 0.2/lv` s (min 1.4), army `3 + 0.5/lv` (→ 6).
+- Levels 1–7: dmg `12 + 8/lv` per swing (every 0.55 s), raise every `3 − 0.2/lv` s (min 1.4), army `3 + 0.5/lv` (→ 6).
 - **Evolution Bone Legion** (max level + Magnet): army +3, 2 per raise, a crumbling Skeleton bursts (heavy: Shatter on
   the Frozen) for `burstMul` × its damage in `burstR`.
 - Shadow Clone: raises one shade Skeleton (clone damage) that counts toward the cap.
@@ -84,7 +84,9 @@ website (home / guide / skills / world), playtest bot + suites, tests.
   i18n, website, playtest bot, migration `20260930000036_fifth_hero.sql` (number to confirm), tests
   (`tests/necro.test.ts`, `supabase/tests/018_fifth_hero.test.sql`).
 - Playtest (bot, all earlier passes, mid Shop, 12 seeds): Umbra wins at Heart Crack 3 — Vex 100 / Lyra 92 / Bram 83 /
-  Mora 75 / Kit 58–67%; Crack 2 — Mora 100%. With `pool` 1 alone the other Heroes' Awakening dropped (Kit 75 → 42%);
+  Mora 75 / Kit 58–67%; Crack 2 — Mora 100%. After merging passes 2026-09e/09g (Heart Crack 1–10) and this pass,
+  mid Shop Umbra wins — Crack 0: all 92–100%; Crack 3: Vex 100 / Lyra 100 / Bram 92 / Kit 83 / Mora 83% (after the final
+  Soul Rise buff); Crack 6: Vex 83 / Bram 83 / Lyra 75 / Mora 50 / Kit 42%. Mora sits with Kit, above him at Crack 6. With `pool` 1 alone the other Heroes' Awakening dropped (Kit 75 → 42%);
   `wLink` 1.3 restores it.
 - To publish: balance pass `2026-09-mora` (`heroes.necromancer.pool` 1, `levelup.wLink` 1.3).
 

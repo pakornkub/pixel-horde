@@ -183,8 +183,8 @@ const skills = obj({
   }, 'Vex: Volatile Flask'),
   soulRise: obj({
     max: int(7, 1, 20, 'Max level'),
-    dmg: lin(12, 7, 'Skeleton swing damage'), cd: lin(3, -0.2, 'Raise every (s)', 1.4), army: lin(3, 0.5, 'Skeletons standing at most (rounded down)'),
-    life: sec(8, 'A Skeleton crumbles after (s)'), spd: pos(55, 'Skeleton walk speed'), reach: pos(12, 'Swing reach'), hitCd: sec(0.6, 'Swing every (s)'),
+    dmg: lin(12, 8, 'Skeleton swing damage'), cd: lin(3, -0.2, 'Raise every (s)', 1.4), army: lin(3, 0.5, 'Skeletons standing at most (rounded down)'),
+    life: sec(8, 'A Skeleton crumbles after (s)'), spd: pos(55, 'Skeleton walk speed'), reach: pos(12, 'Swing reach'), hitCd: sec(0.55, 'Swing every (s)'),
     leash: pos(90, 'Skeletons never chase farther than this from Mora'), grave: pos(100, 'A kill this close to Mora leaves a grave a Skeleton can rise from'),
     kb: pos(25, 'Knockback'), cap: int(12, 1, 40, 'Hard cap on Skeletons (performance)'),
     evo: evo({ n: int(2, 1, 4, 'Skeletons per raise'), maxAdd: pos(3, 'Extra Skeletons standing'), burstMul: mul(1.5, 'A crumbling Skeleton bursts for × its damage'), burstR: pos(22, 'Burst radius') }),
