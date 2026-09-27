@@ -124,6 +124,21 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.meta.up.power).toBeUndefined();
   });
 
+  it('a Run finished during maintenance waits in the queue and uploads once maintenance ends', async () => {
+    const f = fakeBackend('online');
+    const upload = f.b.submitOfflineRun;
+    let maintenance = true;
+    f.b.submitOfflineRun = async (r) => { if (maintenance) throw new BackendError('MAINTENANCE'); return upload(r); };
+    const ms = createMetaSync(f.b, memStore());
+    ms.recordRun(run('m1', 40), null, false);
+    expect(await ms.sync()).toBe(false);
+    expect(ms.pending().map((o) => o.kind)).toEqual(['run']);
+    maintenance = false;
+    expect(await ms.sync()).toBe(true);
+    expect(f.calls).toContain('run:m1');
+    expect(ms.pending()).toEqual([]);
+  });
+
   it('uploads an old artifact save exactly once, before anything else', async () => {
     const f = fakeBackend('online');
     const store = memStore({ 'pixelhorde-meta': JSON.stringify({ gold: 900, up: { power: 2 }, owned: ['ranger'], ch: 'ranger' }) });
