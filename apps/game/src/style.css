@@ -1,7 +1,7 @@
 :root{
   --ink:#1e1b33; --paper:#f4f7e4; --paper2:#dfe8c2; --grass:#5fae4b;
   --gold:#ffd23f; --hp:#e8434f; --xp:#4fc3ff; --ult:#fff35c;
-  --pix:"Press Start 2P", ui-monospace, "Courier New", monospace;
+  --pix:"Press Start 2P", "Chakra Petch", ui-monospace, "Courier New", monospace;
   --th:"Chakra Petch", "Tahoma", sans-serif;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -368,20 +368,26 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 /* Thai menu titles (ui/heading-font.ts): the pixel font has no Thai, so they were smaller than the text under them */
 .box h1.th,.box h2.th{font-family:var(--th);font-weight:700;font-size:22px;line-height:1.3;letter-spacing:0}
 .box h3.th{font-family:var(--th);font-weight:700;font-size:16px}
+.estory h2.th{font-family:var(--th);font-weight:700;font-size:20px;line-height:1.3}
 /* Route card: the Realm's ground and King (ui/realm-icon.ts) instead of the name's first letter */
 .opt .ico.realm{background-image:var(--img);background-size:cover;image-rendering:pixelated}
-/* Run score total: gold text on the paper background was unreadable (≈1.4:1) → ink on a gold chip */
-.stats.score .tot{color:var(--ink);background:var(--gold);padding:4px 6px;border-radius:3px;justify-self:end}
+/* Run score total (the last .tot): gold text on the paper background was unreadable (≈1.4:1) → ink on a gold chip;
+   a .tot that opens the box is a title (Endless Score) → dark gold text, no chip */
+.stats.score .tot:last-child{color:var(--ink);background:var(--gold);padding:4px 6px;border-radius:3px;justify-self:end}
+.stats.score .tot:first-child:not(:last-child){color:#9a6a00}
 /* English title menu: "coming soon" was bigger than the button's own label */
-html[lang="en"] .tmenu button small{font-size:7px;margin-top:3px;opacity:.8}
+html[lang="en"] .tmenu button:not(#specialBtn) small{font-size:7px;margin-top:3px;opacity:.8}
+/* Special shop badge: "NEW!" stays full strength and red like the other NEW tags; English hint 8 px (7 px was at the limit) */
+html[lang="en"] #specialBtn small{font-size:8px;margin-top:3px}
+#specialBtn:not(.locked) small{color:#c2361f}
 /* Leaderboard hero filter: a bare browser dropdown (≈19 px tall) → the game's own button look */
 #boardHero{font:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);border:3px solid var(--ink);border-radius:4px;padding:6px 8px;min-height:40px;cursor:pointer}
 #boardHero:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-/* touch screens: tap targets of at least ~40–44 px (pause, footer links, tabs, sliders) */
+/* touch screens: tap targets of at least ~40–44 px (pause, title footer links, tabs, sliders) */
 @media (pointer:coarse){
   #pauseBtn{width:max(44px,calc(36px * var(--u)));height:max(44px,calc(36px * var(--u)))}
-  .tlink{padding:10px 4px;margin:-6px 0}
-  .weapons button,.tabs button{min-height:40px}
+  .trow .tlink{padding:10px 4px;margin:-6px 0}
+  .weapons button,.tabs button,.seg button{min-height:40px}
   .setrow input[type=range]{height:32px}
 }
 /* phones held sideways: level-up and route choices side by side, so the third card is not hidden below the fold */
@@ -392,3 +398,12 @@ html[lang="en"] .tmenu button small{font-size:7px;margin-top:3px;opacity:.8}
   #opts>.opt,#routeOpts>.opt{flex:1 1 0;min-width:0;align-items:start}
   body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
 }
+/* narrow phones: the low-FPS prompt put its text beside two buttons (one word per line) and sat on the ULT button →
+   text on its own line, buttons under it, above the ULT button */
+@media (max-width:560px){
+  #fpsTip{flex-wrap:wrap;justify-content:flex-end;width:calc(100% - 32px);bottom:calc(104px * var(--ui,1) + env(safe-area-inset-bottom,0px))}
+  #fpsTip>span{flex:1 1 100%}
+}
+/* a tutorial hint (up to ~4 lines on a phone) sits at the bottom too: lift the low-FPS prompt above it,
+   and keep the prompt on top if they still meet (the hint ignores taps, the prompt's buttons must stay readable) */
+body:has(#tipBar:not([hidden])) #fpsTip{bottom:calc(160px * var(--menu,1) + env(safe-area-inset-bottom,0px));z-index:8}
