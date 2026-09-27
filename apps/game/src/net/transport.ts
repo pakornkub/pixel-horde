@@ -51,6 +51,9 @@ export function wsConnect(base: string): Connect {
     const out: string[] = [];
     let rx = 0, tx = 0;
     const raw = (s: string): void => { tx += s.length; if (ws && ws.readyState === 1) ws.send(s); else if (ws && ws.readyState === 0) out.push(s); };
+    // closing the tab or leaving the page is leaving on purpose: say `bye` so the room closes at once instead of
+    // waiting HOST_GRACE_MS. A page kept in the back/forward cache (persisted) or a screen turning off is not.
+    const onHide = (e: PageTransitionEvent): void => { if (!e.persisted && ws && ws.readyState === 1) ws.send(JSON.stringify({ ctl: 'bye' })); };
     if (ws) {
       ws.onopen = () => { for (const s of out.splice(0)) ws!.send(s); };
       ws.onmessage = (e) => {
@@ -59,8 +62,9 @@ export function wsConnect(base: string): Connect {
         try { const m = JSON.parse(str) as ServerMsg; if (m.t === 'welcome') opened = true; ev.emit(toEvent(m)); } catch { /* ignore */ }
       };
       // never welcomed → the server refused (quota, 503) or could not be reached
-      ws.onclose = () => ev.emit({ t: 'closed', reason: opened ? 'network' : 'full' });
+      ws.onclose = () => { if (typeof removeEventListener === 'function') removeEventListener('pagehide', onHide); ev.emit({ t: 'closed', reason: opened ? 'network' : 'full' }); };
     }
+    if (ws && typeof addEventListener === 'function') addEventListener('pagehide', onHide);
     return {
       code: o.code,
       role: o.role,
@@ -69,7 +73,10 @@ export function wsConnect(base: string): Connect {
       onEvent: ev.on,
       stats: () => ({ rx, tx }),
       // `bye` first: leaving on purpose closes the room at once (a dropped host is waited for)
-      close: () => { raw(JSON.stringify({ ctl: 'bye' })); ev.emit({ t: 'closed', reason: 'left' }); try { ws?.close(1000); } catch { /* ignore */ } },
+      close: () => {
+        if (typeof removeEventListener === 'function') removeEventListener('pagehide', onHide);
+        raw(JSON.stringify({ ctl: 'bye' })); ev.emit({ t: 'closed', reason: 'left' }); try { ws?.close(1000); } catch { /* ignore */ }
+      },
     };
   };
 }
