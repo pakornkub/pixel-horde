@@ -187,7 +187,7 @@ function outfitRows(box: HTMLElement): void {
       ds.textContent = lv === 0 ? slotValue(slot, 1) : maxed ? slotValue(slot, lv) : `${slotValue(slot, lv)} → ${slotValue(slot, lv + 1)}`;
       const bt = document.createElement('button');
       priceButton(bt, cost, maxed);
-      if (!maxed && !bt.classList.contains('short')) bt.textContent = t(lv ? 'outfit.up' : 'outfit.get', { cost });
+      if (!maxed && !bt.classList.contains('short')) bt.textContent = t(lv ? 'outfit.up' : 'outfit.get', { cost: fmtN(cost) });
       bt.addEventListener('click', async () => {
         bt.disabled = true;
         const err = await metaSync.buyOutfit(set, slot);
