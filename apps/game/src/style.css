@@ -362,7 +362,10 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 /* Run score total: gold text on the paper background was unreadable (≈1.4:1) → ink on a gold chip */
 .stats.score .tot{color:var(--ink);background:var(--gold);padding:4px 6px;border-radius:3px;justify-self:end}
 /* English title menu: "coming soon" was bigger than the button's own label */
-html[lang="en"] .tmenu button small{font-size:7px;margin-top:3px;opacity:.8}
+html[lang="en"] .tmenu button:not(#specialBtn) small{font-size:7px;margin-top:3px;opacity:.8}
+/* Special shop badge: "NEW!" stays full strength and red like the other NEW tags; English hint 8 px (7 px was at the limit) */
+html[lang="en"] #specialBtn small{font-size:8px;margin-top:3px}
+#specialBtn:not(.locked) small{color:#c2361f}
 /* Leaderboard hero filter: a bare browser dropdown (≈19 px tall) → the game's own button look */
 #boardHero{font:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);border:3px solid var(--ink);border-radius:4px;padding:6px 8px;min-height:40px;cursor:pointer}
 #boardHero:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -370,7 +373,7 @@ html[lang="en"] .tmenu button small{font-size:7px;margin-top:3px;opacity:.8}
 @media (pointer:coarse){
   #pauseBtn{width:max(44px,calc(36px * var(--u)));height:max(44px,calc(36px * var(--u)))}
   .tlink{padding:10px 4px;margin:-6px 0}
-  .weapons button,.tabs button{min-height:40px}
+  .weapons button,.tabs button,.seg button{min-height:40px}
   .setrow input[type=range]{height:32px}
 }
 /* phones held sideways: level-up and route choices side by side, so the third card is not hidden below the fold */
@@ -380,4 +383,10 @@ html[lang="en"] .tmenu button small{font-size:7px;margin-top:3px;opacity:.8}
   #opts,#routeOpts{flex-direction:row;align-items:stretch}
   #opts>.opt,#routeOpts>.opt{flex:1 1 0;min-width:0;align-items:start}
   body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+}
+/* narrow phones: the low-FPS prompt put its text beside two buttons (one word per line) and sat on the ULT button →
+   text on its own line, buttons under it, above the ULT button */
+@media (max-width:560px){
+  #fpsTip{flex-wrap:wrap;justify-content:flex-end;width:calc(100% - 32px);bottom:calc(104px * var(--ui,1) + env(safe-area-inset-bottom,0px))}
+  #fpsTip>span{flex:1 1 100%}
 }
