@@ -393,3 +393,6 @@ html[lang="en"] #specialBtn small{font-size:8px;margin-top:3px}
   #fpsTip{flex-wrap:wrap;justify-content:flex-end;width:calc(100% - 32px);bottom:calc(104px * var(--ui,1) + env(safe-area-inset-bottom,0px))}
   #fpsTip>span{flex:1 1 100%}
 }
+/* a tutorial hint (up to ~4 lines on a phone) sits at the bottom too: lift the low-FPS prompt above it,
+   and keep the prompt on top if they still meet (the hint ignores taps, the prompt's buttons must stay readable) */
+body:has(#tipBar:not([hidden])) #fpsTip{bottom:calc(160px * var(--menu,1) + env(safe-area-inset-bottom,0px));z-index:8}
