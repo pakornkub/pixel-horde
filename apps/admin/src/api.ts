@@ -13,6 +13,15 @@ export interface Overview {
 export interface AuditRow { id: number; at: string; actor: string; action: string; target: string; detail: unknown }
 export interface ConfigRow { version: number; status: string; note: string; at: string; by: string | null; data: Record<string, unknown>; report?: BalanceReport | null }
 export interface BoardRow { userId: string; name: string; score: number; chapter: number; hero: string; weapon: string | null; hidden: boolean; banned: boolean; at: string; status: 'verified' | 'pending' | 'suspicious' }
+/** An offline Run (played while `maintenance` blocked submit_run) waiting for a rank-or-reject decision. */
+export interface OfflineRunRow {
+  id: string; userId: string; name: string; hero: string; startedAt: string; endedAt: string | null;
+  chapter: number; score: number | null; kills: number | null; gold: number | null; playSeconds: number;
+  goldCeilingPct: number; result: string | null; review: 'ranked' | 'rejected' | null; reviewedAt: string | null;
+  /** Whether a 'ranked' review actually beat the player's existing best on that board (it may not). */
+  onSolo: boolean; onAlltime: boolean;
+}
+export interface OfflineRunsResult { since: string; until: string; rows: OfflineRunRow[] }
 export interface PlayerRow {
   id: string; name: string; role: string; gold: number; linked: boolean; lastSeen: string;
   /** Hidden from leaderboards (still plays). */
@@ -74,7 +83,14 @@ export interface AdminApi {
   hideScore(userId: string, board: string, hidden: boolean): Promise<void>;
   banPlayer(userId: string, until: string | null): Promise<void>;
   suspendPlayer(userId: string, until: string | null): Promise<void>;
-  verifyCoop(userId: string): Promise<void>;
+  /** Promotes a player's leaderboard row on any board (coop, or a rank-offline-Run pick on solo/alltime) to verified. */
+  verifyScore(userId: string, board: string): Promise<void>;
+  /** Offline Runs (status='offline') eligible for review, defaulting to the last maintenance window. */
+  offlineRuns(includeReviewed?: boolean): Promise<OfflineRunsResult>;
+  /** Adds an offline Run to the solo + all-time boards as an unverified entry. */
+  rankOfflineRun(runId: string): Promise<{ appliedSolo: boolean; appliedAlltime: boolean }>;
+  /** Reviewed and skipped: the Run keeps its Gold/achievements but never joins a leaderboard. */
+  rejectOfflineRun(runId: string, note?: string): Promise<void>;
   seasonPreview(): Promise<SeasonPreview>;
   openSeason(name: string): Promise<number>;
   players(search: string): Promise<PlayerRow[]>;
@@ -133,7 +149,10 @@ async function liveApi(): Promise<AdminApi> {
     hideScore: (userId, board, hidden) => rpc('hide_score', { p_user: userId, p_board: board, p_hidden: hidden }),
     banPlayer: (userId, until) => rpc('ban_player', { p_user: userId, p_until: until }),
     suspendPlayer: (userId, until) => rpc('suspend_player', { p_user: userId, p_until: until }),
-    verifyCoop: (userId) => rpc('verify_coop', { p_user: userId }),
+    verifyScore: (userId, board) => rpc('verify_score', { p_user: userId, p_board: board }),
+    offlineRuns: (includeReviewed = false) => rpc('admin_offline_runs', { p_include_reviewed: includeReviewed }),
+    rankOfflineRun: (runId) => rpc('admin_rank_offline_run', { p_run: runId }),
+    rejectOfflineRun: (runId, note = '') => rpc('admin_reject_offline_run', { p_run: runId, p_note: note }),
     seasonPreview: () => rpc('admin_season_rewards_preview'),
     openSeason: (name) => rpc('admin_open_season', { p_name: name }),
     players: (search) => rpc('admin_players', { p_search: search }),
@@ -184,6 +203,12 @@ function demoApi(): AdminApi {
     { id: 1, userId: 'u0', name: 'KitMain', category: 'idea', message: 'อยากให้มีโหมดฝึกสกิล', context: { build: '202609251200', device: 'Windows NT 10.0', screen: '1920x1080@1', lang: 'th' }, status: 'done', at: now() },
   ];
   const ago = (h: number): string => new Date(Date.now() - h * 36e5).toISOString();
+  const offlineRuns: OfflineRunRow[] = [
+    { id: 'off1', userId: 'u2', name: 'speedyyy', hero: 'ranger', startedAt: ago(30), endedAt: ago(29.6), chapter: 7, score: 42000, kills: 900, gold: 1200, playSeconds: 1560, goldCeilingPct: 41, result: 'dead', review: null, reviewedAt: null, onSolo: false, onAlltime: false },
+    { id: 'off2', userId: 'u4', name: 'ด.ช.มอนเยอะ', hero: 'knight', startedAt: ago(28), endedAt: ago(27.6), chapter: 5, score: 21000, kills: 500, gold: 800, playSeconds: 1300, goldCeilingPct: 25, result: 'dead', review: null, reviewedAt: null, onSolo: false, onAlltime: false },
+    // Pim's existing board score (45,900) already beats this, so review='ranked' but onSolo/onAlltime stay false
+    { id: 'off3', userId: 'u5', name: 'Pim', hero: 'alchemist', startedAt: ago(26), endedAt: ago(25.7), chapter: 3, score: 8200, kills: 210, gold: 300, playSeconds: 900, goldCeilingPct: 18, result: 'quit', review: 'ranked', reviewedAt: ago(1), onSolo: false, onAlltime: false },
+  ];
   const work: WorkItem[] = [
     { id: 3, kind: 'balance', source: 'feedback', refs: [{ type: 'feedback', id: 2 }], title: 'Vex: ขวดปาไม่ค่อยโดนบอส', status: 'needs_decision',
       summary: 'Volatile Flask สุ่มเป้าในรัศมี ทำให้โดนบอสน้อย (บอท 20 รอบ: โดนบอส 31% ของขวด)',
@@ -227,6 +252,7 @@ function demoApi(): AdminApi {
         { kind: 'error', level: 'bad', message: 'TypeError: e.st is undefined', count: 64, new: true },
         { kind: 'gold', level: 'warn', userId: 'u2', name: 'speedyyy', gold: 98000 },
         { kind: 'coop_review', level: 'info', count: 1 },
+        { kind: 'offline_review', level: 'info', count: offlineRuns.filter((o) => !o.review).length },
       ],
     }),
     audit: async () => clone(audit),
@@ -243,7 +269,29 @@ function demoApi(): AdminApi {
     async hideScore(u, b, h) { const r = board.find((x) => x.userId === u); if (r) r.hidden = h; note('update', 'leaderboard', { user: u, board: b, hidden: h }); },
     async suspendPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) { p.suspended = !!until; p.suspendedUntil = until; } note('update', 'profiles', { user: u, suspended_until: until }); },
     async banPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) p.banned = !!until; const r = board.find((x) => x.userId === u); if (r) r.banned = !!until; note('update', 'profiles', { user: u, banned_until: until }); },
-    async verifyCoop(u) { const r = board.find((x) => x.userId === u); if (r) r.status = 'verified'; note('verify', 'leaderboard', { user: u }); },
+    async verifyScore(u) { const r = board.find((x) => x.userId === u); if (r) r.status = 'verified'; note('verify', 'leaderboard', { user: u }); },
+    async offlineRuns(includeReviewed = false) { return { since: ago(31), until: ago(20), rows: clone(offlineRuns.filter((o) => includeReviewed || !o.review)) }; },
+    async rankOfflineRun(id) {
+      const o = offlineRuns.find((x) => x.id === id);
+      if (!o) throw new Error('RUN_NOT_FOUND');
+      if (o.review) throw new Error('ALREADY_REVIEWED');
+      const existing = board.find((x) => x.userId === o.userId);
+      const beats = !existing || (o.score ?? 0) > existing.score;
+      o.review = 'ranked'; o.reviewedAt = now(); o.onSolo = beats; o.onAlltime = beats;
+      if (beats) {
+        if (existing) { existing.score = o.score ?? existing.score; existing.chapter = o.chapter; existing.hero = o.hero; existing.status = 'pending'; }
+        else board.push({ userId: o.userId, name: o.name, score: o.score ?? 0, chapter: o.chapter, hero: o.hero, weapon: null, hidden: false, banned: false, at: now(), status: 'pending' });
+      }
+      note('rank_offline_run', 'runs', { runId: id, user: o.userId, onSolo: beats, onAlltime: beats });
+      return { appliedSolo: beats, appliedAlltime: beats };
+    },
+    async rejectOfflineRun(id, n) {
+      const o = offlineRuns.find((x) => x.id === id);
+      if (!o) throw new Error('RUN_NOT_FOUND');
+      if (o.review) throw new Error('ALREADY_REVIEWED');
+      o.review = 'rejected'; o.reviewedAt = now();
+      note('reject_offline_run', 'runs', { runId: id, user: o.userId, note: n });
+    },
     async seasonPreview() {
       const top = board.filter((r) => r.status === 'verified' && !r.hidden).slice(0, 12);
       return { season, pendingCoop: board.filter((r) => r.status === 'pending').length, rewards: top.flatMap((r, i) => i === 0

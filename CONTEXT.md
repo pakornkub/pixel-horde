@@ -41,7 +41,7 @@ A Guardian travelling with the Hero. One is active; the others wait in Companion
 _Avoid_: pet (code name), familiar
 
 **Hero**:
-A playable character with a personal name, class, and motive (Lyra the Mage, Bram the Knight, Kit the Ranger, Vex the Alchemist). The four travel as one team.
+A playable character with a personal name, class, and motive (Lyra the Mage, Bram the Knight, Kit the Ranger, Vex the Alchemist, and Mora the Necromancer, sold only after a first win). The first four travel as one team.
 _Avoid_: character class, avatar
 
 ### Structure of play
@@ -63,7 +63,7 @@ When a Stage's timer and overtime run out with the King still alive: the King fl
 _Avoid_: fail, timeout
 
 **Endless Mode**:
-Optional play after defeating Umbra: random Realms with ever-rising difficulty, ranked on its own leaderboard.
+Optional play after defeating Umbra, or a whole Run started from the title screen's Endless button after a first win (Chapter 1 on, no Umbra): random Realms with ever-rising difficulty, ranked on its own leaderboard. The Endless Score counts from Chapter 9.
 _Avoid_: survival mode, infinite mode
 
 **Weapon**:
@@ -84,7 +84,7 @@ A rare stage modifier with run-only rewards: Blood Moon (never announced in adva
 ### Player power
 
 **Skill**:
-An auto-firing attack the player holds in one of 4 attack slots (one locked to the Signature Skill; Awakening can add a 5th), levelled on level-up.
+An auto-firing attack the player holds in one of 4 attack slots (one locked to the Signature Skill), levelled on level-up. Awakening adds Awakened slots that hold only Awakened skills (3 in the live config; an older rule added a shared 5th slot).
 _Avoid_: weapon, spell
 
 **Passive**:
@@ -106,7 +106,7 @@ A shared Skill from the character's own Skill Line, at max level and equipped in
 _Avoid_: synergy, bond
 
 **Awakening**:
-The automatic, one-time transformation of an evolved Signature Skill that makes the Signature much stronger and unlocks the character's Skill Line skills (the first may arrive at once, `awaken.grant`). Under the original rule it consumes two Links; with `awaken.keep` the Links stay and `awaken.slots` adds attack slots instead (the live config does this). It happens by itself at the Stage end where the Hero qualifies (it used to be offered and could be declined); the clear screen then shows a card with the new form and the three Awakened skills.
+The automatic, one-time transformation of an evolved Signature Skill that makes the Signature much stronger and unlocks the character's Skill Line skills (the first may arrive at once, `awaken.grant`). Under the original rule it consumes two Links; with `awaken.keep` the Links stay, and either `awaken.slots` adds shared attack slots or `awaken.lineSlots` opens Awakened-only slots (the live config: 3 Awakened slots). It happens by itself at the Stage end where the Hero qualifies (it used to be offered and could be declined); the clear screen then shows a card with the new form and the three Awakened skills.
 _Avoid_: ultimate evolution, second evolution, ascension
 
 **Combo**:
@@ -130,8 +130,12 @@ A King reward (1 per King; not sold for Gold unless the Admin switch `economy.sp
 _Avoid_: points (ambiguous with score)
 
 **Meta Progression**:
-Permanent power bought with Gold between runs (Shop upgrades, character unlocks).
+Permanent power bought with Gold between runs (Shop upgrades, character unlocks, and after a first win the Special Shop).
 _Avoid_: upgrades (ambiguous with level-up picks)
+
+**Special Shop**:
+The title-screen shop that opens after a first win over Umbra. Tabs: the Weapon **Forge** (up to 5 levels per owned Weapon: more Ultimate damage, a higher boss cap and a stronger Weapon effect), **Outfits** (hat / body / cloak pieces in 4 element sets; a full set adds damage against its target) and Mastery (not built yet).
+_Avoid_: premium shop, store
 
 **Gold**:
 The only currency that survives a run; banked on stage clear or defeat. Also spent inside a Run (Bench swaps, a purchased revive), competing with permanent Shop upgrades.
@@ -162,7 +166,7 @@ The Balance Config's own multipliers on its numbers (`shared.difficulty`), the s
 _Avoid_: difficulty preset, difficulty level, mode (Endless Mode is a mode)
 
 **Heart Crack**:
-Difficulty tiers 1–3 picked before a new Run, unlocked by beating Umbra (winning at tier N opens N+1): monsters get more HP, damage and spawns from Chapter 1. Unlike Endless Mode it is a whole Run at a fixed higher difficulty.
+Difficulty tiers picked before a new Run, unlocked by beating Umbra (winning at tier N opens N+1): monsters get more HP, damage and spawns from Chapter 1. The live config has 10 even tiers (the base difficulty's help fades 10% per tier) and +50% Score per tier; the original rule had 3. Unlike Endless Mode it is a whole Run at a fixed higher difficulty.
 _Avoid_: hard mode, New Game+
 
 **Season**:
@@ -170,7 +174,7 @@ A leaderboard period opened manually by the admin (typically after a big Balance
 _Avoid_: ladder, league
 
 **Score**:
-The arcade-style number a Run earns, computed only by the sim: progress (Chapters cleared, Kings killed, victory, fast finish) dominates, kills and Combos separate equal progress, Escapes subtract, and a purchased revive cuts it by 15%.
+The arcade-style number a Run earns, computed only by the sim: progress (Chapters cleared, Kings killed, victory, fast finish) dominates, kills and Combos separate equal progress, Escapes subtract, a Heart Crack tier multiplies it and a purchased revive cuts it by 15%.
 _Avoid_: points, rank (rank is a position on a board)
 
 **Title**:

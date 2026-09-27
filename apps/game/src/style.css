@@ -255,6 +255,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .opt .ban{position:absolute;top:4px;right:6px;border:0;background:transparent;font:inherit;font-size:16px;font-weight:700;color:#e8434f;cursor:pointer;padding:2px 6px}
 .weapons{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;font-size:13px}
 .weapons .lbl{flex-basis:100%;font-weight:700}
+/* the picked Weapon's line keeps two lines of room, so switching Weapons never moves the buttons below */
+.weapons .wdesc{flex-basis:100%;line-height:1.35;min-height:2.7em}
 .weapons button{border:2px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;padding:3px 8px;cursor:pointer}
 .weapons button.sel{outline:3px solid var(--gold);outline-offset:1px;font-weight:700}
 .sptools button.sel{outline:3px solid var(--gold);outline-offset:1px;font-weight:700;opacity:1}
