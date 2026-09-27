@@ -101,6 +101,34 @@ describe('Signature Skills', () => {
     expect(big.hp).toBeLessThan(bigHp);
   });
 
+  it('Hawk Gust (skills.hawk.gustKb): a defending Hawk pushes and stuns the crowd around Kit, at most once per gustCd, no damage, never bosses', () => {
+    const { s, mob, run } = hero('ranger');
+    s.cfg = { ...s.cfg, skills: { ...s.cfg.skills, hawk: { ...s.cfg.skills.hawk, guardN: 3, guardR: 40, gustKb: 70, gustStun: 0.6, gustR: 42, gustCd: 3 } } };
+    const ring = [0, 1, 2, 3, 4, 5].map((i) => mob(i < 3 ? 14 + i * 6 : -14 - (i - 3) * 6, 8, 1e6));
+    const king = spawnEnemy(s, 'boss', 0, -16, false); king.hp = king.maxHp = 1e6; king.spd = 0;
+    let gusts = 0, last = s.P.gustAt;
+    for (let t = 0; t < 10 * 60; t++) {
+      for (const e of ring) { e.x = e.x > 0 ? 20 : -20; e.y = 8; e.kx = 0; e.ky = 0; } // permanently surrounded
+      run(1 / 60);
+      if (s.P.gustAt !== last) { gusts++; last = s.P.gustAt; }
+    }
+    expect(gusts).toBeGreaterThanOrEqual(3);
+    expect(gusts).toBeLessThanOrEqual(4); // 10 s with gustCd 3: never a defend loop
+    expect(king.stun || 0).toBe(0); // bosses are never pushed or stunned (the gust calls no hit(): crowd control only)
+  });
+
+  it('skills.hawk.stunBase: every dive stuns the monsters it strikes (not bosses); 0 = off', () => {
+    const { s, mob, run } = hero('ranger');
+    const prey = mob(-60, 0, 1e6);
+    run(1.5);
+    expect(prey.stun || 0).toBe(0);
+    s.cfg = { ...s.cfg, skills: { ...s.cfg.skills, hawk: { ...s.cfg.skills.hawk, stunBase: 0.4 } } };
+    s.P.cds.hawk = 0;
+    let stunned = false;
+    for (let t = 0; t < 90 && !stunned; t++) { run(1 / 60); stunned = (prey.stun || 0) > 0; }
+    expect(stunned).toBe(true);
+  });
+
   it('heroes.ranger.hp adds to Kit\'s max HP only', () => {
     const cfg = resolveConfig(parseBalanceConfig({ shared: { heroes: { ranger: { hp: 20 } } } }));
     const hp = (h: HeroId, c = config) => (createSim(botOptions(3, { hero: h, config: c })).view() as SimState).P.maxHp;
