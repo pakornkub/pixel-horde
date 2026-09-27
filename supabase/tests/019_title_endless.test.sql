@@ -1,6 +1,6 @@
 -- Ticket 55: an Endless Run started from the title (sim mode 'endless') is submitted as a solo Run with no main
 -- Score (0), no victory and an Endless Score; it is accepted and ranks on the Endless board only.
--- The title button opens after the first win, and the server checks that too (ticket 59, 020_endless_gate): Endy has won.
+-- The title button opens after the first win, and the server checks that too (ticket 59, 021_endless_gate): Endy has won.
 begin;
 select plan(8);
 

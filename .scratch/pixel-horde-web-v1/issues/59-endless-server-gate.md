@@ -24,7 +24,7 @@ Owner decision (2026-09-27, option A): close it on the server, as a follow-up to
   the gate is a save or client edited around the title button, and a rejection would also take the Run's Gold if some
   edge case was missed. Switching to a reject reason (`ENDLESS_LOCKED`) is one line if the owner prefers it.
 
-**Tests:** `supabase/tests/020_endless_gate.test.sql` (before a win: title Endless and victory-less Endless scores are
+**Tests:** `supabase/tests/021_endless_gate.test.sql` (before a win: title Endless and victory-less Endless scores are
 0 and off the board; Umbra + Endless in one Run counts; title Endless after the win counts; title Endless claiming
 victory before a win is 0). `019_title_endless.test.sql` (ticket 55) now gives its player a win first and sends
 `endlessStart`. `tests/db.test.ts` checks that the client's flag and the latest `submit_run` use the same key, so a later
