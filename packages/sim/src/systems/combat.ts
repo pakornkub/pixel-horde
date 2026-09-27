@@ -3,6 +3,7 @@ import { DEATH_COL, SPLITS } from '../data/enemies';
 import { SKILL_TAGS, linAt, type HitTag } from '../data/skills';
 import { WEAPONS, WEAPON_IDS, forgeLevel, ultCap, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
 import { REALMS, type RealmId } from '../content/lumora/realms';
+import { outfitTarget } from '../data/outfits';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
 import { grantShadow } from './events';
@@ -29,6 +30,7 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
     if (tag.el && tag.el === REALMS[s.realm].element && !NO_RESIST.has(e.type)) base *= s.cfg.realms.resist;
   }
   let d = base * P.dmgMul * R.range(1 - pl.dmgVariance, 1 + pl.dmgVariance);
+  if (P.outfitSet && outfitTarget(P.outfitSet, e)) d *= 1 + (P.outfitDmg || 0); // full outfit set (ticket 51)
   const cr = R.next() < P.crit;
   if (cr) d *= P.critMul;
   d = Math.max(1, Math.round(d));

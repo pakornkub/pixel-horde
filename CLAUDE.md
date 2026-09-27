@@ -118,6 +118,9 @@ clear screen — never at the next Stage start.
   (server `has_won(uid)`: Heart Crack ≥ 1 or heroesWon). Weapon forge: `forge.max` levels per owned Weapon, each adds
   `forge.dmg` Ultimate damage and `forge.bossCap`/`umbraCap` to the boss caps (ticket 58) and stretches its own effect by
   `forge.<weapon>` (Judgement: stun); levels in `meta_progress.shop` as `forge:lumora:<id>`.
+  Outfits (ticket 51): 3 slots (hat dmg / body HP / cloak crit) × 4 sets (Ember, Frost, Storm, Shadow), levels
+  1–`outfits.max`; a full set adds damage against Burning / Frozen-chilled / Shocked monsters / bosses. Levels in
+  `meta_progress.shop` as `outfit:<set>:<slot>`; what is worn is local (`pixelhorde-meta.wear`).
 - Counter enemies: Armored variant (flat damage reduction `10*1.4^(st-1)*(1+0.05*(lv-1))`, st≥3), Split Slime (st≥4,
   and st≥2 in `split` Realms). Wild Boar / Eye Caster spawn only while `charger.on` / `caster.on` are 1 (default 0);
   Realm mobs (Skeleton Archer, Turret, Sawfish, Griffin…) now cover ranged and charging.

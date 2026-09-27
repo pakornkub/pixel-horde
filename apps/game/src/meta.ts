@@ -1,7 +1,7 @@
 // Meta progression. The server owns Gold/Shop/unlocks (ticket 09); this module keeps a local cache
 // (`pixelhorde-meta`, also the offline save) plus a queue of offline actions, and lets the server
 // win whenever it is reachable. The old artifact save is uploaded once.
-import { ACHIEVEMENTS, AFTER_WIN, HERO_IDS, WEAPON_IDS, addToLifetime, forgeCost, forgeKey, forgeLevel, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
+import { ACHIEVEMENTS, AFTER_WIN, HERO_IDS, OUTFIT_SETS, OUTFIT_SLOTS, WEAPON_IDS, addToLifetime, forgeCost, forgeKey, forgeLevel, isHero, isOutfitSet, isWeapon, outfitCost, outfitKey, type OutfitSet, type OutfitSlot, type OutfitWear, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
 import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta, type SubmitOutcome } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
@@ -17,6 +17,10 @@ export interface MetaSave {
   weapon: WeaponId;
   /** Weapon forge levels (ticket 56; on the server in meta_progress.shop as "forge:lumora:<id>"). */
   forge: Partial<Record<WeaponId, number>>;
+  /** Outfit piece levels by "<set>:<slot>" (ticket 51; on the server in meta_progress.shop as "outfit:<set>:<slot>"). */
+  outfits: Record<string, number>;
+  /** The set worn in each slot (local choice, like the picked Weapon). */
+  wear: Partial<Record<OutfitSlot, OutfitSet>>;
   /** Heart Crack: highest unlocked tier and the one picked for the next Run. */
   crackMax: number;
   crack: number;
@@ -34,7 +38,8 @@ export type QueueOp =
   | { kind: 'run'; result: RunResult; ticket?: RunTicket; live?: boolean }
   | { kind: 'buy'; item: ShopId }
   | { kind: 'hero'; hero: HeroId }
-  | { kind: 'forge'; weapon: WeaponId };
+  | { kind: 'forge'; weapon: WeaponId }
+  | { kind: 'outfit'; set: OutfitSet; slot: OutfitSlot };
 
 /** Highest Heart Crack tier any config allows (`heartCrack.maxTier` range); the live config caps unlocks below it. */
 const CRACK_CAP = 20;
@@ -48,6 +53,12 @@ export function parseMeta(raw: unknown): MetaSave {
   const forgeIn = (m.forge && typeof m.forge === 'object' ? m.forge : {}) as Record<string, unknown>;
   const forge: Partial<Record<WeaponId, number>> = {};
   for (const id of WEAPON_IDS) { const v = Number(forgeIn[id]); if (v > 0) forge[id] = Math.floor(v); }
+  const outIn = (m.outfits && typeof m.outfits === 'object' ? m.outfits : {}) as Record<string, unknown>;
+  const outfits: Record<string, number> = {};
+  for (const set of OUTFIT_SETS) for (const slot of OUTFIT_SLOTS) { const v = Number(outIn[`${set}:${slot}`]); if (v > 0) outfits[`${set}:${slot}`] = Math.floor(v); }
+  const wearIn = (m.wear && typeof m.wear === 'object' ? m.wear : {}) as Record<string, unknown>;
+  const wear: Partial<Record<OutfitSlot, OutfitSet>> = {};
+  for (const slot of OUTFIT_SLOTS) { const v = wearIn[slot]; if (isOutfitSet(v)) wear[slot] = v; }
   return {
     gold: Math.max(0, Number(m.gold) || 0),
     up,
@@ -56,6 +67,8 @@ export function parseMeta(raw: unknown): MetaSave {
     weapons: Array.isArray(m.weapons) ? m.weapons.filter((w): w is string => typeof w === 'string') : [],
     weapon: isWeapon(m.weapon) ? m.weapon : 'judgement',
     forge,
+    outfits,
+    wear,
     crackMax: Math.max(0, Math.min(CRACK_CAP, Math.floor(Number(m.crackMax) || 0))),
     crack: Math.max(0, Math.min(CRACK_CAP, Math.floor(Number(m.crack) || 0))),
     ach: Array.isArray(m.ach) ? m.ach.filter((x): x is string => typeof x === 'string') : [],
@@ -94,6 +107,10 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     const forge: Partial<Record<WeaponId, number>> = {};
     for (const id of WEAPON_IDS) { const v = Number(s.shop?.[forgeKey(id)]); if (v > 0) forge[id] = v; }
     meta.forge = forge;
+    const outfits: Record<string, number> = {};
+    for (const set of OUTFIT_SETS) for (const slot of OUTFIT_SLOTS) { const v = Number(s.shop?.[outfitKey(set, slot)]); if (v > 0) outfits[`${set}:${slot}`] = v; }
+    meta.outfits = outfits;
+    for (const slot of OUTFIT_SLOTS) { const w = meta.wear[slot]; if (w && !outfits[`${w}:${slot}`]) delete meta.wear[slot]; }
     meta.owned = (s.heroes || []).filter(isHero);
     meta.weapons = Array.isArray(s.weapons) ? s.weapons : meta.weapons;
     if (!ownsWeapon(meta.weapon)) meta.weapon = 'judgement';
@@ -147,6 +164,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
             for (const f of runListeners) f(op.result.clientRunId, out);
           } else if (op.kind === 'buy') await backend.buyUpgrade(op.item);
           else if (op.kind === 'forge') await backend.forgeWeapon(op.weapon);
+          else if (op.kind === 'outfit') await backend.buyOutfit(op.set, op.slot);
           else await backend.unlockHero(op.hero);
         } catch (e) {
           const code = e instanceof BackendError ? e.code : 'UNKNOWN';
@@ -217,6 +235,36 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     return null;
   }
 
+  /* ---------- outfits (ticket 51): pieces bought and levelled with Gold after the first win, worn locally ---------- */
+  const outfitLv = (set: OutfitSet, slot: OutfitSlot): number => Math.min(active.cfg.outfits.max, meta.outfits[`${set}:${slot}`] || 0);
+  async function buyOutfit(set: OutfitSet, slot: OutfitSlot): Promise<BackendError | null> {
+    if (!hasWon()) return new BackendError('SHOP_LOCKED');
+    const lv = outfitLv(set, slot), cost = outfitCost(active.cfg, lv);
+    if (lv >= active.cfg.outfits.max) return new BackendError('MAXED');
+    if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
+    if (online()) {
+      try { applyServer(await backend.buyOutfit(set, slot)); if (!lv && !meta.wear[slot]) wearOutfit(slot, set); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+    }
+    meta.gold -= cost;
+    meta.outfits[`${set}:${slot}`] = lv + 1;
+    if (!lv && !meta.wear[slot]) meta.wear[slot] = set; // a new piece goes on only into an empty slot (never breaks a worn set)
+    queue.push({ kind: 'outfit', set, slot });
+    save();
+    return null;
+  }
+  /** Put on an owned piece (set = null takes the slot off). */
+  function wearOutfit(slot: OutfitSlot, set: OutfitSet | null): void {
+    if (set && !outfitLv(set, slot)) return;
+    if (set) meta.wear[slot] = set; else delete meta.wear[slot];
+    save();
+  }
+  /** What the sim gets: the worn pieces with their levels. */
+  function worn(): OutfitWear {
+    const w: OutfitWear = {};
+    for (const slot of OUTFIT_SLOTS) { const set = meta.wear[slot]; if (set && outfitLv(set, slot)) w[slot] = { set, lv: outfitLv(set, slot) }; }
+    return w;
+  }
+
   /** Record a Run's progress (every Stage clear and at the end) so a crash still pays out later. */
   const ownsWeapon = (w: WeaponId): boolean => w === 'judgement' || meta.weapons.includes(weaponKey(w));
   /** Weapons found in a Run join the local collection at once (the server confirms on submit). */
@@ -278,6 +326,10 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     hasWon,
     forgeLv,
     forgeWeapon,
+    outfitLv,
+    buyOutfit,
+    wearOutfit,
+    worn,
     addWeapons,
     selectWeapon,
     selectCrack,
@@ -301,7 +353,7 @@ export const META = metaSync.meta;
 export const U = metaSync.U;
 export const ownsHero = metaSync.ownsHero;
 export const saveMeta = metaSync.save;
-export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold, weapons: [...META.weapons], forge: { ...META.forge } });
+export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold, weapons: [...META.weapons], forge: { ...META.forge }, outfit: metaSync.worn() });
 export const HEROES_ALL = HERO_IDS;
 
 export interface Best { stage: number; kills: number }

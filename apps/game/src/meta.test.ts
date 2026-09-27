@@ -39,6 +39,13 @@ function fakeBackend(start: BackendStatus = 'offline') {
       if (server.gold < cost) throw new BackendError('NOT_ENOUGH_GOLD');
       server.gold -= cost; server.shop[k] = lv + 1; return clone();
     },
+    buyOutfit: async (set, slot) => {
+      guard(); calls.push(`outfit:${set}:${slot}`);
+      if (!((server.stats?.heartCrack ?? 0) >= 1)) throw new BackendError('SHOP_LOCKED');
+      const k = `outfit:${set}:${slot}`, lv = server.shop[k] || 0, cost = Math.round(500 * 1.6 ** lv);
+      if (server.gold < cost) throw new BackendError('NOT_ENOUGH_GOLD');
+      server.gold -= cost; server.shop[k] = lv + 1; return clone();
+    },
     unlockHero: async (h) => { guard(); calls.push('hero:' + h); server.heroes.push(h); return clone(); },
     importLegacy: async (s) => {
       guard(); calls.push('legacy');
@@ -146,11 +153,12 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.pending()).toEqual([]);
   });
 
-  it('maintenance (server online but refusing gameplay RPCs): buy/unlockHero/forgeWeapon fall back to a local purchase, same as OFFLINE', async () => {
+  it('maintenance (server online but refusing gameplay RPCs): buy/unlockHero/forgeWeapon/buyOutfit fall back to a local purchase, same as OFFLINE', async () => {
     const f = fakeBackend('online');
     f.b.buyUpgrade = async () => { throw new BackendError('MAINTENANCE'); };
     f.b.unlockHero = async () => { throw new BackendError('MAINTENANCE'); };
     f.b.forgeWeapon = async () => { throw new BackendError('MAINTENANCE'); };
+    f.b.buyOutfit = async () => { throw new BackendError('MAINTENANCE'); };
     const ms = createMetaSync(f.b, memStore());
     ms.bankLocal(3000);
     ms.unlockCrack(0); // beating Umbra unlocks the forge shop
@@ -160,7 +168,10 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(ms.meta.owned).toContain('ranger');
     expect(await ms.forgeWeapon('judgement')).toBeNull();
     expect(ms.forgeLv('judgement')).toBe(1);
-    expect(ms.pending().map((o) => o.kind)).toEqual(['buy', 'hero', 'forge']);
+    expect(await ms.buyOutfit('ember', 'hat')).toBeNull();
+    expect(ms.outfitLv('ember', 'hat')).toBe(1);
+    expect(ms.worn().hat).toEqual({ set: 'ember', lv: 1 });
+    expect(ms.pending().map((o) => o.kind)).toEqual(['buy', 'hero', 'forge', 'outfit']);
   });
 
   it('Weapon forge: locked before the first win, then levels an owned Weapon (queued offline)', async () => {
@@ -184,6 +195,46 @@ describe('meta sync (offline queue, server wins)', () => {
     expect(f.calls).toEqual(['forge:judgement', 'forge:judgement', 'getMeta']);
     expect(ms.meta.forge).toEqual({ judgement: 2 });
     expect(ms.meta.gold).toBe(960);
+  });
+
+  it('outfits: locked before the first win, a new piece is worn at once, the sim gets the worn levels', async () => {
+    const f = fakeBackend('offline');
+    const ms = createMetaSync(f.b, memStore());
+    ms.bankLocal(3000);
+    expect((await ms.buyOutfit('frost', 'hat'))?.code).toBe('SHOP_LOCKED');
+    ms.unlockCrack(0);
+    expect(await ms.buyOutfit('frost', 'hat')).toBeNull();
+    expect(await ms.buyOutfit('frost', 'hat')).toBeNull();
+    expect(await ms.buyOutfit('ember', 'cloak')).toBeNull();
+    expect(ms.meta.gold).toBe(3000 - 500 - 800 - 500);
+    expect(ms.worn()).toEqual({ hat: { set: 'frost', lv: 2 }, cloak: { set: 'ember', lv: 1 } });
+    ms.wearOutfit('cloak', null);
+    ms.wearOutfit('body', 'frost'); // not owned: ignored
+    expect(ms.worn()).toEqual({ hat: { set: 'frost', lv: 2 } });
+    // back online: the queue replays and the server's shop keys become piece levels
+    f.server.gold = 3000; f.server.stats = { heartCrack: 1 };
+    f.status.set('online');
+    expect(await ms.sync()).toBe(true);
+    expect(f.calls).toEqual(['outfit:frost:hat', 'outfit:frost:hat', 'outfit:ember:cloak', 'getMeta']);
+    expect(ms.meta.outfits).toEqual({ 'frost:hat': 2, 'ember:cloak': 1 });
+  });
+
+  it('outfits: buying a piece for a filled slot never takes off what is worn (a full set stays whole)', async () => {
+    for (const status of ['offline', 'online'] as const) {
+      const f = fakeBackend(status);
+      f.server.stats = { heartCrack: 1 }; f.server.gold = 5000;
+      const ms = createMetaSync(f.b, memStore());
+      ms.unlockCrack(0);
+      if (status === 'offline') ms.bankLocal(5000); else await ms.sync();
+      for (const slot of ['hat', 'body', 'cloak'] as const) expect(await ms.buyOutfit('ember', slot)).toBeNull();
+      const set = { hat: { set: 'ember', lv: 1 }, body: { set: 'ember', lv: 1 }, cloak: { set: 'ember', lv: 1 } };
+      expect(ms.worn(), status).toEqual(set);
+      expect(await ms.buyOutfit('frost', 'hat')).toBeNull(); // bought, but the Ember hat stays on
+      expect(ms.worn(), status).toEqual(set);
+      expect(ms.outfitLv('frost', 'hat'), status).toBe(1);
+      ms.wearOutfit('hat', 'frost'); // the player puts it on by hand
+      expect(ms.worn().hat, status).toEqual({ set: 'frost', lv: 1 });
+    }
   });
 
   it('uploads an old artifact save exactly once, before anything else', async () => {
