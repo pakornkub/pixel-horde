@@ -6,6 +6,10 @@ starting at level 2, or a small bonus to the Hero's own trait (Lyra damage, Bram
 The levels are capped, so the balance stays bounded, and priced so all four Heroes together cost well above the base
 shop (12.6k Gold).
 
+Owner (2026-09-27): Mastery covers every Hero, including the 5th Hero from ticket 57.
+
+**Related:** 57 (5th Hero), 56 (post-win special shop)
+
 **Blocked by:** —
 
 **Status:** needs-triage
