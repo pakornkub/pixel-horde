@@ -5,7 +5,7 @@ import type { AdminApi } from '../api';
 import { Card, Loading, Switch, Tag, toast, useData } from '../ui';
 
 const LABEL: Record<string, string> = {
-  coop: 'Co-op', scoreSubmit: 'ส่งคะแนนขึ้น Leaderboard', maintenance: 'ปิดปรับปรุง (ออนไลน์หยุด เล่นคนเดียวได้)',
+  coop: 'Co-op', scoreSubmit: 'ส่งคะแนนขึ้น Leaderboard', maintenance: 'ปิดปรับปรุง (ออนไลน์หยุด เล่นคนเดียวได้ · บัญชี admin ยังเล่นออนไลน์และส่งคะแนนได้)',
   bloodMoon: 'อีเวนต์ Blood Moon', dragon: 'มังกร Inferno Dragon', rival: 'Shadow Rival',
 };
 
@@ -14,7 +14,7 @@ export function Flags({ api }: { api: AdminApi }) {
   const [build, setBuild] = useState('');
   if (!f.data) return <Loading error={f.error} />;
   const flip = async (k: string, v: boolean): Promise<void> => {
-    if (k === 'maintenance' && v && !confirm('เปิดโหมดปิดปรับปรุง? ผู้เล่นทุกคนจะเล่นได้แค่ออฟไลน์')) return;
+    if (k === 'maintenance' && v && !confirm('เปิดโหมดปิดปรับปรุง? ผู้เล่นทุกคนจะเล่นได้แค่ออฟไลน์ (ยกเว้นบัญชี admin ที่ยังเล่นออนไลน์และขึ้นอันดับได้ เพื่อทดสอบ)')) return;
     try { await api.setFlag(k, v); toast(`${LABEL[k] ?? k}: ${v ? 'เปิด' : 'ปิด'} แล้ว (มีผลทันที)`); f.reload(); } catch (e) { toast('ไม่สำเร็จ: ' + (e as Error).message); }
   };
   const bools = Object.keys(FeatureFlagsSchema.shape).filter((k) => typeof f.data![k] === 'boolean' || k in LABEL);
