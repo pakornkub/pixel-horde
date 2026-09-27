@@ -29,6 +29,9 @@ export function newPlayer(cfg: ResolvedConfig, ch: HeroId): Player {
   };
 }
 
+/** Mora's minions (Skeletons, Companion, Shadow Clone) hit harder by this factor. */
+export const minionMul = (s: SimState): number => 1 + (s.P.ch === 'necromancer' ? s.cfg.heroes.necromancer.minion : 0);
+
 /** Additive bonuses with caps. */
 export function recompute(s: SimState): void {
   const P = s.P, p = P.pas, c = P.ch, C = s.cfg, ps = C.passives, h = C.heroes, pl = C.player, sh = C.shop, lb = P.lb || {}, O = C.overflow, W = outfitStats(C, s.meta.outfit);
@@ -41,7 +44,7 @@ export function recompute(s: SimState): void {
   P.statusMul = 1 + (c === 'alchemist' ? h.alchemist.status : 0);
   P.critMul = pl.critMul + ps.keenCritMul * (p.crit || 0);
   P.spd = pl.spd * (1 + ps.swiftSpd * (p.swift || 0) + sh.speed.per * U(s, 'speed') + (c === 'ranger' ? h.ranger.spd : 0) - (c === 'knight' ? h.knight.spd : 0) + O.spd * (lb.spd || 0));
-  P.maxHp = pl.hp + ps.vitalHp * (p.vital || 0) + sh.vigor.per * U(s, 'vigor') + (c === 'knight' ? h.knight.hp : 0) + (c === 'ranger' ? h.ranger.hp : 0) + W.hp;
+  P.maxHp = pl.hp + ps.vitalHp * (p.vital || 0) + sh.vigor.per * U(s, 'vigor') + (c === 'knight' ? h.knight.hp : 0) + (c === 'ranger' ? h.ranger.hp : 0) - (c === 'necromancer' ? h.necromancer.hp : 0) + W.hp;
   if (lb.hp) P.maxHp = Math.round(P.maxHp * (1 + O.hp * lb.hp));
   P.pick = pl.pick * (1 + ps.magnetPick * (p.magnet || 0) + (c === 'ranger' ? h.ranger.pick : 0));
 }

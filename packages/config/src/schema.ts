@@ -104,6 +104,27 @@ const skills = obj({
     dur: sec(1.9, 'Lifetime (s)'), tick: sec(0.2, 'Damage interval (s)'), pull: pos(150, 'Pull speed'), minTargets: int(3, 1, 50, 'Visible enemies needed'), kb: pos(140, 'Collapse knockback'),
     evo: evo({ boomMul: mul(2, 'Collapse multiplier'), rMul: mul(1.2, 'Radius multiplier') }),
   }),
+  // Mora's Links (ticket 57): general Skills; the other Heroes get them only with heroes.necromancer.pool 1
+  soulDrain: obj({
+    max: int(6, 1, 20, 'Max level'),
+    dmg: lin(8, 5, 'Damage per tick'), cd: lin(3.2, -0.2, 'Cooldown (s)', 1.6), n: step(2, 2, 1, 'Tethers per cast'), dur: lin(2.6, 0.25, 'Tether lasts (s)'),
+    range: pos(110, 'Tether range'), tick: sec(0.25, 'Damage interval (s)'), heal: lin(1, 0.4, 'HP healed when a tethered monster dies'),
+    evo: evo({ nAdd: pos(2, 'Extra tethers'), dmgMul: mul(1.3, 'Damage multiplier'), jumpR: pos(60, 'A tether whose monster dies jumps to one this close') }),
+  }, 'Soul Drain (Mora Link)'),
+  bonePrison: obj({
+    max: int(6, 1, 20, 'Max level'),
+    dmg: lin(60, 30, 'Damage'), cd: lin(4.4, -0.35, 'Cooldown (s)', 2), r: lin(30, 3.5, 'Ring radius'), root: lin(1, 0.15, 'Rooted (s); bosses are slowed'),
+    delay: sec(0.45, 'Warning before the spikes rise (s)'), pull: pos(14, 'Pulls monsters this far toward the centre (Gathered)'), hold: sec(2, 'Gathered (s)'),
+    minTargets: int(3, 1, 50, 'Visible enemies needed'),
+    evo: evo({ n: int(2, 1, 4, 'Prisons per cast (each at its own crowd)'), dmgMul: mul(1.3, 'Damage multiplier') }),
+  }, 'Bone Prison (Mora Link)'),
+  wailSkull: obj({
+    max: int(7, 1, 20, 'Max level'),
+    dmg: lin(18, 9, 'Damage'), cd: lin(1.2, -0.1, 'Cooldown (s)', 0.45), n: step(2, 2, 1, 'Skulls per cast'),
+    range: pos(170, 'Targeting range'), speed: pos(150, 'Skull speed'), turn: n(6, 0, 40, 'Homing turn speed (rad/s)'), life: sec(2.5, 'Skull life (s)'),
+    chill: int(1, 0, 3, 'Frost stacks per hit (3 = Frozen)'), kb: pos(15, 'Knockback'),
+    evo: evo({ dmgMul: mul(1.25, 'Damage multiplier'), splitN: int(2, 1, 4, 'Skulls a killing skull splits into') }),
+  }, 'Wailing Skulls (Mora Link)'),
   // Signature Skills (ticket 23): one per Hero, always in the locked slot
   sigil: obj({
     max: int(7, 1, 20, 'Max level'),
@@ -160,6 +181,17 @@ const skills = obj({
       spreadR: pos(40, 'Transmute: a monster dying with a Status in the circle passes it to others this close'),
     }, 'Grand Alchemist (Awakened, awaken.form 1): Giant Flask; the Cauldron lands on it, Elixir Rain readies the next'),
   }, 'Vex: Volatile Flask'),
+  soulRise: obj({
+    max: int(7, 1, 20, 'Max level'),
+    dmg: lin(12, 8, 'Skeleton swing damage'), cd: lin(3, -0.2, 'Raise every (s)', 1.4), army: lin(3, 0.5, 'Skeletons standing at most (rounded down)'),
+    life: sec(8, 'A Skeleton crumbles after (s)'), spd: pos(55, 'Skeleton walk speed'), reach: pos(12, 'Swing reach'), hitCd: sec(0.55, 'Swing every (s)'),
+    leash: pos(90, 'Skeletons never chase farther than this from Mora'), grave: pos(100, 'A kill this close to Mora leaves a grave a Skeleton can rise from'),
+    kb: pos(25, 'Knockback'), cap: int(12, 1, 40, 'Hard cap on Skeletons (performance)'), space: pos(9, 'Skeletons push apart until this far from each other (px)'),
+    evo: evo({ n: int(2, 1, 4, 'Skeletons per raise'), maxAdd: pos(3, 'Extra Skeletons standing'), burstMul: mul(1.5, 'A crumbling Skeleton bursts for × its damage'), burstR: pos(22, 'Burst radius') }),
+    awk: obj({
+      spdMul: mul(1.4, 'Frost Wraith speed ×'), dmgMul: mul(1.3, 'Frost Wraith damage ×'), chill: int(1, 0, 3, 'Frost stacks per Wraith swing (3 = Frozen)'),
+    }, 'Lich (Awakened, awaken.form 1): Frost Wraiths; Bone Spear aims at their latest freeze'),
+  }, 'Mora: Soul Rise'),
   // Skill Line skills (tickets 24–25): unlocked by Awakening, no Evolution, stronger than general Skills
   manaNova: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(26, 13, 'Damage'), cd: lin(1.6, -0.08, 'Cooldown (s)', 0.8), r: lin(60, 6, 'Wave radius'), dur: sec(0.5, 'Wave time (s)'), kb: pos(50, 'Knockback') }, 'Lyra line: Mana Nova'),
   timeWarp: obj({ max: int(8, 1, 20, 'Max level'), r: lin(70, 8, 'Radius (monsters inside are slowed like Frost Aura)'), dmg: lin(4, 3, 'Damage per tick'), tick: sec(0.5, 'Damage interval (s)') }, 'Lyra line (survival): Time Warp'),
@@ -173,6 +205,9 @@ const skills = obj({
   cauldron: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(10, 6, 'Damage per puff'), cd: lin(7, -0.4, 'Cooldown (s)', 4), r: lin(40, 4, 'Radius'), dur: lin(4, 0.3, 'Lasts (s)'), tick: sec(0.5, 'Puff interval (s)') }, 'Vex line: Cauldron'),
   transmute: obj({ max: int(8, 1, 20, 'Max level'), r: lin(60, 6, 'Radius'), chance: lin(0.12, 0.03, 'Chance a monster dying inside becomes a big EXP crystal', 0, 0.6), xp: lin(8, 3, 'EXP of that crystal') }, 'Vex line: Transmute (EXP, never Gold)'),
   elixirRain: obj({ max: int(8, 1, 20, 'Max level'), cd: lin(14, -0.8, 'Cooldown (s)', 7), heal: lin(0.08, 0.015, 'Heal × max HP'), cdCut: lin(0.6, 0.1, 'Seconds taken off every Skill cooldown') }, 'Vex line (survival): Elixir Rain'),
+  boneSpear: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(90, 40, 'Damage'), cd: lin(2, -0.12, 'Cooldown (s)', 0.9), n: lin(2, 0.34, 'Spears per cast (rounded down)'), range: pos(220, 'Range'), speed: pos(260, 'Spear speed'), life: sec(0.9, 'Spear life (s)'), spread: n(0.18, 0, 3, 'Fan spread (rad)'), kb: pos(30, 'Knockback') }, 'Mora line: Bone Spear'),
+  soulfire: obj({ max: int(8, 1, 20, 'Max level'), dmg: lin(50, 24, 'Damage per flare'), cd: lin(2.2, -0.12, 'Cooldown (s)', 1), n: lin(3, 0.5, 'Flares per cast (rounded down)'), r: lin(18, 2, 'Flare radius'), delay: sec(0.25, 'Flare rise time (s)'), fresh: sec(3, 'Flares on graves at most this old (s)'), kb: pos(20, 'Knockback') }, 'Mora line: Soulfire'),
+  boneWard: obj({ max: int(8, 1, 20, 'Max level'), cd: lin(8, -0.6, 'At most once every (s)', 3), r: pos(50, 'A Skeleton this close to Mora takes the hit instead') }, 'Mora line (survival): Bone Ward'),
 }, 'Attack skills: level formulas and evolutions');
 
 const passives = obj({
@@ -270,7 +305,7 @@ const shared = obj({
     kbDecay: n(0.02, 0.0001, 1, 'Knockback left after 1 s'),
   }, 'Player'),
   xp: obj({ base: pos(5, 'XP to level: constant'), perLv: pos(4, 'XP to level: × level'), quad: pos(0.5, 'XP to level: × level²'), lateFrom: int(8, 0, 99, 'Late curve starts after level'), lateQuad: pos(1.4, 'Late curve: × (level − start)²') }, 'Level curve'),
-  levelup: obj({ offers: int(3, 1, 6, 'Choices per level-up'), wUpgrade: mul(1.3, 'Weight: upgrade an owned skill'), wNew: mul(1.1, 'Weight: new skill'), wPassive: mul(0.8, 'Weight: passive'), wSignature: mul(1.25, 'Weight × for upgrading the Signature Skill') }, 'Level-up offers'),
+  levelup: obj({ offers: int(3, 1, 6, 'Choices per level-up'), wUpgrade: mul(1.3, 'Weight: upgrade an owned skill'), wNew: mul(1.1, 'Weight: new skill'), wPassive: mul(0.8, 'Weight: passive'), wSignature: mul(1.25, 'Weight × for upgrading the Signature Skill'), wLink: mul(1, 'Weight × for the Hero\'s own Links (new or upgrade)') }, 'Level-up offers'),
   overflow: obj({
     dmg: frac(0.04, 'Limit Break: damage + per pick'),
     hp: frac(0.05, 'Limit Break: max HP + (share) per pick'),
@@ -342,6 +377,11 @@ const shared = obj({
     knight: obj({ cost: pos(0, 'Unlock price'), hp: pos(40, 'Max HP bonus'), spd: frac(0.05, 'Speed penalty') }, 'Bram'),
     ranger: obj({ cost: pos(500, 'Unlock price'), spd: frac(0.12, 'Speed bonus'), pick: mul(0.3, 'Pickup range bonus'), hp: n(0, 0, 200, 'Max HP bonus'), crit: frac(0, "Hunter's Eye: crit chance bonus (still under the crit cap)") }, 'Kit'),
     alchemist: obj({ cost: pos(1000, 'Unlock price'), cd: frac(0.08, 'Cooldown reduction'), status: frac(0.2, 'Statuses last longer by') }, 'Vex'),
+    necromancer: obj({
+      cost: pos(2000, 'Unlock price (offered only after the account has won a Run)'),
+      minion: frac(0.25, 'Minion damage bonus (Skeletons, Companion, Shadow Clone)'), hp: n(0, 0, 200, 'Max HP penalty'),
+      pool: int(0, 0, 1, 'Her three Links (Soul Drain, Bone Prison, Wailing Skulls) are offered to every Hero (1) or only to Mora (0)'),
+    }, 'Mora'),
   }, 'Heroes'),
   secondWind: obj({ hp: frac(0.5, 'HP after revive'), inv: sec(2.5, 'Invulnerability (s)'), r: pos(110, 'Blast radius'), dmg: pos(150, 'Blast damage'), dmgGrowth: mul(1.45, 'Blast × per stage') }, 'Second Wind revive'),
   chest: obj({ p1: frac(0.5, 'Chance of ×1'), p2: frac(0.35, 'Chance of ×2 (rest is ×3)') }, 'Treasure chest wheel'),

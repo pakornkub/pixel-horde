@@ -1,4 +1,4 @@
-// Heroes (ticket 34): Lyra, Bram, Kit, Vex — drafts for the owner's review in the Sprite Lab.
+// Heroes (ticket 34): Lyra, Bram, Kit, Vex, Mora (ticket 57) — drafts for the owner's review in the Sprite Lab.
 // Layers: a shared body (3 directions × 2 walk frames), a head per Hero and direction, and a small
 // held-Weapon sprite drawn in the hand at runtime. `<hero>` = side view (right; left is mirrored),
 // `<hero>_down` / `<hero>_up` = facing the camera / away.
@@ -40,6 +40,11 @@ const HEAD = {
     up: ["......KKKK......", "....KKhHhhKK....", "...KhhhhhhhhK...", "...KhgggggghK...", "...KhhhhhhhhK...", "...KhhhhhhhhK...", "...KhhhhhhhhK...", "....KhhhhhhK...."],
     side: [".....KKK........", "...KKhHhK.......", "..KhhhhhhK......", "..KhhhKggK......", "..KhhKgwgK......", "..KhhhsssK......", "..KhhsKssK......", "...KKsspK......."],
   },
+  necromancer: { // a pointed hood, soul-green eyes glowing in its shadow
+    down: [".......KK.......", "......KhhK......", ".....KhHhhK.....", "...KKhhhhhhKK...", "..KhhKKKKKKhhK..", "..KhKssssssKhK..", "..KhKeKssKeKhK..", "..KhhKssssKhhK.."],
+    up: [".......KK.......", "......KhhK......", ".....KhHhhK.....", "...KKhhhhhhKK...", "..KhhhhhhhhhhK..", "..KhhhhHhhhhhK..", "..KhhhhhhhhhhK..", "...KhhhhhhhhK..."],
+    side: ["......KK........", ".....KhhK.......", "....KhHhhK......", "...KhhhhhhKK....", "..KhhhhKKKKK....", "..KhhhKsssK.....", "..KhhhKsseK.....", "...KhhKssK......"],
+  },
 };
 
 export const HERO_BASE_PAL: Record<string, string> = { K: OUTLINE, s: '#ffd9b0', p: '#f28b9b', b: '#6b3e26', a: '#3a2a8a', w: '#bff0f0' };
@@ -48,6 +53,7 @@ const PAL: Record<keyof typeof HEAD, Record<string, string>> = {
   knight: { h: '#aab6c6', H: '#e8434f', g: '#ffd23f', c: '#6b7a8f', C: '#c7ced9' },
   ranger: { h: '#3f8f3a', H: '#8fe39a', g: '#c48a55', c: '#8a5a2b', C: '#c48a55' },
   alchemist: { h: '#1f9aa8', H: '#8fe8f2', g: '#8a5a3a', w: '#bff0f0', c: '#d0662a', C: '#ffa36b' },
+  necromancer: { h: '#3b2f5c', H: '#7dffb0', e: '#7dffb0', s: '#e9dccb', g: '#bfe6ff', c: '#2a2440', C: '#5a4f7a' },
 };
 
 /** Stack a head (8 rows) on a body (8 rows): one 16×16 frame. */
@@ -92,9 +98,16 @@ export const WEAPON_HELD: Record<string, string> = {
 const held = (): Record<string, SpriteDef> =>
   Object.fromEntries(Object.entries(HELD).map(([k, rows]) => ['held_' + k, { frames: [rows], pal: { K: OUTLINE, Y: '#ffd23f', b: '#6b3e26', w: '#fff4e0' }, note: 'Held Weapon (Y = Weapon colour)' }]));
 
+/** Mora's minions (12×12, facing right, 2 walk frames): a Skeleton with a bone blade, and the Lich's Frost Wraith. */
+const SKULL = ["...KKKKK....", "..KwwwwwK...", "..KwewewK...", "..KwwwwwK...", "...KwKwK....", "....KwK..Y..", "..KKwwwKKY..", "..KwKwKwKY..", "...KwwwK.K..", "...KwKwK...."];
+const minions = (): Record<string, SpriteDef> => ({
+  minion: { frames: [[...SKULL, "..KwK.KwK...", "..KK...KK..."], [...SKULL, "...KwKKwK...", "...KK..KK..."]], pal: { K: OUTLINE, w: '#efe6cf', e: '#7dffb0', Y: '#c7ced9' }, note: 'Mora: Skeleton (Soul Rise)' },
+  wraith: { frames: [[...SKULL, "..KwKwKwK...", "...K.K.K...."], [...SKULL, "..KwKwKwK...", "..K.K.K....."]], pal: { K: '#2a3a66', w: '#bfe6ff', e: '#ffffff', Y: '#e9f7ff' }, note: 'Mora: Frost Wraith (Lich)' },
+});
+
 export const HEROES: RealmSprites = {
   realm: 'heroes',
   palette: [OUTLINE, '#ffd9b0', '#f28b9b', '#6b3e26', '#5a3ad6', '#9a7aff', '#ffd23f', '#3f5fd1', '#7fa2ff', '#aab6c6', '#e8434f', '#3f8f3a'],
   ground: 0,
-  sprites: { ...heroSprites('mage'), ...heroSprites('knight'), ...heroSprites('ranger'), ...heroSprites('alchemist'), ...held() },
+  sprites: { ...heroSprites('mage'), ...heroSprites('knight'), ...heroSprites('ranger'), ...heroSprites('alchemist'), ...heroSprites('necromancer'), ...minions(), ...held() },
 };

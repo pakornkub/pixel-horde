@@ -342,7 +342,7 @@ export type SayBeat = 'arrive' | 'half' | 'heart' | 'defeat' | 'escape' | 'absor
 export type RivalSkill = 'bolt' | 'lance' | 'nova' | 'meteor' | 'zap';
 
 export interface Bolt {
-  kind: 'bolt' | 'lance' | 'boom';
+  kind: 'bolt' | 'lance' | 'boom' | 'skull';
   x: number; y: number; vx: number; vy: number;
   life: number; dmg: number; pierce: number;
   hit: Set<Enemy>;
@@ -352,10 +352,13 @@ export interface Bolt {
   /** Cast by the Shadow Clone (drawn in its colours; a boomerang flies back to it). */
   cl?: boolean;
   tag?: HitTag;
+  /** Wailing Skull: the monster it homes in on; Banshee: it splits when it kills. */
+  tgt?: Enemy;
+  split?: boolean;
 }
 
 export type EffectType = 'gturret' | 'nova' | 'meteor' | 'pbreath' | 'cyclone' | 'toxic' | 'laser' | 'hole' | 'judge' | 'chain' | 'shadowpass' | 'sigil' | 'hawk' | 'flask'
-  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir' | 'icewall' | 'sshield';
+  | 'slash' | 'dome' | 'rain' | 'gale' | 'cauldron' | 'elixir' | 'icewall' | 'sshield' | 'skel' | 'drain' | 'prison' | 'flare';
 
 export interface Effect {
   type: EffectType;
@@ -385,6 +388,10 @@ export interface Effect {
   cl?: boolean;
   /** Drawn faint (a wandering sigil's trail marks). */
   faint?: boolean;
+  /** Soul Drain: HP healed when the tethered monster dies. */
+  heal?: number;
+  /** Bone Prison: seconds the monsters inside are rooted. */
+  root?: number;
 }
 
 /**
@@ -601,6 +608,8 @@ export interface SimState {
   bolts: Bolt[];
   gems: Gem[];
   effects: Effect[];
+  /** Where monsters died lately (Mora: Soul Rise, Soulfire); only while she has those Skills. */
+  graves?: { x: number; y: number; t: number }[];
   hz: Hazard[];
   hzId: number;
 

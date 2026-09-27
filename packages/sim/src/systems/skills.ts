@@ -1,11 +1,12 @@
 import { PI, TAU, atan2, cos, hypot, sin } from '../core/fmath';
-import { AWK_TAGS, FLASK_TAGS, HOLE_BOOM, linAt, type HitTag, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
+import { AWK_TAGS, BONE_BURST, FLASK_TAGS, HOLE_BOOM, linAt, type HitTag, PET_FIRE, SKILL_TAGS as T, skillStats, type SkillId, type SkillStats } from '../data/skills';
 import { chillTick } from './combos';
 import { signatureOf } from '../data/heroes';
 import { awkForm, bashScale, outerAngle, shieldPoints } from './shield';
 import { stepIceWall } from './guardians';
 import { WEAPONS, forgeDmg, forgeLevel, forgeMul, forgeStun, ultCap } from '../data/weapons';
 import { chapterMobHp } from './spawner';
+import { minionMul } from './player';
 
 const FLASKS = ['fire', 'ice', 'poison'] as const;
 const FLASK_COL = { fire: '#ff8a3d', ice: '#9fd8ff', poison: '#b6f24a' } as const;
@@ -15,7 +16,7 @@ function smartElement(e: Enemy): 'fire' | 'ice' | 'poison' {
   if ((e.burn || 0) > 0) return 'poison';
   return 'ice';
 }
-import type { Enemy, SimState } from '../types';
+import type { Effect, Enemy, SimState } from '../types';
 import { hit } from './combat';
 import { cloneCast, cloneMul } from './events';
 import { banner, burst, flash, sfx, shake } from './fx';
@@ -132,7 +133,7 @@ const WAIT = -1;
 /** Skills that work all the time around the player (no cast); the Shadow Clone copies them as one pulse. */
 const AURAS = new Set<SkillId>(['orbit', 'frost', 'shield', 'timeWarp', 'galeStep']);
 /** Skills the Shadow Clone never copies: they only help the player (heal, invulnerability, EXP). */
-const CLONE_SKIP = new Set<SkillId>(['transmute', 'elixirRain', 'aegisDome']);
+const CLONE_SKIP = new Set<SkillId>(['transmute', 'elixirRain', 'aegisDome', 'boneWard']);
 const CLONE_COL = '#b58cff';
 
 /** One cast of Skill `id` from `o`. Returns 0 when it fired, a retry delay (s) when there was nothing to hit,
@@ -386,8 +387,110 @@ function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): n
     if (vis.length < K.hole.minTargets) return 0.3;
     const best = densest(vis, t.r, R);
     s.effects.push({ type: 'hole', x: best.x, y: best.y, t: 0, dur: K.hole.dur, r: t.r, dmg: t.dmg, boom: t.boom, tick: 0, boomed: false, bt: 0, ...(cl ? { cl } : {}) });
+  } else if (id === 'soulRise') {
+    // Skeletons climb out of the latest graves near the caster (else beside it) while fewer than max stand
+    const c = K.soulRise, room = Math.min(t.max, c.cap) - s.effects.filter((f) => f.type === 'skel' && f.t < f.dur).length;
+    if (room <= 0) return 0.3;
+    const awk = awkForm(s), mul = (cl ? 1 : minionMul(s)) * (awk ? c.awk.dmgMul : 1), n = cl ? 1 : Math.min(t.n, room); // the clone's damage already has it
+    for (let i = 0; i < n; i++) {
+      const g = takeGrave(s, o.x, o.y, c.grave), a = R.next() * TAU;
+      const x = g ? g.x : o.x + cos(a) * 10, y = g ? g.y : o.y + sin(a) * 8;
+      s.effects.push({ type: 'skel', x, y, t: 0, dur: t.dur, dmg: t.dmg * mul, tick: 0.35, r: t.r, a0: R.next() * TAU, boom: t.burst ? t.dmg * mul * c.evo.burstMul : 0, vx: 0, vy: 0, fired: false, ...(awk ? { awk } : {}), ...(cl ? { cl } : {}) });
+      burst(s, x, y, awk ? '#bfe6ff' : '#e8e0c8', 6, 30, 0.35);
+    }
+  } else if (id === 'soulDrain') {
+    const list = nearestN(s, t.n, t.range, o.x, o.y);
+    if (!list.length) return 0.2;
+    for (const e of list) s.effects.push({ type: 'drain', x: e.x, y: e.y, t: 0, dur: t.dur, dmg: t.dmg, tick: 0, targets: [{ e, x: e.x, y: e.y }], r: t.jump ? K.soulDrain.evo.jumpR : 0, heal: cl ? 0 : t.heal, fired: false, ...(cl ? { cl } : {}) });
+  } else if (id === 'bonePrison') {
+    const vis = visibleEnemies(s);
+    if (vis.length < K.bonePrison.minTargets) return 0.3;
+    for (const e of crowds(vis, t.n, t.r, R)) s.effects.push({ type: 'prison', x: e.x, y: e.y, t: 0, dur: K.bonePrison.delay + 0.6, delay: K.bonePrison.delay, r: t.r, dmg: t.dmg, fired: false, root: t.dur, ...(cl ? { cl } : {}) });
+  } else if (id === 'wailSkull') {
+    const list = nearestN(s, t.n, t.range, o.x, o.y);
+    if (!list.length) return 0.15;
+    for (let i = 0; i < t.n; i++) s.bolts.push(skull(s, o.x, o.y - 4, list[i % list.length], t.dmg, t.split, R.range(-0.8, 0.8), cl ? CLONE_COL : '#cfe8ff', cl));
+  } else if (id === 'boneSpear') {
+    const c = K.boneSpear, near = nearest(s, o.x, o.y, t.range);
+    if (!near) return 0.1;
+    // Lich: the spears fly at the Wraiths' latest freeze (Shatter), else through the thickest crowd
+    const awk = awkForm(s), mk = awk ? freshMark(s) : null;
+    if (awk && !cl && waitMark(s, id)) return WAIT; // wait for the Signature's strike
+    const inRange = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < t.range);
+    const tgt = mk && hypot(mk.x - o.x, mk.y - o.y) < t.range ? mk : densest(inRange, 30, R), a0 = atan2(tgt.y - o.y, tgt.x - o.x);
+    for (let i = 0; i < t.n; i++) {
+      const a = a0 + (i - (t.n - 1) / 2) * c.spread;
+      s.bolts.push({ kind: 'lance', x: o.x, y: o.y - 3, vx: cos(a) * c.speed, vy: sin(a) * c.speed, a, life: c.life, dmg: t.dmg, pierce: Infinity, hit: new Set(), col: cl ? CLONE_COL : '#efe6cf', rad: 4, kb: c.kb, tag: T.boneSpear, ...(cl ? { cl } : {}) });
+    }
+    sfx(s, 'lance');
+  } else if (id === 'soulfire') {
+    // ghost fire on the freshest graves on screen, else on random monsters
+    const c = K.soulfire, vis = visibleEnemies(s);
+    const graves = (s.graves || []).filter((g) => s.clock - g.t < c.fresh && Math.abs(g.x - s.P.x) < s.viewport.w / 2 && Math.abs(g.y - s.P.y) < s.viewport.h / 2);
+    if (!graves.length && !vis.length) return 0.2;
+    for (let i = 0; i < t.n; i++) {
+      const g = graves.length ? graves[graves.length - 1 - (i % graves.length)] : vis[R.int(vis.length)];
+      s.effects.push({ type: 'flare', x: g.x + R.range(-5, 5), y: g.y + R.range(-5, 5), t: 0, dur: 0, delay: c.delay + i * 0.06, r: t.r, dmg: t.dmg, boomed: false, bt: 0, tag: T.soulfire, col: cl ? CLONE_COL : '#7dffb0', ...(cl ? { cl } : {}) });
+    }
   }
   return 0;
+}
+
+/** A homing Wailing Skull (Banshee: it splits when it kills). */
+function skull(s: SimState, x: number, y: number, e: Enemy, dmg: number, split: boolean, off: number, col: string, cl: boolean): SimState['bolts'][number] {
+  const c = s.cfg.skills.wailSkull, a = atan2(e.y - y, e.x - x) + off;
+  return { kind: 'skull', x, y, vx: cos(a) * c.speed, vy: sin(a) * c.speed, spd: c.speed, life: c.life, dmg, pierce: 0, hit: new Set(), col, rad: 4, kb: c.kb, tag: T.wailSkull, tgt: e, split, ...(cl ? { cl } : {}) };
+}
+
+
+/** Graves: where monsters died lately (Soul Rise raises from them, Soulfire flares on them). */
+const GRAVES = 24;
+export function addGrave(s: SimState, x: number, y: number): void {
+  const P = s.P;
+  if (!P.skills.soulRise && !P.skills.soulfire) return;
+  const g = (s.graves ??= []);
+  g.push({ x, y, t: s.clock });
+  if (g.length > GRAVES) g.shift();
+}
+/** The latest grave within r of (x, y), taken off the list. */
+function takeGrave(s: SimState, x: number, y: number, r: number): { x: number; y: number } | null {
+  const g = s.graves;
+  if (!g) return null;
+  for (let i = g.length - 1; i >= 0; i--) if (s.clock - g[i].t < 4 && hypot(g[i].x - x, g[i].y - y) < r) return g.splice(i, 1)[0];
+  return null;
+}
+
+/** A Skeleton crumbles now (its time is up, or Bone Ward threw it in the way); Bone Legion: it bursts. */
+function crumble(s: SimState, f: Effect): void {
+  if (f.fired) return;
+  f.fired = true;
+  f.dur = Math.min(f.dur, f.t);
+  burst(s, f.x, f.y, f.awk ? '#bfe6ff' : '#e8e0c8', 8, 50, 0.4);
+  if (!f.boom) return;
+  const r = s.cfg.skills.soulRise.evo.burstR;
+  for (const e of s.enemies) if (!e.dead && !e.hide && hypot(e.x - f.x, e.y - f.y) < r + e.r) hit(s, e, f.boom, '#efe6cf', 40, BONE_BURST);
+  burst(s, f.x, f.y, '#efe6cf', 12, 70, 0.4);
+  sfx(s, 'boom');
+}
+
+/** Bone Ward (Mora line): a standing Skeleton close by takes a hit meant for Mora. True when the hit is cancelled. */
+export function boneWard(s: SimState): boolean {
+  const P = s.P, lv = P.skills.boneWard;
+  if (!lv || (P.cds.boneWard || 0) > 0) return false;
+  const t = st(s, 'boneWard', lv);
+  let best: Effect | null = null, bd = t.r;
+  for (const f of s.effects) {
+    if (f.type !== 'skel' || f.cl || f.fired) continue;
+    const d = hypot(f.x - P.x, f.y - P.y);
+    if (d < bd) { bd = d; best = f; }
+  }
+  if (!best) return false;
+  P.cds.boneWard = t.cd * P.cdMul;
+  best.x = P.x + (best.x - P.x) * 0.3; best.y = P.y + (best.y - P.y) * 0.3; // it leaps in the way
+  crumble(s, best);
+  burst(s, P.x, P.y - 4, '#efe6cf', 10, 60, 0.35);
+  sfx(s, 'hit');
+  return true;
 }
 
 /** The Shadow Clone's copy of an always-on Skill (Orbit, Frost Aura, Holy Shield, Time Warp, Gale Step): one pulse
@@ -422,7 +525,7 @@ export function updSkills(s: SimState, dt: number): void {
   const me: Caster = { x: P.x, y: P.y, clone: false };
   for (const id of Object.keys(sk) as SkillId[]) {
     const lv = sk[id]!, t = st(s, id, lv);
-    if (AURAS.has(id) || id === 'transmute') continue;
+    if (AURAS.has(id) || id === 'transmute' || id === 'boneWard') continue;
     P.cds[id] = (P.cds[id] || 0) - dt;
     if (P.cds[id]! > 0) continue;
     castSeen.push(id);
@@ -469,6 +572,7 @@ export function updSkills(s: SimState, dt: number): void {
       s.effects.push({ type: 'gale', x: P.x, y: P.y + 4, r: t.r, t: 0, dur: t.dur, dmg: t.dmg, hit: new Set() });
     }
   }
+  if (sk.boneWard) P.cds.boneWard = (P.cds.boneWard || 0) - dt;
   if (sk.shield) {
     const t = st(s, 'shield', sk.shield), KS = K.shield;
     P.shieldA += t.spd * dt;
@@ -531,7 +635,7 @@ export function updSkills(s: SimState, dt: number): void {
 }
 
 export function stepBolts(s: SimState, dt: number): void {
-  const P = s.P;
+  const P = s.P, spawned: SimState['bolts'] = [];
   for (const bo of s.bolts) {
     if (bo.kind === 'boom') {
       bo.d! += bo.spd! * dt;
@@ -542,6 +646,13 @@ export function stepBolts(s: SimState, dt: number): void {
         bo.vx = (dx / l) * bo.spd! * 1.2;
         bo.vy = (dy / l) * bo.spd! * 1.2;
         if (l < 8) bo.life = 0;
+      }
+    } else if (bo.kind === 'skull') { // Wailing Skull: turns toward its prey (a new one when it is gone)
+      if (!bo.tgt || bo.tgt.dead || bo.tgt.hide) bo.tgt = nearest(s, bo.x, bo.y, s.cfg.skills.wailSkull.range, bo.hit) ?? undefined;
+      if (bo.tgt) {
+        const want = atan2(bo.tgt.y - bo.y, bo.tgt.x - bo.x), cur = atan2(bo.vy, bo.vx), turn = s.cfg.skills.wailSkull.turn * dt;
+        const a = cur + Math.max(-turn, Math.min(turn, wrapAngle(want - cur)));
+        bo.vx = cos(a) * bo.spd!; bo.vy = sin(a) * bo.spd!;
       }
     }
     bo.x += bo.vx * dt;
@@ -554,12 +665,20 @@ export function stepBolts(s: SimState, dt: number): void {
         bo.hit.add(e);
         hit(s, e, bo.dmg, bo.col, bo.kb, bo.tag);
         burst(s, bo.x, bo.y, bo.col, 4, 50, 0.25);
+        if (bo.kind === 'skull') {
+          if (!e.dead) for (let i = 0; i < s.cfg.skills.wailSkull.chill; i++) chillTick(s, e);
+          else if (bo.split) { // Banshee: the wail splits toward new prey
+            const next = nearestN(s, s.cfg.skills.wailSkull.evo.splitN, s.cfg.skills.wailSkull.range, bo.x, bo.y);
+            for (let i = 0; i < next.length; i++) spawned.push(skull(s, bo.x, bo.y, next[i], bo.dmg, false, (i - 0.5) * 0.9, bo.col, !!bo.cl));
+          }
+        }
         bo.pierce--;
         if (bo.pierce < 0) { bo.life = 0; break; }
       }
     }
   }
   s.bolts = s.bolts.filter((bo) => bo.life > 0);
+  if (spawned.length) s.bolts.push(...spawned);
 }
 
 export function updEffects(s: SimState, dt: number): void {
@@ -783,6 +902,47 @@ export function updEffects(s: SimState, dt: number): void {
         const [sx, sy] = f.pts![0], k = Math.min(1, (f.t - fl) / fl);
         f.x = sx + (P.x + cos(a) * ro - sx) * k; f.y = sy + (P.y + sin(a) * ro * 0.8 - sy) * k;
       }
+    } else if (f.type === 'skel') {
+      stepSkeleton(s, f, dt);
+    } else if (f.type === 'drain') {
+      // Soul Drain: the tether ticks dark damage; a monster that dies heals once, and Soul Feast jumps on
+      const o = f.targets![0], from = f.cl && P.clone ? P.clone : P;
+      if (o.e.dead && !f.fired) {
+        f.fired = true;
+        if (f.heal) { const h = Math.min(f.heal, P.maxHp - P.hp); if (h > 0) { P.hp += h; burst(s, P.x, P.y - 4, '#b07cff', 4, 30, 0.3); } }
+        const n = f.r ? nearest(s, o.e.x, o.e.y, f.r) : null;
+        if (n && hypot(n.x - from.x, n.y - from.y) < K.soulDrain.range * 1.2) { o.e = n; f.fired = false; } else f.dur = f.t;
+      }
+      if (!o.e.dead) { o.x = o.e.x; o.y = o.e.y; f.x = o.x; f.y = o.y; }
+      f.tick! -= dt;
+      if (f.tick! <= 0 && !o.e.dead && !o.e.hide) { f.tick = K.soulDrain.tick; hit(s, o.e, f.dmg, '#b07cff', 0, T.soulDrain); }
+    } else if (f.type === 'prison') {
+      // Bone Prison: after the warning, spikes rise in a ring: heavy hit, pull in (Gathered), root
+      if (!f.fired && f.t >= f.delay!) {
+        f.fired = true;
+        const c = K.bonePrison;
+        for (const e of s.enemies) {
+          if (e.dead || e.hide || hypot(e.x - f.x, e.y - f.y) > f.r! + e.r) continue;
+          hit(s, e, f.dmg, '#efe6cf', 0, T.bonePrison);
+          if (e.dead) continue;
+          if (e.boss) e.slowT = Math.max(e.slowT, f.root!); else e.stun = Math.max(e.stun || 0, f.root!);
+        }
+        pullIn(s, f.x, f.y, f.r!, c.pull, c.hold);
+        burst(s, f.x, f.y, '#efe6cf', 18, 70, 0.45);
+        shake(s, 2.5);
+        sfx(s, 'boom');
+      }
+    } else if (f.type === 'flare') {
+      // Soulfire: ghost fire bursts out of a grave
+      if (!f.boomed && f.t >= f.delay!) {
+        f.boomed = true;
+        f.bt = 0;
+        for (const e of s.enemies) if (!e.dead && hypot(e.x - f.x, e.y - f.y) < f.r! + e.r) hit(s, e, f.dmg, '#7dffb0', K.soulfire.kb, f.tag ?? T.soulfire);
+        burst(s, f.x, f.y, '#7dffb0', 12, 60, 0.45);
+        burst(s, f.x, f.y, '#e8fff0', 6, 40, 0.3);
+        sfx(s, 'nova');
+      }
+      if (f.boomed) f.bt! += dt;
     } else if (f.type === 'icewall') {
       stepIceWall(s, f);
     } else if (f.type === 'gturret') {
@@ -813,6 +973,50 @@ export function updEffects(s: SimState, dt: number): void {
     }
   }
   s.effects = s.effects.filter((f) =>
-    f.type === 'meteor' || f.type === 'hole' ? !(f.boomed && f.bt! > 0.3) : f.type === 'flask' || f.type === 'hawk' ? f.t < f.dur + 0.25 : f.t < f.dur,
+    f.type === 'meteor' || f.type === 'hole' || f.type === 'flare' ? !(f.boomed && f.bt! > 0.3) : f.type === 'flask' || f.type === 'hawk' ? f.t < f.dur + 0.25 : f.t < f.dur,
   );
+}
+
+/** A Skeleton (Lich: Frost Wraith) walks to the nearest monster near its master and swings at everything in reach. */
+function stepSkeleton(s: SimState, f: Effect, dt: number): void {
+  const c = s.cfg.skills.soulRise, home = f.cl && s.P.clone ? s.P.clone : s.P;
+  if (f.t >= f.dur || (home === s.P && s.P.down)) { crumble(s, f); return; }
+  let o = f.targets?.[0];
+  if (!o || o.e.dead || o.e.hide || hypot(o.e.x - home.x, o.e.y - home.y) > c.leash) {
+    let best: Enemy | null = null, bd = Infinity;
+    for (const e of s.enemies) {
+      if (e.dead || e.hide || hypot(e.x - home.x, e.y - home.y) > c.leash) continue;
+      const d = (e.x - f.x) * (e.x - f.x) + (e.y - f.y) * (e.y - f.y);
+      if (d < bd) { bd = d; best = e; }
+    }
+    f.targets = best ? [{ e: best, x: best.x, y: best.y }] : [];
+    o = f.targets[0];
+  }
+  const spd = c.spd * (f.awk ? c.awk.spdMul : 1);
+  // no prey: each one stands at its own post around its master
+  const gx = o ? o.e.x : home.x + cos(f.a0!) * 16, gy = o ? o.e.y : home.y + sin(f.a0!) * 12, dx = gx - f.x, dy = gy - f.y, d = hypot(dx, dy);
+  const stop = o ? f.r! * 0.6 + o.e.r : 2;
+  if (d > stop) { const m = Math.min(d - stop, spd * dt); f.vx = (dx / d) * spd; f.vy = (dy / d) * spd; f.x += (dx / d) * m; f.y += (dy / d) * m; } else { f.vx = 0; f.vy = 0; }
+  // Skeletons on the same prey push apart so two or three never look like one
+  for (const g of s.effects) {
+    if (g === f || g.type !== 'skel' || g.fired) continue;
+    const ox = f.x - g.x, oy = f.y - g.y, od = hypot(ox, oy);
+    if (od >= c.space) continue;
+    const k = Math.min(c.space - od, spd * dt) * 0.5;
+    if (od > 0.01) { f.x += (ox / od) * k; f.y += (oy / od) * k; } else { f.x += cos(f.a0!) * k; f.y += sin(f.a0!) * k; }
+  }
+  f.tick! -= dt;
+  if (f.tick! > 0 || !o || d > f.r! + o.e.r + 2) return;
+  f.tick = c.hitCd;
+  f.a = atan2(dy, dx); // swing direction (drawn)
+
+  const tag = f.awk ? AWK_TAGS.wraith : T.soulRise;
+  for (const e of s.enemies) {
+    if (e.dead || e.hide || hypot(e.x - f.x, e.y - f.y) > f.r! + e.r) continue;
+    hit(s, e, f.dmg, f.awk ? '#bfe6ff' : '#efe6cf', c.kb, tag);
+    if (f.awk && !e.dead) {
+      for (let i = 0; i < c.awk.chill; i++) chillTick(s, e);
+      if (e.frz > 0 && !f.cl) setMark(s, e.x, e.y); // Bone Spear flies here
+    }
+  }
 }

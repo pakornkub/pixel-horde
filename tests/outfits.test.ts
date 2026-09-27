@@ -1,6 +1,6 @@
 // Outfits (ticket 51): piece stats add to the player's bonuses; a full set adds damage against its monsters.
 import { describe, expect, it } from 'vitest';
-import { createSim, outfitSet, outfitStats, type OutfitWear, type SimState } from '@pixel-horde/sim';
+import { HERO_IDS, createSim, outfitSet, outfitStats, type OutfitWear, type SimState } from '@pixel-horde/sim';
 import { hit } from '../packages/sim/src/systems/combat';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { asWritten, botOptions } from './bot';
@@ -22,6 +22,17 @@ describe('outfits', () => {
     expect(worn.P.dmgMul - plain.P.dmgMul).toBeCloseTo(O.hatDmg * 5, 9);
     expect(worn.P.maxHp - plain.P.maxHp).toBe(O.bodyHp * 3);
     expect(worn.P.outfitSet).toBeNull(); // mixed sets: no set bonus
+  });
+
+  it('work for every Hero, Mora included', () => {
+    for (const hero of HERO_IDS) {
+      const mk = (outfit?: OutfitWear): SimState => createSim(botOptions(5, { hero, debug: { god: true }, events: quiet, config: asWritten(), meta: { up: {}, outfit } })).view() as SimState;
+      const plain = mk(), worn = mk(full('shadow', 2));
+      expect(worn.P.dmgMul - plain.P.dmgMul, hero).toBeCloseTo(plain.cfg.outfits.hatDmg * 2, 9);
+      expect(worn.P.maxHp - plain.P.maxHp, hero).toBe(plain.cfg.outfits.bodyHp * 2);
+      expect(worn.P.outfitSet, hero).toBe('shadow');
+    }
+    expect(HERO_IDS).toContain('necromancer');
   });
 
   it('levels are capped at outfits.max; a set needs all three slots at level 1+', () => {

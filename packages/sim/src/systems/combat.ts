@@ -13,6 +13,7 @@ import { say } from './kings';
 import { gameOver, offerRevive } from './progress';
 import { spawnEnemy } from './spawner';
 import { ghostKill, isGuest, isHost, queueHit } from './coop';
+import { addGrave, boneWard } from './skills';
 
 /** ALL damage to enemies goes through here. */
 export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: number, tag?: HitTag): void {
@@ -144,6 +145,7 @@ export function killE(s: SimState, e: Enemy): void {
     }
   }
   e.dead = true;
+  addGrave(s, e.x, e.y);
   // Transmute (Vex line): monsters dying in the circle may become a big EXP crystal — never Gold
   const tm = s.P.skills.transmute;
   if (tm && !e.boss) {
@@ -225,6 +227,7 @@ export function hurtP(s: SimState, d: number): void {
   if (P.down || P.inv > 0 || s.phase !== 'play' || (s.coop && s.coop.shieldT > 0)) return; // co-op: shield after a level-up
   s.dir.lastHurt = s.clock;
   if (s.debug.god) return;
+  if (boneWard(s)) { P.inv = s.cfg.player.inv; return; } // Mora: a Skeleton takes the hit
   const hv = s.cfg.scaling.hitVariance;
   if (P.evo.shield && P.skills.shield) d *= 1 - s.cfg.skills.shield.evo.absorb; // Aegis
   d = Math.max(1, Math.round(d * s.rng.combat.range(1 - hv, 1 + hv)));

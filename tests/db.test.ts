@@ -108,6 +108,7 @@ describe('achievement rules agree between the sim and the server', () => {
       base,
       { ...base, chapter: 5, kingsKilled: 4, combos: { overload: 3 }, guardians: ['storm'], maxStreak: 600 },
       { ...base, hero: 'ranger', victory: true, chapter: 8, kingsKilled: 8, victoryTime: 800, crack: 3, fused: true, companionMax: 5, guardians: ['inferno', 'frost', 'storm'] },
+      { ...base, hero: 'necromancer', victory: true, chapter: 8, kingsKilled: 8, victoryTime: 1000 },
       { ...base, hero: 'alchemist', victory: true, chapter: 12, endlessChapter: 12, escapes: 2, revivesBought: 1, awakened: true, doubleKings: 1,
         combos: { shatter: 30, firestorm: 20, overload: 10, superconduct: 5, toxicBurst: 5, grinder: 20, catalyst: 20 } },
     ];

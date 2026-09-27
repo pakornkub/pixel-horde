@@ -1,4 +1,4 @@
-import { DEFAULT_RESOLVED, HERO_IDS, REALMS, REALM_IDS, WEAPON_IDS, signatureOf, type HeroId } from '@pixel-horde/sim';
+import { AFTER_WIN, DEFAULT_RESOLVED, HERO_IDS, REALMS, REALM_IDS, WEAPON_IDS, signatureOf, type HeroId } from '@pixel-horde/sim';
 import { el, enemy, groundURL, hero, pickup, skillIcon, weaponIcon } from '../art';
 import { siteConfig } from '../backend';
 import { heroBonus } from '../data';
@@ -83,7 +83,7 @@ live(drawShots);
 onConfig.push(drawShots);
 
 // ── heroes ──
-const HERO_GROUND: Record<HeroId, number> = { mage: 2, knight: 0, ranger: 7, alchemist: 6 };
+const HERO_GROUND: Record<HeroId, number> = { mage: 2, knight: 0, ranger: 7, alchemist: 6, necromancer: 9 };
 const drawHeroes = (): void => {
   document.getElementById('heroGrid')!.replaceChildren(...HERO_IDS.map((id) => {
     const cost = CF.heroes[id].cost;
@@ -91,7 +91,8 @@ const drawHeroes = (): void => {
     stage.style.backgroundImage = `url(${groundURL(HERO_GROUND[id], 8, 6, 1)})`;
     const sig = signatureOf(id);
     return el('article.panel.hero-card.reveal.in', null,
-      el('span.price', null, cost ? `${cost}G` : s('home.free')),
+      el('span.price', null, cost ? `${cost}G` : s('home.free')), // Mora: sold after the first win
+      ...(AFTER_WIN.includes(id) ? [el('span.chip.line', { style: 'position:absolute;left:8px;top:8px;font-size:12px' }, s('home.afterWin'))] : []),
       stage,
       el('p.name', null, g(`hero.${id}.name`)),
       el('p.role', null, g(`hero.${id}.role`)),

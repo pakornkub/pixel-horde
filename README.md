@@ -18,7 +18,7 @@
 ## The game
 
 The **Heart of Lumora** has shattered. Its shards drove every Realm's King mad and pushed the monsters into hordes.
-Pick one of four Heroes, walk into the swarm and bring the shards home.
+Pick one of five Heroes, walk into the swarm and bring the shards home.
 
 <table>
   <tr>
@@ -52,7 +52,7 @@ The full illustrated guide, with things you can click and try, lives on the webs
 
 ### What is inside
 
-- **4 Heroes** — Lyra (area mage), Bram (shield knight), Kit (fast ranger), Vex (combo alchemist). Each has a Signature Skill and can **Awaken** into a new form with three new Awakened skills (with the current balance your Links stay and a 5th attack slot opens).
+- **5 Heroes** — Lyra (area mage), Bram (shield knight), Kit (fast ranger), Vex (combo alchemist) and, after your first win, Mora (Necromancer with an army of Skeletons). Each has a Signature Skill and can **Awaken** into a new form with three new Awakened skills (with the current balance your Links stay and a 5th attack slot opens).
 - **28 skills, 6 passives, 16 Evolutions** — max a skill and own its paired passive to evolve it. The Bench keeps spare skills and passives for later.
 - **7 element Combos** — freeze then smash (*Shatter*), shock then burn (*Overload*), gather then sweep (*Grinder*)…
 - **10 Kings + Umbra** — telegraphed moves, an ultimate below half HP, and far too much to say.

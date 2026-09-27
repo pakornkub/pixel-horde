@@ -1,11 +1,11 @@
-// The animated strip at the bottom of the home hero: the four Heroes hold the middle while
+// The animated strip at the bottom of the home hero: the five Heroes hold the middle while
 // monsters from every Realm walk in and get knocked out by auto-firing skills. Pure decoration
 // (aria-hidden); uses the game's real sprites. Reduced motion draws one still frame.
 import type { HeroId } from '@pixel-horde/sim';
 import { ENEMY_SPR, HERO_SPR } from '../../game/src/render/sprites';
 
 const INK = '#1e1b33';
-const HEROES: HeroId[] = ['knight', 'mage', 'ranger', 'alchemist'];
+const HEROES: HeroId[] = ['knight', 'mage', 'ranger', 'alchemist', 'necromancer'];
 const MOBS = ['slime', 'bat', 'mush', 'sslime', 'scorp', 'mummy', 'ghost', 'islime', 'ibat', 'snowman', 'fbat', 'sala', 'frog', 'spore', 'cloud', 'sbird', 'jelly', 'crab', 'spider', 'book', 'lantern', 'charger', 'caster'];
 const COLS = ['#ff5cf4', '#fff35c', '#ff8a3d', '#9fd8ff', '#b6f24a', '#7df9ff'];
 

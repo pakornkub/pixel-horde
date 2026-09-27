@@ -8,6 +8,7 @@ import { edgePos, spawnEnemy } from './spawner';
 import { say } from './kings';
 import { shieldBlocks } from './shield';
 import { guardianPity, pickGuardian } from './guardians';
+import { minionMul } from './player';
 
 /** Roll this stage's special event (Blood Moon / Inferno Dragon / Shadow Rival) with pity. */
 export function rollStage(s: SimState, n: number): void {
@@ -300,7 +301,7 @@ export function cloneStep(s: SimState, dt: number): void {
 /** The clone's damage × (35–60% of the player's, growing with the clone level). */
 export function cloneMul(s: SimState): number {
   const CL = s.cfg.clone;
-  return Math.min(CL.dmgMax, CL.dmg + CL.dmgPerLv * ((s.P.clone?.lv ?? 1) - 1));
+  return Math.min(CL.dmgMax, CL.dmg + CL.dmgPerLv * ((s.P.clone?.lv ?? 1) - 1)) * minionMul(s); // Mora's minions hit harder
 }
 
 /** Old rule (`clone.every` 0): the clone repeats bolt/lance/boomer/chain/nova/meteor casts at 35–60% damage.
