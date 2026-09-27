@@ -3,7 +3,7 @@ import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, answerAwaken, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, discardBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stageEndRewards, stepGems, levelCheck } from './systems/progress';
+import { afterStage, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, discardBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stageEndRewards, stepGems, levelCheck } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, spawnRival, stepHz } from './systems/events';
@@ -96,7 +96,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile, firstRun: !!opts.firstRun, coop: opts.coop ? initCoop(opts.coop.role, opts.coop.self) : null,
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenOffer: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenNew: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: false, main: null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, front: { a: 0, t: 0 }, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, pickReturn: null, levelUp: null, chest: null,
@@ -124,6 +124,7 @@ export function createSim(opts: SimOptions): Sim {
       for (const id of AWAKENING[P.ch].line) P.skills[id] = 3;
     }
     startStage(s, 1);
+    if (s.debug.awaken) s.awakenNew = true; // and the first clear screen shows the Awakening card
   }
   let cp = snapshotOf(s);
 
@@ -151,7 +152,7 @@ export function createSim(opts: SimOptions): Sim {
       case 'route': chooseRoute(s, c.index); break;
       case 'swap': swapBench(s, c.bench, c.slot); break;
       case 'discard': discardBench(s, c.bench); break;
-      case 'awaken': answerAwaken(s, c.accept); break;
+      case 'awaken': break; // retired: Awakening happens by itself at the Stage end
       case 'weapon': if (s.phase === 'clear' && usableWeapons(s).includes(c.id)) s.weapon = c.id; break;
       case 'endless': chooseEndless(s, c.go); break;
       case 'companion': swapCompanion(s, c.index); break;

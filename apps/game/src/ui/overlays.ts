@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, qualifiedLinks, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
+import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -7,6 +7,7 @@ import { HERO_SPR } from '../render/sprites';
 import { fmtT } from '../render/draw';
 import { t } from '@pixel-horde/i18n';
 import { iconHtml } from './icons';
+import { onHeroPath } from './path';
 import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, formDesc, skillDescIn, skillDetail, skillName } from './text';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
@@ -249,6 +250,7 @@ export function renderLevelUp(v: Readonly<SimState>, onPick: (i: number) => void
       name = t('level.recover');
       desc = t('level.recoverDesc');
     }
+    if (onHeroPath(v, o)) { bt.classList.add('rec'); tag += `<b class="tag rec">${t('level.rec')}</b>`; }
     bt.innerHTML = `<span class="key">${idx + 1}</span>${pic ? iconHtml(pic, meta) : `<span class="ico" style="background:${meta.col}">${meta.g}</span>`}<span class="body"><span class="nm">${name} ${tag}</span>${chips}`
       + (desc ? `<span class="ds">${desc}</span>` : '') + (stats ? `<span class="st">${stats}</span>` : '') + noteRows(notes) + '</span>';
     bt.addEventListener('click', () => onPick(idx));
@@ -434,24 +436,24 @@ export function renderCompanions(v: Readonly<SimState>, onSwap: (i: number) => v
   }
 }
 
-/* ---------- Awakening prompt (clear screen) ---------- */
-export function renderAwaken(v: Readonly<SimState>, onAnswer: (accept: boolean) => void): void {
+/* ---------- Awakening card (clear screen) ---------- */
+/** Shown on the clear screen after the Hero Awakened by itself at this Stage end: pictures first, one line each. */
+export function renderAwaken(v: Readonly<SimState>): void {
   const box = $('awakenBox');
-  box.hidden = !v.awakenOffer;
-  if (!v.awakenOffer) return;
-  const P = v.P, A = v.cfg.awaken, links = qualifiedLinks(v as SimState).slice(0, A.links);
-  const keep = A.keep && A.slots > 0; // Links stay and the new slots make room
-  box.innerHTML = `<h3>${t('awaken.title')}</h3><p>${t(keep ? 'awaken.textKeep' : 'awaken.text', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form), links: links.map(skillName).join(' + '), slots: A.slots })}</p>`
-    + (A.form ? `<p>${t('awaken.formLine', { form: t('awk.' + signatureOf(P.ch) + '.name'), desc: formDesc(v.cfg, signatureOf(P.ch)) })}</p>` : '');
-  const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = t('awaken.accept');
-  const no = document.createElement('button'); no.className = 'btn ghost'; no.textContent = t('awaken.decline');
-  let armed = false;
-  yes.addEventListener('click', () => { box.hidden = true; onAnswer(true); });
-  no.addEventListener('click', () => {
-    if (!armed) { armed = true; no.textContent = t('awaken.confirm'); return; } // decline needs a second click
-    box.hidden = true; onAnswer(false);
-  });
-  box.append(yes, no);
+  box.hidden = !v.awakenNew;
+  if (!v.awakenNew) return;
+  const P = v.P, A = v.cfg.awaken, sig = signatureOf(P.ch), form = !!A.form;
+  const skill = (id: SkillId, big = false): string => {
+    const lv = P.skills[id] ?? P.bench.find((b) => b.id === id)?.lv;
+    return `<div class="awk-sk${big ? ' sig' : ''}">${iconHtml(id, SKILL_ICON[id])}<b>${big && form ? t('awk.' + sig + '.name') : skillName(id)}</b>`
+      + `<small>${big && form ? formDesc(v.cfg, sig) : skillDescIn(v.cfg, id, true)}</small>`
+      + (!big && lv ? `<i class="got">${t('awaken.got', { lv })}</i>` : '') + '</div>';
+  };
+  const perks = [t('awaken.sigDmg', { d: A.sigDmg }), A.slots > 0 ? t('awaken.slots', { n: A.slots }) : '', A.keep ? t('awaken.keep') : t('awaken.used', { n: A.links })].filter(Boolean);
+  box.innerHTML = `<h3>${t('awaken.head', { name: heroName(P.ch), form: t('form.' + AWAKENING[P.ch].form) })}</h3>`
+    + skill(sig, true)
+    + `<p class="awk-new">${t('awaken.newSkills')}</p><div class="awk-line">${AWAKENING[P.ch].line.map((id) => skill(id)).join('')}</div>`
+    + `<p class="awk-perks">${perks.map((x) => `<span>${x}</span>`).join('')}</p>`;
 }
 
 /* ---------- Bench ↔ attack / passive slots (clear screen) ---------- */

@@ -167,7 +167,7 @@ describe('Grand Alchemist: Giant Flask', () => {
 });
 
 describe('co-op guests', () => {
-  it('a guest is offered Awakening when the host clears the Stage', () => {
+  it('a guest Awakens when the host clears the Stage', () => {
     const host = createSim(botOptions(21, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
     const guest = createSim(botOptions(100, { hero: 'knight', events: quiet, coop: { role: 'guest', self: 'G0' }, debug: { god: true } }));
     const hs = host.view() as SimState, gs = guest.view() as SimState;
@@ -186,13 +186,16 @@ describe('co-op guests', () => {
       for (let i = 0; i < 30; i++) { snap(); if (gs.phase === 'levelup') guest.step({ mx: 0, my: 0 }, [{ type: 'pick', index: 0 }]); if (gs.phase === 'chest') guest.step({ mx: 0, my: 0 }, [{ type: 'chestStop' }]); }
     };
     snap();
+    gs.P.linkStart = []; // the Links were maxed mid-Stage
     clear(); // Links maxed mid-Stage: this one does not count
+    expect(gs.P.awakened).toBe(false);
     host.step({ mx: 0, my: 0 }, [{ type: 'next' }]);
     if (hs.phase === 'route') host.step({ mx: 0, my: 0 }, [{ type: 'route', index: 0 }]);
     snap();
     gs.P.skills = { shield: max('shield'), orbit: max('orbit'), lance: max('lance') }; // level-ups may have added skills
     expect(gs.stage).toBe(hs.stage);
     clear();
-    expect(gs.awakenOffer).toBe(true);
+    expect(gs.P.awakened).toBe(true);
+    expect(gs.awakenNew).toBe(true);
   });
 });

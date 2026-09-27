@@ -465,5 +465,45 @@ export const BALANCE_PASS_2026_09_COOP2: BalancePass = {
   },
 };
 
+/** Owner decisions (2026-09-27): Awakening happens by itself and gives no skill at once (the Awakened skills are found
+ *  in level-ups, the Links stay anyway); the Shadow Clone copies the player's own Skills, one at a time at random.
+ *  Needs the build with automatic Awakening and `clone.every`. */
+export const BALANCE_PASS_2026_09F: BalancePass = {
+  id: '2026-09f',
+  note: 'Skill pass: no Awakened skill handed out at Awakening, the Shadow Clone casts one of your Skills at random every second',
+  patch: { shared: { awaken: { grant: 0 }, clone: { every: 1 } } },
+  changelog: {
+    titleTh: 'ตื่นพลังอัตโนมัติ และตัวละครเงาใช้สกิลของเราจริง',
+    titleEn: 'Automatic Awakening, and a Shadow Clone that really uses your Skills',
+    items: [
+      { cat: 'skill', th: 'ตื่นพลังเองทันทีตอนจบด่านเมื่อเงื่อนไขครบ ไม่ต้องกดรับ และไม่มีปุ่มปฏิเสธแล้ว หน้าจบด่านโชว์ร่างใหม่และสกิลตื่นพลังทั้ง 3 ตัว', en: 'You Awaken by yourself at the Stage end once you qualify: no prompt, no decline. The Stage end shows your new form and the three Awakened skills' },
+      { cat: 'skill', th: 'สกิลตื่นพลังไม่แจกทันทีแล้ว (Link ไม่หายอยู่แล้ว) ให้สุ่มเจอตอนเลเวลอัป ซึ่งโผล่บ่อยกว่าสกิลอื่น 2 เท่า', en: 'Awakened skills are no longer handed out at once (your Links stay anyway): find them in level-ups, where they show up twice as often' },
+      { cat: 'skill', th: 'ตัวละครเงาสุ่มใช้สกิลของเราทีละท่าทุก 1 วินาที ได้ทุกสกิลรวมสกิลประจำตัว (เดิมใช้ได้แค่ 6 สกิล ทำให้หลายชุดสกิลไม่ยิงเลย) กระสุนเป็นสีม่วง', en: 'The Shadow Clone casts one of your Skills at random every second, any Skill including your Signature (it used to copy only 6, so many builds got a clone that never attacked). Its shots are purple' },
+      { cat: 'ui', th: 'การ์ดเลเวลอัปที่ตรงสายของฮีโร่มีป้าย "แนะนำ"', en: 'Level-up cards on your Hero\'s own path are tagged "Recommended"' },
+    ],
+  },
+  report: {
+    title: 'รอบจูนระบบสกิล: ตื่นพลังอัตโนมัติ ไม่แจกสกิลตื่นพลัง ตัวละครเงาใช้สกิลเรา',
+    summary: 'เจ้าของตัดสินใจ (2026-09-27): เมื่อ Link ไม่หายตอนตื่นพลัง (awaken.keep 1) การถามรับหรือปฏิเสธก็ไม่มีเหตุผลแล้ว โค้ดจึงให้ตื่นพลังเองตอนจบด่าน '
+      + 'และหน้าจบด่านโชว์การ์ดรูปร่างใหม่กับสกิลตื่นพลัง 3 ตัว ส่วนสกิลตื่นพลังตัวแรกที่เคยแจกทันทีที่ Lv6 (awaken.grant 1) ก็ไม่ต้องชดเชยอะไรแล้ว '
+      + 'ชุดนี้ตั้ง grant เป็น 0 ให้สุ่มเจอตอนเลเวลอัป (wLine 2 = โผล่บ่อยขึ้น 2 เท่า) '
+      + 'ตัวละครเงาเดิมเลียนแบบได้แค่ Bolt/Lance/Boomer/Chain/Nova/Meteor ซึ่งไม่มีฮีโร่คนไหนเริ่มด้วย 6 สกิลนี้ ถ้าเล่นสาย Signature หรือ Orbit/Frost/Cyclone/Toxic/Laser/Hole เงาจะเดินตามเฉย ๆ ไม่ยิงเลย '
+      + 'ชุดนี้เปิด clone.every 1: ทุก 1 วินาที เงาสุ่มใช้สกิลที่เรามี 1 ท่าจากตำแหน่งของมัน ที่ดาเมจ 35–60% เหมือนเดิม สกิลแบบวงรอบตัวจะเป็นคลื่นพัลส์ 1 ครั้ง ส่วนสกิลช่วยตัวเอง (Transmute, Elixir Rain, Aegis Dome) เงาไม่ใช้',
+    method: 'เทสต์ headless (tests/clone.test.ts): ฮีโร่ทั้ง 4 แบบมีแค่ Signature, ชุดสกิล Orbit/Frost/Cyclone/Toxic/Laser/Hole และสกิลตื่นพลังของ Lyra เงาใช้สกิลได้ทุกชุด (กฎเดิมได้ 0 ครั้งถ้ามีแค่ Signature)',
+    metrics: [
+      { label: 'ตัวละครเงา: ชุดที่มีแค่ Signature', before: '0 ท่า', after: '1 ท่าต่อวินาที (เมื่อมีมอนในระยะ)' },
+      { label: 'สกิลที่เงาเลียนแบบได้', before: '6 จาก 28', after: '25 จาก 28' },
+    ],
+    findings: [
+      { level: 'info', title: 'ดาเมจของเงาไม่ได้พุ่ง', body: 'กฎเดิมเงายิงซ้ำทุกครั้งที่เรายิง 6 สกิลนั้น (อาจหลายท่าต่อวินาที) กฎใหม่ยิงแค่ 1 ท่าต่อวินาที ชุดที่มี 6 สกิลนั้นครบอาจได้ดาเมจจากเงาน้อยลงเล็กน้อย แต่ทุกชุดได้ประโยชน์', status: 'ปรับ clone.every ได้ใน Admin (น้อยลง = ยิงถี่ขึ้น)' },
+    ],
+    reasons: {
+      'shared.awaken.grant': 'ไม่แจกสกิลตื่นพลังตอนตื่น (Link ไม่หายอยู่แล้ว) ให้สุ่มเจอตอนเลเวลอัป',
+      'shared.clone.every': 'เงาสุ่มใช้สกิลของเราทีละท่าทุก 1 วินาที แทนการเลียนแบบแค่ 6 สกิล',
+    },
+    next: ['ช่องสกิลตื่นพลัง 3 ช่องแยก (รวม 7 ช่อง) และหน้าจัดการสกิลใหม่: ticket ถัดไป', 'หลังเล่นจริง: ดูว่าผู้เล่นได้สกิลตื่นพลังตัวแรกเร็วพอไหม ถ้าช้าไป เพิ่ม awaken.wLine'],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

@@ -398,9 +398,9 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
 // ── 12. Skill Points ───────────────────────────────────
 {
   const EC = C.economy;
-  sec('skill-points', 'g.sp.h', T(EC.spShop ? 'g.sp.p2' : 'g.sp.p', undefined, 'p'),
+  sec('skill-points', 'g.sp.h', T(EC.spShop ? 'g.sp.p2' : 'g.sp.p', { n: EC.kingSkillPoints }, 'p'),
     el('div.panel.demo', null, el('ul', { style: 'margin:0;padding-left:20px;display:grid;gap:8px' },
-      T('g.sp.reroll', { n: EC.reroll }, 'li'), T('g.sp.banish', { n: EC.banish }, 'li'), T('g.sp.up', { n: EC.upgrade }, 'li'))));
+      T('g.sp.reroll', { n: EC.reroll }, 'li'), T('g.sp.banish', { n: EC.banish }, 'li'), T('g.sp.up', { n: EC.upgrade }, 'li'), T('g.sp.comp', { n: C.companion.spCost }, 'li'))));
 }
 
 // ── 13. Awakening ──────────────────────────────────────
@@ -416,11 +416,10 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   const A = C.awaken, nLine = AWAKENING.mage.line.length;
   const rule = parts('div', 'note',
     ['g.awaken.need', { n: A.links, of: SKILL_LINES.mage.length, st: A.stages, ss: pl(A.stages) }],
-    ['g.awaken.accept', { d: A.sigDmg }],
+    ['g.awaken.gain', { d: A.sigDmg }],
     A.keep ? ['g.awaken.keep1'] : ['g.awaken.keep0', { n: A.links }],
     A.slots > 0 && ['g.awaken.slots', { n: A.slots, ss: pl(A.slots) }],
-    A.grant > 0 ? ['g.awaken.grant', { g: Math.min(A.grant, nLine), lv: A.grantLv }] : ['g.awaken.nogrant', { k: nLine }],
-    ['g.awaken.decline']);
+    A.grant > 0 ? ['g.awaken.grant', { g: Math.min(A.grant, nLine), lv: A.grantLv }] : ['g.awaken.nogrant', { k: nLine }]);
   sec('awakening', 'g.awaken.h', T('g.awaken.p', undefined, 'p'), lines, rule, el('p', null, el('a', { href: './skills.html#lines' }, T('g.awaken.more'))));
 }
 

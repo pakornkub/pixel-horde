@@ -31,6 +31,8 @@ const HZ_COL: Record<number, string> = { 0: '#ff2a3a', 1: '#b07cff', 2: '#fff35c
 
 /** King moves are always drawn in this red so they stand out from everything else. */
 const KING_RED = '#ff2a3a';
+/** The Shadow Clone's colour (its shots and pulses). */
+const SHADOW = '#b58cff';
 
 function drawHz(v: Readonly<SimState>, clock: number): void {
   for (const h of v.hz) {
@@ -528,21 +530,21 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     }
     // bolts
     for (const bo of v.bolts) {
-      const x = Math.round(bo.x + ox), y = Math.round(bo.y + oy);
+      const x = Math.round(bo.x + ox), y = Math.round(bo.y + oy), sh = bo.cl || bo.col === SHADOW; // the Shadow Clone's shots
       if (bo.kind === 'lance') {
         b.save(); b.translate(x, y); b.rotate(bo.a!);
-        b.fillStyle = K; b.fillRect(-9, -2, 19, 4); b.fillStyle = '#ffd23f'; b.fillRect(-8, -1, 14, 2);
-        b.fillStyle = '#ffffff'; b.fillRect(2, -1, 7, 2); b.fillStyle = '#fff8c0'; b.fillRect(6, -2, 3, 4); b.restore();
+        b.fillStyle = K; b.fillRect(-9, -2, 19, 4); b.fillStyle = sh ? SHADOW : '#ffd23f'; b.fillRect(-8, -1, 14, 2);
+        b.fillStyle = sh ? '#e6d6ff' : '#ffffff'; b.fillRect(2, -1, 7, 2); b.fillStyle = sh ? '#d9b8ff' : '#fff8c0'; b.fillRect(6, -2, 3, 4); b.restore();
         continue;
       }
       if (bo.kind === 'boom') {
         b.save(); b.translate(x, y); b.rotate(bo.spin!);
-        b.fillStyle = K; b.beginPath(); b.arc(0, 0, 5, 0, TAU); b.fill(); b.fillStyle = '#7dffb0'; b.beginPath(); b.arc(0, 0, 4, 0, TAU); b.fill();
+        b.fillStyle = K; b.beginPath(); b.arc(0, 0, 5, 0, TAU); b.fill(); b.fillStyle = sh ? SHADOW : '#7dffb0'; b.beginPath(); b.arc(0, 0, 4, 0, TAU); b.fill();
         b.fillStyle = '#ffffff'; b.fillRect(-4, -1, 8, 2); b.fillRect(-1, -4, 2, 8); b.fillStyle = K; b.fillRect(-1, -1, 2, 2); b.restore();
         continue;
       }
       b.fillStyle = K; b.fillRect(x - 3, y - 2, 6, 4); b.fillRect(x - 2, y - 3, 4, 6);
-      b.fillStyle = '#ff5cf4'; b.fillRect(x - 2, y - 1, 4, 2); b.fillRect(x - 1, y - 2, 2, 4); b.fillStyle = '#fff'; b.fillRect(x - 1, y - 1, 2, 2);
+      b.fillStyle = sh ? SHADOW : '#ff5cf4'; b.fillRect(x - 2, y - 1, 4, 2); b.fillRect(x - 1, y - 2, 2, 4); b.fillStyle = '#fff'; b.fillRect(x - 1, y - 1, 2, 2);
     }
     // effects
     for (const f of v.effects) {

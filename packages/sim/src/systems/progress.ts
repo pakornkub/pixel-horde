@@ -26,7 +26,7 @@ export function startStage(s: SimState, n: number): void {
   s.stage = n;
   s.swaps = 0;
   if (s.coop) { s.coop.revivedStage = []; s.coop.pot = {}; s.coop.chestsTo = {}; s.coop.splitDone = false; }
-  s.awakenOffer = false;
+  s.awakenNew = false;
   s.darkness = false;
   P.linkStart = maxLinks(s);
   P.mark = null; P.bashT = 0;
@@ -62,10 +62,10 @@ export function qualifiedLinks(s: SimState): SkillId[] {
 
 export function awakenEligible(s: SimState): boolean {
   const P = s.P;
-  return !P.awakened && !P.awakenDeclined && !!P.evo[signatureOf(P.ch)] && qualifiedLinks(s).length >= s.cfg.awaken.links;
+  return !P.awakened && !!P.evo[signatureOf(P.ch)] && qualifiedLinks(s).length >= s.cfg.awaken.links;
 }
 
-/** Stage end: count full Stages each Link spent maxed and equipped, then maybe offer Awakening.
+/** Stage end: count full Stages each Link spent maxed and equipped, then Awaken at once when the Hero qualifies.
  *  Also run by co-op guests when the host clears a Stage (they never run stageClear). */
 export function updateLinks(s: SimState): void {
   const P = s.P, now = maxLinks(s);
@@ -73,19 +73,17 @@ export function updateLinks(s: SimState): void {
     if (now.includes(id) && P.linkStart.includes(id)) P.linkStages[id] = (P.linkStages[id] || 0) + 1;
     else if (!now.includes(id)) P.linkStages[id] = 0;
   }
-  s.awakenOffer = awakenEligible(s);
+  if (awakenEligible(s)) awaken(s);
 }
 
-/** Clear screen answer: accept transforms the Signature (and consumes two Links unless `awaken.keep`); decline forfeits for this Run. */
-export function answerAwaken(s: SimState, accept: boolean): void {
-  const P = s.P;
-  if (s.phase !== 'clear' || !s.awakenOffer) return;
-  s.awakenOffer = false;
-  if (!accept) { P.awakenDeclined = true; return; }
-  const A = s.cfg.awaken;
+/** Awakening happens by itself (never offered or declined): the Signature transforms (and two Links are consumed
+ *  unless `awaken.keep`); the clear screen then shows what it brought (`awakenNew`). */
+function awaken(s: SimState): void {
+  const P = s.P, A = s.cfg.awaken;
   // original rule: the Links are consumed; `keep` leaves them equipped (the new slots make room instead)
   if (!A.keep) for (const id of qualifiedLinks(s).slice(0, A.links)) { delete P.skills[id]; delete P.evo[id]; delete P.cds[id]; P.linkStages[id] = 0; }
   P.awakened = true; // before the grant: attackSlots() counts the Awakening slots
+  s.awakenNew = true;
   // the first Skill Line skills arrive at once in free slots, so the transformation is felt; with the attack slots
   // full (e.g. keep 1 + slots 0) they wait on the Bench instead, and only a full Bench too drops the rest
   for (const id of AWAKENING[P.ch].line.slice(0, A.grant)) {

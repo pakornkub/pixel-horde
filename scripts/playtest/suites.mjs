@@ -25,13 +25,9 @@ export const suites = {
   heroes: (n) => per(n, (hero, seed) => ({ hero, seed, label: 'fresh' })),
   veteran: (n) => per(n, (hero, seed) => ({ hero, seed, label: 'mid', shop: SHOP.mid })),
   max: (n) => per(n, (hero, seed) => ({ hero, seed, label: 'max', shop: SHOP.max })),
-  awaken: (n) => [
-    ...per(n, (hero, seed) => ({ hero, seed, label: 'accept', shop: SHOP.mid })),
-    ...per(n, (hero, seed) => ({ hero, seed, label: 'decline', shop: SHOP.mid, profile: { awaken: false } })),
-  ],
   casual: (n) => per(n, (hero, seed) => ({ hero, seed, label: 'random-picks', shop: SHOP.mid, profile: { pick: 'random', react: 0.4 } })),
   /** A patch file given as PT_PATCH=path.json (tuning experiments). */
-  patch: (n) => per(n, (hero, seed) => ({ hero, seed, label: process.env.PT_LABEL || 'patch', shop: SHOP[process.env.PT_SHOP || 'mid'], patch: JSON.parse(process.env.PT_PATCH_JSON || '{}'), ...(process.env.PT_CRACK ? { crack: Number(process.env.PT_CRACK) } : {}), ...(process.env.PT_MAXCH ? { maxCh: Number(process.env.PT_MAXCH) } : {}), ...(process.env.PT_NOAWAKEN ? { profile: { awaken: false } } : {}), ...(process.env.PT_RANDOM ? { profile: { pick: 'random', react: 0.4 } } : {}) })),
+  patch: (n) => per(n, (hero, seed) => ({ hero, seed, label: process.env.PT_LABEL || 'patch', shop: SHOP[process.env.PT_SHOP || 'mid'], patch: JSON.parse(process.env.PT_PATCH_JSON || '{}'), ...(process.env.PT_CRACK ? { crack: Number(process.env.PT_CRACK) } : {}), ...(process.env.PT_MAXCH ? { maxCh: Number(process.env.PT_MAXCH) } : {}), ...(process.env.PT_RANDOM ? { profile: { pick: 'random', react: 0.4 } } : {}) })),
   /** Every Heart Crack tier, fresh and mid accounts. PT_CRACKS=0,3 limits the list. */
   cracks: (n) => (process.env.PT_CRACKS || '0,1,2,3').split(',').map(Number).flatMap((crack) => [
     ...per(n, (hero, seed) => ({ hero, seed, label: `crack${crack}-fresh`, crack })),

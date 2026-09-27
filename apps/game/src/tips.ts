@@ -2,7 +2,7 @@
 // Greenvale teaches the basics in order; later hints appear the first time something happens.
 import { SKILL_LINES, benchSize, type SimEvent, type SimState } from '@pixel-horde/sim';
 
-export const TIP_IDS = ['move', 'auto', 'crystals', 'levelup', 'ult', 'king', 'stageEnd', 'combo', 'bench', 'bloodMoon', 'dragon', 'links', 'linkMax', 'awaken', 'escape'] as const;
+export const TIP_IDS = ['move', 'auto', 'crystals', 'levelup', 'ult', 'king', 'stageEnd', 'combo', 'bench', 'bloodMoon', 'dragon', 'links', 'linkMax', 'awaken', 'escape', 'sp'] as const;
 export type TipId = (typeof TIP_IDS)[number];
 
 /** Seconds a hint stays up, and the pause before the next one. */
@@ -30,10 +30,11 @@ export function createTips(store: TipStore) {
       if (v.phase === 'levelup' && v.levelUp?.options.some((o) => o.kind === 'skill' && links.includes(o.id))) want('links');
       if (!v.P.awakened && links.some((id) => (v.P.skills[id] || 0) >= v.cfg.skills[id].max)) want('linkMax');
       if (v.ult >= v.cfg.ult.max) want('ult');
+      if (v.sp > 0) want('sp'); // the first Skill Point (from a King): what it is for
       if (v.phase === 'clear') {
         want('stageEnd');
         if (benchSize(v as SimState) > 1) want('bench');
-        if (v.awakenOffer) want('awaken');
+        if (v.awakenNew) want('awaken');
       }
       for (const e of events) {
         if (e.t === 'kingIntro') want('king');

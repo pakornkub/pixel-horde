@@ -539,7 +539,12 @@ const shared = obj({
       chainCd: sec(4, 'Chain lightning interval (s)'), chainDmg: pos(30, 'Chain damage base'), jumps: int(4, 1, 20, 'Chain jumps') }, 'Companion: Storm'),
     tri: obj({ breathCd: sec(1.2, 'Tri-Breath interval (s)'), breathR: pos(80, 'Tri-Breath length'), breathDmg: pos(30, 'Tri-Breath damage base per element'), breathDmgPerLv: pos(9, 'Damage per player level') }, 'Three-headed Dragon'),
   }, 'Companions'),
-  clone: obj({ dmg: frac(0.35, 'Clone damage fraction'), dmgPerLv: frac(0.08, 'Clone damage + per clone level'), dmgMax: frac(0.6, 'Clone damage fraction cap') }, 'Shadow Clone'),
+  clone: obj({
+    dmg: frac(0.35, 'Clone damage fraction'), dmgPerLv: frac(0.08, 'Clone damage + per clone level'), dmgMax: frac(0.6, 'Clone damage fraction cap'),
+    every: sec(0, 'Seconds between clone casts, each one of your Skills picked at random (0 = old rule: it only repeats your Bolt/Lance/Boomerang/Chain/Nova/Meteor casts)'),
+    auraMul: mul(3, 'Clone copy of an always-on Skill (Orbit, Frost Aura, Holy Shield, Time Warp, Gale Step): one pulse at this × its damage'),
+    pulseR: pos(50, 'Smallest radius of that pulse'),
+  }, 'Shadow Clone'),
   score: obj({
     chapter: pos(1000, 'Per Chapter cleared × Chapter number'),
     king: pos(500, 'Per King killed × Chapter number'),

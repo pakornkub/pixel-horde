@@ -16,7 +16,7 @@ const med = (a) => { if (!a.length) return NaN; const b = [...a].sort((x, y) => 
 const pct = (a, f) => Math.round((a.filter(f).length / a.length) * 100);
 const f1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : '-');
 
-console.log('label hero        n  ch(avg/med) clr  win%  esc  lv   min  awk%(ch)  offer%  sigEvo  ttkKing(med s)  revive  2ndW  death-by(top)');
+console.log('label hero        n  ch(avg/med) clr  win%  esc  lv   min  awk%(ch)  sigEvo  ttkKing(med s)  revive  2ndW  death-by(top)');
 for (const [k, rs] of [...groups].sort()) {
   const aw = rs.filter((r) => r.awakenAt !== null);
   const ttk = rs.flatMap((r) => r.kingTtk.filter((x) => x.t !== null).map((x) => x.t));
@@ -32,7 +32,6 @@ for (const [k, rs] of [...groups].sort()) {
     f1(avg(rs.map((r) => r.level))).padStart(5),
     f1(avg(rs.map((r) => r.minutes))).padStart(5),
     `${pct(rs, (r) => r.awakenAt !== null)}(${f1(avg(aw.map((r) => r.awakenAt)))})`.padStart(9),
-    String(pct(rs, (r) => r.awakenOfferAt !== null)).padStart(6),
     f1(avg(rs.filter((r) => r.sigEvoAt).map((r) => r.sigEvoAt))).padStart(7),
     f1(med(ttk)).padStart(10),
     f1(avg(rs.map((r) => r.revives))).padStart(8),

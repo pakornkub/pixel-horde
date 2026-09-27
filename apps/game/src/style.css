@@ -91,6 +91,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .tag.new{background:#c2361f;color:#fff}
 .tag.up{background:#3a7a2c;color:#fff}
 .tag.evo{background:var(--gold);color:var(--ink)}
+.tag.rec{background:#2f6fd6;color:#fff}
+.opt.rec{box-shadow:inset 0 0 0 2px #2f6fd6}
 /* level-up Skill chips: element (filled), Status it leaves (dot), role (ink); .hit = Combos with an owned Skill */
 .opt .chips{display:flex;flex-wrap:wrap;gap:4px}
 .opt .chip{--c:#fff;font-family:var(--th);font-weight:700;font-size:11px;line-height:1;padding:3px 6px;border-radius:3px;border:2px solid var(--ink);background:var(--c);color:var(--ink);white-space:nowrap}
@@ -201,6 +203,22 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .awaken h3{margin:0 0 6px;font-family:var(--pix);font-size:13px}
 .awaken p{margin:0 0 10px;font-size:14px}
 .awaken .btn{margin:4px 0}
+/* Awakening card: the new form and the three Awakened skills, pictures first */
+#awakenBox h3{text-align:center;font-size:14px;margin-bottom:10px}
+.awk-sk{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;text-align:left}
+.awk-sk .ico{grid-row:span 3}
+.awk-sk b{font-size:14px}
+.awk-sk small{font-size:12px;line-height:1.35;opacity:.85}
+.awk-sk .got{font-style:normal;font-size:11px;font-weight:700;color:#1f7a3a}
+.awk-sk.sig{padding:8px;border-radius:6px;background:#fff1b8;margin-bottom:10px}
+.awk-sk.sig .ico{width:56px;height:56px;box-shadow:0 0 0 3px #ffd23f,0 0 14px 4px #ffd23f}
+.awk-new{text-align:center;font-weight:700;margin:0 0 8px!important}
+.awk-line{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.awk-line .awk-sk{grid-template-columns:1fr;justify-items:center;text-align:center;align-content:start;padding:6px;border:2px solid #e8d48a;border-radius:6px;background:#fffdf0}
+.awk-line .awk-sk .ico{grid-row:auto;width:48px;height:48px;margin-bottom:4px}
+.awk-perks{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0 0!important}
+.awk-perks span{font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:#ffd23f;color:var(--ink)}
+@media (max-width:520px){.awk-line{grid-template-columns:1fr}.awk-line .awk-sk{grid-template-columns:auto 1fr;justify-items:start;text-align:left}.awk-line .awk-sk .ico{grid-row:span 3;width:40px;height:40px}}
 .sptools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0;font-size:15px}
 .sptools .lbl{font-weight:700;margin-right:4px;flex-basis:100%}
 .sptools button{border:3px solid var(--ink);border-radius:6px;background:var(--paper);color:inherit;font:inherit;padding:5px 10px;cursor:pointer;min-height:38px}

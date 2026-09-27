@@ -14,7 +14,7 @@ PT_PASS=1 npm run playtest -- cracks 10  # every Heart Crack tier on top of all 
 node scripts/playtest/exp.mjs patches.json 12 mid   # compare Balance Config patches on the same seeds
 ```
 
-Suites (`suites.mjs`): `heroes` (fresh), `veteran`/`max` (Shop levels), `awaken` (accept vs decline),
+Suites (`suites.mjs`): `heroes` (fresh), `veteran`/`max` (Shop levels),
 `casual` (random picks, slower reactions), `cracks` (`PT_CRACKS=0,3` limits the list), `patch`
 (env `PT_PATCH_JSON`, `PT_SHOP`, `PT_CRACK`, `PT_MAXCH=1` stop after Chapter 1). Env for every suite: `PT_PASS=1`
 start from every balance pass (= config v6), `PT_PASS=<id>` only up to that pass (`2026-09` = v4, `2026-09b` = v5),
