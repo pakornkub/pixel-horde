@@ -59,7 +59,13 @@ const want = (n) => !ONLY || ONLY.includes(n);
 
 if (want('title') || want('hero')) {
   const page = await openGame();
-  if (want('title')) await shot(page, 'title');
+  if (want('title')) {
+    // no hover highlight from the name dialog's click, and "Playing as Lyra" without the " · offline" status
+    await page.mouse.move(4, 4);
+    await page.evaluate(() => { const a = document.getElementById('acctTxt'); if (a) a.textContent = a.textContent.replace(/\s*·.*$/, ''); });
+    await page.waitForTimeout(300);
+    await shot(page, 'title');
+  }
   if (want('hero')) { await page.click('#heroBtn'); await page.waitForTimeout(700); await shot(page, 'hero'); }
   await page.close();
 }
