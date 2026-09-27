@@ -98,7 +98,7 @@ clear screen — never at the next Stage start.
 - Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening; players see them as
   "Awakened skills" / สกิลตื่นพลัง).
   4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
-  16 Evolutions (max-level skill + paired passive). Awakening: evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
+  16 Evolutions (max-level skill + paired passive). Awakening (automatic at that Stage end, never declined; the clear screen shows a picture card): evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
   version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
 - When too few upgrades are left, level-ups and chests fill up to 3 cards from `overflow` (ticket 47): Limit Break
   (+4% dmg / +5% max HP / +3% speed / +2% crit per pick, 10 each), train a Bench entry +1, Gold bag 25G × Chapter,
@@ -121,8 +121,9 @@ clear screen — never at the next Stage start.
     Realms whose element is still missing favour Blood Moon ×2 and a Guardian 60%. Beaten = Companion (1 active +
     2 stored, levels 1–5); all three in one Run can fuse into the Three-headed Dragon.
   - Shadow Rival: 25% on normal Stages, 35 s to kill, uses 3 of 5 player-like skills (all
-    telegraphed). Reward: 35% Shadow Clone else a shard (3 shards = clone). Clone repeats
-    bolt/lance/boomer/chain/nova/meteor casts at 35–60% damage.
+    telegraphed). Reward: 35% Shadow Clone else a shard (3 shards = clone). Clone deals 35–60% damage: with
+    `clone.every` > 0 it casts one of the player's Skills at random every `every` s (always-on Skills as one pulse;
+    Transmute/Elixir Rain/Aegis Dome never); with 0 (version 0) it only repeats bolt/lance/boomer/chain/nova/meteor casts.
   - Double King: Chapters 4–7, 10%, never announced; the second King is the skipped Realm's, each at 70% HP.
 - Chest wheel: 8 cells [1,2,1,3,1,2,1,2], result weights 1:50% 2:35% 3:15%. A King gives ONE chest (the wheel,
   `economy.kingChest`); it drops no chest item (its Gold rides on the King coin). Skill Points come only

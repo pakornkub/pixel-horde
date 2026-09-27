@@ -106,7 +106,7 @@ A shared Skill from the character's own Skill Line, at max level and equipped in
 _Avoid_: synergy, bond
 
 **Awakening**:
-The optional, one-time transformation of an evolved Signature Skill that makes the Signature much stronger and unlocks the character's Skill Line skills (the first may arrive at once, `awaken.grant`). Under the original rule it consumes two Links; with `awaken.keep` the Links stay and `awaken.slots` adds attack slots instead (the live config does this). Declining it forfeits it for the rest of the Run.
+The automatic, one-time transformation of an evolved Signature Skill that makes the Signature much stronger and unlocks the character's Skill Line skills (the first may arrive at once, `awaken.grant`). Under the original rule it consumes two Links; with `awaken.keep` the Links stay and `awaken.slots` adds attack slots instead (the live config does this). It happens by itself at the Stage end where the Hero qualifies (it used to be offered and could be declined); the clear screen then shows a card with the new form and the three Awakened skills.
 _Avoid_: ultimate evolution, second evolution, ascension
 
 **Combo**:

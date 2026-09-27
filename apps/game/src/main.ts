@@ -417,10 +417,9 @@ function toTitle(): void {
 
 let benchDirty = false;
 function onSwap(bench: number, slot: SkillId | PassiveId | null): void { cmd({ type: 'swap', bench, slot }); benchDirty = true; }
-function onAwaken(accept: boolean): void { cmd({ type: 'awaken', accept }); benchDirty = true; }
 function renderClear(v: Readonly<SimState>, denied = false): void {
   showClear(v, v.runGold);
-  renderAwaken(v, onAwaken);
+  renderAwaken(v);
   renderCompanions(v, (i) => { cmd({ type: 'companion', index: i }); benchDirty = true; }, (ok) => { cmd({ type: 'fuse', accept: ok }); benchDirty = true; },
     () => { cmd({ type: 'spCompanion' }); benchDirty = true; });
   renderWeaponSwitch(v, (id) => { cmd({ type: 'weapon', id }); benchDirty = true; });

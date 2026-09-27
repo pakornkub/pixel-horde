@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWAKENING, HEROES, SKILL_LINES, awakenEligible, createSim, signatureOf, type HeroId, type SimState, type Sim, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, HEROES, SKILL_LINES, awakenEligible, createSim, signatureOf, type HeroId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { botOptions } from './bot';
 
@@ -31,17 +31,29 @@ function setup(hero: HeroId = 'mage') {
   return { sim, s, endStage, next, maxLinks };
 }
 
-function say(sim: Sim, accept: boolean): void { sim.step({ mx: 0, my: 0 }, [{ type: 'awaken', accept }]); }
-
 describe('Awakening', () => {
-  it('is offered only after two Links spent a full Stage at max level and equipped', () => {
+  it('happens by itself once two Links spent a full Stage at max level and equipped', () => {
     const { s, endStage, next, maxLinks } = setup();
     maxLinks(2);
     endStage(); // maxed mid-Stage: this Stage does not count yet
-    expect(s.awakenOffer).toBe(false);
+    expect(s.P.awakened).toBe(false);
+    expect(s.awakenNew).toBe(false);
     next();
     endStage(); // a full Stage at max
-    expect(s.awakenOffer).toBe(true);
+    expect(s.P.awakened).toBe(true);
+    expect(s.awakenNew).toBe(true); // the clear screen shows what it brought
+    next();
+    expect(s.awakenNew).toBe(false);
+    expect(awakenEligible(s)).toBe(false); // once per Run
+  });
+
+  it('the retired awaken command changes nothing', () => {
+    const { sim, s, endStage, next, maxLinks } = setup();
+    maxLinks(2);
+    endStage(); next();
+    sim.step({ mx: 0, my: 0 }, [{ type: 'awaken', accept: false }]);
+    endStage();
+    expect(s.P.awakened).toBe(true);
   });
 
   it('needs the Signature evolved and the Links equipped (the Bench does not count)', () => {
@@ -49,7 +61,7 @@ describe('Awakening', () => {
     a.maxLinks(2);
     a.s.P.evo = {};
     a.endStage(); a.next(); a.endStage();
-    expect(a.s.awakenOffer).toBe(false);
+    expect(a.s.P.awakened).toBe(false);
     const b = setup();
     b.maxLinks(2);
     b.endStage(); b.next();
@@ -57,15 +69,14 @@ describe('Awakening', () => {
     b.s.P.bench = [{ id: link, lv: b.s.P.skills[link]!, evo: false }];
     delete b.s.P.skills[link];
     b.endStage();
-    expect(b.s.awakenOffer).toBe(false);
+    expect(b.s.P.awakened).toBe(false);
   });
 
-  it('accepting consumes two Links, transforms the Signature and adds the line skills at level 1', async () => {
+  it('by default it consumes two Links, transforms the Signature and adds the line skills at level 1', async () => {
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { sim, s, endStage, next, maxLinks } = setup('knight');
+    const { s, endStage, next, maxLinks } = setup('knight');
     maxLinks(3);
     endStage(); next(); endStage();
-    say(sim, true);
     expect(s.P.awakened).toBe(true);
     const left = SKILL_LINES.knight.filter((id) => s.P.skills[id]);
     expect(left.length).toBe(1);
@@ -77,11 +88,10 @@ describe('Awakening', () => {
 
   it('awaken.grant gives the first Skill Line skills at awaken.grantLv; awaken.wLine favours them in offers', async () => {
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { sim, s, endStage, next, maxLinks } = setup('mage');
+    const { s, endStage, next, maxLinks } = setup('mage');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, grant: 1, grantLv: 6, wLine: 50 } };
     maxLinks(2);
     endStage(); next(); endStage();
-    say(sim, true);
     const [first, second] = AWAKENING.mage.line;
     expect(s.P.skills[first]).toBe(6);
     expect(s.P.skills[second]).toBeUndefined();
@@ -93,12 +103,11 @@ describe('Awakening', () => {
   it('awaken.keep + awaken.slots: the Links stay, an extra attack slot opens and holds the granted skill', async () => {
     const { attackSlots } = await import('@pixel-horde/sim');
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { sim, s, endStage, next, maxLinks } = setup('ranger');
+    const { s, endStage, next, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 1, grant: 1, grantLv: 6 } };
     maxLinks(3); // Signature + three Links: every base slot is full
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
     endStage(); next(); endStage();
-    say(sim, true);
     for (const id of SKILL_LINES.ranger) expect(s.P.skills[id]).toBe(s.cfg.skills[id].max);
     expect(s.P.skills[signatureOf('ranger')]).toBeDefined();
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots + 1);
@@ -110,13 +119,13 @@ describe('Awakening', () => {
 
   it('awaken.keep without awaken.slots: full attack slots send the granted skill to the Bench, not nowhere', async () => {
     const { attackSlots, benchSize } = await import('@pixel-horde/sim');
-    const { sim, s, endStage, next, maxLinks } = setup('ranger');
+    const { s, endStage, next, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, grant: 2, grantLv: 6 } };
     maxLinks(3); // Signature + three Links: every slot is full and stays full
-    endStage(); next(); endStage();
+    endStage(); next();
     s.P.bench = [];
     expect(benchSize(s)).toBe(1); // Chapter 2: room for one of the two granted skills
-    say(sim, true);
+    endStage();
     expect(Object.keys(s.P.skills).length).toBe(attackSlots(s));
     const [first, second] = AWAKENING.ranger.line;
     expect(s.P.skills[first]).toBeUndefined();
@@ -126,32 +135,12 @@ describe('Awakening', () => {
 
   it('by default (version 0) Awakening adds no slot', async () => {
     const { attackSlots } = await import('@pixel-horde/sim');
-    const { sim, s, endStage, next, maxLinks } = setup('mage');
+    const { s, endStage, next, maxLinks } = setup('mage');
     maxLinks(2);
     endStage(); next(); endStage();
-    say(sim, true);
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
   });
 
-  it('declining forfeits Awakening for the Run', () => {
-    const { sim, s, endStage, next, maxLinks } = setup();
-    maxLinks(2);
-    endStage(); next(); endStage();
-    say(sim, false);
-    expect(s.P.awakenDeclined).toBe(true);
-    next(); endStage();
-    expect(s.awakenOffer).toBe(false);
-    expect(awakenEligible(s)).toBe(false);
-  });
-
-  it('an unanswered prompt comes back at the next Stage end', () => {
-    const { s, endStage, next, maxLinks } = setup();
-    maxLinks(2);
-    endStage(); next(); endStage();
-    expect(s.awakenOffer).toBe(true);
-    next(); endStage();
-    expect(s.awakenOffer).toBe(true);
-  });
 });
 
 describe('Skill Line skills', () => {

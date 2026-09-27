@@ -12,8 +12,6 @@ export interface BotProfile {
   react: number;
   /** Level-up choices. */
   pick: PickStrategy;
-  /** Accept Awakening when offered. */
-  awaken: boolean;
   /** Buy the revive when offered. */
   revive: boolean;
   /** Decision every N ticks (a human does not re-aim 60 times a second). */
@@ -22,7 +20,7 @@ export interface BotProfile {
   w?: Partial<typeof W0>;
 }
 export const W0 = { hit: 150, near: 10, nearK: 0.3, gem: 40, still: 4, momentum: 1.5, boss: 0.9 };
-export const DEFAULT_PROFILE: BotProfile = { react: 0.25, pick: 'smart', awaken: true, revive: true, every: 3 };
+export const DEFAULT_PROFILE: BotProfile = { react: 0.25, pick: 'smart', revive: true, every: 3 };
 
 /** Melee-ish heroes want to hug the King a little closer. */
 const BOSS_RANGE: Record<string, number> = { mage: 55, knight: 34, ranger: 70, alchemist: 55 };
@@ -220,8 +218,7 @@ export function createBot(seed: number, profile: BotProfile = DEFAULT_PROFILE): 
         case 'chest': if (t % 6 === 0) cmds.push({ type: 'chestStop' }); break;
         case 'clear':
           if (t % 6 === 0) {
-            if (s.awakenOffer) cmds.push({ type: 'awaken', accept: profile.awaken });
-            else if (s.fuseOffer) cmds.push({ type: 'fuse', accept: true });
+            if (s.fuseOffer) cmds.push({ type: 'fuse', accept: true });
             else cmds.push({ type: 'next' });
           }
           break;

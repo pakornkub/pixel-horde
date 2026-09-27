@@ -3,7 +3,7 @@ import { DEFAULT_RESOLVED, type SimEvent, type SimState } from '@pixel-horde/sim
 import { TIP_TIME, createTips, type TipId } from './tips';
 
 const view = (o: Partial<SimState> = {}): SimState => ({
-  totalTime: 0, gems: [], phase: 'play', ult: 0, cfg: DEFAULT_RESOLVED, awakenOffer: false, stage: 1, P: { bench: [] }, ...o,
+  totalTime: 0, gems: [], phase: 'play', ult: 0, cfg: DEFAULT_RESOLVED, awakenNew: false, stage: 1, P: { bench: [] }, ...o,
 }) as unknown as SimState;
 
 function setup(enabled = true) {
@@ -53,6 +53,14 @@ describe('tutorial hints', () => {
     tips.observe([], view({ P: { ...P, skills: { boomer: 99 } } } as never));
     run(TIP_TIME + 1.2);
     expect(shownLog).toEqual(['levelup', 'links', 'linkMax']);
+  });
+
+  it('explain Skill Points the first time a King gives one, and the Awakening card when it shows', () => {
+    const { tips, shownLog, run } = setup();
+    tips.observe([], view({ sp: 1 } as never));
+    tips.observe([], view({ phase: 'clear', awakenNew: true } as never));
+    run(4 * (TIP_TIME + 1.2));
+    expect(shownLog).toEqual(['sp', 'stageEnd', 'awaken']);
   });
 
   it('are skipped when already seen by the account or turned off', () => {

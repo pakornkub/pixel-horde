@@ -31,7 +31,7 @@ export interface RunMetrics {
   result: 'dead' | 'victory' | 'timeout';
   chapter: number; cleared: number; kings: number; escapes: number; level: number; minutes: number; kills: number; gold: number;
   revives: number; secondWinds: number;
-  awakenAt: number | null; awakenOfferAt: number | null; sigEvoAt: number | null; firstLinkMaxAt: number | null; evos: number;
+  awakenAt: number | null; sigEvoAt: number | null; firstLinkMaxAt: number | null; evos: number;
   dmg: Record<string, number>; dmgAfterAwaken: Record<string, number>;
   hurt: Record<string, number>; deathBy: string | null; deathChapter: number | null;
   /** Per Chapter played: seconds from the King's arrival to its death (null = escaped). */
@@ -80,7 +80,7 @@ export function runOne(job: Job): RunMetrics {
   const bot = createBot(job.seed, profile);
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
-    revives: 0, secondWinds: 0, awakenAt: null, awakenOfferAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
+    revives: 0, secondWinds: 0, awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
     dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, crowd: [], lvByChapter: [],
   };
   let lastHurt = '';
@@ -133,7 +133,6 @@ export function runOne(job: Job): RunMetrics {
     }
     if (s.phase === 'clearing' && kingAt >= 0) { if (s.lastEnd === 'escape') m.kingTtk.push({ ch: s.stage, realm: kingRealm, t: null }); kingAt = -1; }
     if (P.revives < revives0) { m.secondWinds++; revives0 = P.revives; }
-    if (s.awakenOffer && m.awakenOfferAt === null) m.awakenOfferAt = s.stage;
     if (P.awakened && m.awakenAt === null) m.awakenAt = s.stage;
     const sig = Object.keys(P.evo).length;
     if (sig > m.evos) m.evos = sig;

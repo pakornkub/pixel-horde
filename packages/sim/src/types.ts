@@ -41,7 +41,7 @@ export type Command =
   | { type: 'buySp' } // clear screen: Gold → 1 Skill Point
   | { type: 'revive' } // down: buy the revive
   | { type: 'giveUp' } // down: end the Run
-  | { type: 'awaken'; accept: boolean } // clear screen: answer the Awakening prompt
+  | { type: 'awaken'; accept: boolean } // retired: Awakening is automatic now (kept so old replays still parse; does nothing)
   | { type: 'swap'; bench: number; slot: SkillId | PassiveId | null } // clear screen: Bench skill ↔ attack slot, Bench passive ↔ passive slot (null = empty slot)
   | { type: 'discard'; bench: number } // clear screen: remove a Bench skill for free (its levels are lost)
   | { type: 'ult' }
@@ -196,7 +196,8 @@ export type GuardianKind = 'inferno' | 'frost' | 'storm';
 export type CompanionKind = GuardianKind | 'tri';
 /** A Companion (tamed Guardian). `cd` main move, `dive` second move timers. */
 export interface Pet { kind: CompanionKind; lv: number; cd: number; dive: number; x: number; y: number }
-export interface Clone { lv: number; x: number; y: number }
+/** Shadow Clone; `t`: seconds to its next cast of one of the player's Skills (`clone.every` > 0). */
+export interface Clone { lv: number; x: number; y: number; t?: number }
 
 export interface Player {
   ch: HeroId;
@@ -225,9 +226,8 @@ export interface Player {
   /** Guardians defeated this Run (all three → fusion offer). */
   guardiansBeaten: GuardianKind[];
   clone: Clone | null;
-  /** Awakening: done / declined for this Run; Links maxed at Stage start; full Stages each Link spent maxed. */
+  /** Awakening: done this Run; Links maxed at Stage start; full Stages each Link spent maxed. */
   awakened: boolean;
-  awakenDeclined: boolean;
   linkStart: SkillId[];
   linkStages: Partial<Record<SkillId, number>>;
   /** Statuses this player leaves last × this (Vex). */
@@ -341,6 +341,8 @@ export interface Bolt {
   col: string; rad: number; kb: number;
   a?: number;
   spd?: number; d?: number; range?: number; ret?: boolean; spin?: number;
+  /** Cast by the Shadow Clone (drawn in its colours; a boomerang flies back to it). */
+  cl?: boolean;
   tag?: HitTag;
 }
 
@@ -371,6 +373,8 @@ export interface Effect {
   stun?: boolean;
   /** Awakened form: wandering sigil, giant flask. */
   awk?: boolean;
+  /** Cast by the Shadow Clone (drawn in its colours; a laser turns around it). */
+  cl?: boolean;
   /** Drawn faint (a wandering sigil's trail marks). */
   faint?: boolean;
 }
@@ -549,8 +553,8 @@ export interface SimState {
   sp: number;
   /** Skills/passives banished for this Run. */
   banished: string[];
-  /** The clear screen offers Awakening. */
-  awakenOffer: boolean;
+  /** The Hero Awakened at this Stage end: the clear screen shows what it brought. */
+  awakenNew: boolean;
   /** Swaps made at this Stage end (cost doubles each time). */
   swaps: number;
   /** Gold taken from the wallet this Run (reported with the Run result). */
