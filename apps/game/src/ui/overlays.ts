@@ -111,7 +111,7 @@ function renderCracks(): void {
   row.hidden = META.crackMax < 1;
   if (row.hidden) return;
   row.innerHTML = `<span class="lbl">${t('crack.pick')}</span>`;
-  for (let n = 0; n <= META.crackMax; n++) {
+  for (let n = 0; n <= Math.min(META.crackMax, active.cfg.heartCrack.maxTier); n++) {
     const bt = document.createElement('button');
     bt.className = META.crack === n ? 'sel' : '';
     bt.textContent = n ? t('crack.n', { n }) : t('crack.0');

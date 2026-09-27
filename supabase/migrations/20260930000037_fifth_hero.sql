@@ -3,7 +3,7 @@
 --    shared.heroes.necromancer, shared.levelup.wLink) patched into the live config_schema so publish_config accepts them. Their defaults keep
 --    the other Heroes as they are: Mora's three Links reach them only when a config sets heroes.necromancer.pool 1.
 -- 2. Achievement winMora (legend stays "the original four", owner decision 2026-09-27).
--- 3. apply_run_facts counts Mora's wins; unlock_hero refuses her before a win and, until a published config carries
+-- 3. Needs public.has_won(uid) from 20260930000036_weapon_forge. apply_run_facts counts Mora's wins; unlock_hero refuses her before a win and, until a published config carries
 --    heroes.necromancer, reads her price from the schema default; import_legacy_meta never grants her.
 update public.config_schema set schema = jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(schema,
   '{properties,shared,properties,skills,properties,soulDrain}',
@@ -113,12 +113,6 @@ revoke all on function public.apply_run_facts(uuid, jsonb) from public, anon, au
 create or replace function public.hero_needs_win(p_hero text)
 returns boolean language sql immutable set search_path = '' as $$ select p_hero in ('necromancer') $$;
 
-/** The account has won a Run (any Hero; Heart Crack tiers need a win too). */
-create or replace function public.has_won(m public.meta_progress)
-returns boolean language sql stable set search_path = '' as $$
-  select jsonb_array_length(coalesce(m.stats -> 'heroesWon', '[]'::jsonb)) > 0 or coalesce((m.stats ->> 'heartCrack')::int, 0) >= 1
-$$;
-
 create or replace function public.unlock_hero(p_hero text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
@@ -132,7 +126,7 @@ declare
 begin
   if cost is null then raise exception 'UNKNOWN_HERO' using errcode = '22023'; end if;
   if p_hero = any (m.heroes) then return public.meta_json(m); end if;
-  if public.hero_needs_win(p_hero) and not public.has_won(m) then raise exception 'NEEDS_WIN' using errcode = '22023'; end if;
+  if public.hero_needs_win(p_hero) and not public.has_won(uid) then -- shared check (20260930000036_weapon_forge) raise exception 'NEEDS_WIN' using errcode = '22023'; end if;
   if m.gold < cost then raise exception 'NOT_ENOUGH_GOLD' using errcode = '22023'; end if;
   update public.meta_progress set gold = gold - cost::bigint, heroes = array_append(heroes, p_hero), updated_at = now()
   where user_id = uid returning * into m;
@@ -172,4 +166,3 @@ begin
 end $$;
 
 revoke all on function public.hero_needs_win(text) from public, anon, authenticated;
-revoke all on function public.has_won(public.meta_progress) from public, anon, authenticated;

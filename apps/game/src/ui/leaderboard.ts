@@ -19,7 +19,8 @@ function row(r: BoardRow): HTMLLIElement {
   if (r.title) { const ti = document.createElement('span'); ti.className = 'ttl'; ti.textContent = r.title; nm.appendChild(ti); }
   if (!r.verified) { const u = document.createElement('span'); u.className = 'unv'; u.textContent = t('board.unverified'); nm.appendChild(u); }
   const meta = document.createElement('span'); meta.className = 'meta';
-  meta.textContent = `${t('board.chapter', { n: r.chapter })} · ${heroName(r.hero as (typeof HERO_IDS)[number])}${r.weapon ? ' · ' + r.weapon : ''}`;
+  meta.textContent = `${t('board.chapter', { n: r.chapter })} · ${heroName(r.hero as (typeof HERO_IDS)[number])}${r.weapon ? ' · ' + t(`weapon.${r.weapon}.name`) : ''}`;
+  if (r.crack) { const ck = document.createElement('span'); ck.className = 'crk'; ck.textContent = t('crack.n', { n: r.crack }); meta.prepend(ck); }
   const sc = document.createElement('span'); sc.className = 'sc'; sc.textContent = r.score.toLocaleString();
   li.append(rk, nm, meta, sc);
   return li;

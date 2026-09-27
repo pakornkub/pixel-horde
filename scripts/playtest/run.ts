@@ -31,6 +31,8 @@ export interface RunMetrics {
   result: 'dead' | 'victory' | 'timeout';
   chapter: number; cleared: number; kings: number; escapes: number; level: number; minutes: number; kills: number; gold: number;
   revives: number; secondWinds: number;
+  /** Chapter the Shadow Clone was first there (null = never earned). */
+  cloneAt: number | null;
   awakenAt: number | null; sigEvoAt: number | null; firstLinkMaxAt: number | null; evos: number;
   dmg: Record<string, number>; dmgAfterAwaken: Record<string, number>;
   hurt: Record<string, number>; deathBy: string | null; deathChapter: number | null;
@@ -50,9 +52,18 @@ export interface RunMetrics {
   crowd: { mobs: number; dir: number; blocked: number; trapped: number }[];
   /** Player level at the end of each Chapter played. */
   lvByChapter: number[];
+  /** Gold picked up per Chapter (gross, before any spending). */
+  goldByCh: number[];
+  /** Skill Points: earned, spent, left at the end. */
+  spEarned: number; spSpent: number; spLeft: number;
+  /** Level-up screens: total, filler-only (no real upgrade left), with at least one Bench offer, only Bench offers (+heal),
+   *  and how many picks went to the Bench. */
+  offers: { total: number; heal: number; withBench: number; onlyBench: number; picksBench: number };
+  /** Most Bench entries held at once. */
+  benchMax: number;
 }
 
-interface Hooks { combo?: string | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
+interface Hooks { combo?: string | null; src?: { cl?: unknown } | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
 declare global { var __PT: Hooks | undefined }
 
 const TAG_NAME = new Map<object, string>();
@@ -81,8 +92,9 @@ export function runOne(job: Job): RunMetrics {
   const bot = createBot(job.seed, profile);
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
-    revives: 0, secondWinds: 0, awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
+    revives: 0, secondWinds: 0, cloneAt: null, awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
     dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, crowd: [], lvByChapter: [],
+    goldByCh: [], spEarned: 0, spSpent: 0, spLeft: 0, offers: { total: 0, heal: 0, withBench: 0, onlyBench: 0, picksBench: 0 }, benchMax: 0,
   };
   let lastHurt = '';
   const chDmg: number[] = [], chTime: number[] = [];
@@ -90,7 +102,7 @@ export function runOne(job: Job): RunMetrics {
   globalThis.__PT = {
     cur: null,
     onHit(s, _e, tag, d) {
-      const k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : tagName(tag);
+      const k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : this.src?.cl ? 'clone' : tagName(tag);
       m.dmg[k] = (m.dmg[k] || 0) + d;
       if (s.P.awakened) m.dmgAfterAwaken[k] = (m.dmgAfterAwaken[k] || 0) + d;
       if (k !== 'ultimate') chDmg[s.stage] = (chDmg[s.stage] || 0) + d;
@@ -106,13 +118,30 @@ export function runOne(job: Job): RunMetrics {
   };
   const maxTicks = Math.round((job.maxMin ?? 45) * 3600);
   let kingAt = -1, kingRealm = '', kingKilled = 0, revives0 = sim.view().P.revives;
+  let gold0 = 0, sp0 = 0, lastLu: unknown = null;
   for (let i = 0; i < maxTicks; i++) {
     const v = sim.view() as SimState;
     if (v.phase === 'over' || (job.maxCh && v.stage > job.maxCh)) break;
     const st = v.stage;
+    const lu = v.phase === 'levelup' ? v.levelUp : null, bench0 = v.P.bench.length;
+    if (lu && lu !== lastLu) {
+      lastLu = lu;
+      const o = lu.options, O = m.offers, toB = (x: (typeof o)[number]): boolean => 'toBench' in x && !!x.toBench;
+      O.total++;
+      // no real upgrade left: only fillers (Limit Break, Bench training, Gold bag, Recover)
+      if (o.every((x) => x.kind === 'heal' || x.kind === 'lb' || x.kind === 'train' || x.kind === 'gold')) O.heal++;
+      if (o.some(toB)) O.withBench++;
+      if (o.some(toB) && o.every((x) => toB(x) || x.kind === 'heal')) O.onlyBench++;
+    }
     bot.step(sim);
     const s = sim.view() as SimState, P = s.P;
     m.lvByChapter[st] = P.lv;
+    if (lu && P.bench.length > bench0) m.offers.picksBench++;
+    if (P.bench.length > m.benchMax) m.benchMax = P.bench.length;
+    if (s.runGold > gold0) m.goldByCh[st] = (m.goldByCh[st] || 0) + s.runGold - gold0;
+    gold0 = s.runGold;
+    if (s.sp > sp0) m.spEarned += s.sp - sp0; else if (s.sp < sp0) m.spSpent += sp0 - s.sp;
+    sp0 = s.sp;
     if (s.phase === 'play' || s.phase === 'levelup' || s.phase === 'chest') {
       m.hpMin[st] = Math.min(m.hpMin[st] ?? 1, Math.max(0, P.hp) / P.maxHp);
       if (s.phase === 'play') chTime[st] = (chTime[st] || 0) + 1 / 60;
@@ -135,6 +164,7 @@ export function runOne(job: Job): RunMetrics {
     if (s.phase === 'clearing' && kingAt >= 0) { if (s.lastEnd === 'escape') m.kingTtk.push({ ch: s.stage, realm: kingRealm, t: null }); kingAt = -1; }
     if (P.revives < revives0) { m.secondWinds++; revives0 = P.revives; }
     if (P.awakened && m.awakenAt === null) m.awakenAt = s.stage;
+    if (P.clone && m.cloneAt === null) m.cloneAt = s.stage;
     const sig = Object.keys(P.evo).length;
     if (sig > m.evos) m.evos = sig;
     if (m.sigEvoAt === null && P.evo[signatureOf(job.hero)]) m.sigEvoAt = s.stage;
@@ -144,7 +174,7 @@ export function runOne(job: Job): RunMetrics {
   const s = sim.view() as SimState;
   m.result = s.victory ? 'victory' : s.phase === 'over' ? 'dead' : 'timeout';
   m.chapter = s.stage; m.cleared = s.chaptersCleared.length; m.kings = s.kingsKilled.length; m.escapes = s.escapes;
-  m.level = s.P.lv; m.minutes = +(s.totalTime / 60).toFixed(1); m.kills = s.kills; m.gold = s.runGold; m.revives = s.revivesBought; m.combos = s.combos;
+  m.spLeft = s.sp; m.level = s.P.lv; m.minutes = +(s.totalTime / 60).toFixed(1); m.kills = s.kills; m.gold = s.runGold; m.revives = s.revivesBought; m.combos = s.combos;
   m.dpsByChapter = chDmg.map((d, i) => Math.round(d / Math.max(1, chTime[i] || 1)));
   m.build = Object.entries(s.P.skills).map(([k, v]) => `${k}${v}${s.P.evo[k as keyof typeof s.P.evo] ? '*' : ''}`).concat(Object.entries(s.P.pas).map(([k, v]) => `${k}${v}`));
   m.crowd = Array.from(cr, (c) => (c ? { mobs: Math.round(c.mobs / c.n), dir: +(c.dir / c.n).toFixed(2), blocked: +(c.blocked / c.n).toFixed(2), trapped: +(c.trapped / c.n).toFixed(2) } : { mobs: 0, dir: 0, blocked: 0, trapped: 0 }));

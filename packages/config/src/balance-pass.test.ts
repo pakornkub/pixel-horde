@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE_PASSES, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09,BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
+import { BALANCE_PASSES, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09,BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
 
 describe('balance pass 2026-09', () => {
   it('is a valid patch whose every value is inside its field range and differs from version 0', () => {
@@ -18,7 +18,7 @@ describe('balance pass 2026-09', () => {
     const changed = listFields().filter((f) => get(c, f.path) !== get(v4, f.path)).map((f) => f.path);
     expect(changed.sort()).toEqual(['shared.awaken.keep', 'shared.awaken.slots', 'shared.heroes.ranger.hp', 'shared.scaling.lvCapBase', 'shared.scaling.lvCapPerCh', 'shared.skills.hawk.guardN'].sort());
     for (const p of changed) expect(get(v4, p)).toBe(get(DEFAULT_CONFIG, p));
-    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09-mora', '2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
+    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09-mora', '2026-09e', '2026-09g', '2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
   });
 });
 
@@ -66,6 +66,24 @@ describe('balance pass reports', () => {
       expect(pass.report.summary.length).toBeGreaterThan(20);
       expect(get(withOverrides(DEFAULT_CONFIG, pass.patch), patched[0])).toBeDefined();
     }
+  });
+});
+
+describe('balance pass 2026-09e', () => {
+  it('turns on the 10-tier Heart Crack ramp, the Score bonus and the Kit changes; version 0 keeps the old 3 tiers', () => {
+    const c = withOverrides(DEFAULT_CONFIG, BALANCE_PASS_2026_09E.patch).shared;
+    expect([c.heartCrack.ramp, c.heartCrack.maxTier, c.score.crack, c.heroes.ranger.crit]).toEqual([1, 10, 0.5, 0.1]);
+    const d = DEFAULT_CONFIG.shared;
+    expect([d.heartCrack.ramp, d.heartCrack.maxTier, d.heartCrack.undoPer, d.score.crack, d.skills.hawk.nearCh, d.heroes.ranger.crit]).toEqual([0, 3, 0, 0, 0, 0]);
+  });
+});
+
+describe('balance pass 2026-09g', () => {
+  it('makes Awakened skills show up more often on top of 09f', () => {
+    const before = BALANCE_PASSES.slice(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09G) + 1).reverse().reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
+    expect(before.shared.awaken.wLine).toBe(2);
+    expect(withOverrides(before, BALANCE_PASS_2026_09G.patch).shared.awaken.wLine).toBe(3);
+    expect(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09G)).toBe(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09E) + 1); // after 09e
   });
 });
 

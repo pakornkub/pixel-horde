@@ -93,6 +93,8 @@ export type BoardId = 'solo' | 'coop' | 'endless' | 'alltime';
 export interface BoardRow {
   rank: number; userId: string; name: string; title: string | null; score: number; chapter: number;
   hero: string; weapon: string | null; verified: boolean; at: string; me: boolean;
+  /** Heart Crack tier (0–3) of the Run behind the score; missing from older servers. */
+  crack?: number;
 }
 export interface BoardView { board: BoardId; season: number; top: BoardRow[]; me: BoardRow | null; around: BoardRow[]; total: number }
 
