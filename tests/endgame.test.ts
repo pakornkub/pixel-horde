@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createSim, endlessBreakdown, scoreOf, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { createSim, endlessBreakdown, resolveConfig, scoreOf, type SimEvent, type SimState } from '@pixel-horde/sim';
+import { BALANCE_PASS_2026_09E, DEFAULT_CONFIG, withOverrides } from '@pixel-horde/config';
 import { hurtP, killE } from '../packages/sim/src/systems/combat';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { botOptions } from './bot';
@@ -148,5 +149,23 @@ describe('Heart Crack', () => {
     expect(b.maxHp / a.maxHp).toBeCloseTo(t3.cfg.heartCrack.hp3, 5);
     expect(b.dmg / a.dmg).toBeCloseTo(t3.cfg.heartCrack.dmg3, 5);
     expect((createSim(botOptions(1, { crack: 9 })).view() as SimState).crack).toBe(3);
+  });
+
+  it('the ramp (pass 2026-09e) takes back part of the base difficulty per tier, up to maxTier, and adds a Score bonus', () => {
+    const cfg = resolveConfig(withOverrides(DEFAULT_CONFIG, BALANCE_PASS_2026_09E.patch));
+    const at = (crack: number): SimState => createSim(botOptions(1, { crack, config: cfg })).view() as SimState;
+    const t0 = at(0), t5 = at(5), t10 = at(10);
+    expect(at(12).crack).toBe(10);
+    const k = cfg.difficulty, mid = (v: number): number => v + (1 - v) * 0.5;
+    // tier 5 = half of the help gone (player HP, warnings); tier 10 = the numbers as written
+    expect(t5.cfg.player.hp).toBe(Math.round(cfg.player.hp * mid(k.hp) / k.hp));
+    expect(t10.cfg.player.hp).toBe(DEFAULT_CONFIG.shared.player.hp);
+    expect(t10.cfg.kings.sandLine.warn).toBeCloseTo(DEFAULT_CONFIG.shared.kings.sandLine.warn, 5);
+    expect(t10.cfg.loot.coinChance).toBeCloseTo(cfg.loot.coinChance, 9); // Gold is never taken back
+    const a = spawnEnemy(t0, 'slime', 0, 0, false), b = spawnEnemy(t10, 'slime', 0, 0, false);
+    expect(b.maxHp / a.maxHp).toBeCloseTo((1 + 10 * cfg.heartCrack.hpPer) / k.mobHp, 5);
+    // Score: +crack × tier on top of the Run's points
+    t5.chaptersCleared = [1, 2]; t5.kills = 100;
+    expect(scoreOf(t5)).toBe(Math.round((3000 + 100) * (1 + 5 * cfg.score.crack)));
   });
 });

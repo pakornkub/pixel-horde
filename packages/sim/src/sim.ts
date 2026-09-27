@@ -1,4 +1,4 @@
-import { DEFAULT_RESOLVED } from '@pixel-horde/config';
+import { DEFAULT_RESOLVED, crackConfig } from '@pixel-horde/config';
 import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
@@ -87,7 +87,9 @@ function knockbackLog(cfg: SimState['cfg']): number {
 }
 
 export function createSim(opts: SimOptions): Sim {
-  const cfg = opts.config ?? DEFAULT_RESOLVED;
+  const base = opts.config ?? DEFAULT_RESOLVED;
+  const crack = Math.max(0, Math.min(base.heartCrack.maxTier, Math.floor(opts.crack || 0)));
+  const cfg = crackConfig(base, crack); // Heart Crack ramp: the tier takes back part of the base difficulty's help
   let P = newPlayer(cfg, opts.hero);
   const s: SimState = {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
@@ -96,7 +98,7 @@ export function createSim(opts: SimOptions): Sim {
     viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile, firstRun: !!opts.firstRun, coop: opts.coop ? initCoop(opts.coop.role, opts.coop.self) : null,
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
-    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenNew: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack: Math.max(0, Math.min(3, Math.floor(opts.crack || 0))), endless: opts.mode === 'endless', main: opts.mode === 'endless' ? { lines: [], total: 0 } : null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
+    chaptersCleared: [], kingsKilled: [], escapes: 0, escapedKings: [], combos: 0, revivesBought: 0, victory: false, victoryTime: 0, dragonKind: 'inferno', fuseOffer: false, boss2: null, doubleKing: false, skipped: null, swaps: 0, walletSpent: 0, awakenNew: false, comboCounts: {}, killsByType: {}, doubleKingsBeaten: 0, sp: 0, banished: [], mode: opts.mode ?? 'solo', crack, endless: opts.mode === 'endless', main: opts.mode === 'endless' ? { lines: [], total: 0 } : null, endlessFrom: null, reviveEndless: false, darkness: false, weapon: opts.weapon && isWeapon(opts.weapon) ? opts.weapon : 'judgement', foundWeapons: [], ultBudget: 0, bloodMoonShown: false,
     stageTime: 0, stageDur: cfg.stage.durBase, spawnAcc: 0, waveT: cfg.spawn.swarmFirst, front: { a: 0, t: 0 }, bossSpawned: false, boss: null, eid: 1,
     kills: 0, stageKills: 0, streak: 0, maxStreak: 0, streakT: 0, ult: 0,
     pendingLv: 0, pendingChest: 0, chestQueue: 0, pickReturn: null, levelUp: null, chest: null,
@@ -385,6 +387,11 @@ export function scoreBreakdown(s: Readonly<SimState>): { lines: ScoreLine[]; tot
   }
   if (s.escapes) lines.push({ key: 'escapes', count: s.escapes, points: -C.escape * s.escapes });
   let total = Math.max(0, sum(lines.map((l) => l.points)));
+  if (s.crack > 0 && C.crack > 0) { // Heart Crack bonus: harder tiers rank higher
+    const bonus = Math.round(total * C.crack * s.crack);
+    lines.push({ key: 'crack', count: s.crack, points: bonus });
+    total += bonus;
+  }
   if (s.revivesBought > 0) {
     const cut = Math.round(total * C.revivePenalty);
     lines.push({ key: 'revive', count: s.revivesBought, points: -cut });

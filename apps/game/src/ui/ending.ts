@@ -24,7 +24,7 @@ export function winUnlocks(v: Readonly<SimState>, craterWeapons: WeaponId[]): { 
     unlocks: unlocksOf({
       firstWin,
       crack: v.crack, crackMaxBefore: META.crackMax,
-      maxTier: (v.cfg.heartCrack as { maxTier?: number }).maxTier ?? 3, // Heart Crack 1–10 arrives with pass 2026-09e
+      maxTier: v.cfg.heartCrack.maxTier,
       weapons: craterWeapons, umbraGold: v.cfg.weapons.umbraGold,
       ach: newAchievements(runFacts(v), META.life, META.ach),
       special: document.getElementById('specialBtn') !== null, // the special shop's title button (ticket 56)
@@ -103,7 +103,7 @@ export function debugEnding(search: string): void {
   const flags = (new URLSearchParams(search).get('debug') || '').split(',');
   const later = flags.includes('ending:later');
   if (!later && !flags.includes('ending')) return;
-  const maxTier = (active.cfg.heartCrack as { maxTier?: number }).maxTier ?? 3;
+  const maxTier = active.cfg.heartCrack.maxTier;
   const heroIn = (HERO_IDS as readonly string[]).includes(AFTER_WIN_HERO);
   openEnding(!later, unlocksOf({
     firstWin: !later, crack: later ? 1 : 0, crackMaxBefore: later ? 1 : 0, maxTier,
