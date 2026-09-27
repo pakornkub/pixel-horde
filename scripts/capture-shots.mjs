@@ -23,6 +23,8 @@ async function openGame(flags = '') {
     localStorage.setItem('pixelhorde-settings', JSON.stringify({ tips: false, tipsSeen: [] }));
   });
   await page.goto(`${GAME}/?offline&debug=god${flags ? ',' + flags : ''}`);
+  // the offline Run's "unranked" note would cover the top of the early shots
+  await page.addStyleTag({ content: '#rankNote{display:none!important}' });
   await page.waitForTimeout(1200);
   if (await page.isVisible('#nameInput')) { await page.fill('#nameInput', 'Lyra'); await page.click('#nameOk'); }
   await page.waitForTimeout(800);
@@ -57,7 +59,13 @@ const want = (n) => !ONLY || ONLY.includes(n);
 
 if (want('title') || want('hero')) {
   const page = await openGame();
-  if (want('title')) await shot(page, 'title');
+  if (want('title')) {
+    // no hover highlight from the name dialog's click, and "Playing as Lyra" without the " · offline" status
+    await page.mouse.move(4, 4);
+    await page.evaluate(() => { const a = document.getElementById('acctTxt'); if (a) a.textContent = a.textContent.replace(/\s*·.*$/, ''); });
+    await page.waitForTimeout(300);
+    await shot(page, 'title');
+  }
   if (want('hero')) { await page.click('#heroBtn'); await page.waitForTimeout(700); await shot(page, 'hero'); }
   await page.close();
 }
@@ -76,7 +84,9 @@ if (want('play') || want('level') || want('king')) {
 if (want('moon')) {
   const page = await openGame('bloodmoon');
   await page.click('#startBtn');
-  await play(page, 24);
+  // the Blood Moon banner shows at stage.bloodMoonRevealAt (10%) for 3 s: about 6–8.5 s into Chapter 1;
+  // later the only sign is the faint red tint, which reads as plain grass in a small picture
+  await play(page, 6.5);
   await shot(page, 'moon');
   await page.close();
 }
