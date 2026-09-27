@@ -10,6 +10,7 @@ import { iconHtml } from './icons';
 import { onHeroPath } from './path';
 import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, formDesc, skillDescIn, skillDetail, skillName } from './text';
 import { realmIcon } from './realm-icon';
+import { fmtN } from '../fmt';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -28,8 +29,8 @@ export function renderTitleStats(): void {
     c.append(l, v);
     el.append(c);
   };
-  chip(t('stat.wallet'), META.gold.toLocaleString() + ' G');
-  if (bb) chip(t('title.bestLabel'), t('title.bestValue', { stage: bb.stage, kills: bb.kills.toLocaleString() }));
+  chip(t('stat.wallet'), fmtN(META.gold) + ' G');
+  if (bb) chip(t('title.bestLabel'), t('title.bestValue', { stage: bb.stage, kills: fmtN(bb.kills) }));
 }
 
 export function bestLine(): string {
@@ -38,7 +39,7 @@ export function bestLine(): string {
 }
 
 export function statRows(rows: [string, string | number, string?][]): string {
-  return rows.map(([a, c, cls]) => `<span>${a}</span><span${cls ? ` class="${cls}"` : ''}>${c}</span>`).join('');
+  return rows.map(([a, c, cls]) => `<span>${a}</span><span${cls ? ` class="${cls}"` : ''}>${typeof c === 'number' ? fmtN(c) : c}</span>`).join('');
 }
 
 /* ---------- hero select ---------- */
@@ -359,7 +360,7 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
   const sp = v.coop?.split, split: [string, string][] = sp && sp.st === v.stage && sp.total > 0
     ? [[t('stat.teamGold'), t('coop.split', { total: Math.round(sp.total), n: sp.players, mine: Math.round(sp.mine), got: sp.got })]] : [];
-  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold.toLocaleString() + ' G', 'money'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), fmtN(runGold) + ' G', 'money'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
@@ -550,7 +551,7 @@ function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; 
   const ta = document.createElement('span'); ta.textContent = t('score.total');
   const tb = document.createElement('span'); tb.className = 'tot'; tb.textContent = '0';
   box.append(ta, tb);
-  const fmt = (n: number): string => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US');
+  const fmt = (n: number): string => (n < 0 ? '−' : '') + fmtN(Math.abs(n));
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const per = reduce ? 0 : 450, start = performance.now();
   let raf = 0;
@@ -570,7 +571,7 @@ export function showOver(v: Readonly<SimState>, runGold: number, newAch: string[
   $('overTitle').textContent = v.endless ? t('over.endlessEnd') : v.victory ? t('over.victory') : t('over.title');
   countUps.splice(0).forEach((f) => f());
   showScore(v);
-  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold.toLocaleString() + ' G', 'money'], [t('stat.wallet'), META.gold.toLocaleString() + ' G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), fmtN(runGold) + ' G', 'money'], [t('stat.wallet'), fmtN(META.gold) + ' G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();
   const na = $('newAch');
   na.hidden = !newAch.length;
