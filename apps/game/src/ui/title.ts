@@ -9,10 +9,7 @@ import { heroName } from './text';
  * Chosen title backgrounds (16:9 and 9:16 pixel-art WebP ≤ ~300 KB in `public/bg/`). Until the
  * owner picks them, the title shows the live Greenvale tile scene instead.
  */
-export const TITLE_BG: { wide: string | null; tall: string | null } = {
-  wide: 'title-wide.webp',
-  tall: 'title-tall.webp',
-};
+export const TITLE_BG: { wide: string | null; tall: string | null } = { wide: null, tall: null };
 
 function applyBackground(): void {
   const el = $('titleBg');
