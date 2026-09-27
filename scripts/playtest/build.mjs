@@ -11,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const instrument = {
   name: 'instrument',
   setup(b) {
-    b.onLoad({ filter: /packages[\\/]sim[\\/]src[\\/]systems[\\/](combat|events|enemies|combos)\.ts$/ }, async (args) => {
+    b.onLoad({ filter: /packages[\\/]sim[\\/]src[\\/]systems[\\/](combat|events|enemies|combos|skills)\.ts$/ }, async (args) => {
       let src = await readFile(args.path, 'utf8');
       const file = path.basename(args.path);
       if (file === 'combat.ts') {
@@ -41,6 +41,18 @@ export function hurtP(s, d) {
         for (const id of ['shatter', 'overload', 'firestorm', 'toxicBurst']) src = src.replace(`aoe(s, x, y, C.${id}R`, `aoeAs('${id}', s, x, y, C.${id}R`);
         src += `
 function aoeAs(id, ...a) { const g = globalThis.__PT; if (g) g.combo = id; aoe(...a); if (g) g.combo = null; }
+`;
+      } else if (file === 'skills.ts') {
+        // Shadow Clone damage: the bolts and effects it creates carry `cl`; its instant hits happen inside cloneTick
+        const src0 = src;
+        src = src.replace('for (const bo of s.bolts) {', 'for (const bo of s.bolts) { if (globalThis.__PT) globalThis.__PT.src = bo;')
+          .replace('for (const f of s.effects) {', 'for (const f of s.effects) { if (globalThis.__PT) globalThis.__PT.src = f;')
+          .replace('cloneTick(s, dt);', 'if (globalThis.__PT) globalThis.__PT.src = { cl: true }; cloneTick(s, dt); if (globalThis.__PT) globalThis.__PT.src = null;')
+          .replace('export function stepBolts(', 'function stepBolts__o(').replace('export function updEffects(', 'function updEffects__o(');
+        if (src === src0) throw new Error('playtest: skills.ts instrumentation did not apply');
+        src += `
+export function stepBolts(s, dt) { stepBolts__o(s, dt); if (globalThis.__PT) globalThis.__PT.src = null; }
+export function updEffects(s, dt) { updEffects__o(s, dt); if (globalThis.__PT) globalThis.__PT.src = null; }
 `;
       } else if (file === 'enemies.ts') {
         src = src.replace('hurtP(s, e.dmg * (e.dmgMul || 1));', '(globalThis.__PT && (globalThis.__PT.cur = { en: e })); hurtP(s, e.dmg * (e.dmgMul || 1));');

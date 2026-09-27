@@ -31,6 +31,8 @@ export interface RunMetrics {
   result: 'dead' | 'victory' | 'timeout';
   chapter: number; cleared: number; kings: number; escapes: number; level: number; minutes: number; kills: number; gold: number;
   revives: number; secondWinds: number;
+  /** Chapter the Shadow Clone was first there (null = never earned). */
+  cloneAt: number | null;
   awakenAt: number | null; sigEvoAt: number | null; firstLinkMaxAt: number | null; evos: number;
   dmg: Record<string, number>; dmgAfterAwaken: Record<string, number>;
   hurt: Record<string, number>; deathBy: string | null; deathChapter: number | null;
@@ -61,7 +63,7 @@ export interface RunMetrics {
   benchMax: number;
 }
 
-interface Hooks { combo?: string | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
+interface Hooks { combo?: string | null; src?: { cl?: unknown } | null; onHit(s: SimState, e: Enemy, tag: HitTag | undefined, d: number): void; onHurt(s: SimState, d: number): void; cur: { hz?: Hazard; en?: Enemy } | null }
 declare global { var __PT: Hooks | undefined }
 
 const TAG_NAME = new Map<object, string>();
@@ -89,7 +91,7 @@ export function runOne(job: Job): RunMetrics {
   const bot = createBot(job.seed, profile);
   const m: RunMetrics = {
     label: job.label, hero: job.hero, seed: job.seed, result: 'timeout', chapter: 1, cleared: 0, kings: 0, escapes: 0, level: 1, minutes: 0, kills: 0, gold: 0,
-    revives: 0, secondWinds: 0, awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
+    revives: 0, secondWinds: 0, cloneAt: null, awakenAt: null, sigEvoAt: null, firstLinkMaxAt: null, evos: 0,
     dmg: {}, dmgAfterAwaken: {}, hurt: {}, deathBy: null, deathChapter: null, kingTtk: [], hpMin: [], combos: 0, dpsByChapter: [], build: [], kingLeft: null, crowd: [], lvByChapter: [],
     goldByCh: [], spEarned: 0, spSpent: 0, spLeft: 0, offers: { total: 0, heal: 0, withBench: 0, onlyBench: 0, picksBench: 0 }, benchMax: 0,
   };
@@ -99,7 +101,7 @@ export function runOne(job: Job): RunMetrics {
   globalThis.__PT = {
     cur: null,
     onHit(s, _e, tag, d) {
-      const k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : tagName(tag);
+      const k = tag === COMBO_HIT && this.combo ? 'combo:' + this.combo : this.src?.cl ? 'clone' : tagName(tag);
       m.dmg[k] = (m.dmg[k] || 0) + d;
       if (s.P.awakened) m.dmgAfterAwaken[k] = (m.dmgAfterAwaken[k] || 0) + d;
       if (k !== 'ultimate') chDmg[s.stage] = (chDmg[s.stage] || 0) + d;
@@ -161,6 +163,7 @@ export function runOne(job: Job): RunMetrics {
     if (s.phase === 'clearing' && kingAt >= 0) { if (s.lastEnd === 'escape') m.kingTtk.push({ ch: s.stage, realm: kingRealm, t: null }); kingAt = -1; }
     if (P.revives < revives0) { m.secondWinds++; revives0 = P.revives; }
     if (P.awakened && m.awakenAt === null) m.awakenAt = s.stage;
+    if (P.clone && m.cloneAt === null) m.cloneAt = s.stage;
     const sig = Object.keys(P.evo).length;
     if (sig > m.evos) m.evos = sig;
     if (m.sigEvoAt === null && P.evo[({ mage: 'sigil', knight: 'shield', ranger: 'hawk', alchemist: 'flask' } as const)[job.hero]]) m.sigEvoAt = s.stage;
