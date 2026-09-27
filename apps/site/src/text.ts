@@ -107,7 +107,7 @@ export const TXT = {
   'g.goal.p': { th: 'หนึ่งรอบมี <b>{n} Chapter</b> เริ่มที่ Greenvale จบที่ Heart Crater ระหว่างทางเลือกดินแดนเอง 1 ใน 2 ทุก Chapter ผ่าน Chapter ได้เมื่อ <b>ปราบราชา</b> ของดินแดนนั้น', en: 'A Run has <b>{n} Chapters</b>: start in Greenvale, end at the Heart Crater. In between you pick 1 of 2 Realms each time. A Chapter is cleared when its <b>King is defeated</b>.' },
   'g.goal.note': { th: 'ความยากขึ้นกับ <b>เลข Chapter</b> ไม่ใช่ดินแดน ดินแดนแค่เปลี่ยนชนิดมอน ลักษณะเด่น และธาตุที่มอนทน', en: 'Difficulty follows the <b>Chapter number</b>, not the Realm. A Realm only changes the monsters, their traits and the element they resist.' },
   'g.goal.click': { th: 'กดที่ดินแดนเพื่อดูว่าเจออะไรบ้าง', en: 'Click a Realm to see what lives there' },
-  'g.goal.end': { th: 'ชนะ Umbra = ช่วย Lumora สำเร็จ! แล้วเล่นต่อโหมด Endless ได้', en: 'Beat Umbra and Lumora is saved! Then keep going in Endless Mode.' },
+  'g.goal.end': { th: 'ชนะ Umbra = ช่วย Lumora สำเร็จ! แล้วเล่นต่อโหมด Endless ได้ และหน้าเมนูหลักจะมีปุ่ม Endless ให้เริ่มเล่นยาวไม่มีจบตั้งแต่ Chapter 1', en: 'Beat Umbra and Lumora is saved! Then keep going in Endless Mode, and the title screen gets an Endless button: an endless Run from Chapter 1.' },
   'g.goal.pick': { th: 'เลือก 1 ใน 2', en: 'pick 1 of 2' },
   'g.goal.lost': { th: 'ตายเมื่อไหร่ รอบนั้นจบ ของทุกอย่างในรอบหายหมด <b>ยกเว้น Gold</b> ที่เอาไปอัปเกรดถาวรได้', en: 'If you fall, the Run ends. Everything from that Run is lost <b>except Gold</b>, which buys permanent upgrades.' },
 

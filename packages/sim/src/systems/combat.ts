@@ -97,7 +97,11 @@ function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | u
   let d = base;
   const guest = isGuest(s);
   // capped by this player's forge level; a guest's host caps it again at most at a fully forged cap (remoteHit)
-  if (e.boss) d = Math.min(d, e.maxHp * ultCap(s.cfg, e.type === 'umbra', forgeLevel(s.cfg, s.meta.forge, s.weapon)));
+  if (e.boss) {
+    const cap = e.maxHp * ultCap(s.cfg, e.type === 'umbra', forgeLevel(s.cfg, s.meta.forge, s.weapon));
+    if (tag.strike) d = Math.max(d, cap * s.cfg.ult.bossHit); // the strike itself (never turret shots): at least bossHit of the cap
+    d = Math.min(d, cap);
+  }
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
   if (guest) { queueHit(s, e, d, true); if (e.predHp) e.hp -= d; } else e.hp -= d;

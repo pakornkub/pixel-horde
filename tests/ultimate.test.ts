@@ -198,6 +198,38 @@ describe('Weapon forge (ticket 56)', () => {
     expect(hitKing(5)).toBe(650);
   });
 
+  it('ult.bossHit (pass 2026-09i): the strike takes that share of the (forged) cap from any boss; turret shots never get it', () => {
+    const onBoss = (weapon: WeaponId, lv: number, bossHit: number, type: 'boss' | 'umbra', ticks = 60): number => {
+      const { s, step } = fresh({ weapon, config: asWritten({ shared: { ult: { bossHit } } }), meta: { up: {}, weapons: WEAPON_IDS.map((w) => weaponKey(w)), forge: { [weapon]: lv } } });
+      s.P.skills = {}; // Chapter 1: the monster-HP strike is tiny next to a 1,000,000 HP boss
+      const b = spawnEnemy(s, type, -30, 0, false); b.hp = b.maxHp = 1e6; b.spd = 0;
+      s.ult = s.cfg.ult.max;
+      step(ticks, [{ type: 'ult' }]);
+      return (1e6 - b.hp) / 1e6;
+    };
+    expect(onBoss('judgement', 0, 0, 'boss')).toBeLessThan(0.001); // version 0: only the monster-HP damage
+    expect(onBoss('judgement', 0, 1, 'boss')).toBeCloseTo(0.08, 5);
+    expect(onBoss('judgement', 5, 1, 'boss')).toBeCloseTo(0.13, 5); // scales with the forge cap levels
+    expect(onBoss('judgement', 0, 0.5, 'umbra')).toBeCloseTo(0.025, 5);
+    expect(onBoss('judgement', 5, 1, 'umbra')).toBeCloseTo(0.075, 5);
+    // Gear Cannon: the strike gets the floor, its turret shots stay tiny
+    expect(onBoss('gearCannon', 0, 1, 'boss', 20 * 60)).toBeLessThan(0.085);
+  });
+
+  it('ult.bossHit never raises Plague Censer poison on a boss (poison follows the strike before the floor)', () => {
+    const pois = (bossHit: number): number => {
+      const { s, step } = fresh({ weapon: 'plagueCenser', config: asWritten({ shared: { ult: { bossHit } } }), meta: { up: {}, weapons: [weaponKey('plagueCenser')] } });
+      s.P.skills = {};
+      const king = spawnEnemy(s, 'boss', -30, 0, false); king.hp = king.maxHp = 1e6; king.spd = 0;
+      s.ult = s.cfg.ult.max;
+      step(1, [{ type: 'ult' }]);
+      for (let i = 0; i < 60 && !king.poisDps; i++) step();
+      return king.poisDps!;
+    };
+    expect(pois(0)).toBeGreaterThan(0);
+    expect(pois(1)).toBeCloseTo(pois(0), 9);
+  });
+
   it('Judgement: forged levels stun the monsters that survive', () => {
     expect(forgedStrike('judgement', {}).mob.stun ?? 0).toBe(0);
     const f = forgedStrike('judgement', { judgement: 3 });

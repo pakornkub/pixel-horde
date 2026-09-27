@@ -37,8 +37,8 @@ export function bestLine(): string {
   return t('title.best', { gold: META.gold }) + (bb ? t('title.bestRecord', { stage: bb.stage, kills: bb.kills }) : '');
 }
 
-export function statRows(rows: [string, string | number][]): string {
-  return rows.map(([a, c]) => `<span>${a}</span><span>${c}</span>`).join('');
+export function statRows(rows: [string, string | number, string?][]): string {
+  return rows.map(([a, c, cls]) => `<span>${a}</span><span${cls ? ` class="${cls}"` : ''}>${c}</span>`).join('');
 }
 
 /* ---------- hero select ---------- */
@@ -355,7 +355,7 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
   const sp = v.coop?.split, split: [string, string][] = sp && sp.st === v.stage && sp.total > 0
     ? [[t('stat.teamGold'), t('coop.split', { total: Math.round(sp.total), n: sp.players, mine: Math.round(sp.mine), got: sp.got })]] : [];
-  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold + 'G'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold.toLocaleString() + ' G', 'money'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
@@ -520,10 +520,18 @@ export function renderBench(v: Readonly<SimState>, onSwap: (bench: number, slot:
 /** Itemised Score that counts up line by line (decision #15). */
 const countUps: (() => void)[] = [];
 function showScore(v: Readonly<SimState>): void {
+  // an Endless Run from the title has no main Score, and its Endless Score starts after the last Chapter
+  $('scoreBox').hidden = v.mode === 'endless';
   countUpBox($('scoreBox'), scoreBreakdown(v));
   const eb = $('endlessBox');
   eb.hidden = !v.endless;
-  if (v.endless) { countUpBox(eb, endlessBreakdown(v)); eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`); }
+  if (v.endless && !v.endlessFrom) {
+    // a title Endless Run that fell before its Endless Score starts: the Chapter reached is the result, not a big 0 (owner, 2026-09-27)
+    eb.innerHTML = `<span class="reach">${t('score.reached', { n: v.stage })}</span><span class="sub">${t('score.endlessFrom', { n: v.cfg.stage.chapters + 1 })}</span>`;
+  } else if (v.endless) {
+    countUpBox(eb, endlessBreakdown(v));
+    eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`);
+  }
 }
 function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; points: number }[]; total: number }): void {
   const { lines, total } = b;
@@ -558,7 +566,7 @@ export function showOver(v: Readonly<SimState>, runGold: number, newAch: string[
   $('overTitle').textContent = v.endless ? t('over.endlessEnd') : v.victory ? t('over.victory') : t('over.title');
   countUps.splice(0).forEach((f) => f());
   showScore(v);
-  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold + 'G'], [t('stat.wallet'), META.gold + 'G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold.toLocaleString() + ' G', 'money'], [t('stat.wallet'), META.gold.toLocaleString() + ' G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();
   const na = $('newAch');
   na.hidden = !newAch.length;

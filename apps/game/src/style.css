@@ -33,6 +33,8 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .btn:focus-visible,.opt:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .stats{display:grid;grid-template-columns:1fr auto;gap:4px 16px;margin:0 0 16px;font-size:15px}
 .stats span:nth-child(even){font-family:var(--pix);font-size:12px;align-self:center;text-align:right}
+/* gold text on the paper background was unreadable (see the score total's own fix below); ink on a gold chip instead */
+.stats .money{color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:3px}
 .best{font-size:13px;opacity:.75;margin-top:10px;text-align:center}
 
 .slots{font-size:14px;margin:-6px 0 12px;opacity:.8}
@@ -365,6 +367,53 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 .ctimer span{position:relative;display:block;text-align:center;font-size:13px;font-weight:700;line-height:16px}
 #ovClear #nextBtn{position:sticky;bottom:-22px;margin-top:6px;box-shadow:0 -10px 12px var(--paper)}
 
+/* Endless Run from the title: a note row until the Endless Score starts counting */
+.stats.score .sub{grid-column:1/-1;font-size:13px;opacity:.8}
+/* a title Endless Run that fell before Chapter 9: the Chapter reached is the headline */
+.stats.score .reach{grid-column:1/-1;justify-self:center;font-family:var(--pix);font-size:16px;line-height:1.4;color:var(--ink);background:var(--gold);padding:8px 12px;border-radius:4px;text-align:center}
+.stats.score .reach + .sub{font-family:var(--th);font-size:13px;text-align:center} /* not the value-column pixel font */
+/* title: Play + Endless (after the first win) side by side, so the column never gets taller */
+.tplay{display:flex;gap:10px;width:100%}
+.tplay .btn.play.big{flex:2}
+.tplay .btn.play.endless{flex:1;min-width:0;padding:12px 8px;font-size:12px;background:#4fc3ff;white-space:nowrap}
+.tplay .btn.play.endless:hover{background:#9fe0ff}
+/* phones: Play 60 / Endless 40 and a smaller label, so "∞ Endless" never runs past the border (≈375 px) */
+@media (max-width:440px){.tplay .btn.play.big{flex:3}.tplay .btn.play.endless{flex:2;font-size:10px;padding:12px 4px}}
+@media (max-width:360px){.tplay .inf{display:none}}
+/* ending (ticket 55): full-screen story pictures, then the "Unlocked" page over the last one */
+.overlay.ending{background:#1e1b33;padding:16px}
+.overlay.ending.story{align-items:flex-end}
+.epic{position:absolute;inset:0;background:#1e1b33 center/cover no-repeat;cursor:pointer}
+.overlay.ending:not(.story) .epic{filter:brightness(.45);cursor:default}
+.estory{position:relative;width:min(640px,100%);background:rgba(30,27,51,.86);color:var(--paper);border:4px solid var(--paper);border-radius:6px;
+  box-shadow:0 0 0 4px var(--ink);padding:14px 16px 12px;text-align:center;font-family:var(--th);font-weight:500;zoom:var(--menu,1)}
+.estory h2{font-family:var(--pix);font-weight:400;font-size:15px;color:var(--gold);margin:0 0 10px;line-height:1.4}
+.ecap{font-size:18px;line-height:1.5;margin:0 0 10px;min-height:3em;display:grid;place-items:center}
+.edots{display:flex;justify-content:center;gap:8px;margin:0 0 12px}
+.edots span{width:9px;height:9px;background:rgba(244,247,228,.35)}
+.edots span.on{background:var(--gold)}
+.erow{display:flex;gap:10px}
+.erow .btn{margin:0;flex:2;background:var(--gold);color:var(--ink)}
+.erow .btn.ghost{flex:1;background:transparent;color:var(--paper);border-color:var(--paper)}
+.erow .btn.ghost:hover{background:rgba(244,247,228,.12)}
+.eunlock{position:relative;text-align:center}
+.eunlock h2{color:var(--ink);margin-bottom:6px}
+.eunlock h3{font-family:var(--pix);font-weight:400;font-size:11px;color:#3a3363;margin:0 0 12px;letter-spacing:1px}
+.unlocks{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px;text-align:left}
+.unlocks li{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:center;background:var(--paper2);border-radius:4px;padding:6px 10px 6px 6px;font-size:15px;line-height:1.35}
+.uico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink);background:#fff}
+.uico img{width:28px;height:28px;object-fit:contain;image-rendering:pixelated}
+.uico.crack,.uico.crackTop{background:var(--hp);color:#fff}
+.uico.endless{background:var(--xp)}
+.uico.gold,.uico.ach,.uico.achs{background:var(--gold)}
+.ereplay{display:block;margin:10px auto 0}
+/* the Unlocked page's buttons stay in view while the list scrolls (the box pads 22 px at the bottom) */
+.eact{position:sticky;bottom:-22px;background:var(--paper);padding:6px 0 4px;box-shadow:0 -10px 12px var(--paper)}
+@media (pointer:coarse){#endReplay{padding:10px 8px}}
+/* landscape phones: two columns of unlocks and a slimmer story box, so the picture shows */
+@media (max-height:520px){.unlocks{grid-template-columns:1fr 1fr}.estory{padding:8px 12px}.ecap{min-height:0;font-size:15px;margin-bottom:6px}.edots{margin-bottom:8px}.erow .btn{padding:8px 12px}
+  .eact{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}.eact .btn{margin:0;padding:10px 12px}.eact .ereplay{grid-column:1/-1;margin:0 auto}}
+@media (max-width:480px){.ecap{font-size:16px}.estory{padding:12px 12px 10px}}
 /* UX pass 2026-09-27 */
 /* Thai menu titles (ui/heading-font.ts): the pixel font has no Thai, so they were smaller than the text under them */
 .box h1.th,.box h2.th{font-family:var(--th);font-weight:700;font-size:22px;line-height:1.3;letter-spacing:0}

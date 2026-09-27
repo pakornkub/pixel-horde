@@ -40,6 +40,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Armoured Realms: armour chance ×': { th: 'Realm สายเกราะ: คูณโอกาสมอนเกราะ', up: 'ใน Realm สายเกราะ เจอมอนเกราะบ่อยขึ้นอีก' },
   'Armoured Realms: armour from this Chapter': { th: 'Realm สายเกราะ: มีมอนเกราะตั้งแต่ Chapter นี้', up: 'มอนเกราะเริ่มมาช้าลง (Chapter หลังขึ้น)' },
   'Arrival blast radius': { th: 'รัศมีระเบิดตอนสลับที่มาถึง', up: 'ระเบิดกว้างขึ้น หลบยากขึ้น' },
+  'Against Kings, Guardians, the Rival and Umbra an Ultimate deals at least this share of its cap above (1 = always the cap, 0 = only the monster-HP damage)': { th: 'Ultimate ตีบอสอย่างน้อยสัดส่วนนี้ของเพดาน (1 = ถึงเพดานทุกครั้ง, 0 = คิดจาก HP มอนอย่างเดียว)', up: 'Ultimate ตัด HP ราชา/Umbra ได้มากขึ้นต่อครั้ง และโตตามเพดานที่เพิ่มขึ้น' },
   'At most this × Umbra\'s max HP per Ultimate': { th: 'Ultimate ตี Umbra ได้สูงสุด × HP เต็มของ Umbra', up: 'Ultimate ตัด HP Umbra ได้มากขึ้นต่อครั้ง' },
   'At most this × a King\'s or Guardian\'s max HP per Ultimate': { th: 'Ultimate ตี King/Guardian ได้สูงสุด × HP เต็ม', up: 'Ultimate ตัด HP บอสได้มากขึ้นต่อครั้ง' },
   'Attack interval max (s)': { th: 'พักระหว่างท่า นานสุด (วินาที)', up: 'บอสออกท่าห่างขึ้น เกมง่ายขึ้น' },

@@ -324,6 +324,7 @@ const shared = obj({
     perKill: pos(1, 'Charge per kill'), perElite: pos(5, 'Charge per elite kill'), perBoss: pos(20, 'Charge per boss kill'),
     mobHp: mul(1.5, 'Damage = this × the Chapter\'s normal monster HP (no Might/Power/crit)'),
     bossCap: frac(0.08, 'At most this × a King\'s or Guardian\'s max HP per Ultimate'), umbraCap: frac(0.05, 'At most this × Umbra\'s max HP per Ultimate'),
+    bossHit: frac(0, 'Against Kings, Guardians, the Rival and Umbra an Ultimate deals at least this share of its cap above (1 = always the cap, 0 = only the monster-HP damage)'),
     slow: sec(0.55, 'Slow-motion time (s)'), delay: sec(0.3, 'Strike delay (s)'), kb: pos(120, 'Knockback'),
   }, 'Ultimate (Judgement)'),
   streak: obj({ window: sec(2.2, 'Seconds between kills to keep the Kill Streak'), popupEvery: int(25, 5, 1000, 'Show a "×N KO!" popup every N kills of a streak') }, 'Kill Streak'),

@@ -18,7 +18,7 @@ describe('balance pass 2026-09', () => {
     const changed = listFields().filter((f) => get(c, f.path) !== get(v4, f.path)).map((f) => f.path);
     expect(changed.sort()).toEqual(['shared.awaken.keep', 'shared.awaken.slots', 'shared.heroes.ranger.hp', 'shared.scaling.lvCapBase', 'shared.scaling.lvCapPerCh', 'shared.skills.hawk.guardN'].sort());
     for (const p of changed) expect(get(v4, p)).toBe(get(DEFAULT_CONFIG, p));
-    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09-mora', '2026-09e', '2026-09g', '2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
+    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09-mora', '2026-09i', '2026-09e', '2026-09g', '2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
   });
 });
 
@@ -83,7 +83,7 @@ describe('balance pass 2026-09g', () => {
     const before = BALANCE_PASSES.slice(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09G) + 1).reverse().reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG);
     expect(before.shared.awaken.wLine).toBe(2);
     expect(withOverrides(before, BALANCE_PASS_2026_09G.patch).shared.awaken.wLine).toBe(3);
-    expect(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09G)).toBe(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09E) + 1); // after 09e
+    expect(BALANCE_PASSES.indexOf(BALANCE_PASS_2026_09G)).toBe(BALANCE_PASSES.findIndex((p) => p.id === '2026-09e') + 1); // right after 09e
   });
 });
 
