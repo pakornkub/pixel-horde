@@ -27,7 +27,7 @@
     <p class="tagline" data-i18n="title.tagline"></p>
     <button class="thero" id="heroBtn2" data-i18n-aria="title.hero"><canvas id="titleHero" width="64" height="64"></canvas><span id="titleSel"></span></button>
     <button class="btn play" id="continueBtn" hidden></button>
-    <button class="btn play big" id="startBtn" data-i18n="title.start"></button>
+    <div class="tplay"><button class="btn play big" id="startBtn" data-i18n="title.start"></button><button class="btn play endless" id="endlessRunBtn" hidden><span class="inf" aria-hidden="true">∞ </span><span data-i18n="title.endless"></span></button></div>
     <div class="tmenu">
       <button id="heroBtn" data-i18n="title.hero"></button>
       <button id="coopBtn"><span data-i18n="title.coop"></span> <small data-i18n="title.soon"></small></button>
@@ -66,15 +66,27 @@
   <div class="sptools" id="lvTools"></div>
 </div></div>
 
-<div class="overlay" id="ovEnding"><div class="box">
-  <h2 data-i18n="ending.title"></h2>
-  <p data-i18n="ending.l1"></p>
-  <p data-i18n="ending.l2"></p>
-  <p data-i18n="ending.l3"></p>
-  <p class="note" data-i18n="ending.note"></p>
-  <button class="btn" id="endlessBtn" data-i18n="ending.endless"></button>
-  <button class="btn ghost" id="finishBtn" data-i18n="ending.finish"></button>
-</div></div>
+<div class="overlay ending" id="ovEnding">
+  <div class="epic" id="endPic" role="img" data-i18n-aria="ending.title"></div>
+  <div class="estory" id="endStory">
+    <h2 id="endHead" data-i18n="ending.title"></h2>
+    <p class="ecap" id="endCap" aria-live="polite"></p>
+    <div class="edots" id="endDots" aria-hidden="true"></div>
+    <div class="erow"><button class="btn ghost" id="endSkip" data-i18n="ending.skip"></button><button class="btn" id="endNext"></button></div>
+  </div>
+  <div class="box eunlock" id="endUnlock" hidden>
+    <h2 data-i18n="ending.title"></h2>
+    <h3 data-i18n="ending.unlocked"></h3>
+    <ul class="unlocks" id="endList"></ul>
+    <p class="note" id="endNone" data-i18n="ending.unlockedNone" hidden></p>
+    <p class="note" data-i18n="ending.note"></p>
+    <div class="eact">
+      <button class="btn" id="endlessBtn" data-i18n="ending.endless"></button>
+      <button class="btn ghost" id="finishBtn" data-i18n="ending.finish"></button>
+      <button class="tlink ereplay" id="endReplay" data-i18n="ending.replay"></button>
+    </div>
+  </div>
+</div>
 
 <div class="overlay" id="ovCollection"><div class="box">
   <h2 data-i18n="coll.title"></h2>

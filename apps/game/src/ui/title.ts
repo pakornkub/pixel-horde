@@ -1,6 +1,6 @@
 // Title screen (ticket 43): animated Hero, current Hero + Weapon, Hero panel, background picture.
 import { t } from '@pixel-horde/i18n';
-import { META } from '../meta';
+import { META, metaSync } from '../meta';
 import { HERO_SPR } from '../render/sprites';
 import { $, hide, renderChars, show } from './overlays';
 import { heroName } from './text';
@@ -21,6 +21,12 @@ function applyBackground(): void {
   const im = new Image(); // solid colour until the picture has loaded
   im.onload = () => { el.style.backgroundImage = `url("${url}")`; };
   im.src = url;
+}
+
+/** Endless button next to Play once the account has beaten Umbra (Heart Crack unlocked or a Hero in heroesWon). */
+export function renderTitleEndless(): void {
+  $('endlessRunBtn').hidden = !metaSync.hasWon();
+  $('endlessRunBtn').title = t('title.endlessHint');
 }
 
 /** Hero name + Weapon under the animated Hero. */
@@ -57,5 +63,7 @@ export function initTitle(): void {
   addEventListener('resize', applyBackground);
   applyBackground();
   renderTitleSel();
+  renderTitleEndless();
+  metaSync.onChange(renderTitleEndless);
   requestAnimationFrame(drawHero);
 }
