@@ -85,8 +85,8 @@ export interface AdminApi {
   suspendPlayer(userId: string, until: string | null): Promise<void>;
   /** Promotes a player's leaderboard row on any board (coop, or a rank-offline-Run pick on solo/alltime) to verified. */
   verifyScore(userId: string, board: string): Promise<void>;
-  /** Offline Runs (status='offline') eligible for review, defaulting to the last maintenance window. */
-  offlineRuns(includeReviewed?: boolean): Promise<OfflineRunsResult>;
+  /** Offline Runs (status='offline') eligible for review; `since`/`until` (ISO) default to the last maintenance window. */
+  offlineRuns(includeReviewed?: boolean, since?: string | null, until?: string | null): Promise<OfflineRunsResult>;
   /** Adds an offline Run to the solo + all-time boards as an unverified entry. */
   rankOfflineRun(runId: string): Promise<{ appliedSolo: boolean; appliedAlltime: boolean }>;
   /** Reviewed and skipped: the Run keeps its Gold/achievements but never joins a leaderboard. */
@@ -150,7 +150,7 @@ async function liveApi(): Promise<AdminApi> {
     banPlayer: (userId, until) => rpc('ban_player', { p_user: userId, p_until: until }),
     suspendPlayer: (userId, until) => rpc('suspend_player', { p_user: userId, p_until: until }),
     verifyScore: (userId, board) => rpc('verify_score', { p_user: userId, p_board: board }),
-    offlineRuns: (includeReviewed = false) => rpc('admin_offline_runs', { p_include_reviewed: includeReviewed }),
+    offlineRuns: (includeReviewed = false, since = null, until = null) => rpc('admin_offline_runs', { p_include_reviewed: includeReviewed, p_since: since, p_until: until }),
     rankOfflineRun: (runId) => rpc('admin_rank_offline_run', { p_run: runId }),
     rejectOfflineRun: (runId, note = '') => rpc('admin_reject_offline_run', { p_run: runId, p_note: note }),
     seasonPreview: () => rpc('admin_season_rewards_preview'),
@@ -270,7 +270,10 @@ function demoApi(): AdminApi {
     async suspendPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) { p.suspended = !!until; p.suspendedUntil = until; } note('update', 'profiles', { user: u, suspended_until: until }); },
     async banPlayer(u, until) { const p = players.find((x) => x.id === u); if (p) p.banned = !!until; const r = board.find((x) => x.userId === u); if (r) r.banned = !!until; note('update', 'profiles', { user: u, banned_until: until }); },
     async verifyScore(u) { const r = board.find((x) => x.userId === u); if (r) r.status = 'verified'; note('verify', 'leaderboard', { user: u }); },
-    async offlineRuns(includeReviewed = false) { return { since: ago(31), until: ago(20), rows: clone(offlineRuns.filter((o) => includeReviewed || !o.review)) }; },
+    async offlineRuns(includeReviewed = false, since = null, until = null) {
+      const s = since ?? ago(31), u = until ?? ago(20);
+      return { since: s, until: u, rows: clone(offlineRuns.filter((o) => (includeReviewed || !o.review) && o.startedAt >= s && o.startedAt <= u)) };
+    },
     async rankOfflineRun(id) {
       const o = offlineRuns.find((x) => x.id === id);
       if (!o) throw new Error('RUN_NOT_FOUND');

@@ -52,9 +52,19 @@ function BoardTable({ api, board }: { api: AdminApi; board: string }) {
   );
 }
 
+/** ISO time → the value of an `<input type="datetime-local">` (local time), and back. */
+const toLocalInput = (iso: string): string => {
+  const d = new Date(iso), p = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const fromLocalInput = (v: string): string | null => (v ? new Date(v).toISOString() : null);
+const daysAgo = (n: number): string => new Date(Date.now() - n * 864e5).toISOString();
+
 function OfflineReview({ api }: { api: AdminApi }) {
   const [includeReviewed, setIncludeReviewed] = useState(false);
-  const data = useData(() => api.offlineRuns(includeReviewed), [includeReviewed]);
+  // null = the server's default (the last maintenance window)
+  const [range, setRange] = useState<{ since: string | null; until: string | null }>({ since: null, until: null });
+  const data = useData(() => api.offlineRuns(includeReviewed, range.since, range.until), [includeReviewed, range.since, range.until]);
   const act = async (label: string, fn: () => Promise<unknown>): Promise<void> => { try { await fn(); toast(label); data.reload(); } catch (e) { toast('ไม่สำเร็จ: ' + (e as Error).message); } };
   const rank = async (r: OfflineRunRow): Promise<void> => {
     try {
@@ -71,7 +81,19 @@ function OfflineReview({ api }: { api: AdminApi }) {
     <Card title="Run ที่เล่นช่วงปิดปรับปรุง (offline)" right={<label class="row small"><input type="checkbox" checked={includeReviewed} onChange={(e) => setIncludeReviewed((e.target as HTMLInputElement).checked)} /> แสดงที่ตรวจแล้วด้วย</label>}>
       {!data.data ? <Loading error={data.error} /> : (
         <>
-          <p class="small mut">ช่วงเวลา {fmtTime(data.data.since)} – {fmtTime(data.data.until)} (ค่าเริ่มต้น = ช่วงปิดปรับปรุงล่าสุด)</p>
+          <div class="row small" style="flex-wrap:wrap;gap:6px;align-items:center">
+            <span>ตั้งแต่</span>
+            <input type="datetime-local" value={toLocalInput(data.data.since)}
+              onChange={(e) => setRange({ since: fromLocalInput((e.target as HTMLInputElement).value), until: data.data!.until })} />
+            <span>ถึง</span>
+            <input type="datetime-local" value={toLocalInput(data.data.until)}
+              onChange={(e) => setRange({ since: data.data!.since, until: fromLocalInput((e.target as HTMLInputElement).value) })} />
+            <button onClick={() => setRange({ since: null, until: null })}>ช่วงปิดปรับปรุงล่าสุด</button>
+            {/* both ends explicit: with no `until` the server would stop at the first maintenance end after `since` */}
+            <button onClick={() => setRange({ since: daysAgo(7), until: daysAgo(0) })}>7 วันล่าสุด</button>
+            <button onClick={() => setRange({ since: daysAgo(30), until: daysAgo(0) })}>30 วันล่าสุด</button>
+          </div>
+          <p class="small mut">ช่วงเวลา {fmtTime(data.data.since)} – {fmtTime(data.data.until)}{range.since || range.until ? '' : ' (ค่าเริ่มต้น = ช่วงปิดปรับปรุงล่าสุด)'}</p>
           {data.data.rows.length === 0 ? <p class="mut">ไม่มี Run ที่ต้องตรวจ</p> : (
             <table><thead><tr><th>ชื่อ</th><th>ฮีโร่</th><th>Ch</th><th>คะแนน</th><th>ฆ่า</th><th>Gold (% เพดาน)</th><th>เวลาเล่น</th><th>สถานะ</th><th /></tr></thead><tbody>
               {data.data.rows.map((r) => (
