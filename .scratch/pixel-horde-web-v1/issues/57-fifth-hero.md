@@ -90,4 +90,5 @@ website (home / guide / skills / world), playtest bot + suites, tests.
   `wLink` 1.3 restores it.
 - To publish: balance pass `2026-09-mora` (`heroes.necromancer.pool` 1, `levelup.wLink` 1.3).
 
-**Status:** ready-for-human (owner: review the art in game, publish the pass after the migration is applied)
+**Status:** ready-for-human (merged 2026-09-27 in PR #53; migration 0037 is applied and pass `2026-09-mora` is live in config v11.
+Waiting for the owner to review the art in game and playtest)

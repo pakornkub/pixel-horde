@@ -9,9 +9,9 @@ single self-contained HTML file (`pixel-horde.html`, ~1,750 lines, vanilla JS + 
 - Explain simply, with examples; interactive widgets/visuals are welcome for anything non-trivial.
 - The owner decides design questions; ask with a recommended option first.
 - Plan so far: Blueprint `docs/blueprint/pixel-horde-blueprint.md` → spec `.scratch/pixel-horde-web-v1/spec.md`
-  → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/`, plus follow-ups 45 (triage routine + work items)
-  and 46 (spawn wave fronts). The code for all of them is in; most wait for an owner playtest / review or an owner-only
-  setup step (see each ticket's **Status**). New work gets new tickets.
+  → 44 implementation tickets in `.scratch/pixel-horde-web-v1/issues/`, plus follow-ups 45–60 (triage routine, wave fronts,
+  overflow picks, and the post-win content: forge, outfits, ending, Mora, Awakened slots). The code for most of them is
+  in; most wait for an owner playtest / review or an owner-only setup step (see each ticket's **Status**). New work gets new tickets.
 - Player-facing docs: the official website `apps/site` (served at `/`, the game at `/play/`) and `README.md` /
   `README.th.md`. When gameplay changes, check the site's own sentences in `apps/site/src/text.ts` (names and sprites come
   from the code; numbers from the live Balance Config via `apps/site/src/backend.ts`, built-in defaults when offline) and re-take screenshots with `npm run shots` if the look changed.
@@ -83,7 +83,11 @@ clear screen — never at the next Stage start.
   Difficulty follows the Chapter number, not the Realm. A Chapter clears only when its King dies; after the timer
   comes 45 s of overtime, then the King **escapes** (no King rewards, Umbra stronger, one re-pick for that Chapter).
 - Kings: 2 telegraphed moves + an ultimate below 50% HP (`KING_KITS`). Umbra: 3 phases (shadow skills → stolen King
-  ultimates below 66% → darkened heart below 33%). Beating Umbra → Endless mode and Heart Crack tiers 1–3.
+  ultimates below 66% → darkened heart below 33%). Beating Umbra → the ending pictures + Unlocked page (ticket 55),
+  Endless mode and Heart Crack tiers (1–3; pass 2026-09e sets `heartCrack.ramp` 1 + `maxTier` 10: even steps, and
+  Score × (1 + `score.crack` × tier), live 0.5). After the first win the title also gets an Endless button
+  (`mode: 'endless'`): Chapter 1 on, a random Realm every Chapter (never the same twice in a row), no Umbra, no main
+  Score; the Endless Score counts from Chapter 9 like Endless after Umbra.
 - Enemy HP: `base * 1.5^(stage-1) * (1 + 0.7*progress) * (1 + 0.08*(playerLv-1)) * (0.85 + 0.15*director)`.
   `scaling.lvCapBase/lvCapPerCh` (2026-09b) cap the counted playerLv at `base + perCh*(stage-1+progress)` for HP, damage and armor.
 - Enemy dmg: `base * 1.18^(stage-1) * (1 + 0.5*progress) * (1 + 0.015*(playerLv-1))`, each hit ±15%.
@@ -113,8 +117,9 @@ clear screen — never at the next Stage start.
   Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%),
   Mora/Necromancer 2000G, sold only after a win (ticket 57; Soul Rise Skeletons, minions +25%, Links Soul Drain / Bone Prison /
   Wailing Skulls, Lich form; `levelup.wLink` weighs a Hero's own Links; `legend` stays the original four + `winMora`).
-- Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP, capped at 8% of a boss
-  (Umbra 5%). 11 Weapons change only its look, colour and name (`weapon.<id>.ult`; default Judgement); a King drops its
+- Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP (`ult.mobHp`), capped at 8% of a boss
+  (Umbra 5%); `ult.bossHit` (pass 2026-09i sets 1, and `mobHp` 3) makes every strike on a boss take at least that share
+  of the cap. 11 Weapons change only its look, colour and name (`weapon.<id>.ult`; default Judgement); a King drops its
   Realm's Weapon at 5%. At any Stage end the player can switch to any usable Weapon (Judgement, collection, found this Run).
 - Shop (permanent): Power, Vigor, Agility, Greed, Wisdom, Second Wind (revive). A revive can also be bought in a Run
   (75G × Chapter, once, −15% Score).
@@ -152,7 +157,9 @@ clear screen — never at the next Stage start.
   every 150 ms; take contact/hazard damage locally; gain team XP/kills/gold/chests from deltas.
 - Drops are shared ("help each other collect"): the host owns them and sends them packed in the
   snapshot (7 chars each); anyone standing picks them up (guests at their reported position);
-  EXP, Gold and chests go to the whole team; a heart heals and a Shield pickup guards the picker + allies within `coop.heartShare`.
+  EXP, Gold and chests go to the whole team (with `coop.goldSplit` 1, live since config v8: Gold goes to a team pot split
+  evenly at each Stage end, and a dropped chest belongs to whoever takes it; King and Blood Moon chests still go to
+  everyone); a heart heals and a Shield pickup guards the picker + allies within `coop.heartShare`.
 - Kings aim their moves at the nearest standing player (never at a downed host).
 - Guest presence: position, hp, lv, down, facing, char, `sel` (choosing upgrade), pet, `pk` (pickup radius).
 
@@ -165,7 +172,9 @@ Balance passes: `npm run playtest` (scripts/playtest, a human-like bot with dama
 Recommended tuning lives in `packages/config/src/balance-pass.ts` (patch + Thai report; the report is stored with the
 published version in `config_reports` and shown in Admin → Balance → รายงาน) and is published from Admin → Balance, never by
 changing built-in defaults (version 0 must equal the migration seed). Passes loaded onto one draft stack their patches, reports
-and patch notes. Live history: v4 = pass 2026-09, v5 = 2026-09b, v6 = 2026-09c (Director). Base difficulty (ticket 48,
+and patch notes. Live history: v4 = pass 2026-09, v5 = 2026-09b, v6 = 2026-09c (Director), v7 = 2026-09d (Signatures, co-op),
+v8 = co-op pass 2 (`coop.goldSplit`), v9 = + 2026-09f/09g, v10 = + 2026-09e (Heart Crack 1–10), v11 (live) = + 2026-09h
+(Awakened slots), 09i (Ultimate) and 09-mora. Base difficulty (ticket 48,
 `packages/config/src/difficulty.ts`): the Balance Config group `shared.difficulty` multiplies the numbers written in the
 config (monster/boss HP and damage, spawns, EXP, boss warnings, King pace, player HP, hearts, Ultimate charge, Director
 max, in-Run Gold); `resolveConfig` applies it, so every number the sim or the website reads already includes it. Its defaults

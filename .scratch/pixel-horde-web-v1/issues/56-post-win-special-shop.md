@@ -31,7 +31,8 @@ Weapon forge rules (simple version, every number in Balance Config `shared.forge
 
 **Blocked by:** —
 
-**Status:** ready-for-human (owner playtest; the migration goes live with the build)
+**Status:** ready-for-human (merged 2026-09-27 in PR #46, review fixes in PR #50; migration 0036 is applied. Waiting for an owner
+playtest; open: the 11 Weapon icons)
 
 - [x] Balance Config group `shared.forge` (+ Thai descriptions, changelog category economy)
 - [x] Sim: `Meta.forge`, `forgeLevel/forgeMul/forgeStun/forgeCost/forgeKey` (packages/sim/src/data/weapons.ts); the

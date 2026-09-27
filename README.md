@@ -43,7 +43,7 @@ Pick one of five Heroes, walk into the swarm and bring the shards home.
 | **Skills** | Everything fires by itself. Collect blue EXP crystals to level up and pick 1 of 3 cards. |
 | **Ultimate** | `SPACE` (or the ULT button) when the gauge is full. |
 | **Goal** | 8 Chapters per Run: Greenvale → pick 1 of 2 Realms six times → Heart Crater → Umbra. Clear a Chapter by defeating its King before it escapes. |
-| **Keep** | Only Gold survives a Run — spend it on permanent upgrades and new Heroes. |
+| **Keep** | Only Gold survives a Run — spend it on permanent upgrades, new Heroes and, after your first win, the Special shop. |
 
 The full illustrated guide, with things you can click and try, lives on the website:
 [How to play](https://pixel-horde.pages.dev/guide.html) ·
@@ -52,13 +52,14 @@ The full illustrated guide, with things you can click and try, lives on the webs
 
 ### What is inside
 
-- **5 Heroes** — Lyra (area mage), Bram (shield knight), Kit (fast ranger), Vex (combo alchemist) and, after your first win, Mora (Necromancer with an army of Skeletons). Each has a Signature Skill and can **Awaken** into a new form with three new Awakened skills (with the current balance your Links stay and a 5th attack slot opens).
-- **28 skills, 6 passives, 16 Evolutions** — max a skill and own its paired passive to evolve it. The Bench keeps spare skills and passives for later.
+- **5 Heroes** — Lyra (area mage), Bram (shield knight), Kit (fast ranger), Vex (combo alchemist) and, after your first win, Mora (Necromancer with an army of Skeletons). Each has a Signature Skill and can **Awaken** into a new form with three new Awakened skills, which get three Awakened slots of their own (7 attack skills in all).
+- **35 skills, 6 passives, 20 Evolutions** — max a skill and own its paired passive to evolve it. The Bench keeps spare skills and passives for later.
 - **7 element Combos** — freeze then smash (*Shatter*), shock then burn (*Overload*), gather then sweep (*Grinder*)…
 - **10 Kings + Umbra** — telegraphed moves, an ultimate below half HP, and far too much to say.
 - **Special events** — Blood Moon nights, three Guardian dragons to tame (and fuse), a Shadow Rival wearing your face, double-King Stages.
 - **11 Weapons**, each with its own Ultimate (Judgement, Solar Flare, Thunderstorm…), a permanent Shop, achievements, Titles and seasonal leaderboards.
-- One difficulty for everyone (every Run is ranked); beating Umbra unlocks **Heart Crack** tiers 1–3 for a harder Run. A camera-distance setting and an in-game **Feedback** button.
+- **After your first win** — a story ending, the **Special shop** (forge your Weapons, collect outfit sets in 4 elements), an **Endless** button on the title screen, and Mora for sale.
+- One difficulty for everyone (every Run is ranked); beating Umbra unlocks **Heart Crack** tiers 1–10 for a harder Run (+50% Score per tier). A camera-distance setting and an in-game **Feedback** button.
 - **Co-op for up to 4** over one invite link, and full **offline** solo play.
 - **Thai / English** everywhere. Every change is listed on the website's [Updates](https://pixel-horde.pages.dev/updates.html) page, and the title screen shows the newest one.
 
@@ -95,7 +96,7 @@ npm run playtest -- heroes 16   # balance bot, see scripts/playtest/README.md
 ```
 
 - Game URL flags: `?offline` (no backend; the last cached Balance Config, else the built-in defaults) and
-  `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events;
+  `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events, `?debug=ending` for the Umbra ending;
   press **I** in a Run for the balance meter (DPS, TTK, multipliers, Director, mob count).
 - Balance changes never touch the built-in defaults: passes live in `packages/config/src/balance-pass.ts` and are published
   as new Balance Config versions from the Admin Console (Admin → Balance), together with a report and patch notes.

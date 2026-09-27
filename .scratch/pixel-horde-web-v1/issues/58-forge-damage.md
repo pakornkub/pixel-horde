@@ -30,7 +30,8 @@ Review notes folded in (Tester + UX/UI on PR #46):
 
 **Blocked by:** —
 
-**Status:** ready-for-human (QA again: the forge now adds damage; migration 0040)
+**Status:** ready-for-human (merged 2026-09-27 in PR #50; migration 0040 is applied, and pass `2026-09i` (PR #56, `ult.bossHit`) is
+live in config v11. Waiting for an owner playtest)
 
 - [x] Balance Config `shared.forge.dmg / bossCap / umbraCap` (+ Thai descriptions); `forgeDmg`, `ultCap` helpers
 - [x] Sim: Ultimate strike × `forgeDmg`; `rawHit` / `remoteHit` cap through `ultCap`
