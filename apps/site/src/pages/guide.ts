@@ -294,7 +294,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   const U = C.ult;
   sec('ultimate', 'g.ult.h', T('g.ult.p', { s: U.fill, m: Math.round(U.fill / (1 + U.killCap)) }, 'p'), el('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, gauge, el('span.key.wide', null, 'SPACE')),
     T('g.ult.w', { p: pct(C.weapons.drop) }, 'p'),
-    T('g.ult.forge', { n: C.forge.max, p: pct(C.forge.thornwhip) }, 'p'),
+    T('g.ult.forge', { n: C.forge.max, d: pct(C.forge.dmg), c: pct(C.forge.bossCap), p: pct(C.forge.thornwhip) }, 'p'),
     el('div.demo', null, el('div', { style: 'display:flex;gap:10px;align-items:end;margin-bottom:14px' }, ...HERO_IDS.map((h) => hero(h, 3, 'down'))), weps));
 }
 
