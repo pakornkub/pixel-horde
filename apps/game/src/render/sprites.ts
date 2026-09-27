@@ -1,6 +1,6 @@
 // Builds sprite canvases once at boot from the per-Realm sprite files (apps/game/src/sprites).
 // Recoloured variants (hit flash, elite, frozen, armored, shadow) are generated here.
-import { ENEMY_IDS, WEAPONS, type WeaponId } from '@pixel-horde/sim';
+import { ENEMY_IDS, HERO_IDS, WEAPONS, type WeaponId } from '@pixel-horde/sim';
 import { WEAPON_HELD } from '../sprites/lumora/heroes';
 import { SPRITES } from '../sprites/lumora';
 import { OUTLINE, TRANSPARENT, type SpriteDef } from '../sprites/types';
@@ -53,7 +53,7 @@ const sheet = (n: C): Sheet => ({ n, w: recolor(n, '#ffffff', 1), e: recolor(n, 
 const frames = (d: SpriteDef): C[] => d.frames.map((rows) => spr(rows, d.pal));
 
 export const HERO_SPR: Record<string, HeroSheet> = {};
-for (const k of ['mage', 'knight', 'ranger', 'alchemist']) {
+for (const k of HERO_IDS) {
   const r = frames(SPRITES[k]);
   const dk = r.map((f) => recolor(f, '#2a1f3d', 0.55));
   HERO_SPR[k] = { r, l: r.map(flip), down: frames(SPRITES[k + '_down']), up: frames(SPRITES[k + '_up']), w: recolor(r[0], '#ffffff', 1), dk, dkl: dk.map(flip) };
@@ -79,4 +79,10 @@ export const PET_SPR: Record<string, [C, C]> = {
   inferno: [PET_R, PET_LEFT],
   frost: [frames(SPRITES.petFrost)[0], flip(frames(SPRITES.petFrost)[0])],
   storm: [frames(SPRITES.petStorm)[0], flip(frames(SPRITES.petStorm)[0])],
+};
+
+/** Mora's minions: Skeleton and Frost Wraith, 2 walk frames each ([right, left] per frame). */
+export const MINION_SPR: Record<'minion' | 'wraith', [C, C][]> = {
+  minion: frames(SPRITES.minion).map((c) => [c, flip(c)]),
+  wraith: frames(SPRITES.wraith).map((c) => [c, flip(c)]),
 };

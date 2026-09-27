@@ -33,8 +33,9 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .btn:focus-visible,.opt:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .stats{display:grid;grid-template-columns:1fr auto;gap:4px 16px;margin:0 0 16px;font-size:15px}
 .stats span:nth-child(even){font-family:var(--pix);font-size:12px;align-self:center;text-align:right}
-/* gold text on the paper background was unreadable (see the score total's own fix below); ink on a gold chip instead */
-.stats .money{color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:3px}
+/* Gold earned: dark-gold text after a small coin, never the gold chip that marks Score totals (money must not read as score) */
+.stats .money{color:#9a6a00}
+.stats .money::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2px #9a6a00;vertical-align:0}
 .best{font-size:13px;opacity:.75;margin-top:10px;text-align:center}
 
 .slots{font-size:14px;margin:-6px 0 12px;opacity:.8}
@@ -48,11 +49,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .buy{font-family:var(--th);font-weight:700;font-size:14px;border:0;border-radius:4px;background:var(--ink);color:var(--paper);padding:8px 10px;cursor:pointer;white-space:nowrap}
 .buy:disabled{opacity:.35;cursor:default}
 .buy:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.chars{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.chars{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 8px}
 .ch{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--paper2);border:3px solid transparent;border-radius:4px;padding:6px 2px;cursor:pointer;font:inherit;color:inherit}
 .ch img{width:48px;height:48px;image-rendering:pixelated}
 .ch .cn{font-family:var(--pix);font-size:8px}
 .ch .cc{font-size:12px}
+@media (max-width:420px){.ch img{width:40px;height:40px}.ch .cn{font-size:7px}.ch .cc{font-size:11px}}
 .ch.sel{border-color:var(--ink);background:#fff3b8}
 .ch.locked img{filter:grayscale(1) brightness(.6)}
 .ch:focus-visible{outline:3px solid var(--gold);outline-offset:2px}

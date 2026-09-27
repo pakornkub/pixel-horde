@@ -1,7 +1,7 @@
 // Meta progression. The server owns Gold/Shop/unlocks (ticket 09); this module keeps a local cache
 // (`pixelhorde-meta`, also the offline save) plus a queue of offline actions, and lets the server
 // win whenever it is reachable. The old artifact save is uploaded once.
-import { ACHIEVEMENTS, HERO_IDS, WEAPON_IDS, addToLifetime, forgeCost, forgeKey, forgeLevel, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
+import { ACHIEVEMENTS, AFTER_WIN, HERO_IDS, WEAPON_IDS, addToLifetime, forgeCost, forgeKey, forgeLevel, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
 import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta, type SubmitOutcome } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
@@ -170,7 +170,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (lv >= active.cfg.shop[id].max) return new BackendError('MAXED');
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.buyUpgrade(id)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.buyUpgrade(id)); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.up[id] = lv + 1;
@@ -181,10 +181,11 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
 
   async function unlockHero(k: HeroId): Promise<BackendError | null> {
     if (ownsHero(k)) return null;
+    if (AFTER_WIN.includes(k) && !hasWon()) return new BackendError('NEEDS_WIN');
     const cost = active.cfg.heroes[k].cost;
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.unlockHero(k)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.unlockHero(k)); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.owned.push(k);
@@ -207,7 +208,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     if (lv >= active.cfg.forge.max) return new BackendError('MAXED');
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
-      try { applyServer(await backend.forgeWeapon(w)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+      try { applyServer(await backend.forgeWeapon(w)); return null; } catch (e) { if (!(e instanceof BackendError) || (e.code !== 'OFFLINE' && e.code !== 'MAINTENANCE')) return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
     }
     meta.gold -= cost;
     meta.forge[w] = lv + 1;

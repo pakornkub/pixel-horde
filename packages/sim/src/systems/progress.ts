@@ -1,5 +1,5 @@
-import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
-import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
+import { EVO_PASSIVE, PASSIVE_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
+import { AWAKENING, SKILL_LINES, generalSkills, signatureOf } from '../data/heroes';
 import { crackConfig } from '@pixel-horde/config';
 import { ipow } from '../core/fmath';
 import type { LevelOption, LimitBreakId, SimState } from '../types';
@@ -36,6 +36,7 @@ export function startStage(s: SimState, n: number): void {
   const D = s.cfg.director;
   if (D.stageReset > 0) s.dir.v += (D.start - s.dir.v) * D.stageReset; // pressure built up last Stage eases off
   s.enemies = []; s.bolts = []; s.effects = [];
+  if (s.graves) s.graves = [];
   for (const g of s.gems) if (g.kind === 'xp') { P.xp += g.v * xpShare(s); if (s.coop?.role === 'host') s.coop.teamXp += g.v; } // co-op: shared
   s.gems = [];
   levelCheck(s);
@@ -249,15 +250,17 @@ export function buildOptions(s: SimState): LevelOption[] {
   }
   const c: { o: LevelOption; w: number }[] = [];
   const sig = signatureOf(P.ch), benchFree = P.bench.length < benchSize(s);
-  for (const id of [...SKILL_IDS, sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
+  const links = SKILL_LINES[P.ch];
+  for (const id of [...generalSkills(P.ch, s.cfg.heroes.necromancer.pool), sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max || s.banished.includes(id)) continue;
+    const wl = links.includes(id) ? L.wLink : 1; // the Hero's own Links (a bigger skill pool made them rarer)
     if (!lv) {
       if (P.bench.some((b) => b.id === id)) continue;
       const free = slotFree(s, id);
       if (!free && !benchFree) continue;
-      c.push({ o: free ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * (isLine(id) ? s.cfg.awaken.wLine : 1) });
-    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
+      c.push({ o: free ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * wl * (isLine(id) ? s.cfg.awaken.wLine : 1) });
+    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * wl * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
   }
   const pasFree = Object.keys(P.pas).length < s.cfg.passiveSlots, pasBench = !!s.cfg.bench.passives && benchFree;
   for (const id of PASSIVE_IDS) {

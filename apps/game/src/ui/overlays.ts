@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, attackSlots, inLineSlot, lineSlots, qualifiedLinks, slotUse, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
+import { AFTER_WIN, AWAKENING, EVO_PASSIVE, attackSlots, inLineSlot, lineSlots, qualifiedLinks, slotUse, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -10,6 +10,7 @@ import { iconHtml } from './icons';
 import { onHeroPath } from './path';
 import { PASSIVE_ICON, SHOP_ICON, SKILL_ICON, elementName, kingName, realmName, traitName, evoDesc, evoName, heroDesc, heroName, heroRole, passiveDesc, passiveName, shopDesc, shopName, formDesc, skillDescIn, skillDetail, skillName } from './text';
 import { realmIcon } from './realm-icon';
+import { fmtN } from '../fmt';
 
 export const $ = (id: string): HTMLElement => document.getElementById(id)!;
 export const show = (id: string): void => { $(id).classList.add('on'); };
@@ -28,8 +29,8 @@ export function renderTitleStats(): void {
     c.append(l, v);
     el.append(c);
   };
-  chip(t('stat.wallet'), META.gold.toLocaleString() + ' G');
-  if (bb) chip(t('title.bestLabel'), t('title.bestValue', { stage: bb.stage, kills: bb.kills.toLocaleString() }));
+  chip(t('stat.wallet'), fmtN(META.gold) + ' G');
+  if (bb) chip(t('title.bestLabel'), t('title.bestValue', { stage: bb.stage, kills: fmtN(bb.kills) }));
 }
 
 export function bestLine(): string {
@@ -38,7 +39,7 @@ export function bestLine(): string {
 }
 
 export function statRows(rows: [string, string | number, string?][]): string {
-  return rows.map(([a, c, cls]) => `<span>${a}</span><span${cls ? ` class="${cls}"` : ''}>${c}</span>`).join('');
+  return rows.map(([a, c, cls]) => `<span>${a}</span><span${cls ? ` class="${cls}"` : ''}>${typeof c === 'number' ? fmtN(c) : c}</span>`).join('');
 }
 
 /* ---------- hero select ---------- */
@@ -59,15 +60,17 @@ export function renderChars(): void {
   const box = $('chars');
   box.innerHTML = '';
   for (const k of HERO_IDS) {
-    const c = active.cfg.heroes[k], name = heroName(k), owned = ownsHero(k);
+    const c = active.cfg.heroes[k], name = heroName(k), owned = ownsHero(k), afterWin = !owned && AFTER_WIN.includes(k) && !metaSync.hasWon();
     const bt = document.createElement('button');
-    bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked');
+    bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked') + (afterWin ? ' afterwin' : '');
     const im = document.createElement('img'); im.alt = ''; im.src = charImg(k);
+    if (afterWin) im.style.filter = 'brightness(0)'; // a silhouette until the first win
     const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = name;
-    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : t('hero.unlock', { cost: c.cost });
+    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : afterWin ? t('hero.afterWin') : t('hero.unlock', { cost: c.cost });
     bt.append(im, cn, cc);
     bt.addEventListener('click', () => {
       void (async () => {
+        if (afterWin) { $('chDesc').textContent = t('hero.needWin', { name, cost: c.cost }); return; }
         if (!owned) {
           if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
           const err = await metaSync.unlockHero(k);
@@ -121,6 +124,8 @@ function renderCracks(): void {
 
 /* ---------- shop ---------- */
 let shopFrom = 'ovTitle';
+/** Shop message for a refused purchase. */
+const shopBuyError = (err: { code: string } | null): string => (!err ? '' : err.code === 'NOT_ENOUGH_GOLD' ? t('special.noGold') : t('special.err'));
 function renderShop(): void {
   $('shopGold').textContent = 'GOLD ' + META.gold;
   const list = $('shopList');
@@ -137,6 +142,9 @@ function renderShop(): void {
     bt.addEventListener('click', async () => {
       bt.disabled = true;
       const err = await metaSync.buy(id);
+      const msgEl = $('shopMsg');
+      msgEl.textContent = shopBuyError(err);
+      msgEl.hidden = !err;
       if (!err) sfx('lv');
       renderShop();
     });
@@ -147,6 +155,7 @@ function renderShop(): void {
 export function openShop(from: string): void {
   shopFrom = from;
   hide(from);
+  $('shopMsg').hidden = true;
   renderShop();
   show('ovShop');
   focusSoon('shopBack');
@@ -357,7 +366,7 @@ export function showClear(v: Readonly<SimState>, runGold: number): void {
   $('clearNote').textContent = escaped ? (v.repicks < v.cfg.stage.escapeRepicks && v.realm !== 'crater' ? t('clear.escapedNote') : t('clear.escapedNoRepick')) : t('clear.note');
   const sp = v.coop?.split, split: [string, string][] = sp && sp.st === v.stage && sp.total > 0
     ? [[t('stat.teamGold'), t('coop.split', { total: Math.round(sp.total), n: sp.players, mine: Math.round(sp.mine), got: sp.got })]] : [];
-  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), runGold.toLocaleString() + ' G', 'money'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('clearStats').innerHTML = statRows([[t('stat.stageKills'), v.stageKills], [t('stat.runGold'), fmtN(runGold) + ' G', 'money'], ...split, [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   show('ovClear');
   focusSoon('nextBtn');
 }
@@ -619,7 +628,7 @@ function countUpBox(box: HTMLElement, b: { lines: { key: string; count: number; 
   const ta = document.createElement('span'); ta.textContent = t('score.total');
   const tb = document.createElement('span'); tb.className = 'tot'; tb.textContent = '0';
   box.append(ta, tb);
-  const fmt = (n: number): string => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US');
+  const fmt = (n: number): string => (n < 0 ? '−' : '') + fmtN(Math.abs(n));
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const per = reduce ? 0 : 450, start = performance.now();
   let raf = 0;
@@ -639,7 +648,7 @@ export function showOver(v: Readonly<SimState>, runGold: number, newAch: string[
   $('overTitle').textContent = v.endless ? t('over.endlessEnd') : v.victory ? t('over.victory') : t('over.title');
   countUps.splice(0).forEach((f) => f());
   showScore(v);
-  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), runGold.toLocaleString() + ' G', 'money'], [t('stat.wallet'), META.gold.toLocaleString() + ' G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
+  $('overStats').innerHTML = statRows([[t('stat.hero'), heroName(v.hero)], [t('stat.runGoldOver'), fmtN(runGold) + ' G', 'money'], [t('stat.wallet'), fmtN(META.gold) + ' G'], [t('stat.chapter'), v.stage], [t('stat.time'), fmtT(v.totalTime)], [t('stat.kills'), v.kills], [t('stat.streak'), v.maxStreak], [t('stat.level'), v.P.lv]]);
   $('bestOver').textContent = bestLine();
   const na = $('newAch');
   na.hidden = !newAch.length;
