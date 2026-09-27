@@ -611,6 +611,42 @@ export const BALANCE_PASS_2026_09E: BalancePass = {
   },
 };
 
+/** Ticket 57: Mora's three Links join every Hero's level-ups; the Heroes' own Links are offered a little more often so
+ *  the bigger pool (15 general Skills instead of 12) does not delay their Awakening. Needs the build with Mora. */
+export const BALANCE_PASS_2026_09_MORA: BalancePass = {
+  id: '2026-09-mora',
+  note: 'Mora (5th Hero): her Links Soul Drain, Bone Prison and Wailing Skulls are offered to every Hero; own Links weigh ×1.3',
+  patch: { shared: { heroes: { necromancer: { pool: 1 } }, levelup: { wLink: 1.3 } } },
+  changelog: {
+    titleTh: 'ฮีโร่คนที่ 5: Mora ผู้ปลุกวิญญาณ และสกิลใหม่ 3 อัน',
+    titleEn: 'The 5th Hero: Mora the Necromancer, and three new Skills',
+    items: [
+      { cat: 'hero', th: 'Mora (Necromancer) วางขายในหน้าเลือกฮีโร่หลังชนะ Run แรก ราคา 2000G: Skeleton ลุกจากหลุมศพมอนมาช่วยสู้ ตื่นพลังเป็น Lich', en: 'Mora (Necromancer) goes on sale in the Hero panel after your first win, 2000G: Skeletons climb out of monster graves to fight for her, and she Awakens as a Lich' },
+      { cat: 'skill', th: 'สกิลทั่วไปใหม่ 3 อัน ทุกฮีโร่สุ่มเจอได้: Soul Drain (สายดูดวิญญาณ ฟื้น HP), Bone Prison (กรงกระดูกขังฝูง) และ Wailing Skulls (กะโหลกไล่ล่า แช่แข็งมอน)', en: 'Three new general Skills for every Hero: Soul Drain (tethers that heal you), Bone Prison (a bone cage around a crowd) and Wailing Skulls (homing skulls that freeze)' },
+      { cat: 'skill', th: 'การ์ดเลเวลอัปของ Link ประจำฮีโร่โผล่บ่อยขึ้นเล็กน้อย ตื่นพลังได้เร็วเท่าเดิมแม้มีสกิลให้สุ่มมากขึ้น', en: 'Your Hero\'s own Links show up a little more often in level-ups, so Awakening comes as fast as before with more Skills in the pool' },
+    ],
+  },
+  report: {
+    title: 'ฮีโร่คนที่ 5 (Mora) และสกิลทั่วไปใหม่ 3 อันเข้ากองสุ่มของทุกฮีโร่',
+    summary: 'เจ้าของตัดสินใจ (2026-09-27): Hero ตัวที่ 5 เป็น Necromancer ชื่อ Mora ใช้สกิลทั่วไปใหม่ 3 อันเป็น Link ให้ทุกฮีโร่สุ่มเจอได้ ราคา 2000G ขายหลังชนะครั้งแรก '
+      + 'โค้ดใส่ Mora ได้เลยโดยไม่ต้อง publish แต่สกิลใหม่ทั้ง 3 จะไปถึงฮีโร่อื่นก็ต่อเมื่อ heroes.necromancer.pool = 1 (ชุดนี้) '
+      + 'กองสุ่มใหญ่ขึ้นจาก 12 เป็น 15 ทำให้ Link ของฮีโร่เดิมโผล่น้อยลง อัตราตื่นพลังลดลง (Vex 50→33%, Bram 42→25%, Kit 75→42%) จึงเพิ่ม levelup.wLink 1.3 ให้การ์ด Link ประจำฮีโร่มีน้ำหนักมากขึ้น',
+    method: 'บอท playtest (scripts/playtest) ร้านค้าระดับกลาง Heart Crack 3 ใส่ทุก balance pass ก่อนหน้า 12 seed ต่อฮีโร่ เทียบ pool 0 / pool 1 / pool 1 + wLink 1.3',
+    metrics: [
+      { label: 'ชนะ Umbra Crack 3 ร้านกลาง (Vex/Bram/Lyra/Kit)', before: '100/83/92/67% (pool 0)', after: 'pool 1: 92/83/75/58% · pool 1 + wLink 1.3: 100/83/92/58%' },
+      { label: 'ตื่นพลัง (Vex/Bram/Lyra/Kit)', before: '50/42/67/75%', after: 'pool 1: 33/25/58/42% · + wLink: 50/50/67/50%' },
+      { label: 'Mora ชนะ Umbra ร้านกลาง (บน 2026-09e/09g)', before: '—', after: 'Crack 0: 92% · Crack 3: 83% · Crack 6: 50% (Kit 100/83/42%)' },
+    ],
+    findings: [
+      { level: 'info', title: 'Mora อยู่กลางกลุ่ม', body: 'ค่าเริ่มต้นของ Mora จูนแล้วใน build (ดาเมจ Skeleton, Link ทั้ง 3, สกิลตื่นพลัง) ตายเพราะมอนธรรมดาเป็นหลักเหมือน Kit ถ้าอยากให้ตัวบางตามคอนเซปต์ ตั้ง heroes.necromancer.hp เป็น 10 (Crack 3 ชนะลดเหลือราว 67%)', status: 'ค่าเริ่มต้น hp 0' },
+    ],
+    reasons: {
+      'shared.heroes.necromancer.pool': 'สกิลใหม่ 3 อันของ Mora ให้ทุกฮีโร่สุ่มเจอ (เจ้าของเลือกแบบนี้)',
+      'shared.levelup.wLink': 'ชดเชยกองสุ่มที่ใหญ่ขึ้น Link ประจำฮีโร่โผล่บ่อยเท่าเดิม',
+    },
+  },
+};
+
 /** Ultimate audit (owner: "the Ultimate is weak"): a stronger strike on monsters, and bosses really lose the capped share.
  *  Needs migration 20260930000042 (ult.bossHit) and the forge code (PR #50, ultCap). Option A of the audit. */
 export const BALANCE_PASS_2026_09I: BalancePass = {
@@ -667,4 +703,4 @@ export const BALANCE_PASS_2026_09I: BalancePass = {
 };
 
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

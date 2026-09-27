@@ -14,6 +14,8 @@ export const SKILL_ICON: Record<SkillId, Icon> = {
   sacredBlades: { col: '#fff8c0', g: '/' }, judgePillar: { col: '#ffd23f', g: '|' }, aegisDome: { col: '#ffe9a8', g: 'D' },
   arrowRain: { col: '#c48a55', g: 'A' }, galeStep: { col: '#d8f3e0', g: '~' }, thunderHawk: { col: '#fff35c', g: 'V' },
   cauldron: { col: '#ff9f5c', g: 'U' }, transmute: { col: '#ff5cf4', g: '$' }, elixirRain: { col: '#6fe36a', g: '!' },
+  soulDrain: { col: '#b07cff', g: 'Y' }, bonePrison: { col: '#efe6cf', g: '#' }, wailSkull: { col: '#cfe8ff', g: 'K' }, soulRise: { col: '#e8e0c8', g: '&' },
+  boneSpear: { col: '#efe6cf', g: 'J' }, soulfire: { col: '#7dffb0', g: 'E' }, boneWard: { col: '#e8e0c8', g: 'G' },
 };
 export const PASSIVE_ICON: Record<PassiveId, Icon> = {
   might: { col: '#ff7a7a', g: '+' }, haste: { col: '#c9a8ff', g: 'H' }, swift: { col: '#a9e38a', g: 'S' },
@@ -52,6 +54,7 @@ export function heroDesc(cfg: ResolvedConfig, id: HeroId): string {
     knight: { hp: H.knight.hp, spd: pc(H.knight.spd) },
     ranger: { spd: pc(H.ranger.spd), pick: pc(H.ranger.pick), hp: H.ranger.hp ? t('hero.ranger.hp', { n: H.ranger.hp }) : '' },
     alchemist: { cd: pc(H.alchemist.cd), status: pc(H.alchemist.status) },
+    necromancer: { minion: pc(H.necromancer.minion), hp: H.necromancer.hp ? t('hero.necromancer.hp', { n: H.necromancer.hp }) : '' },
   };
   return t(`hero.${id}.desc`, args[id]);
 }
@@ -76,7 +79,7 @@ export function bannerText(key: BannerKey, a: Record<string, string | number>, r
 }
 
 export function skillDetail(id: SkillId, s: SkillStats): string {
-  const args = { dmg: Math.round(s.dmg), n: s.n, jumps: s.jumps, r: Math.round(s.r), len: s.len, boom: s.boom, cd: Math.round(s.cd * 10) / 10 };
+  const args = { dmg: Math.round(s.dmg), n: s.n, jumps: s.jumps, r: Math.round(s.r), len: s.len, boom: s.boom, cd: Math.round(s.cd * 10) / 10, max: s.max };
   let out = t(`skill.${id}.detail`, args);
   if (id === 'bolt' && s.pierce) out += t('skill.bolt.pierce', { n: s.pierce });
   return out;

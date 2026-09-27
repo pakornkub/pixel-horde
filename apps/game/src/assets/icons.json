@@ -5,6 +5,9 @@
   "aegisDome",
   "arrowRain",
   "bolt",
+  "bonePrison",
+  "boneSpear",
+  "boneWard",
   "boomer",
   "cauldron",
   "chain",
@@ -31,12 +34,16 @@
   "sacredBlades",
   "shield",
   "sigil",
+  "soulDrain",
+  "soulRise",
+  "soulfire",
   "starfall",
   "swift",
   "thunderHawk",
   "timeWarp",
   "toxic",
   "transmute",
-  "vital"
+  "vital",
+  "wailSkull"
  ]
 }

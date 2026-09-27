@@ -30,7 +30,7 @@ for (const [name, viewport] of ENDING_SIZES) {
     }
     expect(new Set(caps).size).toBe(4);
     await expect(page.locator('#endUnlock')).toBeVisible();
-    await expect(page.locator('#endList li')).toHaveCount(5); // Heart Crack 1, Endless, special shop, a Weapon, the achievements folded into one line
+    await expect(page.locator('#endList li')).toHaveCount(6); // Heart Crack 1, Endless, special shop, Mora on sale, a Weapon, the achievements folded into one line
     await expect(page.locator('#finishBtn')).toBeInViewport();
     await expect(page.locator('#endlessBtn')).toBeInViewport();
     await page.screenshot({ path: info.outputPath('unlocked.png') });

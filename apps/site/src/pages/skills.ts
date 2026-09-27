@@ -314,7 +314,7 @@ renderLab();
     return el('div.panel.line-card', null,
       el('div.who', null, hero(h, 5), G(`hero.${h}.name`, undefined, 'b', 'pixh'), G(`hero.${h}.role`, undefined, 'span', 'muted')),
       el('div.flow', null,
-        box('lines.sig', el('span.skname', null, skillIcon(sig), sname(sig)), el('span', null, '→'), el('span.skname', null, passiveIcon(evoPassive(sig)!, 'sm'), G(`evo.${sig}.name`))),
+        box('lines.sig', el('span.skname', null, skillIcon(sig), sname(sig)), el('span', null, '→'), el('span.skname', null, G(`evo.${sig}.name`)), el('span.skname', { style: 'opacity:.8' }, '+', passiveIcon(evoPassive(sig)!, 'sm'), G(`passive.${evoPassive(sig)}.name`))),
         el('span.arr', null, '+'),
         box('lines.links', ...SKILL_LINES[h].map((id) => el('span.skname', null, skillIcon(id, 'sm'), sname(id)))),
         el('span.arr', null, '→'),
