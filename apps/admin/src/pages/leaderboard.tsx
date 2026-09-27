@@ -64,7 +64,26 @@ function OfflineReview({ api }: { api: AdminApi }) {
   const [includeReviewed, setIncludeReviewed] = useState(false);
   // null = the server's default (the last maintenance window)
   const [range, setRange] = useState<{ since: string | null; until: string | null }>({ since: null, until: null });
+  const [preset, setPreset] = useState<'maint' | '7' | '30' | 'custom'>('maint');
   const data = useData(() => api.offlineRuns(includeReviewed, range.since, range.until), [includeReviewed, range.since, range.until]);
+  const shown = data.data ? { since: data.data.since, until: data.data.until } : null;
+  const pick = (p: 'maint' | '7' | '30'): void => {
+    setPreset(p);
+    // both ends explicit: with no `until` the server would stop at the first maintenance end after `since`
+    setRange(p === 'maint' ? { since: null, until: null } : { since: daysAgo(p === '7' ? 7 : 30), until: daysAgo(0) });
+  };
+  // typed dates are committed on blur / Enter, never per keystroke (a reload per key broke keyboard entry)
+  const commit = (which: 'since' | 'until', v: string): void => {
+    const iso = fromLocalInput(v);
+    if (!iso || !shown || iso === shown[which]) return;
+    setPreset('custom');
+    setRange({ since: range.since ?? shown.since, until: range.until ?? shown.until, [which]: iso });
+  };
+  const dateInput = (which: 'since' | 'until') => shown && (
+    <input type="datetime-local" key={which + shown[which]} defaultValue={toLocalInput(shown[which])}
+      onBlur={(e) => commit(which, (e.target as HTMLInputElement).value)}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit(which, (e.target as HTMLInputElement).value); }} />
+  );
   const act = async (label: string, fn: () => Promise<unknown>): Promise<void> => { try { await fn(); toast(label); data.reload(); } catch (e) { toast('ไม่สำเร็จ: ' + (e as Error).message); } };
   const rank = async (r: OfflineRunRow): Promise<void> => {
     try {
@@ -79,21 +98,18 @@ function OfflineReview({ api }: { api: AdminApi }) {
     : <Tag>รอตรวจ</Tag>;
   return (
     <Card title="Run ที่เล่นช่วงปิดปรับปรุง (offline)" right={<label class="row small"><input type="checkbox" checked={includeReviewed} onChange={(e) => setIncludeReviewed((e.target as HTMLInputElement).checked)} /> แสดงที่ตรวจแล้วด้วย</label>}>
+      <div class="row small" style="flex-wrap:wrap;gap:6px;align-items:center">
+        <span>ตั้งแต่ (ค.ศ.)</span>{dateInput('since')}
+        <span>ถึง</span>{dateInput('until')}
+        <span class="tabs">
+          <button class={preset === 'maint' ? 'on' : ''} onClick={() => pick('maint')}>ช่วงปิดปรับปรุงล่าสุด</button>
+          <button class={preset === '7' ? 'on' : ''} onClick={() => pick('7')}>7 วันล่าสุด</button>
+          <button class={preset === '30' ? 'on' : ''} onClick={() => pick('30')}>30 วันล่าสุด</button>
+        </span>
+      </div>
       {!data.data ? <Loading error={data.error} /> : (
         <>
-          <div class="row small" style="flex-wrap:wrap;gap:6px;align-items:center">
-            <span>ตั้งแต่</span>
-            <input type="datetime-local" value={toLocalInput(data.data.since)}
-              onChange={(e) => setRange({ since: fromLocalInput((e.target as HTMLInputElement).value), until: data.data!.until })} />
-            <span>ถึง</span>
-            <input type="datetime-local" value={toLocalInput(data.data.until)}
-              onChange={(e) => setRange({ since: data.data!.since, until: fromLocalInput((e.target as HTMLInputElement).value) })} />
-            <button onClick={() => setRange({ since: null, until: null })}>ช่วงปิดปรับปรุงล่าสุด</button>
-            {/* both ends explicit: with no `until` the server would stop at the first maintenance end after `since` */}
-            <button onClick={() => setRange({ since: daysAgo(7), until: daysAgo(0) })}>7 วันล่าสุด</button>
-            <button onClick={() => setRange({ since: daysAgo(30), until: daysAgo(0) })}>30 วันล่าสุด</button>
-          </div>
-          <p class="small mut">ช่วงเวลา {fmtTime(data.data.since)} – {fmtTime(data.data.until)}{range.since || range.until ? '' : ' (ค่าเริ่มต้น = ช่วงปิดปรับปรุงล่าสุด)'}</p>
+          <p class="small mut">ช่วงเวลา {fmtTime(data.data.since)} – {fmtTime(data.data.until)}{preset === 'maint' ? ' (ค่าเริ่มต้น = ช่วงปิดปรับปรุงล่าสุด)' : ''}</p>
           {data.data.rows.length === 0 ? <p class="mut">ไม่มี Run ที่ต้องตรวจ</p> : (
             <table><thead><tr><th>ชื่อ</th><th>ฮีโร่</th><th>Ch</th><th>คะแนน</th><th>ฆ่า</th><th>Gold (% เพดาน)</th><th>เวลาเล่น</th><th>สถานะ</th><th /></tr></thead><tbody>
               {data.data.rows.map((r) => (
