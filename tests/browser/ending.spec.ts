@@ -2,8 +2,10 @@
 import { expect, test } from '@playwright/test';
 
 const SIZES = [['landscape', { width: 1280, height: 720 }], ['portrait', { width: 390, height: 844 }]] as const;
+/** Story + Unlocked page also on a small phone and a phone held sideways. */
+const ENDING_SIZES = [...SIZES, ['phone375', { width: 375, height: 667 }], ['phoneLand', { width: 844, height: 390 }]] as const;
 
-for (const [name, viewport] of SIZES) {
+for (const [name, viewport] of ENDING_SIZES) {
   test(`first win: four story pictures, then what the win unlocked (${name})`, async ({ page }, info) => {
     await page.setViewportSize(viewport);
     await page.route('**/*.supabase.co/**', (r) => r.abort());
@@ -12,10 +14,10 @@ for (const [name, viewport] of SIZES) {
     const ov = page.locator('#ovEnding.on.story');
     await expect(ov).toBeVisible();
     const pic = (): Promise<string> => page.locator('#endPic').evaluate((e) => (e as HTMLElement).style.backgroundImage);
-    expect(await pic()).toContain(name === 'portrait' ? 'p1-tall.webp' : 'p1-wide.webp');
+    expect(await pic()).toContain(viewport.height > viewport.width ? 'p1-tall.webp' : 'p1-wide.webp');
     // every picture is served (a missing file would leave a blank screen)
     for (let i = 1; i <= 4; i++) {
-      const res = await page.request.get(`/ending/p${i}-${name === 'portrait' ? 'tall' : 'wide'}.webp`);
+      const res = await page.request.get(`/ending/p${i}-${viewport.height > viewport.width ? 'tall' : 'wide'}.webp`);
       expect(res.ok()).toBe(true);
       expect((await res.body()).length).toBeLessThan(300 * 1024);
     }

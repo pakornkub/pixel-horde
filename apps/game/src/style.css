@@ -390,6 +390,12 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 .uico.endless{background:var(--xp)}
 .uico.gold,.uico.ach,.uico.achs{background:var(--gold)}
 .ereplay{display:block;margin:10px auto 0}
+/* the Unlocked page's buttons stay in view while the list scrolls (the box pads 22 px at the bottom) */
+.eact{position:sticky;bottom:-22px;background:var(--paper);padding:6px 0 4px;box-shadow:0 -10px 12px var(--paper)}
+@media (pointer:coarse){#endReplay{padding:10px 8px}}
+/* landscape phones: two columns of unlocks and a slimmer story box, so the picture shows */
+@media (max-height:520px){.unlocks{grid-template-columns:1fr 1fr}.estory{padding:8px 12px}.ecap{min-height:0;font-size:15px;margin-bottom:6px}.edots{margin-bottom:8px}.erow .btn{padding:8px 12px}
+  .eact{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}.eact .btn{margin:0;padding:10px 12px}.eact .ereplay{grid-column:1/-1;margin:0 auto}}
 @media (max-width:480px){.ecap{font-size:16px}.estory{padding:12px 12px 10px}}
 /* UX pass 2026-09-27 */
 /* Thai menu titles (ui/heading-font.ts): the pixel font has no Thai, so they were smaller than the text under them */

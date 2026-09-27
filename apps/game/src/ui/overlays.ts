@@ -525,7 +525,7 @@ function showScore(v: Readonly<SimState>): void {
   eb.hidden = !v.endless;
   if (v.endless) {
     countUpBox(eb, endlessBreakdown(v));
-    if (!v.endlessFrom) eb.insertAdjacentHTML('afterbegin', `<span class="sub">${t('score.endlessFrom', { n: v.cfg.stage.chapters + 1 })}</span><span></span>`);
+    if (!v.endlessFrom) eb.insertAdjacentHTML('afterbegin', `<span class="sub">${t('score.endlessFrom', { n: v.cfg.stage.chapters + 1 })}</span>`); // .sub spans both columns: no empty cell
     eb.insertAdjacentHTML('afterbegin', `<span class="tot">${t('score.endlessTitle')}</span><span></span>`);
   }
 }
