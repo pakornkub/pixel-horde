@@ -52,10 +52,10 @@ function fxValue(w: WeaponId, lv: number): string {
   }
 }
 
-/** Ultimate damage × and the King cap at a forge level. */
-function powerValue(lv: number): string {
-  const C = active.cfg;
-  return `×${round(forgeDmg(C, lv))} · ${round(ultCap(C, false, lv) * 100)}%`;
+/** Ultimate damage × and the King cap at a forge level (and the next one unless maxed). */
+function powerLine(lv: number, maxed: boolean): string {
+  const C = active.cfg, dmg = (l: number): string => `×${round(forgeDmg(C, l))}`, cap = (l: number): string => `${round(ultCap(C, false, l) * 100)}%`;
+  return t('forge.power', { dmg: maxed ? dmg(lv) : `${dmg(lv)} → ${dmg(lv + 1)}`, cap: maxed ? cap(lv) : `${cap(lv)} → ${cap(lv + 1)}` });
 }
 
 /** Buy button text and state: the price, "Max", or how much Gold is still missing (red). */
@@ -96,7 +96,7 @@ function forgeRows(box: HTMLElement): void {
     ds.textContent = t(`forge.fx.${w}`, { v: maxed ? now : `${now} → ${fxValue(w, lv + 1)}` });
     const pw = document.createElement('span');
     pw.className = 'ds';
-    pw.textContent = t('forge.power', { v: maxed ? powerValue(lv) : `${powerValue(lv)} → ${powerValue(lv + 1)}` });
+    pw.textContent = powerLine(lv, maxed);
     txt.append(nm, ds, pw);
     const bt = document.createElement('button');
     priceButton(bt, cost, maxed);

@@ -726,7 +726,7 @@
  "forge.none": "ไม่มี",
  "forge.missingHead": "ยังไม่มี ({n})",
  "forge.lockLine": "{weapon} · King ของ{realm}",
- "forge.power": "ดาเมจท่าไม้ตาย · เพดานใส่ King {v}",
+ "forge.power": "ดาเมจท่าไม้ตาย {dmg} · ใส่ King ได้สูงสุด {cap} ของ HP",
  "outfit.note": "ชิ้นชุดใช้ได้กับทุกฮีโร่ ซื้อแล้วอัปได้ถึงขั้น 5 ใส่ครบ 3 ชิ้นเซตเดียวกันได้โบนัสเซต (รูปชุดบนตัวฮีโร่จะตามมา)",
  "outfit.none": "ยังไม่ได้ใส่ครบเซต",
  "outfit.active": "ใส่ครบ{set}: {bonus}",

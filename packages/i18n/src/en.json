@@ -726,7 +726,7 @@
  "forge.none": "none",
  "forge.missingHead": "Not owned yet ({n})",
  "forge.lockLine": "{weapon} · King of {realm}",
- "forge.power": "Ultimate damage · King cap {v}",
+ "forge.power": "Ultimate damage {dmg} · King cap {cap} of HP",
  "outfit.note": "Outfit pieces work for every Hero. Buy one, then level it up to 5; wear all 3 pieces of one set for its set bonus (the look on your Hero comes later)",
  "outfit.none": "No full set worn",
  "outfit.active": "Full {set}: {bonus}",

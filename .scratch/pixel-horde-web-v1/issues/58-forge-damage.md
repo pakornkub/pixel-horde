@@ -10,6 +10,10 @@ Owner decisions (2026-09-27, the recommended option):
 - The base Ultimate for everyone is measured by the balance-audit session first (it is adding `ult.bossHit`, pass
   2026-09i). This ticket does not change base Ultimate numbers. The forge cap bonus is an input to the one cap helper
   (`ultCap(cfg, umbra, level)` in packages/sim/src/data/weapons.ts), so the audit's helper can take it over.
+- QA (PR #50): the Gear Cannon turret and Plague Censer poison use the UNforged strike, so only their own forge effect
+  scales them (level 5 stays within ×2 in total, like every other Weapon); poison on a boss is based on the capped strike,
+  so Toxic Burst cannot pass the cap. The strike itself carries `strike: true` in its HitTag (follow-ups do not), for
+  the audit's boss floor.
 - Co-op: a guest caps its own strike at its forge level; the host allows a guest's strike at most a fully forged cap
   (it does not know the guest's level).
 
