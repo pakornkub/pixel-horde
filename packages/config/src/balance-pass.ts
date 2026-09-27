@@ -540,6 +540,8 @@ export const BALANCE_PASS_2026_09G: BalancePass = {
       'shared.awaken.wLine': 'สกิลตื่นพลังไม่แจกแล้ว (09f) จึงให้โผล่ในการ์ดเลเวลอัปบ่อยขึ้น',
     },
     next: ['หลัง publish ดูข้อมูลจริง: สกิลตื่นพลังที่ผู้เล่นมีตอนจบรอบ'],
+  },
+};
 
 /** v6 audit follow-up on the new base difficulty (ticket 48): Heart Crack as a ramp of 10 tiers, a Score bonus per tier,
  *  and Kit's late game. Needs migration 20260930000033 (new fields, tiers above 3 on the server). */
