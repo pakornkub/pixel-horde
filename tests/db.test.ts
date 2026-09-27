@@ -73,6 +73,15 @@ describe('server copy of the Balance Config', () => {
       expect(Number(r.rows[0].c), `${lv}`).toBe(forgeCost(DEFAULT_RESOLVED, lv));
     }
   });
+
+  it('outfit prices match the client', async () => {
+    const { outfitCost, DEFAULT_RESOLVED } = await import('@pixel-horde/sim');
+    const db = await freshDb();
+    for (let lv = 0; lv < DEFAULT_RESOLVED.outfits.max; lv++) {
+      const r = await db.query<{ c: string }>('select public.outfit_cost(0, $1)::text as c', [lv]);
+      expect(Number(r.rows[0].c), `${lv}`).toBe(outfitCost(DEFAULT_RESOLVED, lv));
+    }
+  });
 });
 
 describe('server copy of the config JSON Schema', () => {

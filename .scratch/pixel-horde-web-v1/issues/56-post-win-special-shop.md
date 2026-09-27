@@ -24,6 +24,7 @@ Weapon forge rules (simple version, every number in Balance Config `shared.forge
   damage; ticket 58 adds Ultimate damage and a higher boss cap per level, owner 2026-09-27.) The effects: root, Burning, reap threshold (capped at 100%), freeze,
   knockback, poison damage, Shocked, push, turret time, Lich Tome healing and its limit. Judgement has no effect of its
   own, so it gains one: surviving normal monsters are stunned `forge.judgement` 0.2 s per level (bosses never).
+- Outfits (ticket 51) became gear sets with stats (owner, same day); the Outfits tab is built with them.
 - Levels live in `meta_progress.shop` under `forge:<world>:<weapon>` keys: get_meta returns them, account merges keep the
   higher level, and `buy_upgrade` refuses them. The client keeps them in `pixelhorde-meta` (`forge`) and queues offline
   purchases like the shop.

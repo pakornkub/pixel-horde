@@ -13,6 +13,7 @@ import { directionOf, initKing } from './systems/kings';
 import { REALMS } from './content/lumora/realms';
 import { AWAKENING, signatureOf } from './data/heroes';
 import { isWeapon } from './data/weapons';
+import type { OutfitWear } from './data/outfits';
 import { usableWeapons } from './systems/combat';
 import { DT, type Command, type InputFrame, type Phase, type SimEvent, type ScoreLine, type SimOptions, type SimState } from './types';
 import type { RunFacts } from './data/achievements';
@@ -94,7 +95,7 @@ export function createSim(opts: SimOptions): Sim {
   const s: SimState = {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
-    meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0), weapons: [...(opts.meta.weapons || [])], forge: { ...opts.meta.forge } },
+    meta: { up: { ...opts.meta.up }, wallet: Math.max(0, opts.meta.wallet || 0), weapons: [...(opts.meta.weapons || [])], forge: { ...opts.meta.forge }, outfit: JSON.parse(JSON.stringify(opts.meta.outfit || {})) as OutfitWear },
     viewport: { w: opts.viewport.w, h: opts.viewport.h }, mobile: !!opts.mobile, firstRun: !!opts.firstRun, coop: opts.coop ? initCoop(opts.coop.role, opts.coop.self) : null,
     debug: { ...opts.debug },
     stage: 1, realm: 'greenvale', visited: ['greenvale'], route: null, overtime: false, lastEnd: null, repicks: 0,
