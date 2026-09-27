@@ -2,13 +2,15 @@
 import { AWK_TAGS, REALMS, WEAPONS, attackSlots, benchSize, shieldPoints, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
-import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, PET_SPR } from './sprites';
+import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, MINION_SPR, PET_SPR } from './sprites';
 import { tileAtT } from './tiles';
 import { MET, TAU, fxRng, rnd, vfx, zoomK } from './vfx';
 import { lang, t } from '@pixel-horde/i18n';
 import { PASSIVE_ICON, SKILL_ICON, kingName, realmShort } from '../ui/text';
 import { iconAtlas, iconRect } from '../ui/icons';
 
+/** Bone white (Bone Spear, Bone Prison). */
+const BONE = '#efe6cf';
 const K = INK;
 const R = fxRng.next;
 const clamp = (v: number, a: number, c: number): number => (v < a ? a : v > c ? c : v);
@@ -531,6 +533,20 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     // bolts
     for (const bo of v.bolts) {
       const x = Math.round(bo.x + ox), y = Math.round(bo.y + oy), sh = bo.cl || bo.col === SHADOW; // the Shadow Clone's shots
+      if (bo.kind === 'lance' && bo.col === BONE) { // Bone Spear (Mora line)
+        b.save(); b.translate(x, y); b.rotate(bo.a!);
+        b.fillStyle = K; b.fillRect(-10, -2, 21, 4); b.fillStyle = '#c9bfa6'; b.fillRect(-9, -1, 15, 2);
+        b.fillStyle = BONE; b.fillRect(-10, -2, 3, 4); b.fillRect(5, -2, 3, 4); b.fillStyle = '#ffffff'; b.fillRect(8, -1, 3, 2); b.restore();
+        continue;
+      }
+      if (bo.kind === 'skull') { // Wailing Skull: a small skull with a frosty wail behind it
+        const a = Math.atan2(bo.vy, bo.vx);
+        b.save(); b.globalAlpha = 0.5; b.fillStyle = sh ? SHADOW : '#9fd8ff';
+        for (let i = 1; i < 4; i++) b.fillRect(Math.round(x - Math.cos(a) * i * 3) - 1, Math.round(y - Math.sin(a) * i * 3) - 1, 3 - (i > 2 ? 1 : 0), 2); b.restore();
+        b.fillStyle = K; b.fillRect(x - 3, y - 3, 7, 7); b.fillStyle = sh ? '#e6d6ff' : '#efe6cf'; b.fillRect(x - 2, y - 2, 5, 4); b.fillRect(x - 1, y + 2, 3, 1);
+        b.fillStyle = K; b.fillRect(x - 1, y - 1, 1, 1); b.fillRect(x + 1, y - 1, 1, 1); b.fillStyle = '#9fd8ff'; b.fillRect(x, y + 1, 1, 1);
+        continue;
+      }
       if (bo.kind === 'lance') {
         b.save(); b.translate(x, y); b.rotate(bo.a!);
         b.fillStyle = K; b.fillRect(-9, -2, 19, 4); b.fillStyle = sh ? SHADOW : '#ffd23f'; b.fillRect(-8, -1, 14, 2);
@@ -548,6 +564,47 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
     }
     // effects
     for (const f of v.effects) {
+      if (f.type === 'skel') { // Mora: Skeleton / Frost Wraith, rising out of the ground, fading as it crumbles
+        const sheet = MINION_SPR[f.awk ? 'wraith' : 'minion'], fr = sheet[Math.floor((f.t + f.x * 0.01) * 6) & 1];
+        const left = (f.vx || 0) < 0 || ((f.vx || 0) === 0 && (f.targets?.[0]?.e.x ?? f.x) < f.x), img = fr[left ? 1 : 0];
+        const rise = Math.min(1, f.t / 0.35), end = Math.min(1, Math.max(0, (f.dur - f.t) / 0.3));
+        const x = Math.round(f.x + ox - 6), y = Math.round(f.y + oy - 12 + (f.awk ? Math.sin(clock * 4 + f.x) * 1.5 - 2 : 0));
+        b.save(); b.globalAlpha = 0.35 * end; b.fillStyle = f.awk ? '#9fd8ff' : '#7dffb0'; b.beginPath(); b.ellipse(x + 6, Math.round(f.y + oy), 5, 2, 0, 0, TAU); b.fill(); b.restore();
+        b.save(); b.globalAlpha = (f.awk ? 0.85 : 1) * end; if (f.cl) b.filter = 'hue-rotate(60deg)';
+        const h = Math.max(1, Math.round(12 * rise));
+        b.drawImage(img, 0, 0, 12, h, x, y + 12 - h, 12, h); b.restore();
+        continue;
+      }
+      if (f.type === 'drain') { // Soul Drain: a wavering dark tether from its caster to the monster
+        const from = f.cl && v.P.clone ? v.P.clone : P, x0 = from.x + ox, y0 = from.y + oy - 4, x1 = f.x + ox, y1 = f.y + oy - 3;
+        b.save(); b.globalAlpha = 0.85 * Math.min(1, (f.dur - f.t) * 4); b.beginPath(); b.moveTo(x0, y0);
+        for (let i = 1; i <= 6; i++) { const k = i / 6; b.lineTo(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k + (i < 6 ? Math.sin(clock * 18 + i * 1.7) * 2 : 0)); }
+        b.strokeStyle = '#3a1f66'; b.lineWidth = 3; b.stroke(); b.strokeStyle = f.cl ? SHADOW : '#b07cff'; b.lineWidth = 1; b.stroke(); b.restore();
+        continue;
+      }
+      if (f.type === 'prison') { // Bone Prison: a warning ring, then a ring of bone spikes
+        const x = f.x + ox, y = f.y + oy;
+        b.save();
+        if (!f.fired) { b.globalAlpha = 0.5; b.strokeStyle = BONE; b.setLineDash([2, 3]); b.lineDashOffset = clock * 20; b.beginPath(); b.ellipse(x, y, f.r!, f.r! * 0.8, 0, 0, TAU); b.stroke(); }
+        else {
+          const k = Math.min(1, (f.t - f.delay!) / 0.12), fade = Math.min(1, (f.dur - f.t) / 0.25), n = Math.max(8, Math.round(f.r! / 3));
+          b.globalAlpha = fade;
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU, sx = Math.round(x + Math.cos(a) * f.r!), sy = Math.round(y + Math.sin(a) * f.r! * 0.8), hh = Math.round(7 * k);
+            b.fillStyle = K; b.fillRect(sx - 2, sy - hh - 1, 4, hh + 2); b.fillStyle = BONE; b.fillRect(sx - 1, sy - hh, 2, hh); b.fillStyle = '#ffffff'; b.fillRect(sx - 1, sy - hh, 1, 1);
+          }
+        }
+        b.restore();
+        continue;
+      }
+      if (f.type === 'flare') { // Soulfire: a green flame rising out of a grave
+        const x = Math.round(f.x + ox), y = Math.round(f.y + oy);
+        b.save();
+        if (!f.boomed) { const k = f.t / f.delay!; b.globalAlpha = 0.6; b.fillStyle = f.col || '#7dffb0'; b.fillRect(x - 1, y - Math.round(8 * k), 3, Math.round(8 * k) + 1); b.fillStyle = '#e8fff0'; b.fillRect(x, y - Math.round(8 * k), 1, 2); }
+        else { const k = f.bt! / 0.3; b.globalAlpha = Math.max(0, 1 - k); b.fillStyle = '#e8fff0'; b.beginPath(); b.ellipse(x, y, f.r! * (0.6 + k * 0.5), f.r! * (0.5 + k * 0.4), 0, 0, TAU); b.fill(); b.strokeStyle = f.col || '#7dffb0'; b.lineWidth = 3; b.stroke(); }
+        b.restore();
+        continue;
+      }
       if (f.type === 'icewall') {
         const k = f.t / f.dur, ux = Math.cos(f.a!), uy = Math.sin(f.a!), half = f.len! / 2;
         b.save(); b.globalAlpha = k > 0.8 ? (1 - k) * 5 : 1;

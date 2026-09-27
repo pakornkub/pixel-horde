@@ -1,5 +1,5 @@
 import {
-  AWAKENING, ENEMY_IDS, ET, HERO_IDS, KING_KITS, REALMS, REALM_IDS, SKILL_LINES, WEAPONS,
+  AFTER_WIN, AWAKENING, ENEMY_IDS, ET, HERO_IDS, KING_KITS, REALMS, REALM_IDS, SKILL_LINES, WEAPONS,
   adviceFor, signatureOf, type EnemyId, type HeroId, type RealmId, type SkillId,
 } from '@pixel-horde/sim';
 import { el, enemy, hero, heroWithWeapon, passiveIcon, pet, skillIcon, weaponIcon } from '../art';
@@ -25,8 +25,8 @@ const skn = (id: SkillId, evo = false): HTMLElement => el('span.skname', null, s
 main.append(section('story', 'w.story.h', el('div.story', null, T('w.story.p', undefined, 'p', 'lead'), el('img', { src: './img/keyart.jpg', alt: '', loading: 'lazy' }))));
 
 // ── heroes ──
-const HERO_GROUND: Record<HeroId, number> = { mage: 2, knight: 0, ranger: 7, alchemist: 6 };
-const HERO_WEAPON: Record<HeroId, string> = { mage: 'judgement', knight: 'sunblade', ranger: 'stormBow', alchemist: 'plagueCenser' };
+const HERO_GROUND: Record<HeroId, number> = { mage: 2, knight: 0, ranger: 7, alchemist: 6, necromancer: 9 };
+const HERO_WEAPON: Record<HeroId, string> = { mage: 'judgement', knight: 'sunblade', ranger: 'stormBow', alchemist: 'plagueCenser', necromancer: 'boneScythe' };
 const heroSec = section('heroes', 'w.heroes', el('div.grid', null, ...HERO_IDS.map((h) => {
   const sig = signatureOf(h), A = AWAKENING[h], cost = C.heroes[h].cost;
   const stage = groundBg(el('div.stage', null, heroWithWeapon(h, HERO_WEAPON[h], 6), el('div.dirs', null, hero(h, 3, 'down'), hero(h, 3, 'up'), hero(h, 3, 'l'))), HERO_GROUND[h], 8, 8, 3);
@@ -37,7 +37,7 @@ const heroSec = section('heroes', 'w.heroes', el('div.grid', null, ...HERO_IDS.m
       el('dt', null, T('home.sig')), el('dd', null, skn(sig), '→', el('span.skname', null, passiveIcon(evoPassive(sig)!, 'sm'), G(`evo.${sig}.name`))),
       el('dt', null, T('w.line')), el('dd', null, ...SKILL_LINES[h].map((id) => skn(id))),
       el('dt', null, T('w.form')), el('dd', null, G(`form.${A.form}`, undefined, 'span', 'chip line'), ...A.line.map((id) => skn(id))),
-      el('dt', null, T('w.unlock')), el('dd', null, cost ? el('span.chip.gold', null, `${cost}G`) : T('home.free', undefined, 'span', 'chip gold')))));
+      el('dt', null, T('w.unlock')), el('dd', null, cost ? el('span.chip.gold', null, `${cost}G`) : T('home.free', undefined, 'span', 'chip gold'), ...(AFTER_WIN.includes(h) ? [' ', T('home.afterWin', undefined, 'span', 'chip line')] : [])))));
 })));
 main.append(heroSec);
 

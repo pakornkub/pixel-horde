@@ -1,7 +1,7 @@
 // One headless playtest Run with the bot, plus what a balance pass needs to know about it.
 // Damage attribution comes from hooks the build step (build.mjs) wraps around hit() and hurtP().
 import {
-  AWK_TAG_SKILL, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig,
+  AWK_TAG_SKILL, BONE_BURST, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig, signatureOf,
   type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId,
 } from '@pixel-horde/sim';
 import { BALANCE_PASSES, DEFAULT_CONFIG, withOverrides, type BalanceConfigInput } from '@pixel-horde/config';
@@ -59,6 +59,7 @@ const TAG_NAME = new Map<object, string>();
 for (const [k, v] of Object.entries(SKILL_TAGS)) TAG_NAME.set(v, k);
 for (const v of Object.values(FLASK_TAGS)) TAG_NAME.set(v, 'flask');
 TAG_NAME.set(HOLE_BOOM, 'hole');
+TAG_NAME.set(BONE_BURST, 'soulRise');
 TAG_NAME.set(PET_FIRE, 'companion');
 TAG_NAME.set(PET_DIVE, 'companion');
 TAG_NAME.set(COMBO_HIT, 'combo');
@@ -136,7 +137,7 @@ export function runOne(job: Job): RunMetrics {
     if (P.awakened && m.awakenAt === null) m.awakenAt = s.stage;
     const sig = Object.keys(P.evo).length;
     if (sig > m.evos) m.evos = sig;
-    if (m.sigEvoAt === null && P.evo[({ mage: 'sigil', knight: 'shield', ranger: 'hawk', alchemist: 'flask' } as const)[job.hero]]) m.sigEvoAt = s.stage;
+    if (m.sigEvoAt === null && P.evo[signatureOf(job.hero)]) m.sigEvoAt = s.stage;
     if (m.firstLinkMaxAt === null && P.linkStart.length) m.firstLinkMaxAt = s.stage;
     if (s.phase === 'over' && !s.victory && m.deathBy === null) { m.deathBy = lastHurt; m.deathChapter = s.stage; }
   }

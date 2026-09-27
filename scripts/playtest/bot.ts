@@ -23,7 +23,7 @@ export const W0 = { hit: 150, near: 10, nearK: 0.3, gem: 40, still: 4, momentum:
 export const DEFAULT_PROFILE: BotProfile = { react: 0.25, pick: 'smart', revive: true, every: 3 };
 
 /** Melee-ish heroes want to hug the King a little closer. */
-const BOSS_RANGE: Record<string, number> = { mage: 55, knight: 34, ranger: 70, alchemist: 55 };
+const BOSS_RANGE: Record<string, number> = { mage: 55, knight: 34, ranger: 70, alchemist: 55, necromancer: 60 };
 
 function mulberry(seed: number): () => number {
   let a = seed >>> 0;

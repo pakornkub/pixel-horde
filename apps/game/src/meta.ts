@@ -1,7 +1,7 @@
 // Meta progression. The server owns Gold/Shop/unlocks (ticket 09); this module keeps a local cache
 // (`pixelhorde-meta`, also the offline save) plus a queue of offline actions, and lets the server
 // win whenever it is reachable. The old artifact save is uploaded once.
-import { ACHIEVEMENTS, HERO_IDS, addToLifetime, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
+import { ACHIEVEMENTS, AFTER_WIN, HERO_IDS, addToLifetime, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
 import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta, type SubmitOutcome } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
@@ -112,6 +112,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
   }
 
   function ownsHero(k: HeroId): boolean { return active.cfg.heroes[k].cost === 0 || meta.owned.includes(k); }
+  /** The account has won a Run (Mora is sold only after that; the server checks it too). */
+  function hasWon(): boolean { return meta.life.heroesWon.length > 0 || meta.crackMax >= 1; }
 
   /** Push queued offline work, then take the server's numbers. Safe to call often. */
   async function sync(): Promise<boolean> {
@@ -168,6 +170,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
 
   async function unlockHero(k: HeroId): Promise<BackendError | null> {
     if (ownsHero(k)) return null;
+    if (AFTER_WIN.includes(k) && !hasWon()) return new BackendError('NEEDS_WIN');
     const cost = active.cfg.heroes[k].cost;
     if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
     if (online()) {
@@ -230,6 +233,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     meta,
     U,
     ownsHero,
+    hasWon,
     selectHero(k: HeroId): void { if (ownsHero(k)) { meta.ch = k; save(); } },
     sync,
     buy,

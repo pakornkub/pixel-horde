@@ -72,9 +72,10 @@ describe('Mora (ticket 57)', () => {
     const { s, mob, run } = hero('necromancer');
     s.P.skills = { soulRise: 1, wailSkull: 7 };
     const e = mob(80, 30);
-    run(4);
+    let froze = false;
+    for (let i = 0; i < 16; i++) { run(0.25); froze ||= e.frz > 0; }
     expect(e.hp).toBeLessThan(e.maxHp);
-    expect(e.frz > 0 || (e.chill || 0) > 0).toBe(true);
+    expect(froze).toBe(true);
 
     const b = hero('necromancer');
     b.s.P.skills = { soulRise: 1, bonePrison: 1 };

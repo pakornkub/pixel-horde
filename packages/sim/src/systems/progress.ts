@@ -231,14 +231,16 @@ export function buildOptions(s: SimState): LevelOption[] {
   const c: { o: LevelOption; w: number }[] = [];
   const owned = Object.keys(P.skills).length, sig = signatureOf(P.ch);
   const slotFree = owned < attackSlots(s), benchFree = P.bench.length < benchSize(s);
+  const links = SKILL_LINES[P.ch];
   for (const id of [...generalSkills(P.ch, s.cfg.heroes.necromancer.pool), sig, ...(P.awakened ? AWAKENING[P.ch].line : [])]) {
     const lv = P.skills[id] || 0;
     if (lv >= K[id].max || s.banished.includes(id)) continue;
+    const wl = links.includes(id) ? L.wLink : 1; // the Hero's own Links (a bigger skill pool made them rarer)
     if (!lv) {
       if (P.bench.some((b) => b.id === id)) continue;
       if (!slotFree && !benchFree) continue;
-      c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * (isLine(id) ? s.cfg.awaken.wLine : 1) });
-    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
+      c.push({ o: slotFree ? { kind: 'skill', id } : { kind: 'skill', id, toBench: true }, w: L.wNew * wl * (isLine(id) ? s.cfg.awaken.wLine : 1) });
+    } else c.push({ o: { kind: 'skill', id }, w: L.wUpgrade * wl * (id === sig ? L.wSignature : 1) * (isLine(id) ? s.cfg.awaken.wLine : 1) });
   }
   const pasFree = Object.keys(P.pas).length < s.cfg.passiveSlots, pasBench = !!s.cfg.bench.passives && benchFree;
   for (const id of PASSIVE_IDS) {

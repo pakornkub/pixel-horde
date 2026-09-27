@@ -55,7 +55,8 @@ export const TXT = {
   'shot.hero': { th: 'เลือกฮีโร่และอาวุธ', en: 'Pick your Hero and Weapon' },
   'shot.dragon': { th: 'มังกรผู้พิทักษ์', en: 'A Guardian dragon' },
 
-  'home.heroes.h': { th: 'ฮีโร่ 4 คน 4 สไตล์', en: '4 Heroes, 4 play styles' },
+  'home.heroes.h': { th: 'ฮีโร่ 5 คน 5 สไตล์', en: '5 Heroes, 5 play styles' },
+  'home.afterWin': { th: 'หลังชนะครั้งแรก', en: 'After your first win' },
   'home.heroes.p': { th: 'แต่ละคนมีสกิลประจำตัวที่ติดตัวตลอด และตื่นพลังเป็นร่างใหม่ได้', en: 'Each Hero has a Signature Skill that never leaves, and can Awaken into a new form.' },
   'home.heroes.more': { th: 'ดูฮีโร่ทั้งหมด →', en: 'Meet the Heroes →' },
   'home.sig': { th: 'สกิลประจำตัว', en: 'Signature' },
@@ -365,6 +366,7 @@ export const TXT = {
   'hero.b.rangerHp': { th: 'HP +{hp}', en: '+{hp} max HP' },
   'hero.b.rangerGuard': { th: 'ถ้ามอน {n} ตัวขึ้นไปรุมเข้ามาใกล้ เหยี่ยวจะโฉบตัวที่ใกล้ที่สุดเพื่อเปิดทาง', en: 'When {n}+ monsters crowd in close, the Hawk dives the nearest one to clear a way.' },
   'hero.b.alchemist': { th: 'คูลดาวน์ −{c}% สถานะอยู่นานขึ้น {st}%', en: '{c}% faster cooldowns, Statuses last {st}% longer' },
+  'hero.b.necromancer': { th: 'ลูกน้อง (Skeleton, มังกรคู่หู, เงา) แรงขึ้น {m}% แต่ HP −{hp}', en: 'Minions (Skeletons, Companion, Shadow Clone) deal +{m}% damage, but −{hp} max HP' },
   'w.unlock': { th: 'ปลดล็อก', en: 'Unlock' },
   'w.form': { th: 'ร่างตื่นพลัง', en: 'Awakened form' },
   'w.line': { th: 'สาย Link', en: 'Link Line' },

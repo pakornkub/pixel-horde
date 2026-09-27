@@ -677,6 +677,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Small flask damage ×': { th: 'ดาเมจขวดเล็ก (× ดาเมจขวด)', up: 'ขวดเล็กเจ็บขึ้น' },
   'Transmute: a monster dying with a Status in the circle passes it to others this close': { th: 'Transmute: มอนที่ตายพร้อมสถานะในวง แพร่สถานะให้มอนในระยะนี้', up: 'สถานะแพร่ได้ไกลขึ้น คอมโบต่อเนื่องขึ้น' },
   // Mora (ticket 57)
+  'Weight × for the Hero\'s own Links (new or upgrade)': { th: 'น้ำหนักการ์ดเลเวลอัปของ Link ประจำฮีโร่ (×)', up: 'Link ของฮีโร่โผล่บ่อยขึ้น ตื่นพลังเร็วขึ้น' },
   'Unlock price (offered only after the account has won a Run)': { th: 'ราคาปลดล็อก (ขายหลังชนะ Run แรกเท่านั้น)', up: 'ต้องเก็บ Gold นานขึ้นก่อนได้เล่น Mora' },
   'Minion damage bonus (Skeletons, Companion, Shadow Clone)': { th: 'โบนัสดาเมจลูกน้อง (Skeleton, มังกรคู่หู, เงา)', up: 'ลูกน้องของ Mora ทุกตัวแรงขึ้น' },
   'Max HP penalty': { th: 'HP สูงสุดที่ลดลง', up: 'Mora บอบบางขึ้น ตายง่ายขึ้น' },

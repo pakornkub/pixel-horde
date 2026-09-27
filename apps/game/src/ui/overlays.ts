@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
+import { AFTER_WIN, AWAKENING, EVO_PASSIVE, attackSlots, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -58,15 +58,17 @@ export function renderChars(): void {
   const box = $('chars');
   box.innerHTML = '';
   for (const k of HERO_IDS) {
-    const c = active.cfg.heroes[k], name = heroName(k), owned = ownsHero(k);
+    const c = active.cfg.heroes[k], name = heroName(k), owned = ownsHero(k), afterWin = !owned && AFTER_WIN.includes(k) && !metaSync.hasWon();
     const bt = document.createElement('button');
-    bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked');
+    bt.className = 'ch' + (META.ch === k ? ' sel' : '') + (owned ? '' : ' locked') + (afterWin ? ' afterwin' : '');
     const im = document.createElement('img'); im.alt = ''; im.src = charImg(k);
+    if (afterWin) im.style.filter = 'brightness(0)'; // a silhouette until the first win
     const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = name;
-    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : t('hero.unlock', { cost: c.cost });
+    const cc = document.createElement('span'); cc.className = 'cc'; cc.textContent = owned ? (META.ch === k ? t('hero.picked') : t('hero.pick')) : afterWin ? t('hero.afterWin') : t('hero.unlock', { cost: c.cost });
     bt.append(im, cn, cc);
     bt.addEventListener('click', () => {
       void (async () => {
+        if (afterWin) { $('chDesc').textContent = t('hero.needWin', { name }); return; }
         if (!owned) {
           if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
           const err = await metaSync.unlockHero(k);
