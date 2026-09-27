@@ -57,6 +57,7 @@ function scaleBy(cfg: ResolvedConfig, k: Knobs): ResolvedConfig {
   c.ult.fill *= k.ultFill;
   c.director.max = Math.max(c.director.min, c.director.max * k.director);
   c.loot.coinChance = clamp(c.loot.coinChance * k.gold, 0, 1); c.loot.eliteCoin *= k.gold; c.loot.bossCoin *= k.gold; c.loot.chestGold *= k.gold;
-  c.stage.kingGold *= k.gold; c.rival.gold *= k.gold; c.overflow.gold *= k.gold; c.weapons.umbraGold *= k.gold;
+  // the overflow Gold bag keeps its written amount (owner, 2026-09-27): ×0.2 left it a card nobody picks
+  c.stage.kingGold *= k.gold; c.rival.gold *= k.gold; c.weapons.umbraGold *= k.gold;
   return c;
 }
