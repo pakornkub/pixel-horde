@@ -20,8 +20,8 @@ Owner decisions (2026-09-27, all the recommended options):
 Weapon forge rules (simple version, every number in Balance Config `shared.forge`):
 - Every owned Weapon (Judgement included) has `forge.max` = 5 levels. Price `forge.base` 400 × `forge.growth` 1.6^level
   (400 / 640 / 1,024 / 1,638 / 2,621 = 6,323 per Weapon, 69.5k for all 11: about 5.5× the permanent shop).
-- Each level stretches the Weapon's own Ultimate effect by `forge.<weapon>` (0.15 = +15% per level), never its damage, so
-  the boss caps (`ult.bossCap` / `umbraCap`) are unchanged: root, Burning, reap threshold (capped at 100%), freeze,
+- Each level stretches the Weapon's own Ultimate effect by `forge.<weapon>` (0.15 = +15% per level). (PR #46 added no
+  damage; ticket 58 adds Ultimate damage and a higher boss cap per level, owner 2026-09-27.) The effects: root, Burning, reap threshold (capped at 100%), freeze,
   knockback, poison damage, Shocked, push, turret time, Lich Tome healing and its limit. Judgement has no effect of its
   own, so it gains one: surviving normal monsters are stunned `forge.judgement` 0.2 s per level (bosses never).
 - Levels live in `meta_progress.shop` under `forge:<world>:<weapon>` keys: get_meta returns them, account merges keep the

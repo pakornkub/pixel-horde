@@ -2,7 +2,7 @@
 // looked weaker than the text under it. Titles holding Thai get `.th` (Chakra Petch, bold, larger in style.css);
 // Latin titles ("LEVEL UP!", "SHOP") keep the pixel look.
 const THAI = /[฀-๿]/;
-const HEAD = '.box h1, .box h2, .box h3';
+const HEAD = '.box h1, .box h2, .box h3, .estory h2';
 
 function mark(h: Element): void {
   h.classList.toggle('th', THAI.test(h.textContent || ''));

@@ -1,7 +1,7 @@
 import { TAU, cos, hypot, ipow, sin } from '../core/fmath';
 import { DEATH_COL, SPLITS } from '../data/enemies';
 import { SKILL_TAGS, linAt, type HitTag } from '../data/skills';
-import { WEAPONS, WEAPON_IDS, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
+import { WEAPONS, WEAPON_IDS, forgeLevel, ultCap, weaponKey, weaponOfRealm, type WeaponId } from '../data/weapons';
 import { REALMS, type RealmId } from '../content/lumora/realms';
 import { combosFor } from './combos';
 import type { Enemy, SimState } from '../types';
@@ -66,8 +66,8 @@ export function hit(s: SimState, e: Enemy, base: number, col: string, kb?: numbe
 
 /** Co-op host: a guest's hit, already calculated on the guest (Ultimate hits still capped on bosses). */
 function remoteHit(s: SimState, e: Enemy, d: number, ult: boolean): void {
-  const U = s.cfg.ult;
-  if (ult && e.boss) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap));
+  // a guest's forge level is not known here: its own client caps it (rawHit), the host allows at most a fully forged cap
+  if (ult && e.boss) d = Math.min(d, e.maxHp * ultCap(s.cfg, e.type === 'umbra', s.cfg.forge.max));
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
   e.hp -= d;
@@ -94,10 +94,10 @@ function findWeapon(s: SimState, id: WeaponId): void {
 
 /** Ultimate damage: fixed, capped on Kings/Guardians (Umbra lower), leaves the Weapon's Status. */
 function rawHit(s: SimState, e: Enemy, base: number, col: string, kb: number | undefined, tag: HitTag): void {
-  const U = s.cfg.ult;
   let d = base;
   const guest = isGuest(s);
-  if (e.boss && !guest) d = Math.min(d, e.maxHp * (e.type === 'umbra' ? U.umbraCap : U.bossCap)); // guests: the host caps it
+  // capped by this player's forge level; a guest's host caps it again at most at a fully forged cap (remoteHit)
+  if (e.boss) d = Math.min(d, e.maxHp * ultCap(s.cfg, e.type === 'umbra', forgeLevel(s.cfg, s.meta.forge, s.weapon)));
   d = Math.max(1, Math.round(d));
   s.events.push({ t: 'dmg', d });
   if (guest) { queueHit(s, e, d, true); if (e.predHp) e.hp -= d; } else e.hp -= d;

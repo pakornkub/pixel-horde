@@ -435,6 +435,15 @@ export function renderWorld(v: Readonly<SimState> | null, clock: number, hideSel
         if ((e.gath || 0) > 0) mark('#d8f3e0');
         if ((e.chill || 0) > 0 && e.frz <= 0) mark('#bfe6ff');
       }
+      // Stunned (Twin Hawks, forged Judgement): three little stars circling over the head
+      if ((e.stun || 0) > 0 && !e.boss) {
+        const cx = Math.round(e.x + ox), cy = y - (e.elite ? 11 : 7);
+        for (let i = 0; i < 3; i++) {
+          const a = clock * 6 + (i * TAU) / 3, sx = Math.round(cx + Math.cos(a) * 6), sy = Math.round(cy + Math.sin(a) * 1.5);
+          b.fillStyle = K; b.fillRect(sx - 1, sy - 2, 3, 5); b.fillRect(sx - 2, sy - 1, 5, 3); // a yellow plus, ink outline
+          b.fillStyle = '#fff35c'; b.fillRect(sx, sy - 1, 1, 3); b.fillRect(sx - 1, sy, 3, 1);
+        }
+      }
       if (e.armor) {
         b.fillStyle = K; b.fillRect(Math.round(e.x + ox) - 3, y - 6, 6, 6);
         b.fillStyle = '#c7ced9'; b.fillRect(Math.round(e.x + ox) - 2, y - 5, 4, 3); b.fillRect(Math.round(e.x + ox) - 1, y - 2, 2, 1);
