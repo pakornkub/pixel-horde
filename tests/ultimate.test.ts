@@ -167,6 +167,10 @@ describe('Weapon forge (ticket 56)', () => {
       expect(ratio, w).toBeGreaterThan(1.3); // the forge still helps
       expect(ratio, w).toBeLessThanOrEqual(2.05);
     }
+    // Plague's poison is only read by Toxic Burst, so check it directly: only the Censer's own forge effect scales it
+    const pois = (lv: number): number => forgedStrike('plagueCenser', { plagueCenser: lv }).mob.poisDps!;
+    const cfg = forgedStrike('plagueCenser', {}).s.cfg;
+    expect(pois(5) / pois(0)).toBeCloseTo(1 + cfg.forge.plagueCenser * 5, 5);
   });
 
   it('Plague Censer poison on a King is based on the capped strike (Toxic Burst stays under the cap)', () => {
