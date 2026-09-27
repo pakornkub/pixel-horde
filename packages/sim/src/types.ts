@@ -260,6 +260,8 @@ export interface Player {
   shards: number;
   /** Shield pickup: damage it still absorbs, and seconds left. */
   guard: number; guardT: number;
+  /** Sim clock of Kit's last Hawk Gust (`skills.hawk.gustCd`); missing = never. */
+  gustAt?: number;
 }
 
 export interface Enemy {

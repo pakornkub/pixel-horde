@@ -136,6 +136,23 @@ const AURAS = new Set<SkillId>(['orbit', 'frost', 'shield', 'timeWarp', 'galeSte
 const CLONE_SKIP = new Set<SkillId>(['transmute', 'elixirRain', 'aegisDome', 'boneWard']);
 const CLONE_COL = '#b58cff';
 
+/** Hawk Gust (`skills.hawk.gustKb` > 0): when the Hawk defends a surrounded Kit, monsters around Kit are pushed back and
+ *  stunned, at most once every `gustCd` s. Crowd control only: no damage, never bosses; elites get the full
+ *  push and stun (no `player.kbElite`, owner 2026-09-28). */
+function hawkGust(s: SimState, o: Caster): void {
+  const H = s.cfg.skills.hawk, P = s.P;
+  if (H.gustKb <= 0 || s.clock - (P.gustAt ?? -1e9) < H.gustCd) return;
+  P.gustAt = s.clock;
+  for (const e of s.enemies) {
+    if (e.dead || e.hide || e.boss) continue;
+    const dx = e.x - o.x, dy = e.y - o.y, l = hypot(dx, dy);
+    if (l > H.gustR + e.r) continue;
+    e.kx += (dx / (l || 1)) * H.gustKb; e.ky += (dy / (l || 1)) * H.gustKb;
+    if (H.gustStun > 0) e.stun = Math.max(e.stun || 0, H.gustStun);
+  }
+  burst(s, o.x, o.y, '#d8f3e0', 14, 90, 0.4);
+}
+
 /** One cast of Skill `id` from `o`. Returns 0 when it fired, a retry delay (s) when there was nothing to hit,
  *  or WAIT. The clone passes stats whose damage is already scaled down. */
 function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): number {
@@ -244,7 +261,10 @@ function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): n
     let prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < t.range).sort(s.stage <= K.hawk.nearCh ? byNear : (a, b) => b.hp - a.hp || a.id - b.id);
     if (K.hawk.guardN) {
       const close = prey.filter((e) => hypot(e.x - o.x, e.y - o.y) < K.hawk.guardR);
-      if (close.length >= K.hawk.guardN) prey = close.sort(byNear);
+      if (close.length >= K.hawk.guardN) {
+        prey = close.sort(byNear);
+        if (!cl) hawkGust(s, o);
+      }
     }
     if (!prey.length) return 0.2;
     if (awkForm(s)) {
@@ -823,6 +843,7 @@ export function updEffects(s: SimState, dt: number): void {
         for (const e of struck) {
           hit(s, e, f.dmg, storm ? '#fff35c' : '#ffe9a8', K.hawk.kb, f.tag ?? T.hawk);
           if (f.stun && !e.dead) { if (e.boss) e.slowT = Math.max(e.slowT, K.hawk.evo.stun); else e.stun = K.hawk.evo.stun; }
+          else if (K.hawk.stunBase > 0 && !e.dead && !e.boss) e.stun = Math.max(e.stun || 0, K.hawk.stunBase);
         }
         burst(s, o.x, o.y, storm ? '#fff35c' : '#c48a55', 8, 60, 0.3);
         if (storm) setMark(s, o.x, o.y);

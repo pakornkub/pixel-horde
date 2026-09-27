@@ -744,5 +744,63 @@ export const BALANCE_PASS_2026_09I: BalancePass = {
   },
 };
 
+/** Kit's first step (owner option 3, 2026-09-28): Hawk Gust crowd control for a surrounded Kit. Needs migration
+ *  20260930000045 (skills.hawk.gust*). The structural fix (clear speed) is separate work. */
+export const BALANCE_PASS_2026_09J: BalancePass = {
+  id: '2026-09j',
+  note: 'Kit: Hawk Gust (when the Hawk defends a surrounded Kit, monsters around Kit are pushed back and stunned, once every 3 s)',
+  patch: {
+    shared: {
+      // Kit takes 86–89% of its damage from normal monsters and elites (others 50–68%) and dies surrounded in Chapters 6–8
+      skills: { hawk: { gustKb: 70, gustStun: 0.6, gustR: 42, gustCd: 3 } },
+    },
+  },
+  changelog: {
+    titleTh: 'Kit: ลมเหยี่ยว เปิดทางเมื่อโดนล้อม',
+    titleEn: 'Kit: Hawk Gust clears a path when surrounded',
+    items: [
+      { cat: 'skill', th: 'เมื่อเหยี่ยวลงมาป้องกัน Kit ที่โดนล้อม จะตีลมผลักมอนรอบตัว Kit ถอยออกไปและทำให้มึน 0.6 วินาที (ทุก 3 วินาที ไม่โดนบอส)', en: 'When the Hawk defends a surrounded Kit, its gust pushes the monsters around Kit back and stuns them for 0.6 s (once every 3 s, never bosses)' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09j: Kit ลมเหยี่ยว (ขั้นแรก)',
+    summary: 'วัดบน config v11 (09h + 09i + 09-mora): Kit อ่อนสุดทุกขั้นหัวใจร้าว ไม่ผ่านเกณฑ์ QA G1 (ร้าว 5 ห่างฮีโร่อื่น −20 จุด, ร้าว 7 −35, ร้าว 10 ร้านเต็มชนะ 17%) '
+      + 'และ 86–89% ของดาเมจที่ Kit โดนมาจากมอนธรรมดา + Elite (ฮีโร่อื่น 50–68%) เจ้าของเลือกเริ่มจากการควบคุมฝูง (ทางเลือก A): เมื่อเหยี่ยวป้องกัน Kit ที่โดนล้อม '
+      + 'จะตีลมผลักมอนรอบตัวถอยและทำให้มึน ไม่มีดาเมจ ไม่โดนบอส ใช้ได้ทุก 3 วินาที ผล: ดีขึ้นแต่ยังไม่พอ ผ่าน G1 ที่ร้าว 5 เท่านั้น G3 ยังไม่ผ่าน '
+      + 'ต้นเหตุหลักคือ Kit เคลียร์ฝูงช้า (ดาเมจท้ายเกมต่ำกว่าคนอื่น 25–30%) การแก้เชิงโครงสร้างแยกเป็นงานใหม่',
+    method: 'บอท playtest บน claude/kit-mora @ 9aeff16 (main 8f8333e + field ใหม่) PT_PASS=1 (config v11), Judgement Lv0 ไม่มีโรงตีอาวุธ/ชุดแต่งตัว, seed 1–24 '
+      + 'ก่อน: `PT_PASS=1 node scripts/playtest/exp.mjs kitmora.json 24 mid|max` (kitmora.json = c5/c7/c10 ตาม crack) '
+      + 'หลัง: `PT_PASS=1 PT_HEROES=ranger node scripts/playtest/exp.mjs kitA.json 24 mid|max` (A = hawk gustKb 70 gustStun 0.6 gustR 42 gustCd 3; A2 = gustStun 0.8 gustCd 2) '
+      + 'และ G2: `PT_PASS=1 node scripts/playtest/exp.mjs c0A.json 24 mid` (ฮีโร่ครบ 5) '
+      + 'สัดส่วน G3 = (hurt.mob + hurt.elite) ÷ ผลรวม hurt ทุก key (boss:*, bossContact:*, hazard:*, other) รวมทุกรอบในช่องก่อนหาร (ถ่วงตามดาเมจ ไม่ใช่เฉลี่ยรายรอบ)',
+    metrics: [
+      { label: 'Kit ชนะ Umbra ร้าว 5 กลาง / เต็ม', before: '50 / 83%', after: '58 / 88%' },
+      { label: 'Kit ชนะ Umbra ร้าว 7 กลาง / เต็ม', before: '25 / 54%', after: '42 / 54%' },
+      { label: 'Kit ชนะ Umbra ร้าว 10 กลาง / เต็ม', before: '8 / 17%', after: '17 / 17%' },
+      { label: 'G1 ห่างค่าเฉลี่ยฮีโร่อื่น (ร้าว 5 / ร้าว 7, กลาง+เต็ม)', before: '−20 / −35 จุด', after: '−14 ✓ / −27 ✗' },
+      { label: 'ดาเมจที่โดนจากมอนต่อนาที (ร้าว 5 / 7 / 10)', before: '101 / 132 / 144', after: '88 / 117 / 135 (เวลาเล่นต่อรอบเท่าเดิม)' },
+      { label: 'G3 ส่วนดาเมจจากมอน + Elite', before: '86–88%', after: '86–89% ✗ (ไม่เปลี่ยน)' },
+      { label: 'G2 ความยากปกติ ร้านกลาง (Lyra/Bram/Kit/Vex/Mora)', before: '-', after: '100 / 100 / 96 / 100 / 96% ✓' },
+      { label: 'G4 อัตราตื่นพลัง Kit', before: '58%', after: '54–58% ✓' },
+    ],
+    findings: [
+      { level: 'warn', title: 'ลมเหยี่ยวช่วยได้แต่ไม่พอ', body: 'Kit โดนมอนตีน้อยลง 10–13% ต่อนาที แต่ฝูงเติมเร็วกว่าที่ลมทุก 3 วินาทีช่วยได้ ทางเลือก A2 (ถี่ขึ้น มึนนานขึ้น) ไม่ดีกว่า A', status: 'ใช้ A เป็นขั้นแรก' },
+      { level: 'warn', title: 'ต้นเหตุ: Kit เคลียร์ฝูงช้า', body: 'ดาเมจท้ายเกมต่ำกว่าฮีโร่อื่น 25–30% เหยี่ยวโฉบทีละตัว สกิลสาย (Arrow Rain, Gale Step) ยังไม่ช่วยเคลียร์ฝูงพอ', status: 'งานใหม่: Kit late game' },
+      { level: 'info', title: 'Elite โดนลมเต็มแรง', body: 'ลมเหยี่ยวผลักและทำให้ Elite มึนเต็มแรงเหมือนมอนธรรมดา (ไม่คูณ player.kbElite) เจ้าของเลือกแบบนี้ 2026-09-28 ดาเมจจาก Elite ต่อนาทียังเท่าเดิม', status: 'ตั้งใจ' },
+      { level: 'info', title: 'co-op: Kit ที่เป็นแขก', body: 'ลมเหยี่ยวของแขกเป็นแค่ภาพ เหมือนการควบคุมฝูงอื่นของแขก ตำแหน่งมอนยึดตามเครื่อง host', status: 'ข้อจำกัดเดิมของ co-op' },
+    ],
+    reasons: {
+      'shared.skills.hawk.gustKb': 'ผลักมอนรอบตัว Kit ถอยเมื่อเหยี่ยวป้องกัน (Elite เต็มแรง)',
+      'shared.skills.hawk.gustStun': 'มอนที่โดนลมหยุดโจมตีสั้น ๆ',
+      'shared.skills.hawk.gustR': 'รัศมีลมเท่าวงที่นับว่า Kit โดนล้อม',
+      'shared.skills.hawk.gustCd': 'ใช้ได้ทุก 3 วินาที ไม่ให้ป้องกันวนไม่รู้จบ',
+    },
+    next: [
+      'Kit late game (session ใหม่): ให้สกิลตื่นพลัง/สกิลสายของ Kit เคลียร์ฝูงได้จริง เช่น Arrow Rain / Gale Step ตามเกณฑ์ QA G1–G5',
+      'หลัง publish: ดูข้อมูลจริงของ Kit ในร้าว 5–10',
+    ],
+  },
+};
+
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09J, BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
