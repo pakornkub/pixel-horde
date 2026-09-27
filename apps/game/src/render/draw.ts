@@ -1,5 +1,5 @@
 // Renderer: reads the sim's view() and client vfx; never mutates gameplay state.
-import { AWK_TAGS, REALMS, WEAPONS, attackSlots, benchSize, shieldPoints, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
+import { AWK_TAGS, REALMS, WEAPONS, attackSlots, benchSize, inLineSlot, lineSlots, shieldPoints, signatureOf, skillStats, type Effect, type Enemy, type SimState, type SkillId, type PassiveId, type Weapon } from '@pixel-horde/sim';
 import { b, buf, ctx, cv, screen } from '../platform/screen';
 import { touch } from '../platform/input';
 import { INK, HERO_SPR, ENEMY_SPR, HELD_SPR, MINION_SPR, PET_SPR } from './sprites';
@@ -1222,19 +1222,34 @@ function panelRibbon(txt: string, x: number, y: number, sz: number): void {
 }
 
 /**
- * Bottom-left panel: SKILL row (Signature first, x/attack slots), then PASSIVE x/slots, BENCH x/size and
+ * Bottom-left panel: AWK row (Awakened-only slots, once open), SKILL row (Signature first, x/attack slots), then PASSIVE x/slots, BENCH x/size and
  * PET (dragon, Shadow Clone, or the Shadow Shards collected toward one). Stops before `maxX` (the ULT button).
  */
 function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, maxX: number): void {
-  const D = screen.HD, P = v.P, cfg = v.cfg;
-  const sz = 22 * D, gap = 8 * D, ps = 16 * D, pg = 7 * D, lab = 6 * D;
+  const D = screen.HD, P = v.P;
+  const sz = 22 * D, ps = 16 * D, lab = 6 * D;
   const yP = bottom - ps, yPl = yP - lab - 7 * D, yS = yPl - sz - 12 * D, ySl = yS - lab - 8 * D;
-  const sig = signatureOf(P.ch);
-  const skills = (Object.keys(P.skills) as SkillId[]).sort((a, c) => (a === sig ? -1 : c === sig ? 1 : 0));
-  const slots = attackSlots(v as SimState), atkSlots = Math.max(slots, skills.length);
+  const sig = signatureOf(P.ch), s = v as SimState;
+  const owned = (Object.keys(P.skills) as SkillId[]).sort((a, c) => (a === sig ? -1 : c === sig ? 1 : 0));
+  const skills = owned.filter((id) => !inLineSlot(s, id)), line = owned.filter((id) => inLineSlot(s, id));
+  const slots = attackSlots(s), awk = lineSlots(s);
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
   outlined(`${t('hud.panel.skill')} ${skills.length}/${slots}`, left, ySl, lab, '#ffb3b3');
-  for (let i = 0; i < atkSlots; i++) {
+  skillRow(v, skills, Math.max(slots, skills.length), left, yS, maxX);
+  if (awk > 0) { // Awakened-only slots: a gold row above the SKILL row
+    const yA = ySl - sz - 12 * D, yAl = yA - lab - 8 * D;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    outlined(`${t('hud.panel.awk')} ${line.length}/${awk}`, left, yAl, lab, '#ffd23f');
+    skillRow(v, line, Math.max(awk, line.length), left, yA, maxX);
+  }
+  drawPassiveGroups(v, left, yP, yPl, maxX);
+}
+
+/** One row of attack skill icons (Signature pink corner, cooldown shade, level, EVO/AWK ribbon), empty slots after. */
+function skillRow(v: Readonly<SimState>, skills: SkillId[], n: number, left: number, yS: number, maxX: number): void {
+  const D = screen.HD, P = v.P, cfg = v.cfg, sig = signatureOf(P.ch);
+  const sz = 22 * D, gap = 8 * D;
+  for (let i = 0; i < n; i++) {
     const x = left + i * (sz + gap);
     if (x + sz > maxX) break;
     const id = skills[i];
@@ -1258,6 +1273,12 @@ function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, max
     if (isSig && P.awakened) panelRibbon('AWK', x, yS, sz);
     else if (evo) panelRibbon('EVO', x, yS, sz);
   }
+}
+
+/** PASSIVE row, then BENCH and PET groups after dividers on the same line. */
+function drawPassiveGroups(v: Readonly<SimState>, left: number, yP: number, yPl: number, maxX: number): void {
+  const D = screen.HD, P = v.P, cfg = v.cfg;
+  const ps = 16 * D, pg = 7 * D, lab = 6 * D;
   // passives
   const pas = Object.keys(P.pas) as PassiveId[], pasSlots = Math.max(cfg.passiveSlots, pas.length);
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';

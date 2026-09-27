@@ -432,6 +432,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Max-level Links needed (consumed unless keep is 1)': { th: 'จำนวน Link เลเวลเต็มที่ต้องมี (ถูกใช้ไปถ้า keep = 0)', up: 'Awakening ยากขึ้น' },
   'Awakening keeps the Links equipped (1) or consumes them (0)': { th: 'ตื่นพลังแล้วเก็บ Link ไว้ (1) หรือใช้ Link ทิ้ง 2 ตัว (0)', up: '1 = Link อยู่ครบ ตื่นพลังคุ้มขึ้นมาก (ใช้คู่กับ slots)' },
   'Extra attack slots after Awakening': { th: 'ช่องสกิลโจมตีที่เพิ่มหลังตื่นพลัง', up: 'ใส่สกิลสายได้เพิ่มโดยไม่ต้องถอดสกิลเดิม ตีแรงขึ้นมาก' },
+  'Attack slots after Awakening that hold only Skill Line (Awakened) skills; they then never take a normal attack slot (0 = they share the normal slots)': { th: 'ช่องสกิลตื่นพลังหลังตื่นพลัง (ใส่ได้เฉพาะสกิลตื่นพลัง และสกิลตื่นพลังไม่กินช่องโจมตีปกติ · 0 = ใช้ช่องโจมตีร่วมกันแบบเดิม)', up: 'สกิลตื่นพลังมีที่ของตัวเอง ไม่ต้องถอดสกิลเดิม ตีแรงขึ้นมาก' },
   'Maximum': { th: 'ค่าสูงสุด', up: 'Director ดันความยากได้สูงขึ้น' },
   'Meteors multiplier (rounded)': { th: 'ตัวคูณจำนวนอุกกาบาต (ปัดเศษ, หลัง Evolution)', up: 'Evolution แล้วได้อุกกาบาตเยอะขึ้น' },
   'Might max level': { th: 'Might เลเวลสูงสุด', up: 'อัป Might ได้มากเลเวลขึ้น' },
