@@ -34,7 +34,7 @@ const heroSec = section('heroes', 'w.heroes', el('div.grid', null, ...HERO_IDS.m
     el('h3', null, G(`hero.${h}.name`)), G(`hero.${h}.role`, undefined, 'p', 'muted'),
     el('dl.kv', null,
       el('dt', null, T('w.bonus')), el('dd', null, ...heroBonus(h, C).flatMap(([k, a], i) => [i ? ' · ' : '', T(k, a)])),
-      el('dt', null, T('home.sig')), el('dd', null, skn(sig), '→', el('span.skname', null, passiveIcon(evoPassive(sig)!, 'sm'), G(`evo.${sig}.name`))),
+      el('dt', null, T('home.sig')), el('dd', null, skn(sig), '→', el('span.skname', null, G(`evo.${sig}.name`)), el('span.skname', { style: 'opacity:.8' }, '+', passiveIcon(evoPassive(sig)!, 'sm'), G(`passive.${evoPassive(sig)}.name`))),
       el('dt', null, T('w.line')), el('dd', null, ...SKILL_LINES[h].map((id) => skn(id))),
       el('dt', null, T('w.form')), el('dd', null, G(`form.${A.form}`, undefined, 'span', 'chip line'), ...A.line.map((id) => skn(id))),
       el('dt', null, T('w.unlock')), el('dd', null, cost ? el('span.chip.gold', null, `${cost}G`) : T('home.free', undefined, 'span', 'chip gold'), ...(AFTER_WIN.includes(h) ? [' ', T('home.afterWin', undefined, 'span', 'chip line')] : [])))));

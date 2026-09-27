@@ -69,7 +69,7 @@ export function renderChars(): void {
     bt.append(im, cn, cc);
     bt.addEventListener('click', () => {
       void (async () => {
-        if (afterWin) { $('chDesc').textContent = t('hero.needWin', { name }); return; }
+        if (afterWin) { $('chDesc').textContent = t('hero.needWin', { name, cost: c.cost }); return; }
         if (!owned) {
           if (META.gold < c.cost) { $('chDesc').textContent = t('hero.needGold', { name, cost: c.cost, gold: META.gold }); return; }
           const err = await metaSync.unlockHero(k);
