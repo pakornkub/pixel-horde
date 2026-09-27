@@ -57,7 +57,11 @@ const toLocalInput = (iso: string): string => {
   const d = new Date(iso), p = (n: number): string => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 };
-const fromLocalInput = (v: string): string | null => (v ? new Date(v).toISOString() : null);
+const fromLocalInput = (v: string): string | null => {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
 const daysAgo = (n: number): string => new Date(Date.now() - n * 864e5).toISOString();
 
 function OfflineReview({ api }: { api: AdminApi }) {
@@ -75,12 +79,13 @@ function OfflineReview({ api }: { api: AdminApi }) {
   // typed dates are committed on blur / Enter, never per keystroke (a reload per key broke keyboard entry)
   const commit = (which: 'since' | 'until', v: string): void => {
     const iso = fromLocalInput(v);
+    if (v && !iso) { toast('วันที่ไม่ถูกต้อง'); return; }
     if (!iso || !shown || iso === shown[which]) return;
     setPreset('custom');
     setRange({ since: range.since ?? shown.since, until: range.until ?? shown.until, [which]: iso });
   };
   const dateInput = (which: 'since' | 'until') => shown && (
-    <input type="datetime-local" key={which + shown[which]} defaultValue={toLocalInput(shown[which])}
+    <input type="datetime-local" key={which + shown[which]} defaultValue={toLocalInput(shown[which])} min="2020-01-01T00:00" max="2099-12-31T23:59"
       onBlur={(e) => commit(which, (e.target as HTMLInputElement).value)}
       onKeyDown={(e) => { if (e.key === 'Enter') commit(which, (e.target as HTMLInputElement).value); }} />
   );
