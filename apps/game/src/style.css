@@ -308,6 +308,8 @@ html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);fo
 .opiece .ds{font-size:12px;line-height:1.3}
 .opiece .buy{font-size:12px;padding:5px 6px;width:100%;white-space:normal;line-height:1.15;min-height:36px}
 .opiece.unowned .ico,.opiece.unowned .nm,.opiece.unowned .lv{opacity:.5}
+.onote-piece{font-size:11px;line-height:1.25;font-weight:700;color:#c0303a}
+.onote-piece.ok{color:#3f8f3a}
 .oworn{font-size:12px;font-weight:700;color:#3f8f3a}
 .oworn .link{font-size:11px;font-weight:400;background:none;border:0;padding:8px 6px;margin:-6px 0;text-decoration:underline;cursor:pointer;color:var(--ink)}
 @media (min-width:700px) and (max-height:520px){.osets{grid-template-columns:1fr 1fr}.onote{display:none}}

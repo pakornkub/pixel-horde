@@ -13,6 +13,8 @@ let tab: Tab = 'forge';
 let msg = '';
 /** The message is good news (e.g. bought but not worn), not a refusal. */
 let msgOk = false;
+/** An outfit purchase's note, shown on the piece's own card (the page may be scrolled far below #specialMsg). */
+let pieceNote: { set: OutfitSet; slot: OutfitSlot; text: string; ok: boolean } | null = null;
 /** Tutorial-hint id marking that the player has seen the unlocked special shop (clears the NEW badge). */
 const SEEN = 'special';
 
@@ -188,15 +190,22 @@ function outfitRows(box: HTMLElement): void {
       bt.addEventListener('click', async () => {
         bt.disabled = true;
         const err = await metaSync.buyOutfit(set, slot);
-        msg = buyError(err);
-        msgOk = false;
+        msg = '';
+        pieceNote = err ? { set, slot, text: buyError(err), ok: false } : null;
         if (!err) {
           sfx('lv');
-          if (!lv && META.wear[slot] !== set) { msg = t('outfit.bought'); msgOk = true; } // kept the worn piece on
+          if (!lv && META.wear[slot] !== set) pieceNote = { set, slot, text: t('outfit.bought'), ok: true }; // kept the worn piece on
         }
         render();
       });
       cell.append(ico, nm, lvs, ds, bt);
+      if (pieceNote && pieceNote.set === set && pieceNote.slot === slot) {
+        const n = document.createElement('span');
+        n.className = 'onote-piece' + (pieceNote.ok ? ' ok' : '');
+        n.setAttribute('role', 'status');
+        n.textContent = pieceNote.text;
+        cell.appendChild(n);
+      }
       if (wearing) {
         const w = document.createElement('span');
         w.className = 'oworn';
@@ -211,7 +220,7 @@ function outfitRows(box: HTMLElement): void {
         const wb = document.createElement('button');
         wb.className = 'buy ghost';
         wb.textContent = t('outfit.wear');
-        wb.addEventListener('click', () => { metaSync.wearOutfit(slot, set); msg = ''; render(); });
+        wb.addEventListener('click', () => { metaSync.wearOutfit(slot, set); msg = ''; pieceNote = null; render(); });
         cell.appendChild(wb);
       }
       row.appendChild(cell);
@@ -260,6 +269,7 @@ export function renderSpecialBtn(): void {
 
 export function openSpecialShop(from: string): void {
   msg = '';
+  pieceNote = null;
   tab = 'forge'; // before the first win too: the locked Forge shows what the win unlocks
   if (metaSync.hasWon()) metaSync.markTip(SEEN);
   hide(from);
@@ -270,7 +280,7 @@ export function openSpecialShop(from: string): void {
 }
 
 export function initSpecialShop(): void {
-  $('specialTabs').querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab as Tab; msg = ''; render(); }));
+  $('specialTabs').querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab as Tab; msg = ''; pieceNote = null; render(); }));
   const refresh = (): void => { if ($('ovSpecial').classList.contains('on')) render(); renderSpecialBtn(); };
   metaSync.onChange(refresh);
   onLangChange(refresh);
