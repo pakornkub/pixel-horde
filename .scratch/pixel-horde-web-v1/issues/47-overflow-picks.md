@@ -35,3 +35,5 @@ pool of fillers — **Limit Break** (small stacking Run bonuses), **train a Benc
 - Suggested changelog lines — th: "สกิลตันหมดแล้วยังมีของให้เลือก: Limit Break (ดาเมจ/HP/ความเร็ว/คริ สะสมได้),
   ฝึกสกิลใน Bench, ถุงทอง และ Recover — กดสุ่มใหม่ได้ด้วย"; en: "Maxed out? Level-ups and chests now offer Limit Break
   (stacking Damage/HP/Speed/Crit), Bench training, a Gold Bag or Recover — and the reroll draws a new set."
+
+Owner (2026-09-27, QA review 1): the Gold bag keeps its written `overflow.gold × Chapter`. Base difficulty's Gold ×0.2 no longer scales it (it left 5G × Chapter, a card nobody picked).
