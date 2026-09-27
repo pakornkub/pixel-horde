@@ -389,6 +389,7 @@
  "score.victory": "ชนะอัมบรา",
  "score.fast": "จบเร็ว ({n} วิ)",
  "score.escapes": "ราชาหนี ×{n}",
+ "score.crack": "โบนัสหัวใจร้าว {n}",
  "score.revive": "ซื้อใบเกิด ×{n} (−15%)",
  "score.total": "รวม",
  "stat.chapter": "Chapter ที่ไปถึง",
