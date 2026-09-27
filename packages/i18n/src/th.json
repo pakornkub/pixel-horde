@@ -732,7 +732,7 @@
  "outfit.set.storm.target": "ดาเมจใส่มอนติดช็อต",
  "outfit.set.frost.target": "ดาเมจใส่มอนแช่แข็ง/เย็น",
  "outfit.set.ember.target": "ดาเมจใส่มอนติดไฟ",
- "outfit.bonusLine": "โบนัสเซต: ตอนนี้ {now} · สูงสุด {max} (ตามเลเวลชิ้นที่ต่ำสุด)",
+ "outfit.bonusLine": "โบนัสเซต ถ้าใส่ครบ: {now} · สูงสุด {max} (ตามเลเวลชิ้นที่ต่ำสุด)",
  "outfit.bought": "ซื้อแล้ว · กด ใส่ เพื่อสวม",
  "outfit.off": "ถอด",
  "outfit.up": "อัป {cost}G",

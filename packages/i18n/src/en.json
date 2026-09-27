@@ -732,7 +732,7 @@
  "outfit.set.storm.target": "Damage to Shocked monsters",
  "outfit.set.frost.target": "Damage to Frozen / chilled monsters",
  "outfit.set.ember.target": "Damage to Burning monsters",
- "outfit.bonusLine": "Set bonus: now {now} · up to {max} (by your lowest piece level)",
+ "outfit.bonusLine": "Set bonus if full: {now} · up to {max} (by your lowest piece level)",
  "outfit.bought": "Bought · tap Wear to put it on",
  "outfit.off": "Take off",
  "outfit.up": "Upgrade {cost}G",

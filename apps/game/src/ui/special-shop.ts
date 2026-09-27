@@ -143,7 +143,7 @@ const setPct = (lv: number): string => round((active.cfg.outfits.setBase + activ
 function outfitRows(box: HTMLElement): void {
   const C = active.cfg, max = C.outfits.max, full = outfitSet(C, metaSync.worn());
   const p = (text: string, cls = 'slots'): HTMLElement => { const e = document.createElement('p'); e.className = cls; e.textContent = text; box.appendChild(e); return e; };
-  p(t('outfit.note'));
+  p(t('outfit.note'), 'slots onote'); // hidden on short landscape screens, where the cards need the room
   p(t('outfit.legend'), 'slots legend');
   // the worn set as a chip: green when complete, small grey hint otherwise
   p(full ? t('outfit.active', { set: t(`outfit.set.${full.set}.name`), bonus: t(`outfit.set.${full.set}.bonus`, { v: setPct(full.lv) }) }) : t('outfit.none'), full ? 'ochip on' : 'ochip');
