@@ -110,6 +110,8 @@ export const COMBO_IDS: ComboId[] = ['shatter', 'firestorm', 'overload', 'superc
 export interface HitTag { el?: HitElement; heavy?: boolean; sweep?: boolean; applies?: 'burning' | 'shocked' | 'poisoned'; combo?: boolean;
   /** Ultimate: fixed damage (no Might/Power/crit/variance), capped on bosses, starts no Combo. */
   raw?: boolean;
+  /** The Ultimate strike itself (not its follow-ups such as the Gear Cannon turret). */
+  strike?: boolean;
   /** Co-op host: damage a guest already calculated (applied as is). */
   remote?: boolean }
 

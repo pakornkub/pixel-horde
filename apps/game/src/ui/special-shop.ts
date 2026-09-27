@@ -1,13 +1,12 @@
 // Special shop (ticket 56): the Gold sinks after the permanent shop. One screen with tabs: Weapon forge and outfits
 // open after the first win (Umbra beaten once), Hero Mastery from the start. The server refuses locked purchases too.
-import { WEAPON_IDS, WEAPONS, forgeCost, forgeMul, forgeStun, type WeaponId } from '@pixel-horde/sim';
+import { WEAPON_IDS, WEAPONS, forgeCost, forgeDmg, forgeMul, forgeStun, ultCap, type WeaponId } from '@pixel-horde/sim';
 import { onLangChange, t } from '@pixel-horde/i18n';
 import { sfx } from '../audio/sfx';
 import { active } from '../config';
 import { META, metaSync } from '../meta';
 import { HELD_SPR } from '../render/sprites';
 import { $, hide, show } from './overlays';
-import { realmName } from './text';
 
 type Tab = 'forge' | 'mastery' | 'outfits';
 let tab: Tab = 'forge';
@@ -39,7 +38,7 @@ const round = (v: number, d = 1): string => String(Math.round(v * 10 ** d) / 10 
 function fxValue(w: WeaponId, lv: number): string {
   const C = active.cfg, W = C.weapons, m = forgeMul(C, w, lv), sec = (n: number): string => t('forge.sec', { n: round(n) });
   switch (WEAPONS[w].form) {
-    case 'judgement': return sec(forgeStun(C, lv));
+    case 'judgement': return lv ? sec(forgeStun(C, lv)) : t('forge.none');
     case 'root': return sec(W.root * m);
     case 'burn': return sec(C.status.burning * m);
     case 'reap': return round(Math.min(1, W.execute * m) * 100, 0) + '%';
@@ -53,17 +52,33 @@ function fxValue(w: WeaponId, lv: number): string {
   }
 }
 
+/** Ultimate damage × and the King cap at a forge level (and the next one unless maxed). */
+function powerLine(lv: number, maxed: boolean): string {
+  const C = active.cfg, dmg = (l: number): string => `×${round(forgeDmg(C, l))}`, cap = (l: number): string => `${round(ultCap(C, false, l) * 100)}%`;
+  return t('forge.power', { dmg: maxed ? dmg(lv) : `${dmg(lv)} → ${dmg(lv + 1)}`, cap: maxed ? cap(lv) : `${cap(lv)} → ${cap(lv + 1)}` });
+}
+
+/** Buy button text and state: the price, "Max", or how much Gold is still missing (red). */
+function priceButton(bt: HTMLButtonElement, cost: number, maxed: boolean): void {
+  const short = !maxed && META.gold < cost;
+  bt.className = 'buy' + (short ? ' short' : '');
+  bt.textContent = maxed ? t('shop.maxed') : short ? t('forge.need', { n: cost - META.gold }) : t('shop.buy', { cost });
+  bt.disabled = maxed || short;
+}
+/** Shop message for a refused purchase. */
+const buyError = (err: { code: string } | null): string => (!err ? '' : err.code === 'NOT_ENOUGH_GOLD' ? t('special.noGold') : t('special.err'));
+
 function forgeRows(box: HTMLElement): void {
   const max = active.cfg.forge.max;
   const note = document.createElement('p');
   note.className = 'slots';
   note.textContent = t('forge.note');
   box.appendChild(note);
-  for (const w of WEAPON_IDS) {
-    if (!WEAPONS[w].available) continue;
-    const owned = metaSync.ownsWeapon(w), lv = metaSync.forgeLv(w), maxed = lv >= max, cost = forgeCost(active.cfg, lv);
+  const all = WEAPON_IDS.filter((w) => WEAPONS[w].available), owned = all.filter((w) => metaSync.ownsWeapon(w)), missing = all.filter((w) => !metaSync.ownsWeapon(w));
+  for (const w of owned) {
+    const lv = metaSync.forgeLv(w), maxed = lv >= max, cost = forgeCost(active.cfg, lv);
     const row = document.createElement('div');
-    row.className = 'srow' + (owned ? '' : ' locked');
+    row.className = 'srow';
     const ico = document.createElement('span');
     ico.className = 'ico wpn';
     const url = weaponImg(w);
@@ -71,27 +86,40 @@ function forgeRows(box: HTMLElement): void {
     const txt = document.createElement('span');
     const nm = document.createElement('span');
     nm.className = 'nm';
-    nm.textContent = `${t(`weapon.${w}.name`)} ${t('forge.lv', { lv, max })}`;
+    const lvs = document.createElement('span');
+    lvs.className = 'lv';
+    lvs.textContent = t('forge.lv', { lv, max });
+    nm.append(t(`weapon.${w}.name`) + ' ', lvs);
     const ds = document.createElement('span');
     ds.className = 'ds';
     const now = fxValue(w, lv);
-    ds.textContent = owned
-      ? t(`forge.fx.${w}`, { v: maxed ? now : `${now} → ${fxValue(w, lv + 1)}` })
-      : t('forge.notOwned', { realm: WEAPONS[w].realm ? realmName(WEAPONS[w].realm) : '' });
-    txt.append(nm, ds);
+    ds.textContent = t(`forge.fx.${w}`, { v: maxed ? now : `${now} → ${fxValue(w, lv + 1)}` });
+    const pw = document.createElement('span');
+    pw.className = 'ds';
+    pw.textContent = powerLine(lv, maxed);
+    txt.append(nm, ds, pw);
     const bt = document.createElement('button');
-    bt.className = 'buy';
-    bt.textContent = !owned ? t('forge.missing') : maxed ? t('shop.maxed') : t('shop.buy', { cost });
-    bt.disabled = !owned || maxed || META.gold < cost;
+    priceButton(bt, cost, maxed);
     bt.addEventListener('click', async () => {
       bt.disabled = true;
       const err = await metaSync.forgeWeapon(w);
-      msg = err ? t('special.err') : '';
+      msg = buyError(err);
       if (!err) sfx('lv');
       render();
     });
     row.append(ico, txt, bt);
     box.appendChild(row);
+  }
+  if (!missing.length) return;
+  const h = document.createElement('h3');
+  h.className = 'oset';
+  h.textContent = t('forge.missingHead', { n: missing.length });
+  box.appendChild(h);
+  for (const w of missing) {
+    const r = WEAPONS[w].realm, line = document.createElement('div');
+    line.className = 'lockrow';
+    line.textContent = '🔒 ' + t('forge.lockLine', { weapon: t(`weapon.${w}.name`), realm: r ? t(`realm.${r}.short`) : '' });
+    box.appendChild(line);
   }
 }
 
@@ -105,7 +133,7 @@ function render(): void {
   const box = $('specialBody');
   box.innerHTML = '';
   const p = (text: string): void => { const e = document.createElement('p'); e.className = 'slots'; e.textContent = text; box.appendChild(e); };
-  if (locked(tab)) p(t('special.locked'));
+  if (locked(tab)) { if (tab === 'forge') p(t('forge.note')); p(t('special.locked')); }
   else if (tab === 'forge') forgeRows(box);
   else p(t(`special.${tab}Soon`));
   const m = $('specialMsg');
@@ -115,9 +143,15 @@ function render(): void {
 
 /** Title button: "NEW" once the first win opened the locked tabs, until the shop is visited. */
 export function renderSpecialBtn(): void {
-  const b = $('specialBtn');
-  b.textContent = t('title.special');
-  if (metaSync.hasWon() && !META.tips.includes(SEEN)) {
+  const b = $('specialBtn'), won = metaSync.hasWon();
+  // before the first win: a plain paper button with a lock and what unlocks it (owner, option A)
+  b.classList.toggle('locked', !won);
+  b.textContent = (won ? '' : '🔒 ') + t('title.special');
+  if (!won) {
+    const s = document.createElement('small');
+    s.textContent = t('special.lockedHint');
+    b.append(s);
+  } else if (!META.tips.includes(SEEN)) {
     const s = document.createElement('small');
     s.textContent = t('special.new');
     b.append(' ', s);
@@ -126,7 +160,7 @@ export function renderSpecialBtn(): void {
 
 export function openSpecialShop(from: string): void {
   msg = '';
-  tab = metaSync.hasWon() ? 'forge' : 'mastery';
+  tab = 'forge'; // before the first win too: the locked Forge shows what the win unlocks
   if (metaSync.hasWon()) metaSync.markTip(SEEN);
   hide(from);
   render();

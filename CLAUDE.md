@@ -113,9 +113,9 @@ clear screen — never at the next Stage start.
 - Shop (permanent): Power, Vigor, Agility, Greed, Wisdom, Second Wind (revive). A revive can also be bought in a Run
   (75G × Chapter, once, −15% Score).
 - Special shop (ticket 56, title button): tabs Forge / Mastery / Outfits; Forge and Outfits open after the first win
-  (server `has_won(uid)`: Heart Crack ≥ 1 or heroesWon). Weapon forge: `forge.max` levels per owned Weapon, each stretches
-  its Ultimate's own effect by `forge.<weapon>` (Judgement: stun), never damage; levels in `meta_progress.shop` as
-  `forge:lumora:<id>`.
+  (server `has_won(uid)`: Heart Crack ≥ 1 or heroesWon). Weapon forge: `forge.max` levels per owned Weapon, each adds
+  `forge.dmg` Ultimate damage and `forge.bossCap`/`umbraCap` to the boss caps (ticket 58) and stretches its own effect by
+  `forge.<weapon>` (Judgement: stun); levels in `meta_progress.shop` as `forge:lumora:<id>`.
 - Counter enemies: Armored variant (flat damage reduction `10*1.4^(st-1)*(1+0.05*(lv-1))`, st≥3), Split Slime (st≥4,
   and st≥2 in `split` Realms). Wild Boar / Eye Caster spawn only while `charger.on` / `caster.on` are 1 (default 0);
   Realm mobs (Skeleton Archer, Turret, Sawfish, Griffin…) now cover ranged and charging.
