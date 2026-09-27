@@ -88,7 +88,7 @@ function knockbackLog(cfg: SimState['cfg']): number {
 
 export function createSim(opts: SimOptions): Sim {
   const cfg = opts.config ?? DEFAULT_RESOLVED;
-  const P = newPlayer(cfg, opts.hero);
+  let P = newPlayer(cfg, opts.hero);
   const s: SimState = {
     tick: 0, clock: 0, seed: opts.seed >>> 0, cfg, configVersions: [cfg.version], eventSwitches: { bloodMoon: true, dragon: true, rival: true, ...opts.events }, pending: {},
     phase: 'play', hero: opts.hero,
@@ -111,8 +111,10 @@ export function createSim(opts: SimOptions): Sim {
   recompute(s);
   P.hp = P.maxHp;
   P.revives = U(s, 'revive');
-  if (opts.resume) restoreInto(s, opts.resume);
-  else {
+  if (opts.resume) {
+    restoreInto(s, opts.resume);
+    P = s.P; // the checkpoint brings its own Player object: move() and friends must use it
+  } else {
     if (s.debug.realm && REALMS[s.debug.realm]) { s.realm = s.debug.realm; s.visited = [s.realm]; }
     if (s.debug.awaken) { // try the Awakened form at once (owner testing)
       const sig = signatureOf(P.ch);
