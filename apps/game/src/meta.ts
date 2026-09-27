@@ -1,7 +1,7 @@
 // Meta progression. The server owns Gold/Shop/unlocks (ticket 09); this module keeps a local cache
 // (`pixelhorde-meta`, also the offline save) plus a queue of offline actions, and lets the server
 // win whenever it is reachable. The old artifact save is uploaded once.
-import { ACHIEVEMENTS, HERO_IDS, addToLifetime, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
+import { ACHIEVEMENTS, HERO_IDS, WEAPON_IDS, addToLifetime, forgeCost, forgeKey, forgeLevel, isHero, isWeapon, newAchievements, type Lifetime, type RunFacts, SHOP_IDS, shopCost, weaponKey, type HeroId, type Meta, type ShopId, type WeaponId } from '@pixel-horde/sim';
 import { active } from './config';
 import { BackendError, type Backend, type Collection, type RunResult, type RunTicket, type ServerMeta, type SubmitOutcome } from './net/backend';
 import { browserStore, type KeyValue } from './net/offline';
@@ -15,6 +15,8 @@ export interface MetaSave {
   /** Weapon collection ("lumora:thornwhip") and the Weapon picked for the next Run. */
   weapons: string[];
   weapon: WeaponId;
+  /** Weapon forge levels (ticket 56; on the server in meta_progress.shop as "forge:lumora:<id>"). */
+  forge: Partial<Record<WeaponId, number>>;
   /** Heart Crack: highest unlocked tier and the one picked for the next Run. */
   crackMax: number;
   crack: number;
@@ -31,7 +33,8 @@ export interface MetaSave {
 export type QueueOp =
   | { kind: 'run'; result: RunResult; ticket?: RunTicket; live?: boolean }
   | { kind: 'buy'; item: ShopId }
-  | { kind: 'hero'; hero: HeroId };
+  | { kind: 'hero'; hero: HeroId }
+  | { kind: 'forge'; weapon: WeaponId };
 
 /** Highest Heart Crack tier any config allows (`heartCrack.maxTier` range); the live config caps unlocks below it. */
 const CRACK_CAP = 20;
@@ -42,6 +45,9 @@ export function parseMeta(raw: unknown): MetaSave {
   const upIn = (m.up && typeof m.up === 'object' ? m.up : {}) as Record<string, unknown>;
   const up: Partial<Record<ShopId, number>> = {};
   for (const id of SHOP_IDS) { const v = Number(upIn[id]); if (v > 0) up[id] = Math.floor(v); }
+  const forgeIn = (m.forge && typeof m.forge === 'object' ? m.forge : {}) as Record<string, unknown>;
+  const forge: Partial<Record<WeaponId, number>> = {};
+  for (const id of WEAPON_IDS) { const v = Number(forgeIn[id]); if (v > 0) forge[id] = Math.floor(v); }
   return {
     gold: Math.max(0, Number(m.gold) || 0),
     up,
@@ -49,6 +55,7 @@ export function parseMeta(raw: unknown): MetaSave {
     ch: isHero(m.ch) ? m.ch : 'mage',
     weapons: Array.isArray(m.weapons) ? m.weapons.filter((w): w is string => typeof w === 'string') : [],
     weapon: isWeapon(m.weapon) ? m.weapon : 'judgement',
+    forge,
     crackMax: Math.max(0, Math.min(CRACK_CAP, Math.floor(Number(m.crackMax) || 0))),
     crack: Math.max(0, Math.min(CRACK_CAP, Math.floor(Number(m.crack) || 0))),
     ach: Array.isArray(m.ach) ? m.ach.filter((x): x is string => typeof x === 'string') : [],
@@ -84,6 +91,9 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     const up: Partial<Record<ShopId, number>> = {};
     for (const id of SHOP_IDS) { const v = Number(s.shop?.[id]); if (v > 0) up[id] = v; }
     meta.up = up;
+    const forge: Partial<Record<WeaponId, number>> = {};
+    for (const id of WEAPON_IDS) { const v = Number(s.shop?.[forgeKey(id)]); if (v > 0) forge[id] = v; }
+    meta.forge = forge;
     meta.owned = (s.heroes || []).filter(isHero);
     meta.weapons = Array.isArray(s.weapons) ? s.weapons : meta.weapons;
     if (!ownsWeapon(meta.weapon)) meta.weapon = 'judgement';
@@ -136,6 +146,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
             } else out = await backend.submitOfflineRun(op.result);
             for (const f of runListeners) f(op.result.clientRunId, out);
           } else if (op.kind === 'buy') await backend.buyUpgrade(op.item);
+          else if (op.kind === 'forge') await backend.forgeWeapon(op.weapon);
           else await backend.unlockHero(op.hero);
         } catch (e) {
           const code = e instanceof BackendError ? e.code : 'UNKNOWN';
@@ -178,6 +189,29 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     meta.gold -= cost;
     meta.owned.push(k);
     queue.push({ kind: 'hero', hero: k });
+    save();
+    return null;
+  }
+
+  /**
+   * The special shop's gate (ticket 56): Umbra beaten at least once. Beating Umbra unlocks Heart Crack 1 and adds the Hero
+   * to heroesWon; the server runs the same check (has_won) before any locked purchase.
+   */
+  const hasWon = (): boolean => meta.crackMax >= 1 || (meta.life.heroesWon?.length ?? 0) > 0;
+  const forgeLv = (w: WeaponId): number => forgeLevel(active.cfg, meta.forge, w);
+
+  async function forgeWeapon(w: WeaponId): Promise<BackendError | null> {
+    if (!hasWon()) return new BackendError('SHOP_LOCKED');
+    if (!ownsWeapon(w)) return new BackendError('WEAPON_LOCKED');
+    const lv = forgeLv(w), cost = forgeCost(active.cfg, lv);
+    if (lv >= active.cfg.forge.max) return new BackendError('MAXED');
+    if (meta.gold < cost) return new BackendError('NOT_ENOUGH_GOLD');
+    if (online()) {
+      try { applyServer(await backend.forgeWeapon(w)); return null; } catch (e) { if (!(e instanceof BackendError) || e.code !== 'OFFLINE') return e instanceof BackendError ? e : new BackendError('UNKNOWN'); }
+    }
+    meta.gold -= cost;
+    meta.forge[w] = lv + 1;
+    queue.push({ kind: 'forge', weapon: w });
     save();
     return null;
   }
@@ -240,6 +274,9 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     recordFacts,
     applyCollection,
     ownsWeapon,
+    hasWon,
+    forgeLv,
+    forgeWeapon,
     addWeapons,
     selectWeapon,
     selectCrack,
@@ -263,7 +300,7 @@ export const META = metaSync.meta;
 export const U = metaSync.U;
 export const ownsHero = metaSync.ownsHero;
 export const saveMeta = metaSync.save;
-export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold, weapons: [...META.weapons] });
+export const simMeta = (): Meta => ({ up: { ...META.up }, wallet: META.gold, weapons: [...META.weapons], forge: { ...META.forge } });
 export const HEROES_ALL = HERO_IDS;
 
 export interface Best { stage: number; kills: number }
