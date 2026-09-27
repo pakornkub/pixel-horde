@@ -230,6 +230,14 @@ function mergeMates(s: SimState, list: readonly MateWire[]): void {
   });
 }
 
+/** Host: its connection id changed after a reconnect — keep what was counted under the old one. */
+export function renameSelf(s: SimState, id: string): void {
+  const c = s.coop;
+  if (!c || typeof id !== 'string' || !id || id === c.self) return;
+  if (c.pot[c.self] !== undefined) { c.pot[id] = (c.pot[id] || 0) + c.pot[c.self]; delete c.pot[c.self]; }
+  c.self = id;
+}
+
 /** Host: latest guest presence. */
 export function setMates(s: SimState, list: readonly MateWire[]): void { if (isHost(s)) mergeMates(s, list); }
 

@@ -88,6 +88,47 @@ describe('co-op session over the in-memory hub', () => {
     expect(guest.silent()).toBeLessThan(0.1);
   });
 
+  it('a host whose connection drops mid-Run gets back in by itself; its sim learns the new id and guests carry on', () => {
+    const hub = createMemoryHub();
+    const timers: (() => void)[] = [];
+    const later = (_ms: number, fn: () => void): void => { timers.push(fn); };
+    const host = createSession(hub.connect, { role: 'host', code: 'KMNPQ', name: 'H', pid: 'h', hero: 'mage', weapon: 'judgement', later });
+    const guest = createSession(hub.connect, { role: 'guest', code: 'KMNPQ', name: 'G', pid: 'g', hero: 'mage', weapon: 'judgement' });
+    const hev: SessionEvent[] = [], gev: SessionEvent[] = [];
+    host.on((e) => hev.push(e)); guest.on((e) => gev.push(e));
+    hub.flush();
+    guest.setMe('mage', 'judgement', true); hub.flush();
+    host.start(3, 0); hub.flush();
+    const hs = createSim(opts(3, 'host', host.selfId)), gs = createSim(opts(4, 'guest', guest.selfId));
+    const run = (n: number): void => {
+      for (let i = 0; i < n; i++) {
+        hs.step({ mx: 0, my: 0 }, host.commands()); host.tick(1 / 60, hs.view(), 60);
+        gs.step({ mx: 0, my: 0 }, guest.commands()); guest.tick(1 / 60, gs.view(), 60);
+        hub.flush();
+      }
+    };
+    run(120);
+    const oldId = host.selfId;
+    hub.dropHost('KMNPQ');
+    hub.flush();
+    expect(host.reconnecting).toBe(true);
+    expect(hev.some((e) => e.t === 'reconnecting')).toBe(true);
+    run(30);
+    expect(guest.silent()).toBeGreaterThan(0.4); // nothing from the host meanwhile
+    host.retryNow(); // the network came back: no need to wait for the timer
+    hub.flush();
+    timers.shift()!(); // the timer's retry fires later: nothing happens twice
+    hub.flush();
+    expect(host.reconnecting).toBe(false);
+    expect(hev.some((e) => e.t === 'reconnected')).toBe(true);
+    expect(host.selfId).not.toBe(oldId);
+    run(60);
+    expect((hs.view() as SimState).coop!.self).toBe(host.selfId); // the sim follows the new id
+    expect(guest.silent()).toBeLessThan(0.1); // snapshots again
+    expect(gev.some((e) => e.t === 'closed')).toBe(false);
+    expect((hs.view() as SimState).coop!.mates.map((m) => m.id)).toEqual([guest.selfId]);
+  });
+
   it('players on another game build are flagged on both sides (the lobby blocks the start)', () => {
     const hub = createMemoryHub();
     const host = createSession(hub.connect, { role: 'host', code: 'VVVVV', name: 'H', pid: 'h', hero: 'mage', weapon: 'judgement', build: 200 });
