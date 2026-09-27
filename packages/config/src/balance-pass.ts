@@ -611,6 +611,48 @@ export const BALANCE_PASS_2026_09E: BalancePass = {
   },
 };
 
+export const BALANCE_PASS_2026_09H: BalancePass = {
+  id: '2026-09h',
+  note: 'Ticket 53: three Awakened-only attack slots after Awakening (4 + 3 = 7) instead of one shared 5th slot',
+  patch: { shared: { awaken: { lineSlots: 3, slots: 0 } } },
+  changelog: {
+    titleTh: 'ตื่นพลังแล้วได้ช่องตื่นพลัง 3 ช่อง (สกิลโจมตีรวม 7 ช่อง)',
+    titleEn: 'Awakening opens three Awakened slots (7 attack skills in all)',
+    items: [
+      { cat: 'skill', th: 'ตื่นพลังแล้วได้ "ช่องตื่นพลัง" 3 ช่อง ใส่ได้เฉพาะสกิลตื่นพลัง ใช้สกิลโจมตีได้ 7 ช่อง (ปกติ 4 + ตื่นพลัง 3) ไม่ต้องถอดสกิลเดิมอีก (แทนช่องที่ 5 ที่ใช้ร่วมกันแบบเดิม)', en: 'Awakening opens 3 Awakened slots that hold only Awakened skills: 7 attack skills in all (4 normal + 3 Awakened), and nothing has to leave (replaces the old shared 5th slot)' },
+      { cat: 'ui', th: 'แถบสกิลมุมซ้ายล่างมีแถว AWK แสดงช่องตื่นพลัง', en: 'The skill panel (bottom left) shows an AWK row for the Awakened slots' },
+    ],
+  },
+  report: {
+    title: 'รอบจูน 2026-09h: ช่องตื่นพลัง 3 ช่อง (ticket 53)',
+    summary: 'เจ้าของตัดสินใจ (2026-09-27): หลังตื่นพลังให้ช่องโจมตีเพิ่ม 3 ช่องที่ใส่ได้เฉพาะสกิลตื่นพลัง (ปกติ 4 + ตื่นพลัง 3 = 7) แทนช่องที่ 5 ที่ใช้ร่วมกัน (awaken.slots 1 จาก 2026-09b) '
+      + 'เดิมผู้เล่นต้องเลือกระหว่างสกิลตื่นพลังกับสกิลเดิมเพราะมีช่องว่างแค่ช่องเดียว ชุดนี้ให้สกิลตื่นพลังมีที่ของตัวเอง ครบทั้ง 3 ตัว '
+      + 'บอทวัดแล้วความยาก (อัตราชนะ Umbra) แทบไม่เปลี่ยน แต่สกิลตื่นพลังได้ใช้จริงมากขึ้น',
+    method: 'บอท playtest (scripts/playtest) บน main 53a963b + branch นี้ ใช้ทุกรอบจูนถึง 2026-09e (PT_PASS=2026-09e) 4 ฮีโร่ × 12 seed ต่อช่อง seed เดียวกันก่อน/หลัง '
+      + 'ร้านกลาง / ร้านเต็ม ที่หัวใจร้าว 0 / 3 / 5 (บันได 09e) และวัดร้าว 5 ร้านกลางซ้ำด้วย 24 seed',
+    metrics: [
+      { label: 'ชนะ Umbra ร้าว 0 (ร้านกลาง / เต็ม)', before: '100 / 100%', after: '100 / 100%' },
+      { label: 'ชนะ Umbra ร้าว 3 (ร้านกลาง / เต็ม)', before: '92 / 98%', after: '90 / 96%' },
+      { label: 'ชนะ Umbra ร้าว 5 (ร้านกลาง 24 seed / ร้านเต็ม)', before: '77 / 88%', after: '68 / 88%' },
+      { label: 'สกิลตื่นพลังที่ติดตัวตอนจบ (รอบที่ตื่นพลัง)', before: '0.8–0.9 ตัว', after: '3 ตัว (ครบ)' },
+      { label: 'สกิลโจมตีตอนจบ (รอบที่ตื่นพลัง)', before: '5 ช่อง', after: '7 ช่อง' },
+      { label: 'ส่วนดาเมจของสกิลตื่นพลังหลังตื่นพลัง (ร้านกลาง / เต็ม)', before: '5–6 / 4–6%', after: '10–12 / 12–14%' },
+      { label: 'อัตราตื่นพลัง', before: '58% ที่ด่าน ~4.2–4.5', after: 'เท่าเดิม' },
+    ],
+    findings: [
+      { level: 'info', title: 'สกิลตื่นพลังได้ใช้จริง', body: 'เดิมรอบที่ตื่นพลังมีสกิลตื่นพลังติดตัวไม่ถึง 1 ตัวเพราะแย่งช่องที่ 5 กับสกิลเดิม ตอนนี้ได้ครบ 3 ตัวทุกรอบ ส่วนดาเมจหลังตื่นพลังเพิ่มราว 2 เท่า', status: 'ตามที่เจ้าของต้องการ' },
+      { level: 'warn', title: 'ร้าว 5 ร้านกลางยากขึ้นเล็กน้อย', body: 'ร้าว 5 ร้านกลาง ชนะ 77 → 68% (24 seed) ส่วนใหญ่ที่ Kit (58 → 38%) และตายที่ Umbra มากขึ้น รอบที่ตื่นพลังโดนดาเมจรวมมากขึ้นราว 11% ร้านเต็มและร้าว 0–3 ไม่เปลี่ยน (อยู่ในช่วงสุ่ม) ลองลด wLine เป็น 1 แล้ว ไม่ช่วยอย่างสม่ำเสมอ (รวมร้าว 5 ≈75 → 76%) จึงไม่ใส่', status: 'ติดตามข้อมูลจริง; Kit ตอนท้ายเกมมีงานแยกอยู่แล้ว' },
+      { level: 'info', title: 'เจ้าของรับการลดลงที่ร้าว 5 (QA review 5)', body: 'QA review 5 วัดการลดลงที่ร้าว 5 ร้านกลาง (77 → 68%) และหาสาเหตุ: เลเวลอัปไปลงสกิลตื่นพลังเลเวลต่ำ 3 ตัว ร่วมกับเพดานเลเวลที่นับ (scaling.lvCap) แจกสกิลตื่นพลัง 3 ตัวที่ Lv3 ตอนตื่นพลัง (grant 3) จะกู้คืนได้ แต่เจ้าของเลือกไม่แจก (2026-09-27, ตัวเลือก C): publish ตามนี้ grant คงเป็น 0 เหมือน 09f ให้ไปหาเอาในการ์ดเลเวลอัป', status: 'ยอมรับ (เจ้าของตัดสิน)' },
+      { level: 'info', title: 'บอทไม่ได้ใช้หน้าจัดสกิล', body: 'บอทไม่สลับ Bench ตอนจบด่าน ตัวเลขนี้จึงวัดแค่ช่องตื่นพลัง ไม่ได้วัดว่าหน้าจัดสกิลใหม่ช่วยผู้เล่นแค่ไหน', status: 'ข้อมูล' },
+    ],
+    reasons: {
+      'shared.awaken.lineSlots': 'เจ้าของขอ: สกิลตื่นพลัง 3 ตัวมีช่องของตัวเอง ไม่ต้องถอดสกิลเดิม',
+      'shared.awaken.slots': 'ช่องที่ 5 ที่ใช้ร่วมกันถูกแทนด้วยช่องตื่นพลัง (รวม 7 ช่อง ไม่ใช่ 8)',
+    },
+    next: ['หลัง publish ดูข้อมูลจริง: ผู้เล่นใส่สกิลตื่นพลังครบ 3 ช่องบ่อยแค่ไหน และตื่นพลังเร็วขึ้นไหม'],
+  },
+};
+
 /** Ticket 57: Mora's three Links join every Hero's level-ups; the Heroes' own Links are offered a little more often so
  *  the bigger pool (15 general Skills instead of 12) does not delay their Awakening. Needs the build with Mora. */
 export const BALANCE_PASS_2026_09_MORA: BalancePass = {
@@ -703,4 +745,4 @@ export const BALANCE_PASS_2026_09I: BalancePass = {
 };
 
 /** Every balance pass the Admin Console can load, newest first (the playtest harness applies them oldest first). */
-export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];
+export const BALANCE_PASSES: BalancePass[] = [BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09I, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09_COOP2, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_COOP, BALANCE_PASS_2026_09D, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09];

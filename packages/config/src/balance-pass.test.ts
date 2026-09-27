@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BALANCE_PASSES, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09,BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
+import { BALANCE_PASSES, BALANCE_PASS_2026_09E, BALANCE_PASS_2026_09H, BALANCE_PASS_2026_09G, BALANCE_PASS_2026_09_AC, BALANCE_PASS_2026_09_MORA, BALANCE_PASS_2026_09F, BALANCE_PASS_2026_09,BALANCE_PASS_2026_09B, BALANCE_PASS_2026_09C, BALANCE_PASS_2026_09D, DEFAULT_CONFIG, listFields, withOverrides } from './index';
 
 describe('balance pass 2026-09', () => {
   it('is a valid patch whose every value is inside its field range and differs from version 0', () => {
@@ -18,7 +18,7 @@ describe('balance pass 2026-09', () => {
     const changed = listFields().filter((f) => get(c, f.path) !== get(v4, f.path)).map((f) => f.path);
     expect(changed.sort()).toEqual(['shared.awaken.keep', 'shared.awaken.slots', 'shared.heroes.ranger.hp', 'shared.scaling.lvCapBase', 'shared.scaling.lvCapPerCh', 'shared.skills.hawk.guardN'].sort());
     for (const p of changed) expect(get(v4, p)).toBe(get(DEFAULT_CONFIG, p));
-    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09-mora', '2026-09i', '2026-09e', '2026-09g', '2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
+    expect(BALANCE_PASSES.map((p) => p.id)).toEqual(['2026-09h', '2026-09-mora', '2026-09i', '2026-09e', '2026-09g', '2026-09f', '2026-09-coop2', '2026-09-ac', '2026-09-coop', '2026-09d', '2026-09c', '2026-09b', '2026-09']); // newest first
   });
 });
 
@@ -94,6 +94,16 @@ describe('balance pass 2026-09f', () => {
     expect([before.shared.awaken.grant, before.shared.clone.every]).toEqual([1, 0]);
     expect([c.shared.awaken.grant, c.shared.clone.every]).toEqual([0, 1]);
     expect([DEFAULT_CONFIG.shared.awaken.grant, DEFAULT_CONFIG.shared.clone.every]).toEqual([0, 0]); // version 0 unchanged
+  });
+});
+
+describe('balance pass 2026-09h', () => {
+  it('swaps the shared 5th attack slot for three Awakened-only slots; version 0 has neither', () => {
+    const stack = [...BALANCE_PASSES].reverse().reduce((c, p) => withOverrides(c, p.patch), DEFAULT_CONFIG).shared.awaken;
+    expect([stack.lineSlots, stack.slots, stack.keep]).toEqual([3, 0, 1]);
+    const c = withOverrides(DEFAULT_CONFIG, BALANCE_PASS_2026_09H.patch).shared.awaken;
+    expect([c.lineSlots, c.slots]).toEqual([3, 0]);
+    expect([DEFAULT_CONFIG.shared.awaken.lineSlots, DEFAULT_CONFIG.shared.awaken.slots]).toEqual([0, 0]);
   });
 });
 

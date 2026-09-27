@@ -100,6 +100,10 @@ clear screen — never at the next Stage start.
   4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
   20 Evolutions (max-level skill + paired passive). Awakening (automatic at that Stage end, never declined; the clear screen shows a picture card): evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
   version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
+  `awaken.lineSlots` (ticket 53; pass 2026-09h sets 3 and `slots` 0) instead opens Awakened-only slots: 4 normal + 3 = 7,
+  Awakened skills never take a normal slot (`lineSlots()`, `slotUse()`, `slotFree()`; HUD "AWK" row). The Stage-end skill
+  board (Attack / Awakened / Passive / Bench; the slots a Bench pick fits blink; each skill says what it still needs) opens
+  read-only from the pause menu ("View skills").
 - When too few upgrades are left, level-ups and chests fill up to 3 cards from `overflow` (ticket 47): Limit Break
   (+4% dmg / +5% max HP / +3% speed / +2% crit per pick, 10 each), train a Bench entry +1, Gold bag 25G × Chapter,
   Recover (only when hurt). The reroll draws a new set.
