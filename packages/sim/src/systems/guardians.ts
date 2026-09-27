@@ -9,6 +9,7 @@ import type { CompanionKind, Enemy, GuardianKind, Pet, SimState } from '../types
 import { hit } from './combat';
 import { chillTick } from './combos';
 import { addHz, tagSince } from './events';
+import { minionMul } from './player';
 import { banner, burst, flash, sfx, shake } from './fx';
 import { nearest, visibleEnemies } from './query';
 import { edgePos, spawnEnemy } from './spawner';
@@ -241,7 +242,7 @@ export function petStep(s: SimState, dt: number): void {
   pt.y += (ty - pt.y) * Math.min(1, dt * 6);
   pt.cd -= dt;
   pt.dive -= dt;
-  const g = grown(s, pt), m = lvMul(s, pt);
+  const g = grown(s, pt), m = lvMul(s, pt) * minionMul(s); // Mora's minions hit harder
   if (pt.cd <= 0) {
     let ok: boolean;
     if (pt.kind === 'inferno') {

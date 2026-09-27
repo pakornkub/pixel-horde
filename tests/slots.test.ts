@@ -149,6 +149,6 @@ describe('Skill slots v2 and the Bench', () => {
     const ev = sim.step({ mx: 0, my: 0 }, [{ type: 'swap', bench: 0, slot: 'chain' }]);
     expect(ev.some((e) => e.t === 'swapDenied')).toBe(true);
     expect(s.P.skills.chain).toBe(1);
-    expect(SKILL_IDS.length).toBe(12);
+    expect(SKILL_IDS.length).toBe(15);
   });
 });

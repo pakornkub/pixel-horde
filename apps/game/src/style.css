@@ -49,11 +49,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .buy{font-family:var(--th);font-weight:700;font-size:14px;border:0;border-radius:4px;background:var(--ink);color:var(--paper);padding:8px 10px;cursor:pointer;white-space:nowrap}
 .buy:disabled{opacity:.35;cursor:default}
 .buy:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.chars{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.chars{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 8px}
 .ch{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--paper2);border:3px solid transparent;border-radius:4px;padding:6px 2px;cursor:pointer;font:inherit;color:inherit}
 .ch img{width:48px;height:48px;image-rendering:pixelated}
 .ch .cn{font-family:var(--pix);font-size:8px}
 .ch .cc{font-size:12px}
+@media (max-width:420px){.ch img{width:40px;height:40px}.ch .cn{font-size:7px}.ch .cc{font-size:11px}}
 .ch.sel{border-color:var(--ink);background:#fff3b8}
 .ch.locked img{filter:grayscale(1) brightness(.6)}
 .ch:focus-visible{outline:3px solid var(--gold);outline-offset:2px}

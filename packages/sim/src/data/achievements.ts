@@ -33,6 +33,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'winBram', group: 'heroes', test: won('knight') },
   { id: 'winKit', group: 'heroes', test: won('ranger') },
   { id: 'winVex', group: 'heroes', test: won('alchemist') },
+  { id: 'winMora', group: 'heroes', test: won('necromancer') },
+  // the original four (Mora has her own winMora, owner decision 2026-09-27)
   { id: 'legend', group: 'heroes', title: 'Legend of Lumora', test: (_f, l) => ['mage', 'knight', 'ranger', 'alchemist'].every((h) => l.heroesWon.includes(h)) },
   { id: 'awakened', group: 'heroes', test: (f) => f.awakened },
   // combos
