@@ -109,7 +109,7 @@ export const TXT = {
   'g.goal.click': { th: 'กดที่ดินแดนเพื่อดูว่าเจออะไรบ้าง', en: 'Click a Realm to see what lives there' },
   'g.goal.end': { th: 'ชนะ Umbra = ช่วย Lumora สำเร็จ! แล้วเล่นต่อโหมด Endless ได้ และหน้าเมนูหลักจะมีปุ่ม Endless: เริ่มตั้งแต่ Chapter 1 สุ่มดินแดนทุก Chapter เล่นไปจนกว่าจะแพ้ คะแนน Endless เริ่มนับที่ Chapter {n}', en: 'Beat Umbra and Lumora is saved! Then keep going in Endless Mode, and the title screen gets an Endless button: start at Chapter 1 with a random Realm every Chapter and play until you fall. The Endless Score counts from Chapter {n}.' },
   'g.goal.pick': { th: 'เลือก 1 ใน 2', en: 'pick 1 of 2' },
-  'g.goal.lost': { th: 'ตายเมื่อไหร่ รอบนั้นจบ สกิลและของที่ได้ในรอบหายหมด แต่ <b>Gold</b> ที่ได้ยังอยู่ ไว้ซื้ออัปเกรดถาวร (อาวุธที่ราชาดรอปให้ก็เก็บไว้ได้)', en: 'If you fall, the Run ends. Your skills and everything else from that Run are lost, but the <b>Gold</b> you earned stays and buys permanent upgrades (so does a Weapon a King dropped).' },
+  'g.goal.lost': { th: 'ตายเมื่อไหร่ รอบนั้นจบ สกิลและของที่ได้ในรอบหายหมด แต่ <b>Gold</b> ที่ได้ยังอยู่ ไว้ซื้ออัปเกรดถาวร (อาวุธที่ราชาดรอปให้ก็เก็บไว้ได้)', en: 'If you fall, the Run ends. Your skills and everything else from that Run are lost, but the <b>Gold</b> you earned stays for permanent upgrades, and so does any Weapon a King dropped.' },
 
   'g.stage.h': { th: 'ในหนึ่งด่านเกิดอะไรบ้าง', en: 'What happens in a Stage' },
   'g.stage.p': { th: 'แต่ละ Chapter คือด่านจับเวลา 1 ด่าน มอนจะเยอะขึ้นเรื่อย ๆ ตามเวลา ลากแถบเพื่อดูแต่ละช่วง', en: 'Each Chapter is one timed Stage. Monsters keep growing in number. Drag the slider to see each moment.' },
