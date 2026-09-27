@@ -231,11 +231,12 @@ function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): n
     }
     sfx(s, 'nova');
   } else if (id === 'hawk') {
-    // hunts the biggest monsters in range; defends Kit (nearest first) once enough monsters close in
-    let prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < t.range).sort((a, b) => b.hp - a.hp || a.id - b.id);
+    // hunts the biggest monsters in range (the nearest ones through Chapter `nearCh`); defends Kit (nearest first) once enough monsters close in
+    const byNear = (a: Enemy, b: Enemy): number => hypot(a.x - o.x, a.y - o.y) - hypot(b.x - o.x, b.y - o.y) || a.id - b.id;
+    let prey = s.enemies.filter((e) => !e.dead && !e.hide && hypot(e.x - o.x, e.y - o.y) < t.range).sort(s.stage <= K.hawk.nearCh ? byNear : (a, b) => b.hp - a.hp || a.id - b.id);
     if (K.hawk.guardN) {
       const close = prey.filter((e) => hypot(e.x - o.x, e.y - o.y) < K.hawk.guardR);
-      if (close.length >= K.hawk.guardN) prey = close.sort((a, b) => hypot(a.x - o.x, a.y - o.y) - hypot(b.x - o.x, b.y - o.y) || a.id - b.id);
+      if (close.length >= K.hawk.guardN) prey = close.sort(byNear);
     }
     if (!prey.length) return 0.2;
     if (awkForm(s)) {

@@ -389,6 +389,7 @@
  "score.victory": "Umbra defeated",
  "score.fast": "Fast finish ({n} s)",
  "score.escapes": "Kings escaped ×{n}",
+ "score.crack": "Heart Crack {n} bonus",
  "score.revive": "Revive bought ×{n} (−15%)",
  "score.total": "TOTAL",
  "stat.chapter": "Chapter reached",

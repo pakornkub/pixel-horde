@@ -36,6 +36,8 @@ export type QueueOp =
   | { kind: 'hero'; hero: HeroId }
   | { kind: 'forge'; weapon: WeaponId };
 
+/** Highest Heart Crack tier any config allows (`heartCrack.maxTier` range); the live config caps unlocks below it. */
+const CRACK_CAP = 20;
 const K_META = 'pixelhorde-meta', K_VER = 'pixelhorde-meta-v', K_QUEUE = 'pixelhorde-queue', K_LEGACY = 'pixelhorde-legacy', K_LEGACY_DONE = 'pixelhorde-legacy-done';
 
 export function parseMeta(raw: unknown): MetaSave {
@@ -54,8 +56,8 @@ export function parseMeta(raw: unknown): MetaSave {
     weapons: Array.isArray(m.weapons) ? m.weapons.filter((w): w is string => typeof w === 'string') : [],
     weapon: isWeapon(m.weapon) ? m.weapon : 'judgement',
     forge,
-    crackMax: Math.max(0, Math.min(3, Math.floor(Number(m.crackMax) || 0))),
-    crack: Math.max(0, Math.min(3, Math.floor(Number(m.crack) || 0))),
+    crackMax: Math.max(0, Math.min(CRACK_CAP, Math.floor(Number(m.crackMax) || 0))),
+    crack: Math.max(0, Math.min(CRACK_CAP, Math.floor(Number(m.crack) || 0))),
     ach: Array.isArray(m.ach) ? m.ach.filter((x): x is string => typeof x === 'string') : [],
     life: m.life && typeof m.life === 'object' ? (m.life as Lifetime) : { heroesWon: [], combos: {} },
     bestiary: m.bestiary && typeof m.bestiary === 'object' ? (m.bestiary as Record<string, number>) : {},
@@ -95,7 +97,7 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
     meta.owned = (s.heroes || []).filter(isHero);
     meta.weapons = Array.isArray(s.weapons) ? s.weapons : meta.weapons;
     if (!ownsWeapon(meta.weapon)) meta.weapon = 'judgement';
-    meta.crackMax = Math.max(meta.crackMax, Math.min(3, Number(s.stats?.heartCrack) || 0));
+    meta.crackMax = Math.max(meta.crackMax, Math.min(CRACK_CAP, Number(s.stats?.heartCrack) || 0));
     if (!ownsHero(meta.ch)) meta.ch = 'mage';
     const srvTips = Array.isArray(s.stats?.tips) ? s.stats.tips : [];
     if (!tipsDirty) meta.tips = [...new Set([...meta.tips, ...srvTips])];
@@ -223,8 +225,8 @@ export function createMetaSync(backend: Backend, store: KeyValue) {
   }
   function selectWeapon(w: WeaponId): void { if (ownsWeapon(w)) { meta.weapon = w; save(); } }
   function selectCrack(n: number): void { if (n >= 0 && n <= meta.crackMax) { meta.crack = n; save(); } }
-  /** Beating Umbra on tier n unlocks n+1 (up to 3); the server confirms on submit. */
-  function unlockCrack(n: number): void { if (n + 1 > meta.crackMax) { meta.crackMax = Math.min(3, n + 1); save(); } }
+  /** Beating Umbra on tier n unlocks n+1 (up to `heartCrack.maxTier`); the server confirms on submit. */
+  function unlockCrack(n: number): void { if (n + 1 > meta.crackMax) { meta.crackMax = Math.min(active.cfg.heartCrack.maxTier, n + 1); save(); } }
 
   /** A finished Run's facts: returns achievements newly unlocked (shown at once; the server confirms). */
   function recordFacts(f: RunFacts): string[] {

@@ -81,6 +81,7 @@ export function hpScale(s: SimState): number {
 /** Heart Crack tier and Endless depth on top of the Chapter formulas. */
 const crackMul = (s: SimState, k: 'hp' | 'dmg' | 'spawn'): number => {
   const H = s.cfg.heartCrack;
+  if (H.ramp) return 1 + (k === 'hp' ? H.hpPer : k === 'dmg' ? H.dmgPer : H.spawnPer) * s.crack;
   return s.crack === 1 ? H[`${k}1`] : s.crack === 2 ? H[`${k}2`] : s.crack === 3 ? H[`${k}3`] : 1;
 };
 const beyond = (s: SimState): number => Math.max(0, s.stage - s.cfg.stage.chapters);

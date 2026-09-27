@@ -449,7 +449,9 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   sec('settings', 'g.set.h',
     T('g.set.hud', undefined, 'p'),
     T('g.set.streak', { s: C.streak.window, n: C.streak.popupEvery }, 'p'),
-    T('g.set.diff', { h1: H.hp1, h2: H.hp2, h3: H.hp3, d1: H.dmg1, d2: H.dmg2, d3: H.dmg3, e: C.endless.hpGrowth }, 'p'),
+    H.ramp
+      ? T('g.set.diffRamp', { n: H.maxTier, u: Math.round(H.undoPer * 100), h: +(H.hpPer * 100).toFixed(1), d: +(H.dmgPer * 100).toFixed(1), s: +(H.spawnPer * 100).toFixed(1), sc: Math.round(C.score.crack * 100), e: C.endless.hpGrowth }, 'p')
+      : T('g.set.diff', { h1: H.hp1, h2: H.hp2, h3: H.hp3, d1: H.dmg1, d2: H.dmg2, d3: H.dmg3, e: C.endless.hpGrowth }, 'p'),
     T('g.set.view', { z: VIEWS.map((v) => `×${viewZoom(v)}`).join(' / ') }, 'p'),
     T('g.set.fb', undefined, 'p'),
     T('g.set.news', undefined, 'p'));

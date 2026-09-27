@@ -1,5 +1,6 @@
 import { EVO_PASSIVE, PASSIVE_IDS, SKILL_IDS, isLine, type PassiveId, type SkillId } from '../data/skills';
 import { AWAKENING, SKILL_LINES, signatureOf } from '../data/heroes';
+import { crackConfig } from '@pixel-horde/config';
 import { ipow } from '../core/fmath';
 import type { LevelOption, LimitBreakId, SimState } from '../types';
 import { rollStage } from './events';
@@ -13,7 +14,7 @@ import { REALMS, ROUTE_REALMS, type RealmId } from '../content/lumora/realms';
 export function startStage(s: SimState, n: number): void {
   // A new Balance Config / event switches take effect only here, never mid-Stage.
   if (n > 1 && s.pending.cfg) {
-    s.cfg = s.pending.cfg;
+    s.cfg = crackConfig(s.pending.cfg, s.crack);
     if (s.configVersions[s.configVersions.length - 1] !== s.cfg.version) s.configVersions.push(s.cfg.version);
     recompute(s);
   }

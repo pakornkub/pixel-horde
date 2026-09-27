@@ -20,7 +20,26 @@ const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.m
 
 /** The config with `difficulty` applied, as a new object (the input is never changed). */
 export function applyDifficulty(cfg: ResolvedConfig): ResolvedConfig {
-  const k = cfg.difficulty, c = JSON.parse(JSON.stringify(cfg)) as ResolvedConfig;
+  return scaleBy(cfg, cfg.difficulty);
+}
+
+type Knobs = ResolvedConfig['difficulty'];
+
+/**
+ * Heart Crack tier `tier` on a resolved config (balance pass 2026-09e, `heartCrack.ramp` 1): each tier takes back
+ * `undoPer` of the base difficulty's help (every knob moves that share of the way to 1; Gold stays). The per-tier
+ * monster HP / damage / spawn steps are applied by the sim. Ramp off or tier 0 → the same object back.
+ */
+export function crackConfig(cfg: ResolvedConfig, tier: number): ResolvedConfig {
+  const H = cfg.heartCrack;
+  if (!H.ramp || tier <= 0 || H.undoPer <= 0) return cfg;
+  const u = Math.min(1, H.undoPer * tier), k = cfg.difficulty, m = { ...k };
+  for (const key of Object.keys(k) as (keyof Knobs)[]) m[key] = key === 'gold' || !k[key] ? 1 : (k[key] + (1 - k[key]) * u) / k[key];
+  return scaleBy(cfg, m);
+}
+
+function scaleBy(cfg: ResolvedConfig, k: Knobs): ResolvedConfig {
+  const c = JSON.parse(JSON.stringify(cfg)) as ResolvedConfig;
   for (const [name, e] of Object.entries(c.enemies)) {
     const big = BIG.test(name);
     e.hp *= big ? k.bossHp : k.mobHp;

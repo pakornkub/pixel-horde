@@ -8,7 +8,7 @@ import type { PassiveId, SkillId } from './data/skills';
 import type { ShopId } from './data/shop';
 import type { WeaponId } from './data/weapons';
 
-export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'revive'; count: number; points: number }
+export interface ScoreLine { key: 'chapters' | 'kings' | 'kills' | 'combos' | 'victory' | 'fast' | 'escapes' | 'crack' | 'revive'; count: number; points: number }
 
 /** Fixed simulation rate. */
 export const TICK_HZ = 60;
