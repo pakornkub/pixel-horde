@@ -115,6 +115,31 @@ describe('Victory, Endless and scoring', () => {
   });
 });
 
+describe('Endless Run from the title (mode endless)', () => {
+  it('starts in Greenvale, then random Realms with no route choice and no Umbra; no main Score', () => {
+    const sim = createSim(botOptions(5, { mode: 'endless', debug: { god: true }, events: quiet }));
+    const s = sim.view() as SimState;
+    expect(s.endless).toBe(true);
+    expect(s.realm).toBe('greenvale');
+    s.kills = 400;
+    expect(scoreOf(s)).toBe(0);
+    for (let ch = 1; ch <= s.cfg.stage.chapters; ch++) {
+      s.phase = 'clear'; s.lastEnd = 'clear'; s.stage = ch;
+      sim.step({ mx: 0, my: 0 }, [{ type: 'next' }]);
+      expect(s.stage).toBe(ch + 1);
+      expect(s.phase).not.toBe('route');
+      expect(s.realm).not.toBe('crater');
+      expect(s.realm).not.toBe('greenvale');
+      // Endless points count only beyond the last Chapter, as after Umbra
+      if (ch < s.cfg.stage.chapters) expect(endlessBreakdown(s).total).toBe(0);
+    }
+    expect(s.endlessFrom).toEqual({ kills: 400, combos: s.combos, escapes: 0 });
+    s.kills += 50;
+    expect(endlessBreakdown(s).total).toBe(50);
+    expect(scoreOf(s)).toBe(0);
+  });
+});
+
 describe('Heart Crack', () => {
   it('tiers multiply monster HP and damage from Balance Config', () => {
     const base = createSim(botOptions(1)).view() as SimState;

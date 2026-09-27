@@ -10,7 +10,8 @@ import { initLeaderboard } from './ui/leaderboard';
 import { active } from './config';
 import { heroName } from './ui/text';
 import { initCollection, openCollection } from './ui/collection';
-import { initTitle, renderTitleSel } from './ui/title';
+import { initTitle, renderTitleEndless, renderTitleSel } from './ui/title';
+import { debugEnding, initEnding, openEnding, preloadEnding, winUnlocks } from './ui/ending';
 import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
 import { backend, type Announcement, type RunResult, type RunTicket } from './net';
@@ -49,6 +50,10 @@ let coopJoin = 0, coopTeam = 1;
 let clientRunId = '';
 let runWallStart = 0;
 let starting = false;
+/** Mode of the Run in progress ('endless' = started from the title's Endless button); Retry repeats it. */
+let runMode: 'solo' | 'endless' = 'solo';
+/** Weapons found in the Heart Crater this Run (Umbra's), for the ending's "Unlocked" page. */
+let craterWeapons: WeaponId[] = [];
 let shownLevelUp: object | null = null;
 /** The chest wheel on screen: two wheels in a row keep the phase at 'chest', so track the wheel itself. */
 let shownChest: object | null = null;
@@ -134,7 +139,7 @@ function bank(final?: RunResult['result']): void {
   }
 }
 
-async function newRun(): Promise<void> {
+async function newRun(mode: 'solo' | 'endless' = 'solo'): Promise<void> {
   if (starting) return;
   const saved = readSave();
   if (saved && !confirm(t('save.discard', { chapter: saved.chapter, hero: heroName(saved.hero) }))) return;
@@ -152,6 +157,7 @@ async function newRun(): Promise<void> {
     weapon: metaSync.ownsWeapon(META.weapon) ? META.weapon : 'judgement',
     crack: Math.min(META.crack, META.crackMax),
     firstRun: !META.tips.includes('first'), // the account's very first Greenvale is a little easier
+    ...(mode === 'endless' ? { mode } : {}),
     meta: simMeta(),
     viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
     config: active.cfg,
@@ -301,6 +307,8 @@ function beginRun(s: Sim): void {
   shownLevelUp = null;
   shownChest = null;
   shownPhase = '';
+  craterWeapons = [];
+  runMode = s.view().mode === 'endless' ? 'endless' : 'solo'; // a resumed Endless Run retries as Endless too
   consume(s.view().events, s.view());
   autoSave();
   checkSession();
@@ -410,6 +418,7 @@ function toTitle(): void {
   renderChars();
   renderTitleSel();
   renderTitleStats();
+  renderTitleEndless();
   show('ovTitle');
   void refreshContinue();
   void refreshUpdateNote($('updNote'));
@@ -455,7 +464,11 @@ function syncOverlays(): void {
     if (prev === 'route' && v.phase !== 'route') hide('ovRoute');
     if (v.phase === 'clear') { renderClear(v); $('clearTeam').hidden = !coop; $('clearTeam').textContent = ''; ($('nextBtn') as HTMLButtonElement).disabled = false; }
     if (v.phase === 'revive') showRevive(v, reviveCost(v as SimState));
-    if (v.phase === 'victory') { metaSync.unlockCrack(v.crack); show('ovEnding'); }
+    if (v.phase === 'victory') {
+      const w = winUnlocks(v, craterWeapons); // read before the win is recorded
+      metaSync.unlockCrack(v.crack);
+      openEnding(w.firstWin, w.unlocks);
+    }
     if (prev === 'victory' && v.phase !== 'victory') hide('ovEnding');
     if (prev === 'revive' && v.phase !== 'revive') hide('ovRevive');
     if (v.phase === 'route' && v.route) {
@@ -507,14 +520,14 @@ function frame(now: number): void {
         tips.observe(events, v);
         if (events.some((e) => e.t === 'spent')) syncWallet();
         const found = events.filter((e) => e.t === 'weaponFound').map((e) => (e as { id: WeaponId }).id);
-        if (found.length) metaSync.addWeapons(found);
+        if (found.length) { metaSync.addWeapons(found); if (v.realm === 'crater') craterWeapons.push(...found); }
         if (benchDirty && v.phase === 'clear') {
           benchDirty = false;
           syncWallet();
           renderClear(v, events.some((e) => e.t === 'swapDenied'));
         }
         if (events.some((e) => e.t === 'stageClear')) { bank(); telemetry.event({ k: 'clear', st: v.stage, t: Math.round(v.totalTime), hp: Math.round(v.P.hp), lv: v.P.lv }); }
-        if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); autoSave(); }
+        if (events.some((e) => e.t === 'stageStart')) { checkSession(); void refreshLive(); autoSave(); if (v.realm === 'crater') preloadEnding(); }
         if (v.phase === 'play' || v.phase === 'clearing') ambient(v);
         acc -= DT;
         steps++;
@@ -633,6 +646,8 @@ $('shopBtn1').addEventListener('click', () => { initAudio(); openShop('ovTitle')
 $('collBtn').addEventListener('click', () => { initAudio(); void openCollection('ovTitle'); });
 initCollection();
 initTitle();
+initEnding();
+debugEnding(location.search); // ?debug=ending | ending:later
 // co-op host reconnecting: the network is back / the page is visible again → try at once
 addEventListener('online', () => coop?.retryNow());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') coop?.retryNow(); });
@@ -655,6 +670,7 @@ initFeedback((): Record<string, string | number | boolean> => {
   return { chapter: v.stage, hero: v.P.ch, realm: v.realm, mode: coop ? 'coop' : v.endless ? 'endless' : 'solo', phase: v.overtime ? 'overtime' : v.phase };
 });
 $('startBtn').addEventListener('click', () => void newRun());
+$('endlessRunBtn').addEventListener('click', () => void newRun('endless'));
 $('continueBtn').addEventListener('click', () => void continueRun());
 $('saveQuitBtn').addEventListener('click', () => { hide('ovPause'); saveAndQuit(); });
 $('endlessBtn').addEventListener('click', () => { hide('ovEnding'); cmd({ type: 'endless', go: true }); last = performance.now(); });
@@ -674,7 +690,7 @@ $('nextBtn').addEventListener('click', () => {
   }
   hide('ovClear'); cmd({ type: 'next' }); last = performance.now();
 });
-$('retryBtn').addEventListener('click', () => void newRun());
+$('retryBtn').addEventListener('click', () => void newRun(runMode));
 
 /** Export the always-on recording (seed, options, inputs, commands, hashes) as JSON. */
 function downloadReplay(): void {

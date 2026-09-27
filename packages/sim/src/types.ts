@@ -81,7 +81,7 @@ export interface SimOptions {
   debug?: { event?: DebugEvent; god?: boolean; realm?: RealmId; awaken?: boolean };
   /** Event feature flags at Run start (default: all on). */
   events?: EventSwitches;
-  /** Run mode; the daily challenge disables the bought revive. */
+  /** Run mode; the daily challenge disables the bought revive. 'endless' (title button after the first win): Chapter 1 on, random Realms, no Umbra, no main Score. */
   mode?: 'solo' | 'daily' | 'endless';
   /** Weapon picked for this Run (default Judgement). */
   weapon?: WeaponId;
@@ -532,7 +532,7 @@ export interface SimState {
   victoryTime: number;
   mode: 'solo' | 'daily' | 'endless';
   crack: number;
-  /** Endless (after Umbra): the main Score is frozen in `main`; Endless scores from `endlessFrom`. */
+  /** Endless (after Umbra, or the whole Run in mode 'endless'): the main Score is frozen in `main`; Endless scores from `endlessFrom` (set after the last Chapter). */
   endless: boolean;
   main: { lines: ScoreLine[]; total: number } | null;
   endlessFrom: { kills: number; combos: number; escapes: number } | null;

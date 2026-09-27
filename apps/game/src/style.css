@@ -347,3 +347,39 @@ body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-
 .ctimer>div{position:absolute;inset:0 auto 0 0;background:#8fdcff;transition:width .1s linear}
 .ctimer span{position:relative;display:block;text-align:center;font-size:13px;font-weight:700;line-height:16px}
 #ovClear #nextBtn{position:sticky;bottom:-22px;margin-top:6px;box-shadow:0 -10px 12px var(--paper)}
+
+/* Endless Run from the title: a note row until the Endless Score starts counting */
+.stats.score .sub{grid-column:1/-1;font-size:13px;opacity:.8}
+/* title: Play + Endless (after the first win) side by side, so the column never gets taller */
+.tplay{display:flex;gap:10px;width:100%}
+.tplay .btn.play.big{flex:2}
+.tplay .btn.play.endless{flex:1;min-width:0;padding:12px 8px;font-size:12px;background:#4fc3ff;white-space:nowrap}
+.tplay .btn.play.endless:hover{background:#9fe0ff}
+/* ending (ticket 55): full-screen story pictures, then the "Unlocked" page over the last one */
+.overlay.ending{background:#1e1b33;padding:16px}
+.overlay.ending.story{align-items:flex-end}
+.epic{position:absolute;inset:0;background:#1e1b33 center/cover no-repeat;cursor:pointer}
+.overlay.ending:not(.story) .epic{filter:brightness(.45);cursor:default}
+.estory{position:relative;width:min(640px,100%);background:rgba(30,27,51,.86);color:var(--paper);border:4px solid var(--paper);border-radius:6px;
+  box-shadow:0 0 0 4px var(--ink);padding:14px 16px 12px;text-align:center;font-family:var(--th);font-weight:500;zoom:var(--menu,1)}
+.estory h2{font-family:var(--pix);font-weight:400;font-size:15px;color:var(--gold);margin:0 0 10px;line-height:1.4}
+.ecap{font-size:18px;line-height:1.5;margin:0 0 10px;min-height:3em;display:grid;place-items:center}
+.edots{display:flex;justify-content:center;gap:8px;margin:0 0 12px}
+.edots span{width:9px;height:9px;background:rgba(244,247,228,.35)}
+.edots span.on{background:var(--gold)}
+.erow{display:flex;gap:10px}
+.erow .btn{margin:0;flex:2;background:var(--gold);color:var(--ink)}
+.erow .btn.ghost{flex:1;background:transparent;color:var(--paper);border-color:var(--paper)}
+.erow .btn.ghost:hover{background:rgba(244,247,228,.12)}
+.eunlock{position:relative;text-align:center}
+.eunlock h2{color:var(--ink);margin-bottom:6px}
+.eunlock h3{font-family:var(--pix);font-weight:400;font-size:11px;color:#3a3363;margin:0 0 12px;letter-spacing:1px}
+.unlocks{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px;text-align:left}
+.unlocks li{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:center;background:var(--paper2);border-radius:4px;padding:6px 10px 6px 6px;font-size:15px;line-height:1.35}
+.uico{width:40px;height:40px;border:3px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--pix);font-size:15px;color:var(--ink);background:#fff}
+.uico img{width:28px;height:28px;object-fit:contain;image-rendering:pixelated}
+.uico.crack,.uico.crackTop{background:var(--hp);color:#fff}
+.uico.endless{background:var(--xp)}
+.uico.gold,.uico.ach{background:var(--gold)}
+.ereplay{display:block;margin:10px auto 0}
+@media (max-width:480px){.ecap{font-size:16px}.estory{padding:12px 12px 10px}}
