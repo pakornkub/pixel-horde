@@ -145,10 +145,25 @@ describe('Weapon forge (ticket 56)', () => {
     return { s, mob };
   }
 
-  it('level 0 changes nothing; levels stretch the Weapon\'s own effect, never the damage', () => {
+  it('levels stretch the Weapon\'s own effect and add Ultimate damage (level 0 = unchanged)', () => {
     const plain = forgedStrike('thornwhip', {}), forged = forgedStrike('thornwhip', { thornwhip: 4 });
     expect(forged.mob.stun! - plain.mob.stun!).toBeCloseTo(plain.s.cfg.weapons.root * plain.s.cfg.forge.thornwhip * 4, 5);
-    expect(forged.mob.hp).toBe(plain.mob.hp);
+    const hitPlain = 1e9 - plain.mob.hp, hitForged = 1e9 - forged.mob.hp;
+    expect(hitPlain).toBe(Math.round(plain.s.cfg.ult.mobHp * chapterMobHp(plain.s)));
+    expect(hitForged / hitPlain).toBeCloseTo(1 + plain.s.cfg.forge.dmg * 4, 1); // both hits are rounded
+  });
+
+  it('raises the boss cap: a King takes 8% + 1% per level', () => {
+    const hitKing = (lv: number): number => {
+      const { s, step } = fresh({ weapon: 'judgement', meta: { up: {}, forge: { judgement: lv } } });
+      s.P.skills = {}; s.stage = 8;
+      const king = spawnEnemy(s, 'boss', -30, 0, false); king.hp = king.maxHp = 5000;
+      s.ult = s.cfg.ult.max;
+      step(60, [{ type: 'ult' }]);
+      return 5000 - king.hp;
+    };
+    expect(hitKing(0)).toBe(400);
+    expect(hitKing(5)).toBe(650);
   });
 
   it('Judgement: forged levels stun the monsters that survive', () => {

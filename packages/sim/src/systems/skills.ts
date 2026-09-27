@@ -4,7 +4,7 @@ import { chillTick } from './combos';
 import { signatureOf } from '../data/heroes';
 import { awkForm, bashScale, outerAngle, shieldPoints } from './shield';
 import { stepIceWall } from './guardians';
-import { WEAPONS, forgeLevel, forgeMul, forgeStun } from '../data/weapons';
+import { WEAPONS, forgeDmg, forgeLevel, forgeMul, forgeStun } from '../data/weapons';
 import { chapterMobHp } from './spawner';
 
 const FLASKS = ['fire', 'ice', 'poison'] as const;
@@ -82,7 +82,7 @@ export function useUlt(s: SimState): void {
   if (s.phase !== 'play' || s.ult < U.max) return;
   s.ult = 0;
   const targets = visibleEnemies(s);
-  const dmg = U.mobHp * chapterMobHp(s); // relative to this Chapter's monsters, never to player bonuses
+  const dmg = U.mobHp * chapterMobHp(s) * forgeDmg(s.cfg, forged(s)); // relative to this Chapter's monsters (and the forge), never to player bonuses
   s.effects.push({ type: 'judge', col: WEAPONS[s.weapon].col, t: 0, dur: 1.0, x: s.P.x, y: s.P.y, fired: false, targets: targets.map((e) => ({ e, x: e.x, y: e.y })), dmg });
   s.slowT = U.slow;
   flash(s, 0.25, '#fff8c0', false, true);

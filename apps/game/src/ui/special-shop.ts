@@ -1,6 +1,6 @@
 // Special shop (ticket 56): the Gold sinks after the permanent shop. One screen with tabs: Weapon forge and outfits
 // open after the first win (Umbra beaten once), Hero Mastery from the start. The server refuses locked purchases too.
-import { WEAPON_IDS, WEAPONS, forgeCost, forgeMul, forgeStun, type WeaponId } from '@pixel-horde/sim';
+import { WEAPON_IDS, WEAPONS, forgeCost, forgeDmg, forgeMul, forgeStun, ultCap, type WeaponId } from '@pixel-horde/sim';
 import { onLangChange, t } from '@pixel-horde/i18n';
 import { sfx } from '../audio/sfx';
 import { active } from '../config';
@@ -53,6 +53,12 @@ function fxValue(w: WeaponId, lv: number): string {
   }
 }
 
+/** Ultimate damage × and the King cap at a forge level. */
+function powerValue(lv: number): string {
+  const C = active.cfg;
+  return `×${round(forgeDmg(C, lv))} · ${round(ultCap(C, false, lv) * 100)}%`;
+}
+
 function forgeRows(box: HTMLElement): void {
   const max = active.cfg.forge.max;
   const note = document.createElement('p');
@@ -79,6 +85,12 @@ function forgeRows(box: HTMLElement): void {
       ? t(`forge.fx.${w}`, { v: maxed ? now : `${now} → ${fxValue(w, lv + 1)}` })
       : t('forge.notOwned', { realm: WEAPONS[w].realm ? realmName(WEAPONS[w].realm) : '' });
     txt.append(nm, ds);
+    if (owned) {
+      const pw = document.createElement('span');
+      pw.className = 'ds';
+      pw.textContent = t('forge.power', { v: maxed ? powerValue(lv) : `${powerValue(lv)} → ${powerValue(lv + 1)}` });
+      txt.appendChild(pw);
+    }
     const bt = document.createElement('button');
     bt.className = 'buy';
     bt.textContent = !owned ? t('forge.missing') : maxed ? t('shop.maxed') : t('shop.buy', { cost });
