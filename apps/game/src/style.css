@@ -284,9 +284,16 @@ html[lang="en"] #fpsTip,html[lang="en"] #fpsTip button{font-family:var(--pix);fo
 .tmenu button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .tmenu button.special{grid-column:1/-1;background:#ffe27a}
 .tmenu button.special:hover{background:#fff3b8}
+.tmenu button.special.locked{background:var(--paper)}
+.tmenu button.special.locked:hover{background:#fff3b8}
 .srow.locked{opacity:.5}
 .ico.wpn{background:#3a3363}
 .ico.wpn img{width:32px;height:32px;image-rendering:pixelated}
+.srow .nm .lv{white-space:nowrap}
+.buy.short:disabled{opacity:1;background:var(--paper);color:#c0303a;border:2px solid #c0303a;padding:6px 8px}
+.oset{font-size:14px;margin:14px 0 4px;padding-left:8px;border-left:6px solid var(--ink)}
+.lockrow{font-size:14px;opacity:.6;padding:3px 4px}
+#specialBack{position:sticky;bottom:-22px;margin-top:6px;box-shadow:0 -10px 12px var(--paper)}
 .tfoot{width:100%;background:rgba(244,247,228,.92);color:var(--ink);border:3px solid var(--ink);border-radius:4px;padding:6px 10px;font-family:var(--th)}
 .tfoot{display:flex;flex-direction:column;gap:8px;padding:10px 12px;font-size:14px;line-height:1.35}
 .tstats{display:flex;gap:8px;flex-wrap:wrap}
