@@ -95,10 +95,10 @@ clear screen — never at the next Stage start.
 - Player bonuses are ADDITIVE with caps: dmg = 1 + 0.2·Might + 0.08·Power(shop) + Lyra 0.10;
   cooldown reduction cap 40% (Haste 8%/lv, Vex 8%); crit 8% base + Keen Eye 7%/lv, cap 50%; critMul 2.0 + 0.2/lv.
 - XP to next level: `5 + 4lv + 0.5lv² + 1.4·max(0, lv-8)²`.
-- Skills: 12 general + 4 Signature (one per Hero, locked slot) + 12 Skill Line skills (after Awakening; players see them as
+- Skills: 15 general (Mora's 3 Links reach the other Heroes only with `heroes.necromancer.pool` 1) + 5 Signature (one per Hero, locked slot) + 15 Skill Line skills (after Awakening; players see them as
   "Awakened skills" / สกิลตื่นพลัง).
   4 attack slots (1 = Signature), 3 passive slots, Bench 1 (+1 after Chapters 2 and 4; holds Skills and, once the passive slots are full, passives). 6 passives,
-  16 Evolutions (max-level skill + paired passive). Awakening (automatic at that Stage end, never declined; the clear screen shows a picture card): evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
+  20 Evolutions (max-level skill + paired passive). Awakening (automatic at that Stage end, never declined; the clear screen shows a picture card): evolved Signature + 2 of 3 max Links equipped ≥1 Stage;
   version 0 consumes the 2 Links, `awaken.keep` + `awaken.slots` (2026-09b) keep them and add a 5th attack slot (`attackSlots()`).
 - When too few upgrades are left, level-ups and chests fill up to 3 cards from `overflow` (ticket 47): Limit Break
   (+4% dmg / +5% max HP / +3% speed / +2% crit per pick, 10 each), train a Bench entry +1, Gold bag 25G × Chapter,
@@ -106,7 +106,9 @@ clear screen — never at the next Stage start.
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
 - Heroes: Lyra/Mage (Arcane Sigil, +10% dmg, free), Bram/Knight (Holy Shield, +40 HP, −5% speed, free),
-  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%).
+  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%),
+  Mora/Necromancer 2000G, sold only after a win (ticket 57; Soul Rise Skeletons, minions +25%, Links Soul Drain / Bone Prison /
+  Wailing Skulls, Lich form; `levelup.wLink` weighs a Hero's own Links; `legend` stays the original four + `winMora`).
 - Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP, capped at 8% of a boss
   (Umbra 5%). 11 Weapons change only its look, colour and name (`weapon.<id>.ult`; default Judgement); a King drops its
   Realm's Weapon at 5%. At any Stage end the player can switch to any usable Weapon (Judgement, collection, found this Run).

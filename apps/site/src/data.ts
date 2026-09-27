@@ -85,7 +85,7 @@ export function heroBonus(h: HeroId, C: ResolvedConfig): [TextKey, Record<string
     case 'mage': return [['hero.b.mage', { d: pct(H.mage.dmg) }]];
     case 'knight': return [['hero.b.knight', { hp: H.knight.hp, s: pct(H.knight.spd) }]];
     case 'alchemist': return [['hero.b.alchemist', { c: pct(H.alchemist.cd), st: pct(H.alchemist.status) }]];
-    case 'necromancer': return [['hero.b.necromancer', { m: pct(H.necromancer.minion), hp: H.necromancer.hp }]];
+    case 'necromancer': return [['hero.b.necromancer', { m: pct(H.necromancer.minion) }], ...(H.necromancer.hp ? [['hero.b.necromancerHp', { hp: H.necromancer.hp }] as [TextKey, Record<string, number>]] : [])];
     case 'ranger': {
       const out: [TextKey, Record<string, number>][] = [['hero.b.ranger', { s: pct(H.ranger.spd), p: pct(H.ranger.pick) }]];
       if (H.ranger.hp) out.push(['hero.b.rangerHp', { hp: H.ranger.hp }]);

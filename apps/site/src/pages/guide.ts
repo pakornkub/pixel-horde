@@ -1,5 +1,5 @@
 import {
-  AWAKENING, HERO_IDS, REALMS, ROUTE_REALMS, SHOP_IDS, SKILL_LINES, WEAPONS, WEAPON_IDS, WHEEL,
+  AWAKENING, HERO_IDS, REALMS, ROUTE_REALMS, SHOP_IDS, SKILL_IDS, SKILL_LINES, WEAPONS, WEAPON_IDS, WHEEL,
   adviceFor, signatureOf, xpNeed, type HeroId, type RealmId, type SkillId,
 } from '@pixel-horde/sim';
 import { ENEMY_SPR } from '../../../game/src/render/sprites';
@@ -420,7 +420,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
     A.keep ? ['g.awaken.keep1'] : ['g.awaken.keep0', { n: A.links }],
     A.slots > 0 && ['g.awaken.slots', { n: A.slots, ss: pl(A.slots) }],
     A.grant > 0 ? ['g.awaken.grant', { g: Math.min(A.grant, nLine), lv: A.grantLv }] : ['g.awaken.nogrant', { k: nLine }]);
-  sec('awakening', 'g.awaken.h', T('g.awaken.p', undefined, 'p'), lines, rule, el('p', null, el('a', { href: './skills.html#lines' }, T('g.awaken.more'))));
+  sec('awakening', 'g.awaken.h', T(C.heroes.necromancer.pool ? 'g.awaken.p' : 'g.awaken.pMora', { n: SKILL_IDS.length, l: HERO_IDS.length }, 'p'), lines, rule, el('p', null, el('a', { href: './skills.html#lines' }, T('g.awaken.more'))));
 }
 
 // ── 14. Gold & shop ────────────────────────────────────

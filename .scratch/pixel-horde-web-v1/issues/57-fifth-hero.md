@@ -23,16 +23,17 @@ held weapon), 32×32 icons, th/en text, website pages, achievements (`win<Hero>`
 ### Hero bonus (`shared.heroes.necromancer`)
 - `cost` 2000 — unlock price; the shop offers Mora only after a win (`stats.heroesWon` non-empty or Heart Crack ≥ 1).
   Before that the title's Hero list shows a locked silhouette "Win a Run to unlock".
-- `minion` 0.2 — Mora's minions deal +20%: Skeletons / Frost Wraiths, the Companion dragon and the Shadow Clone.
-- `hp` 10 — max HP −10 (a frail body).
+- `minion` 0.25 — Mora's minions deal +25%: Skeletons / Frost Wraiths, the Companion dragon and the Shadow Clone.
+- `hp` 0 — max HP penalty (designed as −10 “frail”; the playtest put her at Kit's level with it, so the default is 0).
+- `pool` 0 — her three Links go to the other Heroes only with 1 (balance pass `2026-09-mora`).
 
 ### Signature: Soul Rise (`soulRise`, locked slot)
-Every `cd` s Mora raises `n` Skeletons while fewer than `max` stand. A Skeleton climbs out of the latest monster grave
+Every `cd` s Mora raises `n` Skeletons while fewer than `army` stand. A Skeleton climbs out of the latest monster grave
 within reach (a kill near Mora), else next to her; it walks to the nearest monster (never leaving `leash` around Mora),
 swings every `hitCd` s at everything within `reach` (a sweep hit: Grinder on the Gathered) and crumbles after `life` s.
 Monsters do not attack Skeletons (no extra targets for the horde AI).
-- Levels 1–7: dmg `8 + 4/lv`, cd `3.2 − 0.2/lv` (min 1.6), max `2 + 0.5/lv` (→ 5).
-- **Evolution Bone Legion** (max level + Magnet): max +3, 2 per raise, a crumbling Skeleton bursts (heavy: Shatter on
+- Levels 1–7: dmg `12 + 7/lv` per swing (every 0.6 s), raise every `3 − 0.2/lv` s (min 1.4), army `3 + 0.5/lv` (→ 6).
+- **Evolution Bone Legion** (max level + Magnet): army +3, 2 per raise, a crumbling Skeleton bursts (heavy: Shatter on
   the Frozen) for `burstMul` × its damage in `burstR`.
 - Shadow Clone: raises one shade Skeleton (clone damage) that counts toward the cap.
 
@@ -75,4 +76,16 @@ website (home / guide / skills / world), playtest bot + suites, tests.
 
 **Blocked by:** —
 
-**Status:** in-progress (design agreed 2026-09-27)
+## Build notes (2026-09-27)
+
+- Code: sim (`data/skills.ts`, `data/heroes.ts`, `systems/skills.ts` fire / `stepSkeleton` / `boneWard`, graves in
+  `killE`, Bone Ward in `hurtP`, `minionMul`), config fields + Thai, `levelup.wLink` (own Links ×, default 1), game UI
+  (locked silhouette until a win, `metaSync.hasWon`), sprites (Mora HEAD/PAL, `minion` / `wraith`), 7 AI icons, sounds,
+  i18n, website, playtest bot, migration `20260930000036_fifth_hero.sql` (number to confirm), tests
+  (`tests/necro.test.ts`, `supabase/tests/018_fifth_hero.test.sql`).
+- Playtest (bot, all earlier passes, mid Shop, 12 seeds): Umbra wins at Heart Crack 3 — Vex 100 / Lyra 92 / Bram 83 /
+  Mora 75 / Kit 58–67%; Crack 2 — Mora 100%. With `pool` 1 alone the other Heroes' Awakening dropped (Kit 75 → 42%);
+  `wLink` 1.3 restores it.
+- To publish: balance pass `2026-09-mora` (`heroes.necromancer.pool` 1, `levelup.wLink` 1.3).
+
+**Status:** ready-for-human (owner: review the art in game, publish the pass after the migration is applied)

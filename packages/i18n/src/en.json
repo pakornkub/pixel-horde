@@ -953,8 +953,8 @@
  "update.read": "Read what changed →",
  "update.dismiss": "Close",
  "hero.necromancer.name": "Mora",
- "hero.necromancer.desc": "Minions deal +{minion}% damage, −{hp} max HP",
- "hero.necromancer.role": "Summoner: fights beside a growing army of Skeletons, fragile",
+ "hero.necromancer.desc": "Minions deal +{minion}% damage{hp}",
+ "hero.necromancer.role": "Summoner: fights beside a growing army of Skeletons",
  "hero.needWin": "Win a Run to unlock {name}",
  "hero.afterWin": "For sale after your first win",
  "skill.soulRise.name": "Soul Rise",
@@ -993,5 +993,6 @@
  "awk.soulfire.desc": "Ghost fire on fresh graves: Firestorm on the Gathered, Toxic Burst on the Poisoned",
  "awk.boneWard.desc": "A Wraith next to you takes a hit for you (survival)",
  "ach.winMora.name": "Mora's Victory",
- "ach.winMora.desc": "Win with Mora"
+ "ach.winMora.desc": "Win with Mora",
+ "hero.necromancer.hp": ", −{n} max HP"
 }

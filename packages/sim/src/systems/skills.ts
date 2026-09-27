@@ -382,7 +382,7 @@ function fire(s: SimState, id: SkillId, t: SkillStats, lv: number, o: Caster): n
     for (let i = 0; i < n; i++) {
       const g = takeGrave(s, o.x, o.y, c.grave), a = R.next() * TAU;
       const x = g ? g.x : o.x + cos(a) * 10, y = g ? g.y : o.y + sin(a) * 8;
-      s.effects.push({ type: 'skel', x, y, t: 0, dur: t.dur, dmg: t.dmg * mul, tick: 0.35, r: t.r, boom: t.burst ? t.dmg * mul * c.evo.burstMul : 0, vx: 0, vy: 0, fired: false, ...(awk ? { awk } : {}), ...(cl ? { cl } : {}) });
+      s.effects.push({ type: 'skel', x, y, t: 0, dur: t.dur, dmg: t.dmg * mul, tick: 0.35, r: t.r, a0: R.next() * TAU, boom: t.burst ? t.dmg * mul * c.evo.burstMul : 0, vx: 0, vy: 0, fired: false, ...(awk ? { awk } : {}), ...(cl ? { cl } : {}) });
       burst(s, x, y, awk ? '#bfe6ff' : '#e8e0c8', 6, 30, 0.35);
     }
   } else if (id === 'soulDrain') {
@@ -979,8 +979,9 @@ function stepSkeleton(s: SimState, f: Effect, dt: number): void {
     o = f.targets[0];
   }
   const spd = c.spd * (f.awk ? c.awk.spdMul : 1);
-  const gx = o ? o.e.x : home.x, gy = o ? o.e.y : home.y, dx = gx - f.x, dy = gy - f.y, d = hypot(dx, dy);
-  const stop = o ? f.r! * 0.6 + o.e.r : 14;
+  // no prey: each one stands at its own post around its master
+  const gx = o ? o.e.x : home.x + cos(f.a0!) * 16, gy = o ? o.e.y : home.y + sin(f.a0!) * 12, dx = gx - f.x, dy = gy - f.y, d = hypot(dx, dy);
+  const stop = o ? f.r! * 0.6 + o.e.r : 2;
   if (d > stop) { const m = Math.min(d - stop, spd * dt); f.vx = (dx / d) * spd; f.vy = (dy / d) * spd; f.x += (dx / d) * m; f.y += (dy / d) * m; } else { f.vx = 0; f.vy = 0; }
   f.tick! -= dt;
   if (f.tick! > 0 || !o || d > f.r! + o.e.r + 2) return;

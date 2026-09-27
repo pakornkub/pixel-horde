@@ -54,7 +54,7 @@ export function heroDesc(cfg: ResolvedConfig, id: HeroId): string {
     knight: { hp: H.knight.hp, spd: pc(H.knight.spd) },
     ranger: { spd: pc(H.ranger.spd), pick: pc(H.ranger.pick), hp: H.ranger.hp ? t('hero.ranger.hp', { n: H.ranger.hp }) : '' },
     alchemist: { cd: pc(H.alchemist.cd), status: pc(H.alchemist.status) },
-    necromancer: { minion: pc(H.necromancer.minion), hp: H.necromancer.hp },
+    necromancer: { minion: pc(H.necromancer.minion), hp: H.necromancer.hp ? t('hero.necromancer.hp', { n: H.necromancer.hp }) : '' },
   };
   return t(`hero.${id}.desc`, args[id]);
 }

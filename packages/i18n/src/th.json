@@ -953,8 +953,8 @@
  "update.read": "อ่านรายละเอียด →",
  "update.dismiss": "ปิด",
  "hero.necromancer.name": "Mora",
- "hero.necromancer.desc": "ลูกน้องแรงขึ้น {minion}% แต่ HP สูงสุด −{hp}",
- "hero.necromancer.role": "สายเรียกลูกน้อง สู้คู่กองทัพ Skeleton ตัวบาง",
+ "hero.necromancer.desc": "ลูกน้องแรงขึ้น {minion}%{hp}",
+ "hero.necromancer.role": "สายเรียกลูกน้อง สู้คู่กองทัพ Skeleton ที่โตขึ้นเรื่อย ๆ",
  "hero.needWin": "ชนะ 1 Run เพื่อปลดล็อก {name}",
  "hero.afterWin": "ขายหลังชนะ Run แรก",
  "skill.soulRise.name": "Soul Rise",
@@ -993,5 +993,6 @@
  "awk.soulfire.desc": "ไฟวิญญาณบนหลุมศพใหม่: Firestorm ใส่มอน Gathered, Toxic Burst ใส่มอน Poisoned",
  "awk.boneWard.desc": "Wraith ข้างตัวรับการโจมตีแทนคุณ (สกิลเอาตัวรอด)",
  "ach.winMora.name": "ชัยชนะของโมร่า",
- "ach.winMora.desc": "ชนะด้วยโมร่า"
+ "ach.winMora.desc": "ชนะด้วยโมร่า",
+ "hero.necromancer.hp": " HP สูงสุด −{n}"
 }
