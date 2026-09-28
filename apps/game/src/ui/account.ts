@@ -36,9 +36,11 @@ export function noteRunFinished(victory = false): void {
 const runsDone = (): number => { try { return Number(localStorage.getItem(RUNS)) || 0; } catch { return 0; } };
 const hasWon = (): boolean => { try { return localStorage.getItem(WON) === '1'; } catch { return false; } };
 
-/** Say why linking failed (the server setting "Allow manual linking" is the usual culprit). */
+/** Say why linking failed (the server setting "Allow manual linking" is the usual culprit); known codes get a plain-language reason, others show the raw code. */
 function linkFailText(reason: string): string {
   if (/manual.?linking/i.test(reason)) return t('link.failed.manual_linking_disabled');
+  if (reason === 'OFFLINE') return t('link.failed.offline');
+  if (/^access_denied$/i.test(reason)) return t('link.failed.cancelled');
   const r = reason.trim().slice(0, 60);
   return r ? t('link.failed.reason', { reason: r }) : t('link.failed');
 }
@@ -82,7 +84,9 @@ export function renderAccountLine(): void {
   const setLinkTxt = $('setLinkTxt'), h2 = hintText('link.hint');
   setLinkTxt.textContent = h2.text; setLinkTxt.className = h2.cls;
 
-  $('linkBtn2').hidden = !(canLink && (runsDone() >= 3 || hasWon())); // suggested after the 3rd Run and the first victory
+  const showLinkBtn2 = canLink && (runsDone() >= 3 || hasWon()); // suggested after the 3rd Run and the first victory
+  $('linkBtn2').hidden = !showLinkBtn2;
+  if (!showLinkBtn2) $('linkTxt2').hidden = true; // don't let a stale message from a past attempt reappear with the button
   $('linkBtn').hidden = !canLink;
   $('setLinkBtn').hidden = !canLink;
   linkButtons();
@@ -183,11 +187,13 @@ export function initAccount(h: AccountHooks): void {
     void backend.linkGoogle().catch((e: unknown) => {
       const err = e as { code?: string; message?: string };
       $(rowId).hidden = false;
-      $(txtId).textContent = linkFailText(String(err?.message || err?.code || ''));
+      const txt = $(txtId);
+      txt.textContent = linkFailText(String(err?.message || err?.code || ''));
+      txt.className = 'linkhint bad'; // must carry .bad: short screens hide any #linkTxt that isn't .ok/.bad
     });
   };
   $('linkBtn').addEventListener('click', link('linkRow', 'linkTxt'));
-  $('linkBtn2').addEventListener('click', link('linkRow', 'linkTxt'));
+  $('linkBtn2').addEventListener('click', link('linkTxt2', 'linkTxt2'));
   $('setLinkBtn').addEventListener('click', link('setLinkRow', 'setLinkTxt'));
   void guardTab({
     onAcquired: () => { hide('ovTab'); void startAccount(); },
