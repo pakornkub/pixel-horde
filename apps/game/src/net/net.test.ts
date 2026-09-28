@@ -29,6 +29,14 @@ describe('server errors', () => {
     expect(toBackendError(new TypeError('Failed to fetch')).code).toBe('OFFLINE');
     expect(toBackendError('weird').code).toBe('UNKNOWN');
   });
+  it('an aborted request is a transport failure; a save that fails to load is not', () => {
+    expect(toBackendError(new DOMException('signal is aborted without reason', 'AbortError')).code).toBe('OFFLINE');
+    // postgrest-js wraps a thrown fetch as { message: '<name>: <message>', status 0 }
+    expect(toBackendError({ message: 'TypeError: Failed to fetch' }).code).toBe('OFFLINE');
+    // continueRun() must still clear a corrupt save (createSim throws plain errors)
+    expect(toBackendError(new TypeError("Cannot read properties of undefined (reading 'spawn')")).code).toBe('UNKNOWN');
+    expect(toBackendError(new SyntaxError('Unexpected token c in JSON at position 0')).code).toBe('UNKNOWN');
+  });
 });
 
 describe('nickname rules (client copy)', () => {
