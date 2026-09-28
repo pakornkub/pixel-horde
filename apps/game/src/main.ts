@@ -16,7 +16,7 @@ import { initTitle, renderTitleEndless, renderTitleSel } from './ui/title';
 import { debugEnding, initEnding, openEnding, preloadEnding, winUnlocks } from './ui/ending';
 import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
-import { backend, type Announcement, type RunResult, type RunTicket } from './net';
+import { backend, BackendError, type Announcement, type RunResult, type RunTicket } from './net';
 import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
@@ -392,9 +392,15 @@ async function continueRun(): Promise<void> {
     usedHash = s.checkpoint().hash;
     beginRun(s);
     if (seasonNote) setBanner(t('save.seasonChanged'), '', 4);
-  } catch {
-    clearSave();
-    showMsg(t('save.stale'));
+  } catch (e) {
+    const code = e instanceof BackendError ? e.code : 'UNKNOWN';
+    telemetry.recordError('continueRun: ' + code, e instanceof Error ? (e.stack || '') : '');
+    if (code === 'STALE_CHECKPOINT' || code === 'NO_CHECKPOINT' || code === 'RUN_NOT_FOUND') {
+      clearSave();
+      showMsg(t('save.stale'));
+    } else {
+      showMsg(t('save.retryFailed'));
+    }
     void refreshContinue();
   } finally {
     starting = false;
