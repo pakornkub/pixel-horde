@@ -84,6 +84,7 @@ function runResult(result: RunResult['result']): RunResult | null {
   return {
     clientRunId, hero: v.hero, mode: coop ? 'coop' : 'solo', result, chapter: v.stage, kills: v.kills, level: v.P.lv, gold: v.runGold, walletSpent: v.walletSpent, resumedHash, weapon: v.weapon, weaponsFound: [...v.foundWeapons],
     endlessScore: endlessBreakdown(v).total, victory: v.victory, crack: v.crack, facts: { ...runFacts(v) },
+    ...(v.mode === 'endless' ? { endlessStart: true } : {}),
     score: sim.score(), playMs, pausedMs: Math.max(0, Math.round(performance.now() - runWallStart) - playMs),
     configVersion: ticket?.configVersion ?? v.configVersions[0],
     ...(coop ? { joinChapter: coopJoin || v.stage, team: coopTeam } : {}),

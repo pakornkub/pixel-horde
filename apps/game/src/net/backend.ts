@@ -68,6 +68,8 @@ export interface RunResult {
   resumedHash?: string;
   /** Endless Score (after Umbra), victory and Heart Crack tier. */
   endlessScore?: number;
+  /** Started from the title's Endless button: the server ranks its Endless Score only after a win (ticket 59). */
+  endlessStart?: boolean;
   victory?: boolean;
   crack?: number;
   /** Weapon used and Weapons found this Run. */

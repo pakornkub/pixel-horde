@@ -33,6 +33,17 @@ describe('database (pgTAP files in PGlite)', () => {
   });
 });
 
+describe('title Endless Runs need a win on the server (ticket 59)', () => {
+  it('the client marks them with the flag the latest submit_run reads', () => {
+    const last = migrations.filter((m) => read('supabase/migrations/' + m).includes('function public.submit_run(')).at(-1)!;
+    const sql = read('supabase/migrations/' + last);
+    expect(sql, last).toContain(`p ->> 'endlessStart'`);
+    expect(sql, last).toContain('public.has_won(uid)');
+    expect(read('apps/game/src/main.ts')).toContain(`...(v.mode === 'endless' ? { endlessStart: true } : {})`);
+    expect(read('apps/game/src/net/supabase.ts')).toContain('...(r.endlessStart ? { endlessStart: true } : {})');
+  });
+});
+
 describe('nickname rules agree between client and server', () => {
   it('same verdict for sample names', async () => {
     const { nicknameProblem } = await import('../apps/game/src/net/nickname');
