@@ -1,5 +1,5 @@
 // Title screen (ticket 43): animated Hero, current Hero + Weapon, Hero panel, background picture.
-import { t } from '@pixel-horde/i18n';
+import { onLangChange, t } from '@pixel-horde/i18n';
 import { META, metaSync } from '../meta';
 import { HERO_SPR } from '../render/sprites';
 import { $, hide, renderChars, show } from './overlays';
@@ -65,5 +65,6 @@ export function initTitle(): void {
   renderTitleSel();
   renderTitleEndless();
   metaSync.onChange(renderTitleEndless);
+  onLangChange(renderTitleEndless); // the tooltip follows a language switch
   requestAnimationFrame(drawHero);
 }
