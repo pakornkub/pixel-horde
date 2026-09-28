@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWAKENING, HEROES, SKILL_LINES, awakenEligible, createSim, signatureOf, type HeroId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, HEROES, SKILL_LINES, awakenEligible, createSim, hostSnapshot, signatureOf, type HeroId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { botOptions } from './bot';
 
@@ -212,6 +212,65 @@ describe('Awakening', () => {
     expect(s.P.skills[third]).toBe(4);
   });
 
+});
+
+// Regression (B1): Links() used to be counted the instant 'clearing' began, before the King/Blood Moon chest and
+// pending level-ups (opened during that same clearing sequence) had a chance to evolve the Signature or max a Link.
+describe('Awakening via a Stage-end reward opened during clearing', () => {
+  it('Awakens when the Signature only evolves from a level-up opened after the Stage already started clearing (host)', () => {
+    const sim = createSim(botOptions(6, { hero: 'mage', debug: { god: true }, events: quiet }));
+    const s = sim.view() as SimState;
+    const max = (id: SkillId): number => s.cfg.skills[id].max;
+    // both Links already maxed mid-Stage; the Signature (sigil) not evolved yet
+    s.P.skills = { sigil: 1, bolt: max('bolt'), chain: max('chain') };
+    s.P.evo = {};
+    s.bossSpawned = true; s.boss = null; s.stageTime = s.stageDur;
+    for (let i = 0; i < 400 && s.phase !== 'clearing'; i++) sim.step({ mx: 0, my: 0 });
+    expect(s.phase).toBe('clearing'); // rewards not opened yet
+    // a King chest granting a level, mid-clearing: the Signature reaches max level and its evolution passive
+    s.P.skills.sigil = max('sigil');
+    s.P.pas.might = 1;
+    s.pendingLv = 1;
+    for (let i = 0; i < 400 && s.phase !== 'clear'; i++) {
+      if (s.phase === 'levelup') {
+        const idx = s.levelUp!.options.findIndex((o) => o.kind === 'evo');
+        sim.step({ mx: 0, my: 0 }, [{ type: 'pick', index: idx < 0 ? 0 : idx }]); // "Grand Sigil EVOLVE!"
+      } else if (s.phase === 'chest') sim.step({ mx: 0, my: 0 }, [{ type: 'chestStop' }]);
+      else sim.step({ mx: 0, my: 0 });
+    }
+    expect(s.phase).toBe('clear');
+    expect(s.P.evo.sigil).toBe(true);
+    expect(s.P.awakened).toBe(true);
+  });
+
+  it('same, for a guest: the Signature evolves from its own level-up opened after the host left play', () => {
+    const host = createSim(botOptions(23, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
+    const guest = createSim(botOptions(103, { hero: 'mage', events: quiet, coop: { role: 'guest', self: 'G0' }, debug: { god: true } }));
+    const hs = host.view() as SimState, gs = guest.view() as SimState;
+    const max = (id: SkillId): number => gs.cfg.skills[id].max;
+    const snap = (): void => { guest.step({ mx: 0, my: 0 }, [{ type: 'snap', snap: JSON.parse(JSON.stringify(hostSnapshot(hs))) }]); };
+    snap();
+    // both Links already maxed mid-Stage; the Signature not evolved yet
+    gs.P.skills = { sigil: 1, bolt: max('bolt'), chain: max('chain') };
+    gs.P.evo = {};
+    let injected = false;
+    hs.bossSpawned = true; hs.boss = null; hs.stageTime = hs.stageDur;
+    for (let i = 0; i < 600 && gs.phase !== 'clear'; i++) {
+      host.step({ mx: 0, my: 0 }, hs.phase === 'levelup' ? [{ type: 'pick', index: 0 }] : hs.phase === 'chest' ? [{ type: 'chestStop' }] : []);
+      // once the host has left 'play' (Stage ending) but before this guest's own snap sees it: a King kill's
+      // level-up, queued locally for this guest, evolves the Signature -- mirroring the host repro above
+      if (!injected && hs.phase !== 'play') { injected = true; gs.P.skills.sigil = max('sigil'); gs.P.pas.might = 1; gs.pendingLv = 1; }
+      if (i % 4 === 0) snap();
+      if (gs.phase === 'levelup') {
+        const idx = gs.levelUp!.options.findIndex((o) => o.kind === 'evo');
+        guest.step({ mx: 0, my: 0 }, [{ type: 'pick', index: idx < 0 ? 0 : idx }]); // "Grand Sigil EVOLVE!"
+      }
+      if (gs.phase === 'chest') guest.step({ mx: 0, my: 0 }, [{ type: 'chestStop' }]);
+    }
+    expect(gs.phase).toBe('clear');
+    expect(gs.P.evo.sigil).toBe(true);
+    expect(gs.P.awakened).toBe(true);
+  });
 });
 
 describe('Skill Line skills', () => {

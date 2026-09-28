@@ -49,13 +49,13 @@ export function startStage(s: SimState, n: number): void {
   s.phase = 'play';
 }
 
-/** Links (the Hero's Skill Line general skills) that are equipped and at max level. */
-function maxLinks(s: SimState): SkillId[] {
+/** Links (the Hero's Skill Line general skills) that are equipped and at max level right now. */
+export function maxLinks(s: SimState): SkillId[] {
   const P = s.P, K = s.cfg.skills;
   return SKILL_LINES[P.ch].filter((id) => (P.skills[id] || 0) >= K[id].max);
 }
 
-/** Links that have been max level and equipped for the required number of full Stages. */
+/** Links currently max level and equipped, and that have been so at `awaken.stages` Stage-ends in a row. */
 export function qualifiedLinks(s: SimState): SkillId[] {
   const P = s.P, now = maxLinks(s);
   return SKILL_LINES[P.ch].filter((id) => now.includes(id) && (P.linkStages[id] || 0) >= s.cfg.awaken.stages);
@@ -104,7 +104,8 @@ function awaken(s: SimState): void {
 export function stageClear(s: SimState, escaped = false): void {
   s.phase = 'clearing';
   if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest, opened with the Stage-end rewards
-  updateLinks(s);
+  // Links/Awakening are checked once every Stage-end reward is open (a King/Blood Moon chest or a pending
+  // level-up can still evolve the Signature or max a Link): see the 'clearing' branch in sim.ts's step().
   s.fuseOffer = canFuse(s);
   s.clearT = s.cfg.stage.clearDelay;
   s.lastEnd = escaped ? 'escape' : 'clear';
@@ -416,7 +417,12 @@ export function choose(s: SimState, index: number): void {
 function afterRewards(s: SimState): void {
   const back = s.pickReturn;
   if (!back) { s.phase = 'play'; return; }
-  if (!stageEndRewards(s, back)) s.phase = back;
+  if (!stageEndRewards(s, back)) {
+    // guests go straight from the last Stage-end reward to 'clear' (no 'clearing' step to catch this in);
+    // solo/host loop back to 'clearing' here instead, so sim.ts's step() counts Links once that settles.
+    if (back === 'clear') updateLinks(s);
+    s.phase = back;
+  }
 }
 
 /**

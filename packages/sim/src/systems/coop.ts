@@ -560,13 +560,14 @@ export function applySnap(s: SimState, h: HostSnap): void {
     if (h.le === 'clear') s.chaptersCleared.push(s.stage);
     s.lastEnd = h.le;
     s.hz = []; s.enemies = []; s.boss = s.boss2 = s.dragonE = s.rivalE = null;
-    updateLinks(s); // Links count and the Awakening offer, as the host's own stageClear does
     if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest
     if (s.phase === 'play') {
       banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear');
-      if (!stageEndRewards(s, 'clear')) s.phase = 'clear'; // waiting chests / level-ups first
+      // Links/Awakening are counted only once every Stage-end reward is open (a King/Blood Moon chest or a
+      // pending level-up can still evolve the Signature or max a Link); afterRewards() does it if any are pending.
+      if (!stageEndRewards(s, 'clear')) { updateLinks(s); s.phase = 'clear'; }
     }
-  } else if (h.ph === 'clear' && s.phase === 'play' && !stageEndRewards(s, 'clear')) s.phase = 'clear'; // finished a level-up after the host cleared
+  } else if (h.ph === 'clear' && s.phase === 'play' && !stageEndRewards(s, 'clear')) { updateLinks(s); s.phase = 'clear'; } // finished a level-up after the host cleared
   if (h.ph === 'route') { s.route = h.route; if (s.phase === 'clear' || s.phase === 'play') s.phase = 'route'; }
   if (h.ph === 'victory' && s.phase !== 'victory') { s.victory = true; if (s.phase === 'clear' || s.phase === 'play' || s.phase === 'route') s.phase = 'victory'; }
   if (h.ph === 'play' && (s.phase === 'clear' || s.phase === 'route' || s.phase === 'victory')) s.phase = 'play';

@@ -1,5 +1,5 @@
 // DOM overlays: title, hero select, shop, level-up, chest wheel, stage clear, game over, pause.
-import { AFTER_WIN, AWAKENING, EVO_PASSIVE, attackSlots, inLineSlot, lineSlots, qualifiedLinks, slotUse, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
+import { AFTER_WIN, AWAKENING, EVO_PASSIVE, attackSlots, inLineSlot, lineSlots, maxLinks, qualifiedLinks, slotUse, HERO_IDS, WEAPON_IDS, type WeaponId, HEROES, REALMS, SHOP_IDS, SKILL_LINES, WHEEL, adviceFor, benchSize, comboOf, goldBag, combosBetween, endlessBreakdown, hitTagsOf, scoreBreakdown, signatureOf, statusesOf, swapCost, shopCost, shopMax, skillStats, type HitElement, type HitTag, type LevelOption, type LimitBreakId, type RealmId, type SimState, type SkillId, type PassiveId, type BenchSkill, usableWeapons } from '@pixel-horde/sim';
 import { sfx } from '../audio/sfx';
 import { META, U, getBest, metaSync, ownsHero } from '../meta';
 import { active } from '../config';
@@ -538,8 +538,11 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   if (v.cfg.awaken.lineSlots > 0) rows.push(slotRow(t('bench.awk'), 'awk', equipped.filter((id) => inLineSlot(s, id)).map(asEntry), v.cfg.awaken.lineSlots, !P.awakened));
   if (!P.awakened) {
     const pr = document.createElement('p'); pr.className = 'awk-prog';
-    const q = Math.min(qualifiedLinks(s).length, v.cfg.awaken.links), box2 = (ok: boolean): string => (ok ? '☑' : '☐');
-    const key = v.cfg.awaken.stages > 1 ? 'awk.progressStreak' : 'awk.progress';
+    const streak = v.cfg.awaken.stages > 1;
+    // stages = 1 (default): what the board can show right now already decides it, so count Links at max
+    // level and equipped this instant; only the streak form needs qualifiedLinks's Stage-end history.
+    const q = Math.min((streak ? qualifiedLinks(s) : maxLinks(s)).length, v.cfg.awaken.links), box2 = (ok: boolean): string => (ok ? '☑' : '☐');
+    const key = streak ? 'awk.progressStreak' : 'awk.progress';
     pr.textContent = t(key, { sig: box2(!!P.evo[sig]), links: box2(q >= v.cfg.awaken.links), st: v.cfg.awaken.stages, q, n: v.cfg.awaken.links });
     rows.push(pr);
   }

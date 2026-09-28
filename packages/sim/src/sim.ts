@@ -3,7 +3,7 @@ import { createRng, createStreams, hashString } from './core/rng';
 import { exp, hypot, ipow, log } from './core/fmath';
 import { realm, prog, spawnEnemy, edgePos, spawnStep } from './systems/spawner';
 import { newPlayer, recompute, U } from './systems/player';
-import { afterStage, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, discardBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stageEndRewards, stepGems, levelCheck } from './systems/progress';
+import { afterStage, chooseEndless, banish, buyRevive, buySp, reroll, spUpgrade, swapBench, discardBench, choose, chestStop, chooseRoute, gameOver, kingEscapes, openChest, openLevelUp, startStage, stageClear, stageEndRewards, stepGems, levelCheck, updateLinks } from './systems/progress';
 import { stepBolts, updEffects, updSkills, useUlt } from './systems/skills';
 import { stepEnemies } from './systems/enemies';
 import { cloneStep, spawnRival, stepHz } from './systems/events';
@@ -333,6 +333,7 @@ export function createSim(opts: SimOptions): Sim {
       if (s.clearT <= 0 && (s.gems.length === 0 || s.clearT < -s.cfg.stage.clearDelay * 2)) {
         splitGold(s); // co-op: the team's Gold, split once the vacuum is done (coop.goldSplit)
         if (stageEndRewards(s, 'clearing')) return;
+        updateLinks(s); // every Stage-end reward is open now: count this Stage-end for Links/Awakening once
         if (s.victory && !s.endless && s.lastEnd === 'clear' && s.stage >= s.cfg.stage.chapters) {
           // the main Score is final now; the player may continue in Endless
           s.main = scoreBreakdown(s);
