@@ -625,6 +625,7 @@
  "fuse.accept": "Fuse",
  "fuse.decline": "Not now",
  "save.continue": "Continue: Chapter {chapter} ({hero})",
+ "save.continueEndless": "Continue Endless: Chapter {chapter} ({hero})",
  "save.discard": "Starting a new Run discards your saved Run (Chapter {chapter}, {hero}). Continue?",
  "save.quit": "Save and quit",
  "save.quitNote": "You continue from the start of this Chapter. EXP and Gold from the unfinished Stage are lost.",

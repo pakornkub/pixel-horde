@@ -625,6 +625,7 @@
  "fuse.accept": "รวมร่าง",
  "fuse.decline": "ยังก่อน",
  "save.continue": "เล่นต่อ: Chapter {chapter} ({hero})",
+ "save.continueEndless": "เล่นต่อ Endless: Chapter {chapter} ({hero})",
  "save.discard": "เริ่มรอบใหม่จะทิ้งรอบที่เซฟไว้ (Chapter {chapter}, {hero}) ต่อไหม?",
  "save.quit": "เซฟแล้วออก",
  "save.quitNote": "กลับมาเล่นต่อที่ต้น Chapter นี้ EXP และ Gold ของด่านที่ยังไม่จบจะหายไป",

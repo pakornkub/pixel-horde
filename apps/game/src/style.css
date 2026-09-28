@@ -252,6 +252,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 #spBox .uprow .ico{width:24px;height:24px;font-size:11px;border-width:2px}
 #spBox .uprow .tag{margin:0}
 #spBox .uprow .cost{font-size:13px;opacity:.8}
+/* phones: keep two-word skill names on one line; the SP cost drops under the name */
+@media (max-width:420px){
+  #spBox .uprow{grid-template-columns:24px 1fr auto;row-gap:2px}
+  #spBox .uprow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  #spBox .uprow .cost{grid-column:2/-1}
+}
 .opt .ban{position:absolute;top:4px;right:6px;border:0;background:transparent;font:inherit;font-size:16px;font-weight:700;color:#e8434f;cursor:pointer;padding:2px 6px}
 .weapons{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;font-size:13px}
 .weapons .lbl{flex-basis:100%;font-weight:700}
