@@ -164,7 +164,8 @@ export const TXT = {
   'g.slots.benchGrow': { th: 'Bench เริ่มที่ {n} ช่อง และ +1 หลังผ่าน Chapter {a} และ {b}', en: 'The Bench starts with {n} slot{ss}, +1 after Chapters {a} and {b}.' },
 
   'g.evo.h': { th: 'วิวัฒน์ (Evolution)', en: 'Evolution' },
-  'g.evo.p': { th: 'อัปสกิลจน <b>เต็มเลเวล</b> + มี <b>พาสซีฟคู่ของมัน</b> อย่างน้อย 1 เลเวล → ตอนเลเวลอัปจะมีการ์ด <b>EVOLVE!</b> ให้เลือก สกิลกลายร่างเป็นเวอร์ชันแรงกว่ามาก', en: 'Max out a skill + own <b>its paired passive</b> (any level) → an <b>EVOLVE!</b> card shows up on level-up. The skill turns into a much stronger form.' },
+  'g.evo.p': { th: 'อัปสกิลจน <b>เต็มเลเวล</b> + <b>ใส่พาสซีฟคู่ของมันในช่องพาสซีฟ</b> (เลเวลเท่าไหร่ก็ได้) → ตอนเลเวลอัปจะมีการ์ด <b>EVOLVE!</b> ให้เลือก สกิลกลายร่างเป็นเวอร์ชันแรงกว่ามาก', en: 'Max out a skill + have <b>its paired passive equipped in a passive slot</b> (any level) → an <b>EVOLVE!</b> card shows up on level-up. The skill turns into a much stronger form.' },
+  'g.evo.note': { th: 'วิวัฒน์แล้วค่อยถอดพาสซีฟตัวนั้นไปไว้ Bench ทีหลังได้ ไม่ทำให้การวิวัฒน์หายไป', en: 'Once a skill has evolved, you can move that passive to the Bench afterward — the evolution stays.' },
   'g.evo.more': { th: 'ดูคู่วิวัฒน์ทั้งหมด →', en: 'See every evolution →' },
 
   'g.combo.h': { th: 'คอมโบธาตุ', en: 'Element Combos' },
