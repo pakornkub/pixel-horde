@@ -11,6 +11,8 @@ export interface LocalSave {
   seed: number; hero: HeroId; weapon: WeaponId; crack: number;
   chapter: number; configVersion: number; hash: string; data: string;
   savedAt: number; clientRunId: string;
+  /** 'endless' for a Run started from the title Endless button (labels the Continue button). */
+  mode?: 'solo' | 'daily' | 'endless';
 }
 
 const K = 'pixelhorde-save';

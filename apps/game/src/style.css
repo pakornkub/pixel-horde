@@ -42,7 +42,7 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 .slots{font-size:14px;margin:-6px 0 12px;opacity:.8}
 .btn.ghost{background:transparent;color:var(--ink);border:3px solid var(--ink);margin-top:10px;padding:9px 18px}
 .btn.ghost:hover:not(:disabled){background:var(--paper2)}
-.btn.ghost:disabled{border-color:#8a8674;color:#8a8674}
+.btn.ghost:disabled{border-color:#8a8674;color:#8a8674;opacity:1}
 .opt.evo{background:#fff3b8}
 .opt.evo .ico{box-shadow:0 0 0 3px #ffd23f}
 .srow{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:6px 4px}
@@ -252,6 +252,12 @@ body{margin:0;height:100%;background:#1e1b33;overflow:hidden;touch-action:none;-
 #spBox .uprow .ico{width:24px;height:24px;font-size:11px;border-width:2px}
 #spBox .uprow .tag{margin:0}
 #spBox .uprow .cost{font-size:13px;opacity:.8}
+/* phones: keep two-word skill names on one line; the SP cost drops under the name */
+@media (max-width:420px){
+  #spBox .uprow{grid-template-columns:24px 1fr auto;row-gap:2px}
+  #spBox .uprow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  #spBox .uprow .cost{grid-column:2/-1}
+}
 .opt .ban{position:absolute;top:4px;right:6px;border:0;background:transparent;font:inherit;font-size:16px;font-weight:700;color:#e8434f;cursor:pointer;padding:2px 6px}
 .weapons{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;font-size:13px}
 .weapons .lbl{flex-basis:100%;font-weight:700}
@@ -383,7 +389,7 @@ html[lang="en"] .tagline{font-size:10px}
 /* over a menu the box ends above the hint, so the hint never covers the menu's buttons */
 body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 /* an unranked Run: a short note at the top as it starts (never blocks input) */
-#rankNote{position:fixed;left:50%;transform:translateX(-50%);top:calc(128px + env(safe-area-inset-top,0px));z-index:7;pointer-events:none;
+#rankNote{position:fixed;left:50%;transform:translateX(-50%);top:calc(128px + env(safe-area-inset-top,0px));z-index:4;pointer-events:none;
   max-width:min(520px,calc(100% - 32px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--hp);border-radius:4px;
   padding:6px 12px;font-family:var(--th);font-weight:700;font-size:14px;line-height:1.45;text-align:center;animation:tipIn .25s ease-out}
 #rankNote[hidden]{display:none}

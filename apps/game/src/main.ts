@@ -334,7 +334,7 @@ function autoSave(quit = false): void {
   if (!sim || !canSave()) return;
   const v = sim.view(), cp = sim.checkpoint();
   writeSave({ runId: ticket?.runId, token: ticket?.token, seed: v.seed, hero: v.hero, weapon: v.weapon, crack: v.crack, chapter: cp.chapter,
-    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId });
+    configVersion: cp.configVersion, hash: cp.hash, data: cp.data, savedAt: Date.now(), clientRunId, mode: v.mode });
   if (ticket) void backend.saveCheckpoint({ runId: ticket.runId, token: ticket.token, chapter: cp.chapter, hash: cp.hash, data: cp.data, configVersion: cp.configVersion, quit });
 }
 
@@ -347,16 +347,16 @@ function saveAndQuit(): void {
 /** Title: "Continue from Chapter N" (local save, or the account's save from another device). */
 async function refreshContinue(): Promise<void> {
   const local = readSave();
-  let chapter = local?.chapter, hero = local?.hero;
+  let chapter = local?.chapter, hero = local?.hero, endless = local?.mode === 'endless';
   if (backend.status() === 'online') {
     try {
       const srv = await backend.getCheckpoint();
-      if (srv && (!local || Date.parse(srv.savedAt) >= local.savedAt) && isHero(srv.hero)) { chapter = srv.chapter; hero = srv.hero; }
+      if (srv && (!local || Date.parse(srv.savedAt) >= local.savedAt) && isHero(srv.hero)) { chapter = srv.chapter; hero = srv.hero; endless = endless && srv.runId === local?.runId; }
     } catch { /* offline: local only */ }
   }
   const bt = $('continueBtn');
   bt.hidden = !chapter || !hero;
-  if (chapter && hero) bt.textContent = t('save.continue', { chapter, hero: heroName(hero) });
+  if (chapter && hero) bt.textContent = t(endless ? 'save.continueEndless' : 'save.continue', { chapter, hero: heroName(hero) });
 }
 
 async function continueRun(): Promise<void> {
