@@ -36,9 +36,11 @@ export function noteRunFinished(victory = false): void {
 const runsDone = (): number => { try { return Number(localStorage.getItem(RUNS)) || 0; } catch { return 0; } };
 const hasWon = (): boolean => { try { return localStorage.getItem(WON) === '1'; } catch { return false; } };
 
-/** Say why linking failed (the server setting "Allow manual linking" is the usual culprit). */
+/** Say why linking failed (the server setting "Allow manual linking" is the usual culprit); known codes get a plain-language reason, others show the raw code. */
 function linkFailText(reason: string): string {
   if (/manual.?linking/i.test(reason)) return t('link.failed.manual_linking_disabled');
+  if (reason === 'OFFLINE') return t('link.failed.offline');
+  if (/^access_denied$/i.test(reason)) return t('link.failed.cancelled');
   const r = reason.trim().slice(0, 60);
   return r ? t('link.failed.reason', { reason: r }) : t('link.failed');
 }
@@ -47,26 +49,46 @@ function linkFailText(reason: string): string {
 const inApp = inAppBrowser(navigator.userAgent);
 const gameUrl = (): string => location.origin + location.pathname;
 
+// Title's button reads "Login" (first impression); the run-over and Settings buttons keep the
+// original "Link account" framing since they're offered mid-lifecycle to a player who already has progress.
+const NORMAL_KEY: Record<string, string> = { linkBtn: 'login.button', linkBtn2: 'link.button', setLinkBtn: 'link.button' };
+
 function linkButtons(): void {
-  const key = inApp ? (isAndroid(navigator.userAgent) ? 'link.openBrowser' : 'link.copyLink') : 'link.button';
-  for (const id of ['linkBtn', 'linkBtn2']) {
+  for (const id of ['linkBtn', 'linkBtn2', 'setLinkBtn']) {
     const btn = $(id), span = btn.querySelector<HTMLElement>('[data-i18n]');
+    const key = inApp ? (isAndroid(navigator.userAgent) ? 'link.openBrowser' : 'link.copyLink') : NORMAL_KEY[id];
     if (span) { span.dataset.i18n = key; span.textContent = t(key); }
     btn.querySelector<SVGElement>('.glogo')?.style.setProperty('display', inApp ? 'none' : '');
   }
 }
 
+/** The row's hint line: the shared link result (merged/linked/failed) if there is one, else its own default prompt. */
+function hintText(defaultKey: string): { text: string; cls: string } {
+  const res = backend.linkResult();
+  const text = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : res ? linkFailText(res.replace(/^failed:/, '')) : t(inApp ? 'link.inapp' : defaultKey);
+  const cls = 'linkhint' + (res ? (res.startsWith('failed') ? ' bad' : ' ok') : '');
+  return { text, cls };
+}
+
 export function renderAccountLine(): void {
   const a = backend.account();
   const canLink = !!a && a.anonymous && backend.status() === 'online';
-  $('linkRow').hidden = !canLink;
-  $('linkBtn2').hidden = !(canLink && (runsDone() >= 3 || hasWon())); // suggested after the 3rd Run and the first victory
   const res = backend.linkResult();
-  const txt = $('linkTxt');
-  txt.textContent = res === 'merged' ? t('link.merged') : res === 'linked' ? t('link.linked') : res ? linkFailText(res.replace(/^failed:/, '')) : t(inApp ? 'link.inapp' : 'link.hint');
-  txt.className = 'linkhint' + (res ? (res.startsWith('failed') ? ' bad' : ' ok') : '');
-  if (res && !res.startsWith('failed')) $('linkRow').hidden = false;
+  const showResult = !!res && !res.startsWith('failed'); // keep the row up a moment to show "linked!" even though canLink just turned false
+
+  $('linkRow').hidden = !(canLink || showResult);
+  const linkTxt = $('linkTxt'), h1 = hintText('login.hint');
+  linkTxt.textContent = h1.text; linkTxt.className = h1.cls;
+
+  $('setLinkRow').hidden = !(canLink || showResult);
+  const setLinkTxt = $('setLinkTxt'), h2 = hintText('link.hint');
+  setLinkTxt.textContent = h2.text; setLinkTxt.className = h2.cls;
+
+  const showLinkBtn2 = canLink && (runsDone() >= 3 || hasWon()); // suggested after the 3rd Run and the first victory
+  $('linkBtn2').hidden = !showLinkBtn2;
+  if (!showLinkBtn2) $('linkTxt2').hidden = true; // don't let a stale message from a past attempt reappear with the button
   $('linkBtn').hidden = !canLink;
+  $('setLinkBtn').hidden = !canLink;
   linkButtons();
   $('acctTxt').textContent = a ? t('account.as', { name: a.nickname }) + (backend.status() === 'offline' ? t('account.offline') : backend.status() === 'suspended' ? t('account.suspended') : '') : '';
   $('renameBtn').hidden = !a;
@@ -150,11 +172,11 @@ export function initAccount(h: AccountHooks): void {
   });
   $('tabBtn').addEventListener('click', () => { takeOver(); });
   $('suspendedBtn').addEventListener('click', () => hide('ovSuspended'));
-  const link = (): void => {
+  const link = (rowId: string, txtId: string) => (): void => {
     if (inApp) {
-      $('linkRow').hidden = false;
+      $(rowId).hidden = false;
       if (isAndroid(navigator.userAgent)) { location.href = chromeIntent(gameUrl()); return; }
-      const txt = $('linkTxt');
+      const txt = $(txtId);
       const copy = navigator.clipboard ? navigator.clipboard.writeText(gameUrl()) : Promise.reject(new Error('no clipboard'));
       void copy.then(
         () => { txt.textContent = t('link.copied'); txt.className = 'linkhint ok'; },
@@ -164,12 +186,15 @@ export function initAccount(h: AccountHooks): void {
     }
     void backend.linkGoogle().catch((e: unknown) => {
       const err = e as { code?: string; message?: string };
-      $('linkRow').hidden = false;
-      $('linkTxt').textContent = linkFailText(String(err?.message || err?.code || ''));
+      $(rowId).hidden = false;
+      const txt = $(txtId);
+      txt.textContent = linkFailText(String(err?.message || err?.code || ''));
+      txt.className = 'linkhint bad'; // must carry .bad: short screens hide any #linkTxt that isn't .ok/.bad
     });
   };
-  $('linkBtn').addEventListener('click', link);
-  $('linkBtn2').addEventListener('click', link);
+  $('linkBtn').addEventListener('click', link('linkRow', 'linkTxt'));
+  $('linkBtn2').addEventListener('click', link('linkTxt2', 'linkTxt2'));
+  $('setLinkBtn').addEventListener('click', link('setLinkRow', 'setLinkTxt'));
   void guardTab({
     onAcquired: () => { hide('ovTab'); void startAccount(); },
     onBlocked: () => { $('tabTitle').textContent = t('tab.blockedTitle'); $('tabText').textContent = t('tab.blockedText'); show('ovTab'); },
