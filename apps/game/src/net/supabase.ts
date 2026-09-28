@@ -31,9 +31,11 @@ export function createSupabaseBackend(): Backend {
 
   async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
     const c = await client();
-    const { data, error } = await c.rpc(fn, args);
+    const { data, error, status: http } = await c.rpc(fn, args);
     if (error) {
-      const e = toBackendError(error);
+      // HTTP status 0 = no response at all (postgrest-js turns a thrown fetch — TypeError, AbortError… — into
+      // an error with status 0): a transport failure, whatever the browser wrote in the message.
+      const e = http === 0 ? new BackendError('OFFLINE', error.message) : toBackendError(error);
       if (e.code === 'SESSION_REPLACED') status.set('replaced');
       if (e.code === 'ACCOUNT_SUSPENDED') {
         const until = (error as { hint?: string }).hint;

@@ -23,6 +23,8 @@ export class BackendError extends Error {
 /** Map a server error message/code to our codes. */
 export function toBackendError(e: unknown): BackendError {
   if (e instanceof BackendError) return e;
+  // an aborted fetch (timeout signal, page going away) never reached the server: not a server verdict
+  if ((e as { name?: string })?.name === 'AbortError') return new BackendError('OFFLINE', String((e as { message?: string }).message ?? ''));
   const msg = String((e as { message?: string })?.message ?? e ?? '');
   for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'NEEDS_WIN', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED', 'FEEDBACK_LIMIT', 'SHOP_LOCKED', 'WEAPON_LOCKED', 'STALE_CHECKPOINT', 'NO_CHECKPOINT'] as const) {
     if (msg.includes(code)) return new BackendError(code, msg);

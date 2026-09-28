@@ -63,8 +63,10 @@ const LOCAL_SAVE = {
   savedAt: Date.now(), clientRunId: 'client-1',
 };
 
-/** resume: how the mocked `resume_run` RPC responds to the one resume attempt this test drives. */
-async function mockSupabase(page: Page, resume: 'ok' | 'stale' | 'offline'): Promise<void> {
+/** resume: how the mocked `resume_run` RPC responds to the one resume attempt this test drives.
+ *  Returns how many times `resume_run` was called, so a test can prove it took the online path. */
+async function mockSupabase(page: Page, resume: 'ok' | 'stale' | 'offline'): Promise<() => number> {
+  let resumeCalls = 0;
   const json = (route: Route, body: unknown, status = 200): Promise<void> =>
     route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
   await page.route('**/*.supabase.co/**', async (route) => {
@@ -84,6 +86,7 @@ async function mockSupabase(page: Page, resume: 'ok' | 'stale' | 'offline'): Pro
         case 'get_meta': return json(route, { gold: 0, shop: {}, heroes: ['mage'], weapons: [], legacyImported: true });
         case 'get_checkpoint': return json(route, null); // continue from the local save instead
         case 'resume_run':
+          resumeCalls++;
           if (resume === 'offline') { await route.abort('failed'); return; }
           if (resume === 'stale') return json(route, { message: 'STALE_CHECKPOINT', code: '22023' }, 400);
           return json(route, { ok: true, seasonChanged: false });
@@ -92,33 +95,44 @@ async function mockSupabase(page: Page, resume: 'ok' | 'stale' | 'offline'): Pro
     }
     return json(route, {}, 404);
   });
+  return () => resumeCalls;
+}
+
+/** Wait until the mocked sign-in has finished and the backend is online. #acctTxt stays empty while
+ *  signing in, so "does not say offline" alone passes at once: Continue then took the offline path and
+ *  failed to load the sample save (`data: '{}'`), which showed "stale" at random (the CI flake). */
+async function waitOnline(page: Page): Promise<void> {
+  await expect(page.locator('#acctTxt')).toContainText('Hero#0001');
+  await expect(page.locator('#acctTxt')).not.toContainText(/offline|ออฟไลน์/);
 }
 
 test('continueRun: a genuinely stale checkpoint clears the local save and says so', async ({ page }) => {
-  await mockSupabase(page, 'stale');
+  const resumeCalls = await mockSupabase(page, 'stale');
   await page.addInitScript((save) => { localStorage.setItem('pixelhorde-named', '1'); localStorage.setItem('pixelhorde-save', JSON.stringify(save)); }, LOCAL_SAVE);
   await page.goto('/');
-  await expect(page.locator('#acctTxt')).not.toContainText(/offline|ออฟไลน์/);
+  await waitOnline(page);
   await expect(page.locator('#continueBtn')).toBeVisible();
   await page.click('#continueBtn');
   await expect(page.locator('#ovMsg')).toBeVisible();
   await expect(page.locator('#msgTitle')).not.toHaveText('ROOM'); // O1: not the co-op "ROOM" heading
   await expect(page.locator('#msgTxt')).toContainText(/no longer be continued|เล่นต่อไม่ได้แล้ว/);
+  expect(resumeCalls()).toBe(1); // the server said STALE_CHECKPOINT, not the offline path failing on the sample save
   expect(await page.evaluate(() => localStorage.getItem('pixelhorde-save'))).toBe('');
   await page.click('#msgBtn');
   await expect(page.locator('#continueBtn')).toBeHidden(); // the (now cleared) save is gone
 });
 
 test('continueRun: a transient failure keeps the local save and offers a retry, not "stale"', async ({ page }) => {
-  await mockSupabase(page, 'offline');
+  const resumeCalls = await mockSupabase(page, 'offline');
   await page.addInitScript((save) => { localStorage.setItem('pixelhorde-named', '1'); localStorage.setItem('pixelhorde-save', JSON.stringify(save)); }, LOCAL_SAVE);
   await page.goto('/');
-  await expect(page.locator('#acctTxt')).not.toContainText(/offline|ออฟไลน์/);
+  await waitOnline(page);
   await expect(page.locator('#continueBtn')).toBeVisible();
   await page.click('#continueBtn');
   await expect(page.locator('#ovMsg')).toBeVisible();
   await expect(page.locator('#msgTitle')).not.toHaveText('ROOM');
   await expect(page.locator('#msgTxt')).toContainText(/Couldn't reach the server|ต่อกับ server ไม่ได้/);
+  expect(resumeCalls()).toBe(1);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pixelhorde-save') || 'null')?.hash)).toBe(LOCAL_SAVE.hash);
   await page.click('#msgBtn');
   await expect(page.locator('#continueBtn')).toBeVisible(); // the save survived: still offered
