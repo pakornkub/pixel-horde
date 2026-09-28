@@ -28,6 +28,7 @@ export function startStage(s: SimState, n: number): void {
   s.swaps = 0;
   if (s.coop) { s.coop.revivedStage = []; s.coop.pot = {}; s.coop.chestsTo = {}; s.coop.splitDone = false; }
   s.awakenNew = false;
+  s.linksCounted = false;
   s.darkness = false;
   P.mark = null; P.bashT = 0;
   s.stageDur = Math.min(G.durMax, G.durBase + G.durPerStage * (n - 1));
@@ -67,9 +68,12 @@ export function awakenEligible(s: SimState): boolean {
 }
 
 /** Stage end: count full Stage-ends each Link was found maxed and equipped in a row (it does not matter whether it
- *  only reached max level during that same Stage), then Awaken at once when the Hero qualifies.
- *  Also run by co-op guests when the host clears a Stage (they never run stageClear). */
+ *  only reached max level during that same Stage), then Awaken at once when the Hero qualifies. Guarded by
+ *  `linksCounted` (reset in startStage()) so it is safe to call from every place a Stage-end can be observed
+ *  from -- solo/host, and a co-op guest's several ways to leave 'play' -- without counting one Stage twice. */
 export function updateLinks(s: SimState): void {
+  if (s.linksCounted) return;
+  s.linksCounted = true;
   const P = s.P, now = maxLinks(s);
   for (const id of SKILL_LINES[P.ch]) {
     if (now.includes(id)) P.linkStages[id] = (P.linkStages[id] || 0) + 1;

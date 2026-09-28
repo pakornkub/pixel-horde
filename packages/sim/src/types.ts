@@ -577,6 +577,9 @@ export interface SimState {
   banished: string[];
   /** The Hero Awakened at this Stage end: the clear screen shows what it brought. */
   awakenNew: boolean;
+  /** updateLinks() already ran for this Stage's end (reset in startStage()): guards every path that can reach
+   *  it (solo/host, and a co-op guest's several ways to leave 'play') against counting the same Stage twice. */
+  linksCounted: boolean;
   /** Swaps made at this Stage end (cost doubles each time). */
   swaps: number;
   /** Gold taken from the wallet this Run (reported with the Run result). */
