@@ -542,8 +542,14 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
     // stages = 1 (default): what the board can show right now already decides it, so count Links at max
     // level and equipped this instant; only the streak form needs qualifiedLinks's Stage-end history.
     const q = Math.min((streak ? qualifiedLinks(s) : maxLinks(s)).length, v.cfg.awaken.links), box2 = (ok: boolean): string => (ok ? '☑' : '☐');
-    const key = streak ? 'awk.progressStreak' : 'awk.progress';
-    pr.textContent = t(key, { sig: box2(!!P.evo[sig]), links: box2(q >= v.cfg.awaken.links), st: v.cfg.awaken.stages, q, n: v.cfg.awaken.links });
+    const sigOk = !!P.evo[sig], linksOk = q >= v.cfg.awaken.links;
+    // both met but not yet Awakened only happens mid-Stage (pause "View skills"): the Stage-end screen never
+    // shows this box unawakened once both are true, since Awakening already happened by then.
+    if (!streak && sigOk && linksOk) pr.textContent = t('awk.ready');
+    else {
+      const key = streak ? 'awk.progressStreak' : 'awk.progress';
+      pr.textContent = t(key, { sig: box2(sigOk), links: box2(linksOk), st: v.cfg.awaken.stages, q, n: v.cfg.awaken.links });
+    }
     rows.push(pr);
   }
   rows.push(slotRow(t('bench.passive'), 'pas', (Object.keys(P.pas) as PassiveId[]).map((id) => ({ id, lv: P.pas[id]!, evo: false, pas: true })), v.cfg.passiveSlots));
