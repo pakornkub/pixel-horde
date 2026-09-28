@@ -1,7 +1,7 @@
 // Suspend / resume (ticket 31): save and quit from the pause menu, then continue from the title.
 import { expect, test, type Page, type Route } from '@playwright/test';
 
-test('save and quit, then continue from the same Chapter (offline copy)', async ({ page }) => {
+test('save and quit, then continue and save again (unlimited re-resume)', async ({ page }) => {
   await page.route('**/*.supabase.co/**', (r) => r.abort());
   await page.addInitScript(() => localStorage.setItem('pixelhorde-named', '1'));
   await page.goto('/?debug=god');
@@ -18,8 +18,18 @@ test('save and quit, then continue from the same Chapter (offline copy)', async 
   await expect(page.locator('#continueBtn')).toContainText('1');
   await page.click('#continueBtn');
   await expect(page.locator('#pauseBtn')).toBeVisible();
-  // the save slot is used up once the Run continues
-  expect(await page.evaluate(() => localStorage.getItem('pixelhorde-save'))).toBe('');
+  // resuming a Chapter no longer consumes the checkpoint: it is saved again right away
+  const resaved = await page.evaluate(() => JSON.parse(localStorage.getItem('pixelhorde-save') || 'null'));
+  expect(resaved?.chapter).toBe(1);
+  expect(resaved?.hash).toBe(save?.hash);
+  // and "Save and quit" stays available: a same-Chapter disconnect can be resumed again afterwards
+  await page.keyboard.press('KeyP');
+  await expect(page.locator('#ovPause')).toBeVisible();
+  await expect(page.locator('#saveQuitBtn')).toBeEnabled();
+  await page.click('#saveQuitBtn');
+  await expect(page.locator('#ovTitle')).toBeVisible();
+  await expect(page.locator('#continueBtn')).toBeVisible();
+  await expect(page.locator('#continueBtn')).toContainText('1');
 });
 
 test('a new Run asks before discarding a save', async ({ page }) => {

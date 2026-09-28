@@ -153,7 +153,6 @@ async function newRun(mode: 'solo' | 'endless' = 'solo'): Promise<void> {
   starting = false;
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
   resumedHash = undefined;
-  usedHash = undefined;
   beginRun(createSim({
     seed: ticket ? ticket.seed : (Math.random() * 4294967296) >>> 0,
     hero: isHero(META.ch) ? META.ch : 'mage',
@@ -193,7 +192,7 @@ async function startCoop(s: Session, seed: number, cfgVersion: number): Promise<
   const config = s.role === 'guest' ? (await configFor(cfgVersion)) ?? active.cfg : active.cfg; // guests use the host's Balance Config
   ticket = await requestTicket('coop');
   clientRunId = globalThis.crypto?.randomUUID?.() ?? String(Date.now()) + Math.random();
-  resumedHash = undefined; usedHash = undefined;
+  resumedHash = undefined;
   teamPhase = '';
   coopJoin = 0; coopTeam = 1;
   beginRun(createSim({
@@ -332,9 +331,7 @@ function showMsg(txt: string, titleKey = 'msg.title'): void {
 let resumedHash: string | undefined;
 /** Achievements unlocked by the Run that just ended (shown on the Run-end screen). */
 let newAch: string[] = [];
-/** The checkpoint this session continued from: single use, never saved again (no Stage retries). */
-let usedHash: string | undefined;
-const canSave = (): boolean => !!sim && !coop && active.cfg.version !== -1 && sim.view().mode !== 'daily' && sim.checkpoint().hash !== usedHash;
+const canSave = (): boolean => !!sim && !coop && active.cfg.version !== -1 && sim.view().mode !== 'daily';
 
 /** Every Stage start: keep the checkpoint locally and on the server. */
 function autoSave(quit = false): void {
@@ -391,7 +388,7 @@ async function continueRun(): Promise<void> {
       if (pick?.runId) {
         const r = await backend.resumeRun(pick.runId, pick.hash).catch((e) => { throw e; });
         seasonNote = r.seasonChanged;
-        resumedHash = undefined; // the server consumed this checkpoint
+        resumedHash = undefined; // the server already validated this resume; submit_run needs no extra proof
       }
     } else resumedHash = pick?.hash; // offline: the server checks it when the Run is submitted
     if (!pick) return;
@@ -404,15 +401,14 @@ async function continueRun(): Promise<void> {
     const s = createSim({ seed: pick.seed, hero: pick.hero, weapon: pick.weapon, crack: pick.crack, meta: simMeta(), viewport: { w: screen.RW, h: screen.RH }, mobile: isMobile(),
       config, events: { bloodMoon: live.flags().bloodMoon, dragon: live.flags().dragon, rival: live.flags().rival }, debug, resume: pick.data });
     clearSave();
-    usedHash = s.checkpoint().hash;
-    beginRun(s);
+    beginRun(s); // re-saves the checkpoint locally and on the server (resuming does not consume it)
     if (seasonNote) setBanner(t('save.seasonChanged'), '', 4);
   } catch (e) {
     const code = e instanceof BackendError ? e.code : 'UNKNOWN';
     telemetry.recordError('continueRun: ' + code, e instanceof Error ? (e.stack || '') : '');
     // Only a transport-level failure (can't reach the server at all) is worth a retry: the save is
     // still good. Anything else — a real STALE_CHECKPOINT/NO_CHECKPOINT/RUN_NOT_FOUND, or the save
-    // itself failing to load once resumeRun already consumed the checkpoint — means the save is gone.
+    // itself failing to load — means the save is gone.
     if (code === 'OFFLINE') {
       showMsg(t('save.retryFailed'), 'save.msgTitle');
     } else {
@@ -605,8 +601,7 @@ function pause(): void {
   if (!sim || sim.view().phase !== 'play') return;
   if (isGuest()) { if (!guestMenu) { guestMenu = true; ($('saveQuitBtn') as HTMLButtonElement).disabled = true; $('saveQuitNote').textContent = t('save.quitNote'); leaveArmed = false; showPause(); } return; }
   ($('saveQuitBtn') as HTMLButtonElement).disabled = !canSave();
-  // after a Continue the Stage-start save is spent until the next Chapter starts: say so instead of a dead button
-  $('saveQuitNote').textContent = t(sim.checkpoint().hash === usedHash ? 'save.usedNote' : 'save.quitNote');
+  $('saveQuitNote').textContent = t('save.quitNote');
   cmd({ type: 'pause' });
   leaveArmed = false;
   showPause();

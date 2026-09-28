@@ -1,6 +1,7 @@
--- Ticket 31: suspend and resume — cross-device resume, single use, stale saves, paused time.
+-- Ticket 31: suspend and resume — cross-device resume, unlimited re-resume until the Chapter
+-- clears (owner decision 2026-09-28), stale saves, paused time.
 begin;
-select plan(13);
+select plan(19);
 
 insert into auth.users (id, raw_user_meta_data) values ('33333333-3333-3333-3333-333333333333', '{"nickname":"Cara"}');
 set local role authenticated;
@@ -26,9 +27,18 @@ reset role;
 update public.runs set suspended_at = now() - interval '2 hours', started_at = now() - interval '3 hours' where id = (select (r ->> 'runId')::uuid from t_run);
 set local role authenticated;
 select is((public.resume_run((select (r ->> 'runId')::uuid from t_run), 'bbbbbbbb22222222') ->> 'ok')::boolean, true, 'the latest checkpoint resumes');
-select throws_ok(format($f$ select public.resume_run('%s', 'bbbbbbbb22222222') $f$, (select r ->> 'runId' from t_run)), 'NO_CHECKPOINT', 'a checkpoint is single use');
-select throws_ok(format($f$ select public.save_checkpoint('{"runId":"%s","token":"%s","chapter":3,"hash":"bbbbbbbb22222222","data":"{\"v\":1}","configVersion":0}') $f$,
-  (select r ->> 'runId' from t_run), (select r ->> 'token' from t_run)), 'CHECKPOINT_USED', 'the used checkpoint cannot be saved again (no Stage retries)');
+select is((public.get_checkpoint() ->> 'hash'), 'bbbbbbbb22222222', 'the checkpoint is kept after a resume, not deleted (unlimited re-resume)');
+select is((public.resume_run((select (r ->> 'runId')::uuid from t_run), 'bbbbbbbb22222222') ->> 'ok')::boolean, true, 'a disconnect after a resume can resume the same checkpoint again');
+select lives_ok(format($f$ select public.save_checkpoint('{"runId":"%s","token":"%s","chapter":3,"hash":"bbbbbbbb22222222","data":"{\"v\":1}","configVersion":0,"quit":true}') $f$,
+  (select r ->> 'runId' from t_run), (select r ->> 'token' from t_run)), 'saving and quitting with the resumed hash again is allowed (no CHECKPOINT_USED)');
+select is((public.resume_run((select (r ->> 'runId')::uuid from t_run), 'bbbbbbbb22222222') ->> 'ok')::boolean, true, 'and it resumes a third time');
+
+-- clearing the Chapter starts a new one: the fresh checkpoint supersedes the old
+select lives_ok(format($f$ select public.save_checkpoint('{"runId":"%s","token":"%s","chapter":4,"hash":"cccccccc33333333","data":"{\"v\":1}","configVersion":0}') $f$,
+  (select r ->> 'runId' from t_run), (select r ->> 'token' from t_run)), 'the next Chapter''s Stage-start save supersedes the old checkpoint');
+select is((public.get_checkpoint() ->> 'hash'), 'cccccccc33333333', 'the newest checkpoint is offered');
+select throws_ok(format($f$ select public.resume_run('%s', 'bbbbbbbb22222222') $f$, (select r ->> 'runId' from t_run)), 'STALE_CHECKPOINT', 'the superseded Chapter 3 checkpoint can no longer be resumed');
+select is((public.resume_run((select (r ->> 'runId')::uuid from t_run), 'cccccccc33333333') ->> 'ok')::boolean, true, 'the Chapter 4 checkpoint resumes');
 
 reset role;
 select ok((select suspended_ms >= 7200000 from public.runs where id = (select (r ->> 'runId')::uuid from t_run)), 'the suspended time is recorded (excluded from play time)');
