@@ -539,7 +539,8 @@ function skillBoard(box: HTMLElement, v: Readonly<SimState>, act: BoardActions):
   if (!P.awakened) {
     const pr = document.createElement('p'); pr.className = 'awk-prog';
     const q = Math.min(qualifiedLinks(s).length, v.cfg.awaken.links), box2 = (ok: boolean): string => (ok ? '☑' : '☐');
-    pr.textContent = t('awk.progress', { sig: box2(!!P.evo[sig]), links: box2(q >= v.cfg.awaken.links), st: v.cfg.awaken.stages, q, n: v.cfg.awaken.links });
+    const key = v.cfg.awaken.stages > 1 ? 'awk.progressStreak' : 'awk.progress';
+    pr.textContent = t(key, { sig: box2(!!P.evo[sig]), links: box2(q >= v.cfg.awaken.links), st: v.cfg.awaken.stages, q, n: v.cfg.awaken.links });
     rows.push(pr);
   }
   rows.push(slotRow(t('bench.passive'), 'pas', (Object.keys(P.pas) as PassiveId[]).map((id) => ({ id, lv: P.pas[id]!, evo: false, pas: true })), v.cfg.passiveSlots));

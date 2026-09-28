@@ -231,9 +231,8 @@ export interface Player {
   /** Guardians defeated this Run (all three → fusion offer). */
   guardiansBeaten: GuardianKind[];
   clone: Clone | null;
-  /** Awakening: done this Run; Links maxed at Stage start; full Stages each Link spent maxed. */
+  /** Awakening: done this Run; consecutive Stage-ends each Link was found maxed and equipped. */
   awakened: boolean;
-  linkStart: SkillId[];
   linkStages: Partial<Record<SkillId, number>>;
   /** Statuses this player leaves last × this (Vex). */
   statusMul: number;

@@ -32,19 +32,30 @@ function setup(hero: HeroId = 'mage') {
 }
 
 describe('Awakening', () => {
-  it('happens by itself once two Links spent a full Stage at max level and equipped', () => {
+  it('happens by itself as soon as the Signature is evolved and the Links are at max level by a Stage\'s end', () => {
     const { s, endStage, next, maxLinks } = setup();
     maxLinks(2);
-    endStage(); // maxed mid-Stage: this Stage does not count yet
-    expect(s.P.awakened).toBe(false);
-    expect(s.awakenNew).toBe(false);
-    next();
-    endStage(); // a full Stage at max
+    endStage(); // maxed mid-Stage: still counts, since both requirements are true by this Stage's end
     expect(s.P.awakened).toBe(true);
     expect(s.awakenNew).toBe(true); // the clear screen shows what it brought
     next();
     expect(s.awakenNew).toBe(false);
     expect(awakenEligible(s)).toBe(false); // once per Run
+  });
+
+  it('Awakens the Stage the Signature evolves and the 2nd required Link first maxes, even if both happen together mid-Stage', () => {
+    const { s, endStage, next, maxLinks } = setup();
+    maxLinks(1); // one Link already maxed from before; the Signature not evolved yet
+    s.P.evo = {};
+    endStage(); next();
+    expect(s.P.awakened).toBe(false); // not eligible: the Signature has not evolved
+    // mid-Stage: the Signature evolves AND the 2nd Link reaches max level, both for the first time
+    s.P.evo = { [signatureOf('mage')]: true };
+    const link2 = SKILL_LINES.mage[1];
+    s.P.skills[link2] = s.cfg.skills[link2].max;
+    endStage();
+    expect(s.P.awakened).toBe(true);
+    expect(s.awakenNew).toBe(true);
   });
 
   it('the retired awaken command changes nothing', () => {
@@ -64,19 +75,21 @@ describe('Awakening', () => {
     expect(a.s.P.awakened).toBe(false);
     const b = setup();
     b.maxLinks(2);
+    b.s.P.evo = {}; // the Signature has not evolved yet
     b.endStage(); b.next();
     const link = SKILL_LINES.mage[1];
     b.s.P.bench = [{ id: link, lv: b.s.P.skills[link]!, evo: false }];
     delete b.s.P.skills[link];
+    b.s.P.evo = { [signatureOf('mage')]: true }; // now it evolves, but only 1 Link is still equipped
     b.endStage();
     expect(b.s.P.awakened).toBe(false);
   });
 
   it('by default it consumes two Links, transforms the Signature and adds the line skills at level 1', async () => {
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('knight');
+    const { s, endStage, maxLinks } = setup('knight');
     maxLinks(3);
-    endStage(); next(); endStage();
+    endStage();
     expect(s.P.awakened).toBe(true);
     const left = SKILL_LINES.knight.filter((id) => s.P.skills[id]);
     expect(left.length).toBe(1);
@@ -88,10 +101,10 @@ describe('Awakening', () => {
 
   it('awaken.grant gives the first Skill Line skills at awaken.grantLv; awaken.wLine favours them in offers', async () => {
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('mage');
+    const { s, endStage, maxLinks } = setup('mage');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, grant: 1, grantLv: 6, wLine: 50 } };
     maxLinks(2);
-    endStage(); next(); endStage();
+    endStage();
     const [first, second] = AWAKENING.mage.line;
     expect(s.P.skills[first]).toBe(6);
     expect(s.P.skills[second]).toBeUndefined();
@@ -103,11 +116,11 @@ describe('Awakening', () => {
   it('awaken.keep + awaken.slots: the Links stay, an extra attack slot opens and holds the granted skill', async () => {
     const { attackSlots } = await import('@pixel-horde/sim');
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('ranger');
+    const { s, endStage, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 1, grant: 1, grantLv: 6 } };
     maxLinks(3); // Signature + three Links: every base slot is full
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
-    endStage(); next(); endStage();
+    endStage();
     for (const id of SKILL_LINES.ranger) expect(s.P.skills[id]).toBe(s.cfg.skills[id].max);
     expect(s.P.skills[signatureOf('ranger')]).toBeDefined();
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots + 1);
@@ -121,11 +134,11 @@ describe('Awakening', () => {
     const { attackSlots, benchSize } = await import('@pixel-horde/sim');
     const { s, endStage, next, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, grant: 2, grantLv: 6 } };
+    endStage(); next(); // an uneventful Stage 1, now on Chapter 2
     maxLinks(3); // Signature + three Links: every slot is full and stays full
-    endStage(); next();
     s.P.bench = [];
     expect(benchSize(s)).toBe(1); // Chapter 2: room for one of the two granted skills
-    endStage();
+    endStage(); // maxed mid-Stage: still counts by this Stage's end
     expect(Object.keys(s.P.skills).length).toBe(attackSlots(s));
     const [first, second] = AWAKENING.ranger.line;
     expect(s.P.skills[first]).toBeUndefined();
@@ -135,9 +148,9 @@ describe('Awakening', () => {
 
   it('by default (version 0) Awakening adds no slot', async () => {
     const { attackSlots, lineSlots } = await import('@pixel-horde/sim');
-    const { s, endStage, next, maxLinks } = setup('mage');
+    const { s, endStage, maxLinks } = setup('mage');
     maxLinks(2);
-    endStage(); next(); endStage();
+    endStage();
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
     expect(lineSlots(s)).toBe(0);
   });
@@ -145,10 +158,10 @@ describe('Awakening', () => {
   it('awaken.lineSlots: Mora\'s Awakened skills (Bone Spear, Soulfire, Bone Ward) take the Awakened slots too', async () => {
     const { lineSlots, slotUse } = await import('@pixel-horde/sim');
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('necromancer');
+    const { s, endStage, maxLinks } = setup('necromancer');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, lineSlots: 3, grant: 3, grantLv: 1 } };
     maxLinks(3); // Signature + three Links: every normal slot is full
-    endStage(); next(); endStage();
+    endStage();
     expect(s.P.awakened).toBe(true);
     expect(lineSlots(s)).toBe(3);
     for (const id of AWAKENING.necromancer.line) expect(s.P.skills[id]).toBe(1); // all three in their own slots, none benched
@@ -162,11 +175,11 @@ describe('Awakening', () => {
   it('awaken.lineSlots: three Awakened-only slots next to full normal slots (4 + 3 = 7)', async () => {
     const { attackSlots, lineSlots, slotUse } = await import('@pixel-horde/sim');
     const { buildOptions, swapBench } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('ranger');
+    const { s, endStage, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, lineSlots: 3, grant: 1, grantLv: 6 } };
     maxLinks(3); // Signature + three Links: every normal slot is full
     expect(lineSlots(s)).toBe(0); // not Awakened yet
-    endStage(); next(); endStage();
+    endStage();
     expect(s.P.awakened).toBe(true);
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
     expect(lineSlots(s)).toBe(3);
