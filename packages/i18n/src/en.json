@@ -297,6 +297,8 @@
  "set.stats": "Send anonymous play statistics",
  "link.button": "Continue with Google",
  "link.hint": "Link Google to keep your save on every device",
+ "login.button": "Sign in with Google",
+ "login.hint": "Sign in to keep your save across devices",
  "link.merged": "Your save was merged into your Google account",
  "link.linked": "Google linked. Your save is safe",
  "link.failed": "Linking Google failed. Please try again",
