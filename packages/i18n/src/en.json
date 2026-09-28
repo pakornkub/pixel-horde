@@ -632,6 +632,8 @@
  "save.usedNote": "This Chapter's save was already used to continue. You can save again once the next Chapter starts (no Chapter retries).",
  "save.noConfig": "This save needs its game settings from the server. Please go online and try again.",
  "save.stale": "This save can no longer be continued (it was used or replaced).",
+ "save.retryFailed": "Couldn't reach the server to continue. Your save is still here — check your connection and try again.",
+ "save.msgTitle": "Saved Run",
  "save.seasonChanged": "A new Season began while you were away: this Run finishes unranked",
  "ach.firstKing.name": "First Crown",
  "ach.firstKing.desc": "Defeat a King",

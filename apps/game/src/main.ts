@@ -16,7 +16,7 @@ import { initTitle, renderTitleEndless, renderTitleSel } from './ui/title';
 import { debugEnding, initEnding, openEnding, preloadEnding, winUnlocks } from './ui/ending';
 import { clearSave, configFor, readSave, writeSave, type LocalSave } from './save';
 import { META, getBest, metaSync, setBest, simMeta } from './meta';
-import { backend, type Announcement, type RunResult, type RunTicket } from './net';
+import { backend, BackendError, type Announcement, type RunResult, type RunTicket } from './net';
 import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
@@ -321,7 +321,14 @@ function beginRun(s: Sim): void {
 }
 
 /* ---------- suspend / resume (ticket 31) ---------- */
-function showMsg(txt: string): void { $('msgTxt').textContent = txt; hide('ovTitle'); show('ovMsg'); }
+function showMsg(txt: string, titleKey = 'msg.title'): void {
+  const title = $('msgTitle');
+  title.dataset.i18n = titleKey;
+  title.textContent = t(titleKey);
+  $('msgTxt').textContent = txt;
+  hide('ovTitle');
+  show('ovMsg');
+}
 let resumedHash: string | undefined;
 /** Achievements unlocked by the Run that just ended (shown on the Run-end screen). */
 let newAch: string[] = [];
@@ -389,7 +396,7 @@ async function continueRun(): Promise<void> {
     } else resumedHash = pick?.hash; // offline: the server checks it when the Run is submitted
     if (!pick) return;
     const base = await configFor(pick.configVersion);
-    if (!base) { showMsg(t('save.noConfig')); return; }
+    if (!base) { showMsg(t('save.noConfig'), 'save.msgTitle'); return; }
     const config = base;
     ticket = pick.runId && pick.token ? { runId: pick.runId, token: pick.token, seed: pick.seed, configVersion: pick.configVersion } : null;
     unranked = !ticket ? 'noTicket' : seasonNote ? 'season' : null;
@@ -400,9 +407,18 @@ async function continueRun(): Promise<void> {
     usedHash = s.checkpoint().hash;
     beginRun(s);
     if (seasonNote) setBanner(t('save.seasonChanged'), '', 4);
-  } catch {
-    clearSave();
-    showMsg(t('save.stale'));
+  } catch (e) {
+    const code = e instanceof BackendError ? e.code : 'UNKNOWN';
+    telemetry.recordError('continueRun: ' + code, e instanceof Error ? (e.stack || '') : '');
+    // Only a transport-level failure (can't reach the server at all) is worth a retry: the save is
+    // still good. Anything else — a real STALE_CHECKPOINT/NO_CHECKPOINT/RUN_NOT_FOUND, or the save
+    // itself failing to load once resumeRun already consumed the checkpoint — means the save is gone.
+    if (code === 'OFFLINE') {
+      showMsg(t('save.retryFailed'), 'save.msgTitle');
+    } else {
+      clearSave();
+      showMsg(t('save.stale'), 'save.msgTitle');
+    }
     void refreshContinue();
   } finally {
     starting = false;

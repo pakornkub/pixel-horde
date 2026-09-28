@@ -13,7 +13,8 @@ export interface Account {
 export type BackendStatus = 'online' | 'offline' | 'replaced' | 'suspended';
 export type BackendErrorCode =
   | 'SESSION_REPLACED' | 'NICKNAME_REJECTED' | 'NOT_SIGNED_IN' | 'OFFLINE' | 'UNKNOWN'
-  | 'NOT_ENOUGH_GOLD' | 'NEEDS_WIN' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE' | 'ACCOUNT_SUSPENDED' | 'FEEDBACK_LIMIT' | 'SHOP_LOCKED' | 'WEAPON_LOCKED';
+  | 'NOT_ENOUGH_GOLD' | 'NEEDS_WIN' | 'MAXED' | 'HERO_LOCKED' | 'RATE_LIMITED' | 'RUN_ALREADY_SUBMITTED' | 'RUN_NOT_FOUND' | 'MAINTENANCE' | 'ACCOUNT_SUSPENDED' | 'FEEDBACK_LIMIT' | 'SHOP_LOCKED' | 'WEAPON_LOCKED'
+  | 'STALE_CHECKPOINT' | 'NO_CHECKPOINT';
 
 export class BackendError extends Error {
   constructor(public code: BackendErrorCode, message?: string) { super(message || code); }
@@ -23,10 +24,11 @@ export class BackendError extends Error {
 export function toBackendError(e: unknown): BackendError {
   if (e instanceof BackendError) return e;
   const msg = String((e as { message?: string })?.message ?? e ?? '');
-  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'NEEDS_WIN', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED', 'FEEDBACK_LIMIT', 'SHOP_LOCKED', 'WEAPON_LOCKED'] as const) {
+  for (const code of ['SESSION_REPLACED', 'NICKNAME_REJECTED', 'NOT_SIGNED_IN', 'NOT_ENOUGH_GOLD', 'NEEDS_WIN', 'MAXED', 'HERO_LOCKED', 'RATE_LIMITED', 'RUN_ALREADY_SUBMITTED', 'RUN_NOT_FOUND', 'MAINTENANCE', 'ACCOUNT_SUSPENDED', 'FEEDBACK_LIMIT', 'SHOP_LOCKED', 'WEAPON_LOCKED', 'STALE_CHECKPOINT', 'NO_CHECKPOINT'] as const) {
     if (msg.includes(code)) return new BackendError(code, msg);
   }
-  if (/fetch|network|Failed to|timeout|ECONN|503|502|504/i.test(msg)) return new BackendError('OFFLINE', msg);
+  // browsers word a failed fetch differently: Chrome "Failed to fetch", Firefox "NetworkError…", Safari "Load failed"
+  if (/fetch|network|Failed to|Load failed|connection was lost|timeout|ECONN|503|502|504/i.test(msg)) return new BackendError('OFFLINE', msg);
   return new BackendError('UNKNOWN', msg);
 }
 
