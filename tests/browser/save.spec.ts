@@ -92,6 +92,7 @@ test('continueRun: a genuinely stale checkpoint clears the local save and says s
   await expect(page.locator('#continueBtn')).toBeVisible();
   await page.click('#continueBtn');
   await expect(page.locator('#ovMsg')).toBeVisible();
+  await expect(page.locator('#msgTitle')).not.toHaveText('ROOM'); // O1: not the co-op "ROOM" heading
   await expect(page.locator('#msgTxt')).toContainText(/no longer be continued|เล่นต่อไม่ได้แล้ว/);
   expect(await page.evaluate(() => localStorage.getItem('pixelhorde-save'))).toBe('');
   await page.click('#msgBtn');
@@ -106,8 +107,26 @@ test('continueRun: a transient failure keeps the local save and offers a retry, 
   await expect(page.locator('#continueBtn')).toBeVisible();
   await page.click('#continueBtn');
   await expect(page.locator('#ovMsg')).toBeVisible();
+  await expect(page.locator('#msgTitle')).not.toHaveText('ROOM');
   await expect(page.locator('#msgTxt')).toContainText(/Couldn't reach the server|ต่อกับ server ไม่ได้/);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pixelhorde-save') || 'null')?.hash)).toBe(LOCAL_SAVE.hash);
   await page.click('#msgBtn');
   await expect(page.locator('#continueBtn')).toBeVisible(); // the save survived: still offered
+});
+
+test('continueRun: a corrupt local save clears itself instead of getting stuck (offline)', async ({ page }) => {
+  // B1 regression: createSim() rejecting a corrupt save must not be mistaken for a network failure
+  // (which would keep the save and leave every retry failing the exact same way, forever).
+  await page.route('**/*.supabase.co/**', (r) => r.abort());
+  const corrupt = { ...LOCAL_SAVE, data: 'corrupt!!{{' };
+  await page.addInitScript((save) => { localStorage.setItem('pixelhorde-named', '1'); localStorage.setItem('pixelhorde-save', JSON.stringify(save)); }, corrupt);
+  await page.goto('/?offline');
+  await expect(page.locator('#continueBtn')).toBeVisible();
+  await page.click('#continueBtn');
+  await expect(page.locator('#ovMsg')).toBeVisible();
+  await expect(page.locator('#msgTitle')).not.toHaveText('ROOM');
+  await expect(page.locator('#msgTxt')).toContainText(/no longer be continued|เล่นต่อไม่ได้แล้ว/);
+  expect(await page.evaluate(() => localStorage.getItem('pixelhorde-save'))).toBe('');
+  await page.click('#msgBtn');
+  await expect(page.locator('#continueBtn')).toBeHidden(); // no dead end: the bad save is gone, not offered again
 });
