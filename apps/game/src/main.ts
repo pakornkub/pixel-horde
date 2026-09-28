@@ -354,9 +354,17 @@ async function refreshContinue(): Promise<void> {
       if (srv && (!local || Date.parse(srv.savedAt) >= local.savedAt) && isHero(srv.hero)) { chapter = srv.chapter; hero = srv.hero; endless = endless && srv.runId === local?.runId; }
     } catch { /* offline: local only */ }
   }
-  const bt = $('continueBtn');
-  bt.hidden = !chapter || !hero;
-  if (chapter && hero) bt.textContent = t(endless ? 'save.continueEndless' : 'save.continue', { chapter, hero: heroName(hero) });
+  continueLabel = chapter && hero ? { chapter, hero, endless } : null;
+  $('continueBtn').hidden = !continueLabel;
+  renderContinueLabel();
+}
+
+/** The last save the Continue button shows; re-rendered on a language switch without asking the server again. */
+let continueLabel: { chapter: number; hero: Parameters<typeof heroName>[0]; endless: boolean } | null = null;
+function renderContinueLabel(): void {
+  if (!continueLabel) return;
+  const { chapter, hero, endless } = continueLabel;
+  $('continueBtn').textContent = t(endless ? 'save.continueEndless' : 'save.continue', { chapter, hero: heroName(hero) });
 }
 
 async function continueRun(): Promise<void> {
@@ -763,6 +771,7 @@ function refreshText(): void {
   renderAccountLine();
   renderNews();
   renderUpdateNote($('updNote'));
+  renderContinueLabel();
 }
 onLangChange(refreshText);
 $('langBtn').addEventListener('click', () => applyLang(lang() === 'th' ? 'en' : 'th'));
