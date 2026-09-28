@@ -631,7 +631,6 @@
  "save.discard": "Starting a new Run discards your saved Run (Chapter {chapter}, {hero}). Continue?",
  "save.quit": "Save and quit",
  "save.quitNote": "You continue from the start of this Chapter. EXP and Gold from the unfinished Stage are lost.",
- "save.usedNote": "This Chapter's save was already used to continue. You can save again once the next Chapter starts (no Chapter retries).",
  "save.noConfig": "This save needs its game settings from the server. Please go online and try again.",
  "save.stale": "This save can no longer be continued (it was used or replaced).",
  "save.retryFailed": "Couldn't reach the server to continue. Your save is still here — check your connection and try again.",
