@@ -269,6 +269,7 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
       part(skillIcon('bolt', 'lg'), el('span', null, G('skill.bolt.name'), el('br'), el('small', null, 'LV MAX'))), el('span', null, '+'),
       part(passiveIcon('haste', 'lg'), G('passive.haste.name')), el('span', null, '='),
       part(el('span.ico.lg', { style: '--c:#ff5cf4;box-shadow:0 0 0 4px var(--gold)' }, 'B'), el('span', null, G('evo.bolt.name'), el('br'), el('small', null, 'EVOLVE!'))))),
+    note('g.evo.note'),
     el('p', null, el('a', { href: './skills.html#evo' }, T('g.evo.more'))));
 }
 
