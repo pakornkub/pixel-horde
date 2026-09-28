@@ -632,7 +632,7 @@
  "save.quit": "Save and quit",
  "save.quitNote": "You continue from the start of this Chapter. EXP and Gold from the unfinished Stage are lost.",
  "save.noConfig": "This save needs its game settings from the server. Please go online and try again.",
- "save.stale": "This save can no longer be continued (it was used or replaced).",
+ "save.stale": "This save can no longer be continued (replaced by a newer save).",
  "save.retryFailed": "Couldn't reach the server to continue. Your save is still here — check your connection and try again.",
  "save.msgTitle": "Saved Run",
  "save.seasonChanged": "A new Season began while you were away: this Run finishes unranked",
