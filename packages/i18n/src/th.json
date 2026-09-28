@@ -426,7 +426,7 @@
  "bench.attack": "ช่องโจมตี",
  "bench.bench": "Bench",
  "bench.empty": "ว่าง",
- "bench.cost": "สลับครั้งถัดไป: {cost}G (จากรอบนี้ {run}G + กระเป๋า {wallet}G)",
+ "bench.cost": "สลับครั้งถัดไป: {cost}G (จาก Gold รอบนี้ {run}G + ใช้จากกระเป๋า {wallet}G)",
  "bench.short": "Gold ไม่พอสำหรับการสลับครั้งนี้",
  "bench.locked": "สกิลประจำตัว: ติดตัวตลอด",
  "combo.shatter": "SHATTER!",

@@ -426,7 +426,7 @@
  "bench.attack": "Attack",
  "bench.bench": "Bench",
  "bench.empty": "empty",
- "bench.cost": "Next swap: {cost}G ({run}G this Run + {wallet}G wallet)",
+ "bench.cost": "Next swap: {cost}G ({run}G from this Run + {wallet}G from your wallet)",
  "bench.short": "Not enough Gold for this swap",
  "bench.locked": "Signature: always equipped",
  "combo.shatter": "SHATTER!",
