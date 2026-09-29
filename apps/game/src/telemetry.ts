@@ -22,8 +22,9 @@ export function fingerprint(s: string): string {
 /** FPS histogram buckets: <30, 30–45, 45–55, ≥55 frames per second. */
 export function fpsBucket(fps: number): number { return fps < 30 ? 0 : fps < 45 ? 1 : fps < 55 ? 2 : 3; }
 
-/** Browser noise that is not a game bug: WebKit rejects pending promises when the page is closed or left. */
-const NOISE = [/browsing context is going away/i];
+/** Browser noise that is not a game bug: WebKit rejects pending promises when the page is closed or left,
+ * and wallet extensions (MetaMask etc.) probe every page and throw when there is nothing to connect to. */
+const NOISE = [/browsing context is going away/i, /Failed to connect to MetaMask/i];
 export const isNoise = (message: string): boolean => NOISE.some((re) => re.test(message));
 
 /** Errors from a dev server or a local build are not players' errors: keep them out of the live list. */
