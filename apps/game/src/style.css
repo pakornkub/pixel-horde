@@ -509,8 +509,7 @@ body:has(#tipBar:not([hidden])) #fpsTip{bottom:calc(160px * var(--menu,1) + env(
 /* UX pass 2026-10-03 (owner-approved audit A1–C3) */
 /* C2: headings and the title tagline break into even lines (no one-word last line such as "Kings.") */
 .box h1,.box h2,.box h3,.estory h2,.tagline,.opt .nm{text-wrap:balance}
-/* Thai has no spaces between words: the tagline breaks only at its one space, never inside "มอนสเตอร์" */
-.tagline{word-break:keep-all}
+/* Thai tagline: word joiners (U+2060) in th.json keep "มอนสเตอร์" whole; word-break:keep-all does not stop Chrome's Thai dictionary */
 /* C3: wide screens: level-up / route card text one step bigger (12 px was small next to 18 px names) */
 @media (min-width:700px) and (min-height:521px){.opt .ds{font-size:14px;line-height:1.3}.opt .st,.opt .nrow{font-size:13px}}
 /* title: logo/hero and play/menu groups; plain flow everywhere except short landscape screens (A1 below) */
