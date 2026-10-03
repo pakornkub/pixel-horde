@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AWAKENING, HEROES, SKILL_LINES, awakenEligible, createSim, signatureOf, type HeroId, type SimState, type SkillId } from '@pixel-horde/sim';
+import { AWAKENING, HEROES, SKILL_LINES, awakenEligible, createSim, hostSnapshot, signatureOf, type HeroId, type SimState, type SkillId } from '@pixel-horde/sim';
 import { spawnEnemy } from '../packages/sim/src/systems/spawner';
 import { botOptions } from './bot';
 
@@ -32,19 +32,30 @@ function setup(hero: HeroId = 'mage') {
 }
 
 describe('Awakening', () => {
-  it('happens by itself once two Links spent a full Stage at max level and equipped', () => {
+  it('happens by itself as soon as the Signature is evolved and the Links are at max level by a Stage\'s end', () => {
     const { s, endStage, next, maxLinks } = setup();
     maxLinks(2);
-    endStage(); // maxed mid-Stage: this Stage does not count yet
-    expect(s.P.awakened).toBe(false);
-    expect(s.awakenNew).toBe(false);
-    next();
-    endStage(); // a full Stage at max
+    endStage(); // maxed mid-Stage: still counts, since both requirements are true by this Stage's end
     expect(s.P.awakened).toBe(true);
     expect(s.awakenNew).toBe(true); // the clear screen shows what it brought
     next();
     expect(s.awakenNew).toBe(false);
     expect(awakenEligible(s)).toBe(false); // once per Run
+  });
+
+  it('Awakens the Stage the Signature evolves and the 2nd required Link first maxes, even if both happen together mid-Stage', () => {
+    const { s, endStage, next, maxLinks } = setup();
+    maxLinks(1); // one Link already maxed from before; the Signature not evolved yet
+    s.P.evo = {};
+    endStage(); next();
+    expect(s.P.awakened).toBe(false); // not eligible: the Signature has not evolved
+    // mid-Stage: the Signature evolves AND the 2nd Link reaches max level, both for the first time
+    s.P.evo = { [signatureOf('mage')]: true };
+    const link2 = SKILL_LINES.mage[1];
+    s.P.skills[link2] = s.cfg.skills[link2].max;
+    endStage();
+    expect(s.P.awakened).toBe(true);
+    expect(s.awakenNew).toBe(true);
   });
 
   it('the retired awaken command changes nothing', () => {
@@ -64,19 +75,21 @@ describe('Awakening', () => {
     expect(a.s.P.awakened).toBe(false);
     const b = setup();
     b.maxLinks(2);
+    b.s.P.evo = {}; // the Signature has not evolved yet
     b.endStage(); b.next();
     const link = SKILL_LINES.mage[1];
     b.s.P.bench = [{ id: link, lv: b.s.P.skills[link]!, evo: false }];
     delete b.s.P.skills[link];
+    b.s.P.evo = { [signatureOf('mage')]: true }; // now it evolves, but only 1 Link is still equipped
     b.endStage();
     expect(b.s.P.awakened).toBe(false);
   });
 
   it('by default it consumes two Links, transforms the Signature and adds the line skills at level 1', async () => {
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('knight');
+    const { s, endStage, maxLinks } = setup('knight');
     maxLinks(3);
-    endStage(); next(); endStage();
+    endStage();
     expect(s.P.awakened).toBe(true);
     const left = SKILL_LINES.knight.filter((id) => s.P.skills[id]);
     expect(left.length).toBe(1);
@@ -88,10 +101,10 @@ describe('Awakening', () => {
 
   it('awaken.grant gives the first Skill Line skills at awaken.grantLv; awaken.wLine favours them in offers', async () => {
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('mage');
+    const { s, endStage, maxLinks } = setup('mage');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, grant: 1, grantLv: 6, wLine: 50 } };
     maxLinks(2);
-    endStage(); next(); endStage();
+    endStage();
     const [first, second] = AWAKENING.mage.line;
     expect(s.P.skills[first]).toBe(6);
     expect(s.P.skills[second]).toBeUndefined();
@@ -103,11 +116,11 @@ describe('Awakening', () => {
   it('awaken.keep + awaken.slots: the Links stay, an extra attack slot opens and holds the granted skill', async () => {
     const { attackSlots } = await import('@pixel-horde/sim');
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('ranger');
+    const { s, endStage, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 1, grant: 1, grantLv: 6 } };
     maxLinks(3); // Signature + three Links: every base slot is full
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
-    endStage(); next(); endStage();
+    endStage();
     for (const id of SKILL_LINES.ranger) expect(s.P.skills[id]).toBe(s.cfg.skills[id].max);
     expect(s.P.skills[signatureOf('ranger')]).toBeDefined();
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots + 1);
@@ -121,11 +134,11 @@ describe('Awakening', () => {
     const { attackSlots, benchSize } = await import('@pixel-horde/sim');
     const { s, endStage, next, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, grant: 2, grantLv: 6 } };
+    endStage(); next(); // an uneventful Stage 1, now on Chapter 2
     maxLinks(3); // Signature + three Links: every slot is full and stays full
-    endStage(); next();
     s.P.bench = [];
     expect(benchSize(s)).toBe(1); // Chapter 2: room for one of the two granted skills
-    endStage();
+    endStage(); // maxed mid-Stage: still counts by this Stage's end
     expect(Object.keys(s.P.skills).length).toBe(attackSlots(s));
     const [first, second] = AWAKENING.ranger.line;
     expect(s.P.skills[first]).toBeUndefined();
@@ -135,9 +148,9 @@ describe('Awakening', () => {
 
   it('by default (version 0) Awakening adds no slot', async () => {
     const { attackSlots, lineSlots } = await import('@pixel-horde/sim');
-    const { s, endStage, next, maxLinks } = setup('mage');
+    const { s, endStage, maxLinks } = setup('mage');
     maxLinks(2);
-    endStage(); next(); endStage();
+    endStage();
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
     expect(lineSlots(s)).toBe(0);
   });
@@ -145,10 +158,10 @@ describe('Awakening', () => {
   it('awaken.lineSlots: Mora\'s Awakened skills (Bone Spear, Soulfire, Bone Ward) take the Awakened slots too', async () => {
     const { lineSlots, slotUse } = await import('@pixel-horde/sim');
     const { buildOptions } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('necromancer');
+    const { s, endStage, maxLinks } = setup('necromancer');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, lineSlots: 3, grant: 3, grantLv: 1 } };
     maxLinks(3); // Signature + three Links: every normal slot is full
-    endStage(); next(); endStage();
+    endStage();
     expect(s.P.awakened).toBe(true);
     expect(lineSlots(s)).toBe(3);
     for (const id of AWAKENING.necromancer.line) expect(s.P.skills[id]).toBe(1); // all three in their own slots, none benched
@@ -162,11 +175,11 @@ describe('Awakening', () => {
   it('awaken.lineSlots: three Awakened-only slots next to full normal slots (4 + 3 = 7)', async () => {
     const { attackSlots, lineSlots, slotUse } = await import('@pixel-horde/sim');
     const { buildOptions, swapBench } = await import('../packages/sim/src/systems/progress');
-    const { s, endStage, next, maxLinks } = setup('ranger');
+    const { s, endStage, maxLinks } = setup('ranger');
     s.cfg = { ...s.cfg, awaken: { ...s.cfg.awaken, keep: 1, slots: 0, lineSlots: 3, grant: 1, grantLv: 6 } };
     maxLinks(3); // Signature + three Links: every normal slot is full
     expect(lineSlots(s)).toBe(0); // not Awakened yet
-    endStage(); next(); endStage();
+    endStage();
     expect(s.P.awakened).toBe(true);
     expect(attackSlots(s)).toBe(s.cfg.maxAttackSlots);
     expect(lineSlots(s)).toBe(3);
@@ -199,6 +212,65 @@ describe('Awakening', () => {
     expect(s.P.skills[third]).toBe(4);
   });
 
+});
+
+// Regression (B1): Links() used to be counted the instant 'clearing' began, before the King/Blood Moon chest and
+// pending level-ups (opened during that same clearing sequence) had a chance to evolve the Signature or max a Link.
+describe('Awakening via a Stage-end reward opened during clearing', () => {
+  it('Awakens when the Signature only evolves from a level-up opened after the Stage already started clearing (host)', () => {
+    const sim = createSim(botOptions(6, { hero: 'mage', debug: { god: true }, events: quiet }));
+    const s = sim.view() as SimState;
+    const max = (id: SkillId): number => s.cfg.skills[id].max;
+    // both Links already maxed mid-Stage; the Signature (sigil) not evolved yet
+    s.P.skills = { sigil: 1, bolt: max('bolt'), chain: max('chain') };
+    s.P.evo = {};
+    s.bossSpawned = true; s.boss = null; s.stageTime = s.stageDur;
+    for (let i = 0; i < 400 && s.phase !== 'clearing'; i++) sim.step({ mx: 0, my: 0 });
+    expect(s.phase).toBe('clearing'); // rewards not opened yet
+    // a King chest granting a level, mid-clearing: the Signature reaches max level and its evolution passive
+    s.P.skills.sigil = max('sigil');
+    s.P.pas.might = 1;
+    s.pendingLv = 1;
+    for (let i = 0; i < 400 && s.phase !== 'clear'; i++) {
+      if (s.phase === 'levelup') {
+        const idx = s.levelUp!.options.findIndex((o) => o.kind === 'evo');
+        sim.step({ mx: 0, my: 0 }, [{ type: 'pick', index: idx < 0 ? 0 : idx }]); // "Grand Sigil EVOLVE!"
+      } else if (s.phase === 'chest') sim.step({ mx: 0, my: 0 }, [{ type: 'chestStop' }]);
+      else sim.step({ mx: 0, my: 0 });
+    }
+    expect(s.phase).toBe('clear');
+    expect(s.P.evo.sigil).toBe(true);
+    expect(s.P.awakened).toBe(true);
+  });
+
+  it('same, for a guest: the Signature evolves from its own level-up opened after the host left play', () => {
+    const host = createSim(botOptions(23, { events: quiet, coop: { role: 'host', self: 'H' }, debug: { god: true } }));
+    const guest = createSim(botOptions(103, { hero: 'mage', events: quiet, coop: { role: 'guest', self: 'G0' }, debug: { god: true } }));
+    const hs = host.view() as SimState, gs = guest.view() as SimState;
+    const max = (id: SkillId): number => gs.cfg.skills[id].max;
+    const snap = (): void => { guest.step({ mx: 0, my: 0 }, [{ type: 'snap', snap: JSON.parse(JSON.stringify(hostSnapshot(hs))) }]); };
+    snap();
+    // both Links already maxed mid-Stage; the Signature not evolved yet
+    gs.P.skills = { sigil: 1, bolt: max('bolt'), chain: max('chain') };
+    gs.P.evo = {};
+    let injected = false;
+    hs.bossSpawned = true; hs.boss = null; hs.stageTime = hs.stageDur;
+    for (let i = 0; i < 600 && gs.phase !== 'clear'; i++) {
+      host.step({ mx: 0, my: 0 }, hs.phase === 'levelup' ? [{ type: 'pick', index: 0 }] : hs.phase === 'chest' ? [{ type: 'chestStop' }] : []);
+      // once the host has left 'play' (Stage ending) but before this guest's own snap sees it: a King kill's
+      // level-up, queued locally for this guest, evolves the Signature -- mirroring the host repro above
+      if (!injected && hs.phase !== 'play') { injected = true; gs.P.skills.sigil = max('sigil'); gs.P.pas.might = 1; gs.pendingLv = 1; }
+      if (i % 4 === 0) snap();
+      if (gs.phase === 'levelup') {
+        const idx = gs.levelUp!.options.findIndex((o) => o.kind === 'evo');
+        guest.step({ mx: 0, my: 0 }, [{ type: 'pick', index: idx < 0 ? 0 : idx }]); // "Grand Sigil EVOLVE!"
+      }
+      if (gs.phase === 'chest') guest.step({ mx: 0, my: 0 }, [{ type: 'chestStop' }]);
+    }
+    expect(gs.phase).toBe('clear');
+    expect(gs.P.evo.sigil).toBe(true);
+    expect(gs.P.awakened).toBe(true);
+  });
 });
 
 describe('Skill Line skills', () => {

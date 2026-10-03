@@ -309,7 +309,7 @@ export const FIELD_TH: Record<string, { th: string; up: string }> = {
   'Frost Aura ticks needed to freeze a monster': { th: 'Frost Aura ต้องโดนกี่ครั้งมอนถึงแข็ง', up: 'แช่แข็งมอนยากขึ้น' },
   'Frost stacks per breath': { th: 'สะสมความเย็นต่อการพ่น 1 ครั้ง', up: 'แช่แข็งมอนได้เร็วขึ้น' },
   'Frozen (s); bosses are only slowed': { th: 'ถูกแช่แข็งนาน (วินาที; บอสแค่ช้าลง)', up: 'มอนแข็งนานขึ้น ทำ Combo ง่ายขึ้น' },
-  'Full Stages the Links must have been max level and equipped': { th: 'จำนวนด่านเต็มที่ Link ต้องเลเวลเต็มและใส่อยู่', up: 'Awakening ได้ช้าลง' },
+  'Stage-ends in a row the Links must be found max level and equipped': { th: 'จำนวนด่านติดต่อกันที่ต้องพบว่า Link เลเวลเต็มและใส่อยู่ (นับตอนจบด่าน)', up: 'Awakening ได้ช้าลง' },
   'Game speed during that slow motion': { th: 'ความเร็วเกมตอนสโลว์โมชัน (0–1)', up: 'สโลว์น้อยลง (ใกล้ความเร็วปกติ)' },
   'Gathered lasts this long after the pull ends (s)': { th: 'สถานะ Gathered อยู่ต่อหลังหยุดดูด (วินาที)', up: 'มีเวลาทำ Combo มากขึ้น' },
   'Gear Cannon: seconds between shots': { th: 'Gear Cannon: ป้อมยิงทุกกี่วินาที', up: 'ป้อมยิงห่างขึ้น = ดาเมจรวมน้อยลง' },

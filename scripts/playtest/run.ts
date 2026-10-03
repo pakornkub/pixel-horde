@@ -1,7 +1,7 @@
 // One headless playtest Run with the bot, plus what a balance pass needs to know about it.
 // Damage attribution comes from hooks the build step (build.mjs) wraps around hit() and hurtP().
 import {
-  AWK_TAG_SKILL, BONE_BURST, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, createSim, resolveConfig, signatureOf, weaponKey, OUTFIT_SLOTS,
+  AWK_TAG_SKILL, BONE_BURST, COMBO_HIT, FLASK_TAGS, HOLE_BOOM, PET_DIVE, PET_FIRE, SKILL_TAGS, SKILL_LINES, createSim, resolveConfig, signatureOf, weaponKey, OUTFIT_SLOTS,
   type Enemy, type Hazard, type HeroId, type HitTag, type SimState, type ShopId, type WeaponId, type OutfitSet,
 } from '@pixel-horde/sim';
 import { BALANCE_PASSES, DEFAULT_CONFIG, withOverrides, type BalanceConfigInput } from '@pixel-horde/config';
@@ -187,7 +187,7 @@ export function runOne(job: Job): RunMetrics {
     const sig = Object.keys(P.evo).length;
     if (sig > m.evos) m.evos = sig;
     if (m.sigEvoAt === null && P.evo[signatureOf(job.hero)]) m.sigEvoAt = s.stage;
-    if (m.firstLinkMaxAt === null && P.linkStart.length) m.firstLinkMaxAt = s.stage;
+    if (m.firstLinkMaxAt === null && SKILL_LINES[job.hero].some((id) => (P.skills[id] || 0) >= s.cfg.skills[id].max)) m.firstLinkMaxAt = s.stage;
     if (s.phase === 'over' && !s.victory && m.deathBy === null) { m.deathBy = lastHurt; m.deathChapter = s.stage; }
   }
   const s = sim.view() as SimState;

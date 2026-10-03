@@ -458,6 +458,10 @@ export function applySnap(s: SimState, h: HostSnap): void {
   if (s.phase === 'victory' && h.ph !== 'victory' && h.ph !== 'over') { s.endless = true; s.endlessFrom = { kills: s.kills, combos: s.combos, escapes: s.escapes }; s.phase = 'clear'; }
   // Stage change: the host started the next Chapter (or this is the first snapshot)
   if (h.st !== L.st || h.realm !== L.realm) {
+    // a Stage that skips the route pick (Chapter 1 again, Endless, the finale) goes straight from a Stage-end
+    // reward back to 'play' of the next Chapter without ever passing through the 'route'/'victory' checks below;
+    // updateLinks() is guarded (linksCounted), so calling it here too is free once those already ran.
+    if (L.st) updateLinks(s);
     if (L.st && P.down === false) P.hp = Math.min(P.maxHp, P.hp + P.maxHp * s.cfg.stage.clearHeal);
     s.realm = REALMS[h.realm] ? h.realm : s.realm;
     if (!s.visited.includes(s.realm)) s.visited.push(s.realm);
@@ -560,15 +564,18 @@ export function applySnap(s: SimState, h: HostSnap): void {
     if (h.le === 'clear') s.chaptersCleared.push(s.stage);
     s.lastEnd = h.le;
     s.hz = []; s.enemies = []; s.boss = s.boss2 = s.dragonE = s.rivalE = null;
-    updateLinks(s); // Links count and the Awakening offer, as the host's own stageClear does
     if (s.specialStage) s.chestQueue++; // the Blood Moon bonus chest
     if (s.phase === 'play') {
       banner(s, h.le === 'escape' ? 'kingEscaped' : 'stageClear', 1.5, true); sfx(s, 'clear');
-      if (!stageEndRewards(s, 'clear')) s.phase = 'clear'; // waiting chests / level-ups first
+      // Links/Awakening are counted only once every Stage-end reward is open (a King/Blood Moon chest or a
+      // pending level-up can still evolve the Signature or max a Link); afterRewards() does it if any are pending.
+      if (!stageEndRewards(s, 'clear')) { updateLinks(s); s.phase = 'clear'; }
     }
-  } else if (h.ph === 'clear' && s.phase === 'play' && !stageEndRewards(s, 'clear')) s.phase = 'clear'; // finished a level-up after the host cleared
-  if (h.ph === 'route') { s.route = h.route; if (s.phase === 'clear' || s.phase === 'play') s.phase = 'route'; }
-  if (h.ph === 'victory' && s.phase !== 'victory') { s.victory = true; if (s.phase === 'clear' || s.phase === 'play' || s.phase === 'route') s.phase = 'victory'; }
+  } else if (h.ph === 'clear' && s.phase === 'play' && !stageEndRewards(s, 'clear')) { updateLinks(s); s.phase = 'clear'; } // finished a level-up after the host cleared
+  // B2: a guest still choosing a mid-Stage level-up (pickReturn null, so the 'clear' branches above never ran)
+  // reaches 'play' only once it picks, which can land after the host already moved past 'clear' -- count here too.
+  if (h.ph === 'route') { s.route = h.route; if (s.phase === 'clear' || s.phase === 'play') { updateLinks(s); s.phase = 'route'; } }
+  if (h.ph === 'victory' && s.phase !== 'victory') { s.victory = true; if (s.phase === 'clear' || s.phase === 'play' || s.phase === 'route') { updateLinks(s); s.phase = 'victory'; } }
   if (h.ph === 'play' && (s.phase === 'clear' || s.phase === 'route' || s.phase === 'victory')) s.phase = 'play';
 }
 

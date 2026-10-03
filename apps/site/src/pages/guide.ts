@@ -422,7 +422,9 @@ const skname = (id: SkillId, evo = false): HTMLElement => el('span.skname', null
   // The rule follows the Balance Config: awaken.keep (Links stay or are used up), awaken.slots, awaken.lineSlots, awaken.grant/grantLv.
   const A = C.awaken, nLine = AWAKENING.mage.line.length;
   const rule = parts('div', 'note',
-    ['g.awaken.need', { n: A.links, of: SKILL_LINES.mage.length, st: A.stages, ss: pl(A.stages) }],
+    A.stages > 1
+      ? ['g.awaken.needStreak', { n: A.links, of: SKILL_LINES.mage.length, st: A.stages, ss: pl(A.stages) }]
+      : ['g.awaken.need', { n: A.links, of: SKILL_LINES.mage.length }],
     ['g.awaken.gain', { d: A.sigDmg }],
     A.keep ? ['g.awaken.keep1'] : ['g.awaken.keep0', { n: A.links }],
     A.slots > 0 && ['g.awaken.slots', { n: A.slots, ss: pl(A.slots) }],

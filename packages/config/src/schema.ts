@@ -530,7 +530,7 @@ const shared = obj({
   }, 'Heart Crack difficulty tiers (unlocked by beating Umbra)'),
   awaken: obj({
     links: int(2, 1, 3, 'Max-level Links needed (consumed unless keep is 1)'),
-    stages: int(1, 1, 5, 'Full Stages the Links must have been max level and equipped'),
+    stages: int(1, 1, 5, 'Stage-ends in a row the Links must be found max level and equipped'),
     sigDmg: mul(1.3, 'Awakened Signature Skill damage ×'),
     grant: int(0, 0, 3, 'Skill Line skills given right away when Awakening (in listed order, into free attack slots)'),
     grantLv: int(1, 1, 8, 'Level of the Skill Line skills given at Awakening'),

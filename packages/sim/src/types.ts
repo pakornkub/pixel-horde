@@ -231,9 +231,8 @@ export interface Player {
   /** Guardians defeated this Run (all three → fusion offer). */
   guardiansBeaten: GuardianKind[];
   clone: Clone | null;
-  /** Awakening: done this Run; Links maxed at Stage start; full Stages each Link spent maxed. */
+  /** Awakening: done this Run; consecutive Stage-ends each Link was found maxed and equipped. */
   awakened: boolean;
-  linkStart: SkillId[];
   linkStages: Partial<Record<SkillId, number>>;
   /** Statuses this player leaves last × this (Vex). */
   statusMul: number;
@@ -578,6 +577,9 @@ export interface SimState {
   banished: string[];
   /** The Hero Awakened at this Stage end: the clear screen shows what it brought. */
   awakenNew: boolean;
+  /** updateLinks() already ran for this Stage's end (reset in startStage()): guards every path that can reach
+   *  it (solo/host, and a co-op guest's several ways to leave 'play') against counting the same Stage twice. */
+  linksCounted: boolean;
   /** Swaps made at this Stage end (cost doubles each time). */
   swaps: number;
   /** Gold taken from the wallet this Run (reported with the Run result). */
