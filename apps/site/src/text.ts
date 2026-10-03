@@ -78,7 +78,7 @@ export const TXT = {
   'home.f.board.h': { th: 'อันดับ & Season', en: 'Leaderboards & Seasons' },
   'home.f.board.p': { th: 'ทำคะแนนขึ้นกระดานอันดับ ปลดล็อกความสำเร็จ ฉายา และเหรียญตรา', en: 'Climb the board, unlock achievements, Titles and badges.' },
   'home.f.save.h': { th: 'เล่นออฟไลน์ได้', en: 'Plays offline too' },
-  'home.f.save.p': { th: 'เล่นคนเดียวได้แม้ไม่มีเน็ต ล็อกอินด้วย Google ที่หน้าแรกของเกม เพื่อเก็บเซฟข้ามเครื่อง', en: 'Solo works without internet. Sign in with Google on the title screen to keep your save on every device.' },
+  'home.f.save.p': { th: 'เล่นคนเดียวได้แม้ไม่มีเน็ต เข้าสู่ระบบด้วย Google ที่หน้าแรกของเกม เพื่อเก็บเซฟข้ามเครื่อง', en: 'Solo works without internet. Sign in with Google on the title screen to keep your save on every device.' },
 
   'home.realms.h': { th: '11 ดินแดนของ Lumora', en: 'The 11 Realms of Lumora' },
   'home.realms.p': { th: 'หัวใจแห่ง Lumora แตกเป็นเสี่ยง ๆ เศษของมันทำให้ราชาทุกดินแดนคลั่ง ออกเดินทางไปเอาคืนมา!', en: 'The Heart of Lumora has shattered. Its shards drove every Realm\'s King mad. Go and take them back!' },
