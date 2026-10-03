@@ -17,7 +17,10 @@ node scripts/playtest/exp.mjs patches.json 12 mid   # compare Balance Config pat
 The trailing number of `npm run playtest -- <suite> <seeds>` is always the seed count (per Hero and variant), never a tier,
 a Chapter or a Shop level. What a suite varies comes from env: `cracks` reads its tiers from `PT_CRACKS` (default `0,1,2,3`;
 the live `heartCrack.maxTier` is 10 since pass 2026-09e, so list 0–10 for every tier), `patch` reads `PT_CRACK`, `PT_SHOP`
-and so on. The `VAR=value npm …` lines are POSIX shell; in PowerShell set `$env:PT_PASS = '1'` first.
+and so on. The sim clamps a Run's crack to `heartCrack.maxTier` (`packages/sim/src/sim.ts`), which is 3 in the built-in
+defaults, so tiers above it need `PT_PASS=1` (or a patch with `heartCrack.maxTier` at least the highest tier); without it
+`PT_CRACKS=…,10` quietly runs tiers 4–10 as tier 3 while the labels still read `crack4`…`crack10`. The full example is
+11 tiers × 2 variants × 5 Heroes × 24 seeds = 2,640 Runs, a long job that keeps the machine busy. The `VAR=value npm …` lines are POSIX shell; in PowerShell set `$env:PT_PASS = '1'` first.
 
 Per-job gear for the `patch` suite (and `exp.mjs` patch entries as `"forge"` / `"outfit"`): `PT_FORGE=<weapon>:<level>`
 (equipped Weapon and its forge level), `PT_OUTFIT=<set>:<level>` (all three pieces of one outfit set), `PT_CRACK=<tier>`.
