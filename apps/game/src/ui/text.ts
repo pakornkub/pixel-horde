@@ -28,10 +28,12 @@ export const SHOP_ICON: Record<ShopId, Icon> = {
 
 export const skillName = (id: SkillId): string => t(`skill.${id}.name`);
 export const skillDesc = (id: SkillId): string => t(`skill.${id}.desc`);
+/** Hawk defend + Hawk Gust (`skills.hawk.guardN`, `gustKb`) are on: the Hawk's text then tells about them, before and after Awakening. */
+const hawkGusts = (cfg: ResolvedConfig): boolean => cfg.skills.hawk.guardN > 0 && cfg.skills.hawk.gustKb > 0;
 /** The Awakened Signature's new form (`awaken.form`), with its numbers from the live config. */
 export function formDesc(cfg: ResolvedConfig, sig: SkillId): string {
   const K = cfg.skills, n = sig === 'shield' ? K.shield.awk.n : sig === 'hawk' ? K.hawk.awk.n : sig === 'flask' ? K.flask.awk.shards : 0;
-  return t(`awk.${sig}.desc`, { n, cd: K.shield.awk.cd });
+  return t(sig === 'hawk' && hawkGusts(cfg) ? 'awk.hawk.descGuard' : `awk.${sig}.desc`, { n, cd: K.shield.awk.cd });
 }
 /** A Skill's description under the live rules: Lance aim, Shield Bash, awakened forms and their Skill Line combos. */
 export function skillDescIn(cfg: ResolvedConfig, id: SkillId, awakened: boolean): string {
@@ -39,6 +41,7 @@ export function skillDescIn(cfg: ResolvedConfig, id: SkillId, awakened: boolean)
   if (cfg.awaken.form && awakened && isSignature(id)) return formDesc(cfg, id);
   if (id === 'lance' && cfg.skills.lance.aim > 0) return t('skill.lance.descAim');
   if (id === 'shield' && cfg.skills.shield.bashCd > 0) return t('skill.shield.descBash');
+  if (id === 'hawk' && hawkGusts(cfg)) return t('skill.hawk.descGuard');
   return skillDesc(id);
 }
 export const passiveName = (id: PassiveId): string => t(`passive.${id}.name`);

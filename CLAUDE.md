@@ -114,7 +114,12 @@ clear screen — never at the next Stage start.
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
 - Heroes: Lyra/Mage (Arcane Sigil, +10% dmg, free), Bram/Knight (Holy Shield, +40 HP, −5% speed, free),
-  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%),
+  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded;
+  Hawk Gust `skills.hawk.gustKb/gustStun/gustR/gustCd` (pass 2026-09j) pushes back and stuns the non-boss monsters around Kit
+  when the Hawk defends; pass 2026-09k: Arrow Rain lands on the crowd near Kit and slows (`arrowRain.near/slow`), Gale Step
+  blades slow and Gale Burst fires when `galeStep.burstN` monsters close in; the Hawk texts switch on guardN/gustKb in
+  `apps/game/src/ui/text.ts`, the Arrow Rain / Gale Step texts always describe the 09k behaviour),
+  Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%),
   Mora/Necromancer 2000G, sold only after a win (ticket 57; Soul Rise Skeletons, minions +25%, Links Soul Drain / Bone Prison /
   Wailing Skulls, Lich form; `levelup.wLink` weighs a Hero's own Links; `legend` stays the original four + `winMora`).
 - Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP (`ult.mobHp`), capped at 8% of a boss
@@ -173,8 +178,8 @@ Recommended tuning lives in `packages/config/src/balance-pass.ts` (patch + Thai 
 published version in `config_reports` and shown in Admin → Balance → รายงาน) and is published from Admin → Balance, never by
 changing built-in defaults (version 0 must equal the migration seed). Passes loaded onto one draft stack their patches, reports
 and patch notes. Live history: v4 = pass 2026-09, v5 = 2026-09b, v6 = 2026-09c (Director), v7 = 2026-09d (Signatures, co-op),
-v8 = co-op pass 2 (`coop.goldSplit`), v9 = + 2026-09f/09g, v10 = + 2026-09e (Heart Crack 1–10), v11 (live) = + 2026-09h
-(Awakened slots), 09i (Ultimate) and 09-mora. Base difficulty (ticket 48,
+v8 = co-op pass 2 (`coop.goldSplit`), v9 = + 2026-09f/09g, v10 = + 2026-09e (partly), v11 = + 09e (Heart Crack 1–10),
+2026-09h (Awakened slots), 09i (Ultimate) and 09-mora, v12 = + 09j (Kit Hawk Gust), v13 (live) = + 09k (Kit Line crowd). Base difficulty (ticket 48,
 `packages/config/src/difficulty.ts`): the Balance Config group `shared.difficulty` multiplies the numbers written in the
 config (monster/boss HP and damage, spawns, EXP, boss warnings, King pace, player HP, hearts, Ultimate charge, Director
 max, in-Run Gold); `resolveConfig` applies it, so every number the sim or the website reads already includes it. Its defaults
@@ -187,7 +192,8 @@ The website's `updates.html` reads public entries via `get_changelog`.
 
 ## Backlog
 Superseded by the v1 tickets in `.scratch/pixel-horde-web-v1/issues/` (see "Working with the owner").
-The in-game meter (press **I**: DPS, TTK, multipliers, director, mob count) stays useful for balance passes.
+The in-game meter (press **I**, or Settings → Advanced: DPS, TTK, multipliers, director, mob count) stays useful for
+balance passes. The replay download for bug reports also lives in Settings → Advanced (during a Run) and on Game Over.
 A daily cloud routine triages the live error list + player feedback (`docs/agents/triage-routine.md`): clear bugs →
 PR, owner decisions → Admin → งานแก้ไข (`public.work_items`, written only via `agent_report`). Client errors are not
 recorded from dev / local hosts; known browser noise is filtered in `apps/game/src/telemetry.ts`.

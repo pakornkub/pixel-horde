@@ -386,8 +386,10 @@ html[lang="en"] .tagline{font-size:10px}
   max-width:min(520px,calc(100% - 120px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--gold);border-radius:4px;
   padding:8px 12px;font-family:var(--th);font-weight:700;font-size:15px;line-height:1.45;text-align:center;animation:tipIn .25s ease-out}
 #tipBar[hidden]{display:none}
-/* over a menu the box ends above the hint, so the hint never covers the menu's buttons */
-body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+/* a hint about play hides while a menu is open; a hint about the menu stays, and the box ends above it
+   so it never covers the menu's buttons (main.ts sets data-kind) */
+body:has(.overlay.on) #tipBar[data-kind="play"]{display:none}
+body:has(#tipBar[data-kind="menu"]:not([hidden])) .overlay.on{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 /* an unranked Run: a short note at the top as it starts (never blocks input) */
 #rankNote{position:fixed;left:50%;transform:translateX(-50%);top:calc(128px + env(safe-area-inset-top,0px));z-index:4;pointer-events:none;
   max-width:min(520px,calc(100% - 32px));background:rgba(30,27,51,.9);color:var(--paper);border:3px solid var(--hp);border-radius:4px;
@@ -493,7 +495,7 @@ html[lang="en"] #specialBtn small{font-size:8px;margin-top:3px}
   #ovLevel .box h2,#ovRoute .box h2{margin-bottom:6px}
   #opts,#routeOpts{flex-direction:row;align-items:stretch}
   #opts>.opt,#routeOpts>.opt{flex:1 1 0;min-width:0;align-items:start}
-  body:has(#tipBar:not([hidden])) .overlay.on{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  body:has(#tipBar[data-kind="menu"]:not([hidden])) .overlay.on{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
 }
 /* narrow phones: the low-FPS prompt put its text beside two buttons (one word per line) and sat on the ULT button →
    text on its own line, buttons under it, above the ULT button */
@@ -504,3 +506,108 @@ html[lang="en"] #specialBtn small{font-size:8px;margin-top:3px}
 /* a tutorial hint (up to ~4 lines on a phone) sits at the bottom too: lift the low-FPS prompt above it,
    and keep the prompt on top if they still meet (the hint ignores taps, the prompt's buttons must stay readable) */
 body:has(#tipBar:not([hidden])) #fpsTip{bottom:calc(160px * var(--menu,1) + env(safe-area-inset-bottom,0px));z-index:8}
+/* UX pass 2026-10-03 (owner-approved audit A1–C3) */
+/* C2: headings and the title tagline break into even lines (no one-word last line such as "Kings.") */
+.box h1,.box h2,.box h3,.estory h2,.tagline,.opt .nm{text-wrap:balance}
+/* Thai tagline: word joiners (U+2060) in th.json keep "มอนสเตอร์" whole; word-break:keep-all does not stop Chrome's Thai dictionary */
+/* C3: wide screens: level-up / route card text one step bigger (12 px was small next to 18 px names) */
+@media (min-width:700px) and (min-height:521px){.opt .ds{font-size:14px;line-height:1.3}.opt .st,.opt .nrow{font-size:13px}}
+/* title: logo/hero and play/menu groups; plain flow everywhere except short landscape screens (A1 below) */
+.tside,.tact{display:contents}
+/* A3/B1: a menu's main buttons stay at the bottom of the card while the content scrolls (like #nextBtn) */
+.dock{position:sticky;bottom:-22px;z-index:1;margin-top:6px;box-shadow:0 -10px 12px var(--paper)}
+.btn.ghost.dock{background:var(--paper)}
+.btn.ghost.dock:hover:not(:disabled){background:var(--paper2)}
+/* Game Over: Retry on top, Upgrades + Home side by side; replay download is a small link under the stats */
+.oact{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--paper);padding:8px 0 2px}
+.oact .btn{margin:0}
+.oact #retryBtn{grid-column:1/-1}
+.oreplay{display:block;margin:6px auto 10px}
+.ocol .best{margin:0 0 4px}
+/* Settings → Advanced (B4): the stats meter and replay download moved here from the pause menu */
+.setadv{margin:0 0 12px;border:3px solid var(--ink);border-radius:4px;padding:0 12px;background:#fff}
+.setadv summary{cursor:pointer;font-weight:700;padding:10px 0;min-height:40px}
+.setadv summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.setadv[open]{padding-bottom:12px}
+.setadv .btn.ghost{margin-top:8px;box-sizing:border-box} /* a <details> body does not pass on the page's border-box */
+.setadv .slots{margin:0 0 4px}
+/* B2: forge rows on phones (and in the two columns of a phone held sideways): the price sits beside the name,
+   the two effect lines use the full width */
+@media (max-width:560px),(orientation:landscape) and (max-height:520px){
+  #specialBody .srow{grid-template-columns:32px 1fr auto;column-gap:8px;row-gap:2px;align-items:start;padding:8px 2px;border-bottom:1px dashed rgba(30,27,51,.2)}
+  #specialBody .srow>.tx{display:contents}
+  #specialBody .srow>.ico{grid-row:1/span 3;width:32px;height:32px}
+  #specialBody .srow>.ico img{width:26px;height:26px}
+  #specialBody .srow .nm{grid-column:2;align-self:center;margin:0}
+  #specialBody .srow>.buy{grid-column:3;grid-row:1}
+  #specialBody .srow .ds{grid-column:2/-1;font-size:13px}
+}
+/* B3: touch screens: shop buttons, outfit "take off" and wear links, the title footer links and sliders at least 40 px */
+@media (pointer:coarse){
+  .buy,.opiece .buy{min-height:40px}
+  .oworn .link{padding:12px 8px;margin:-10px 0}
+  .trow .tlink{padding:12px 4px;margin:-8px 0}
+  .setrow input[type=range]{height:40px}
+  .oreplay{padding:12px 8px;margin:0 auto 4px}
+  .sptools button{min-height:40px}
+  .seg button{min-width:44px}
+}
+/* A1: phones held sideways (short landscape): menus use the width instead of scrolling a narrow column */
+@media (orientation:landscape) and (max-height:520px){
+  .overlay{padding:8px 16px}
+  .box{padding:14px 18px 22px}
+  .box h2{margin-bottom:8px}
+  .box h1.th,.box h2.th{font-size:20px}
+  /* title: logo, tagline and hero on the left; Play, the menu and the footer on the right */
+  .tmain{width:min(860px,100%);display:grid;grid-template-columns:minmax(170px,.65fr) 1.5fr;align-items:center;gap:10px 20px;padding:4px}
+  .tside,.tact{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+  .tact{align-items:stretch}
+  .logo{font-size:30px}
+  .logo br{display:inline}
+  .tagline{display:block;font-size:13px}
+  .thero canvas{width:80px;height:80px}
+  .tmenu{grid-template-columns:repeat(4,1fr);gap:6px}
+  .tmenu button{min-height:44px;padding:6px 4px}
+  .tmenu button.special{grid-column:span 2}
+  html[lang="en"] .tmenu button{font-size:8px}
+  /* Heroes: picks and description left, Weapons and Heart Crack right */
+  #ovHero .box{width:min(860px,100%);display:grid;grid-template-columns:1fr 1fr;column-gap:18px;align-content:start}
+  #ovHero .box>*{grid-column:1/-1}
+  #ovHero .chars{grid-column:1;grid-row:3}
+  #ovHero .chdesc{grid-column:1;grid-row:4/span 2;margin:0}
+  #ovHero #weaponRow{grid-column:2;grid-row:3/span 2;align-self:start}
+  #ovHero #crackRow{grid-column:2;grid-row:5}
+  /* two columns of rows: Settings, permanent shop, forge */
+  #ovSettings .box,#ovShop .box,#ovSpecial .box,#ovOver .box{width:min(820px,100%)}
+  .setlist{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+  .setlist>.btn,.setlist>.setmsg{grid-column:1/-1}
+  #shopList{display:grid;grid-template-columns:1fr 1fr;column-gap:20px}
+  #specialBody:has(>.srow){display:grid;grid-template-columns:1fr 1fr;column-gap:20px}
+  #specialBody>:not(.srow){grid-column:1/-1}
+  /* pause: Resume on top, the rest in pairs */
+  #ovPause .box{width:min(640px,100%);display:grid;grid-template-columns:1fr 1fr;column-gap:10px;align-items:start;
+    grid-template-areas:"h h" "t t" "r r" "s g" "q l" "qn ln"}
+  #ovPause .box>h2{grid-area:h}
+  #pauseTxt{grid-area:t}
+  #resumeBtn{grid-area:r}
+  #skillsBtn{grid-area:s}
+  #settingsBtn2{grid-area:g}
+  #saveQuitBtn{grid-area:q}
+  #saveQuitNote{grid-area:qn}
+  #leaveBtn{grid-area:l}
+  #ovPause .box>p:last-child{grid-area:ln}
+  /* Game Over: score left, Run stats right, one row of buttons */
+  .ocols{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
+  .oact{grid-template-columns:2fr 1fr 1fr}
+  .oact #retryBtn{grid-column:auto}
+  /* feedback: a shorter text box, Send and Back side by side */
+  #ovFeedback .box{width:min(640px,100%);display:grid;grid-template-columns:1fr 1fr;column-gap:10px}
+  #ovFeedback .box>*{grid-column:1/-1}
+  #ovFeedback #fbSend,#ovFeedback #fbBack{grid-column:auto;margin-top:6px;position:sticky;bottom:-22px;z-index:1;box-shadow:0 10px 0 var(--paper)}
+  #ovFeedback #fbBack{background:var(--paper)}
+  .fbtext{height:72px;min-height:56px}
+  #ovCoop .box{width:min(640px,100%)}
+}
+/* touch screens: "press P" means nothing; sideways the keyboard keys box only takes room too */
+@media (pointer:coarse){#pauseTxt{display:none}}
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){#ovHero .keys{display:none}}

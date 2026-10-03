@@ -22,6 +22,8 @@ main.append(pageHead('sk.h', 'sk.p', 5, [skillIcon('frost', 'lg'), skillIcon('me
 const wrap = el('div.wrap', { style: 'padding:36px 0 80px' });
 main.append(wrap);
 
+/** The Hawk text tells about defend + Hawk Gust only while the live config has them on (same rule as the game). */
+const descKey = (id: SkillId): string => (id === 'hawk' && C.skills.hawk.guardN > 0 && C.skills.hawk.gustKb > 0 ? 'skill.hawk.descGuard' : `skill.${id}.desc`);
 const sname = (id: SkillId, evo = false): HTMLElement => G(`${evo ? 'evo' : 'skill'}.${id}.name`);
 const elChip = (e: string): HTMLElement => G(`element.${e}`, undefined, 'span', `chip el-${e}`);
 const stChip = (st: string): HTMLElement => { const c = G(`status.${st}`, undefined, 'span', 'chip st'); c.prepend(el('i.st-dot', { style: `--c:${STATUS_COL[st as keyof typeof STATUS_COL]};width:12px;height:12px;border-width:2px` })); return c; };
@@ -83,7 +85,7 @@ function card(id: SkillId): HTMLElement {
   if (isHeavy(id)) chips.push(G('role.heavy', undefined, 'span', 'chip'));
   if (isSweep(id)) chips.push(G('role.sweep', undefined, 'span', 'chip'));
   const b = el('button.panel.sk-card', { type: 'button', 'aria-expanded': String(openId === id), 'data-id': id },
-    skillIcon(id), el('div', null, el('div.nm', null, sname(id)), G(`skill.${id}.desc`, undefined, 'div', 'ds'), el('div.chips', null, ...chips)));
+    skillIcon(id), el('div', null, el('div.nm', null, sname(id)), G(descKey(id), undefined, 'div', 'ds'), el('div.chips', null, ...chips)));
   b.addEventListener('click', () => { openId = openId === id ? null : id; renderGrid(); if (openId) grid.querySelector('.sk-detail')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
   return b;
 }
@@ -129,7 +131,7 @@ function detail(id: SkillId, startEvo = false): HTMLElement {
   })));
 
   return el('div.panel.sk-detail', null,
-    el('div.top-row', null, skillIcon(id, 'lg'), el('div', null, title, G(`skill.${id}.desc`, undefined, 'p', 'muted'))),
+    el('div.top-row', null, skillIcon(id, 'lg'), el('div', null, title, G(descKey(id), undefined, 'p', 'muted'))),
     el('div.lvctl', null, T('sk.lv', undefined, 'b'), range, lvNum, pas ? el('label', null, evoBox, T('sk.evoOn')) : null),
     stats, el('div.info-rows', null, ...rows));
 }
@@ -139,7 +141,7 @@ function renderGrid(): void {
     if (filterKind !== 'all' && kindOf(id) !== filterKind) return false;
     const els = elementsOf(id);
     if (filterEl === 'none' ? els.length > 0 : filterEl !== 'all' && !els.includes(filterEl)) return false;
-    if (query && !(`${g(`skill.${id}.name`)} ${g(`skill.${id}.desc`)} ${id}`.toLowerCase().includes(query))) return false;
+    if (query && !(`${g(`skill.${id}.name`)} ${g(descKey(id))} ${id}`.toLowerCase().includes(query))) return false;
     return true;
   });
   const kids: HTMLElement[] = [];

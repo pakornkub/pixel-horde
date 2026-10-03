@@ -196,7 +196,7 @@ _Avoid_: issue, ticket (tickets are the markdown files under `.scratch/`)
 ### People and co-op
 
 **Player Account**:
-The identity that owns Meta Progression and scores. Starts anonymous behind a nickname; can later be linked to a Google login to move between devices. Only one place plays at a time: the most recent login wins and older tabs or devices are stopped.
+The identity that owns Meta Progression and scores. Starts anonymous behind a nickname; can later be linked to a Google login to move between devices ("Sign in with Google" on the title screen, "Link" in Settings). Only one place plays at a time: the most recent login wins and older tabs or devices are stopped.
 _Avoid_: user, profile
 
 **Host / Guest**:

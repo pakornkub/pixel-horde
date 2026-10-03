@@ -831,6 +831,13 @@ function outlined(txt: string, x: number, y: number, px: number, col: string, lw
   ctx.font = font(px); ctx.lineJoin = 'round'; ctx.lineWidth = lw || Math.max(2, px * 0.28);
   ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
 }
+/** A HUD line that may hold Thai (a Realm name): the pixel font has no Thai, so a Thai line uses Chakra Petch at 1.4× instead of a tiny fallback. */
+function hudLabel(txt: string, x: number, y: number, px: number, col: string): void {
+  if (/[฀-๿]/.test(txt)) thaiText(txt, x, y, px * 1.4, col, Math.max(2, px * 0.32));
+  else outlined(txt, x, y, px, col);
+}
+/** SKILL / PASSIVE / BENCH / PET label size: the HUD is smallest on phones (screen.UI 1), so they get 8 HUD pixels there. */
+const panelLab = (): number => (screen.UI < 1.2 ? 8 : 6) * screen.HD;
 function thaiText(txt: string, x: number, y: number, px: number, col: string, lw: number): void {
   ctx.font = lang() === 'en' ? `${Math.round(px * 0.8)}px "Press Start 2P", ui-monospace, monospace` : `700 ${Math.round(px)}px "Chakra Petch", Tahoma, sans-serif`;
   ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
@@ -1019,7 +1026,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
     } else {
       const rem = v.stageDur - v.stageTime;
       outlined(fmtT(rem), W / 2, top + 14 * D, 18 * D, rem <= 10 && v.phase === 'play' && blink ? '#ff4b5c' : '#ffffff');
-      outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 38 * D, 8 * D, '#ffd23f');
+      hudLabel((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 37 * D, 9 * D, '#ffd23f');
     }
     if (v.streak >= 10) {
       const pulse = 1 + 0.15 * Math.max(0, 1 - (2.2 - v.streakT) / 0.15);
@@ -1045,7 +1052,7 @@ export function drawHud(v: Readonly<SimState>, clock: number, runGoldShown: numb
       const rem = v.stageDur - v.stageTime;
       outlined(fmtT(rem), W / 2, top + 18 * D, 20 * D, rem <= 10 && v.phase === 'play' ? (blink ? '#ff4b5c' : '#ffffff') : '#ffffff');
     }
-    outlined((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
+    hudLabel((v.endless ? t('hud.endless') + ' ' : '') + t('hud.chapter', { n: v.stage, realm: realmShort(v.realm).toUpperCase() }), W / 2, top + 44 * D, 9 * D, '#ffd23f');
     ctx.textAlign = 'right';
     outlined('KO ' + fmtN(v.kills), right, top + 18 * D, 11 * D, '#ffffff');
     outlined(fmtN(runGoldShown) + ' G' + potShare(v), right, top + 36 * D, 10 * D, '#ffd23f');
@@ -1227,7 +1234,7 @@ function panelRibbon(txt: string, x: number, y: number, sz: number): void {
  */
 function drawSkillPanel(v: Readonly<SimState>, left: number, bottom: number, maxX: number): void {
   const D = screen.HD, P = v.P;
-  const sz = 22 * D, ps = 16 * D, lab = 6 * D;
+  const sz = 22 * D, ps = 16 * D, lab = panelLab();
   const yP = bottom - ps, yPl = yP - lab - 7 * D, yS = yPl - sz - 12 * D, ySl = yS - lab - 8 * D;
   const sig = signatureOf(P.ch), s = v as SimState;
   const owned = (Object.keys(P.skills) as SkillId[]).sort((a, c) => (a === sig ? -1 : c === sig ? 1 : 0));
@@ -1278,7 +1285,7 @@ function skillRow(v: Readonly<SimState>, skills: SkillId[], n: number, left: num
 /** PASSIVE row, then BENCH and PET groups after dividers on the same line. */
 function drawPassiveGroups(v: Readonly<SimState>, left: number, yP: number, yPl: number, maxX: number): void {
   const D = screen.HD, P = v.P, cfg = v.cfg;
-  const ps = 16 * D, pg = 7 * D, lab = 6 * D;
+  const ps = 16 * D, pg = 7 * D, lab = panelLab();
   // passives
   const pas = Object.keys(P.pas) as PassiveId[], pasSlots = Math.max(cfg.passiveSlots, pas.length);
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
