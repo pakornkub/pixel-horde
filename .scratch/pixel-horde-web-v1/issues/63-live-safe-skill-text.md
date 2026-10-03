@@ -1,6 +1,6 @@
 # 63: Hawk description says nothing about guard and Hawk Gust
 
-**Status:** in-progress
+**Status:** ready-for-human (owner review)
 
 **Scope note:** the first version of this ticket was broader ("skill descriptions might describe unpublished behaviour",
 i.e. read every description from the live Balance Config). It was dropped after the Orchestrator and the owner checked
@@ -28,3 +28,19 @@ the Hawk dives the nearest one instead, and Hawk Gust (`gustKb` > 0) pushes the 
 **Not in this ticket:** Arrow Rain / Gale Step texts, Balance Config values, migrations, pgTAP.
 
 **Review:** player-visible text. Flag for Tester + UX/UI after hand-off.
+
+**What was built:**
+- `th.json` / `en.json`: `skill.hawk.descGuard`, `awk.hawk.descGuard` (the old sentence + "when you are crowded it dives the
+  nearest one instead, and a gust pushes monsters back and stuns them (not bosses)"). Old keys stay for configs without guard / gust.
+- `apps/game/src/ui/text.ts`: `hawkGusts(cfg)` (`guardN > 0 && gustKb > 0`) picks the key in `skillDescIn` and `formDesc`.
+  The Awakening card (clear screen) is the only in-game place that shows the Awakened Hawk text; `skillDescIn` also covers a
+  level-up / chest card for the Hawk.
+- `apps/site/src/pages/skills.ts`: `descKey(id)` with the same rule for the card, the detail panel and the search. The site reads the
+  live config (v13 loaded in the check below), so it shows the new text now.
+- `apps/game/src/ui/text.test.ts`: off → old text (also guard without gust), on → `descGuard` in both languages before and
+  after Awakening, other Signatures unchanged.
+- Gust copy has no numbers on purpose; `guardN`, `guardR`, `gustKb`, `gustStun`, `gustCd` stay Admin-tunable.
+- Not done here: a patch-notes entry in Admin → อัปเดตเกม (the Orchestrator / Documenter decides whether a text-only fix needs one).
+
+**Checked:** `npm run check` green. Site Skills page on the live v13 config shows the new Hawk text (EN + TH). In the game the
+Awakening card was rendered with the live Hawk values (`guardN 3`, `gustKb 70`, `gustStun 0.6`, `awaken.form 1`), guard off vs on.
