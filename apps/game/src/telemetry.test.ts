@@ -28,6 +28,7 @@ describe('telemetry', () => {
   it('drops browser noise and knows local hosts', () => {
     const t = createTelemetry({} as Backend, memStore(), () => true);
     t.recordError('unhandled: Promise was rejected because the browsing context is going away');
+    t.recordError('unhandled: Failed to connect to MetaMask');
     expect(t.pending().errors).toHaveLength(0);
     for (const h of ['localhost', '127.0.0.1', '[::1]', 'game.localhost', 'pixel.test']) expect(isLocalHost(h)).toBe(true);
     for (const h of ['pixel-horde.pages.dev', 'localhost.example.com']) expect(isLocalHost(h)).toBe(false);
