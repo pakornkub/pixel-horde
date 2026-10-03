@@ -16,8 +16,9 @@ async function start(page: Page, patch: object): Promise<void> {
 }
 
 test('Stage end: a benched Skill swaps only into a blinking attack slot; the Awakened row holds the Awakened skills', async ({ page }) => {
-  // two attack slots (Signature + 1) so a new Skill goes to the Bench; free swaps; a short Stage with fast level-ups
-  await start(page, { shared: { maxAttackSlots: 2, bench: { swapBase: 0 }, stage: { durBase: 12, overtime: 2 }, difficulty: { xp: 6 }, awaken: { lineSlots: 3, slots: 0, keep: 1 } } });
+  // two attack slots (Signature + 1) so a new Skill goes to the Bench; free swaps; a short Stage with fast level-ups.
+  // bench.passives 0: a passive must not take the one Bench slot (picking it makes the passive slots blink, not the attack slot)
+  await start(page, { shared: { maxAttackSlots: 2, bench: { swapBase: 0, passives: 0 },stage: { durBase: 12, overtime: 2 }, difficulty: { xp: 6 }, awaken: { lineSlots: 3, slots: 0, keep: 1 } } });
   const clear = page.locator('#ovClear.on');
   for (let i = 0; i < 200 && !(await clear.count()); i++) {
     if (await page.locator('#ovLevel.on').count()) {
