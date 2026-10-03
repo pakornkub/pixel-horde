@@ -24,6 +24,16 @@ describe('heroDesc', () => {
     expect(heroDesc(cfg, 'ranger')).toBe('เร็วขึ้น 15% ดูดของไกลขึ้น 30% HP +20');
     expect(heroDesc(DEFAULT_RESOLVED, 'ranger')).toBe('เร็วขึ้น 12% ดูดของไกลขึ้น 30%');
   });
+
+  it("shows Kit's Hunter's Eye (crit) only when it is non-zero", () => {
+    const cfg = withHeroes({ ranger: { ...DEFAULT_RESOLVED.heroes.ranger, crit: 0.1 } });
+    setLang('en');
+    expect(heroDesc(cfg, 'ranger')).toBe('12% faster, +30% EXP pickup range, +10% crit chance');
+    setLang('th');
+    // word joiners + NBSP keep the phrase whole when the line wraps on a narrow screen
+    expect(heroDesc(cfg, 'ranger').replace(/\u2060/g, '').replace(/\u00a0/g, ' ')).toBe('เร็วขึ้น 12% ดูดของไกลขึ้น 30% โอกาสคริ +10%');
+    expect(heroDesc(DEFAULT_RESOLVED, 'ranger')).not.toContain('คริ');
+  });
 });
 
 describe('Hawk text (guard + Hawk Gust)', () => {

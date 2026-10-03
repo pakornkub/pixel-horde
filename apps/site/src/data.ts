@@ -89,6 +89,7 @@ export function heroBonus(h: HeroId, C: ResolvedConfig): [TextKey, Record<string
     case 'ranger': {
       const out: [TextKey, Record<string, number>][] = [['hero.b.ranger', { s: pct(H.ranger.spd), p: pct(H.ranger.pick) }]];
       if (H.ranger.hp) out.push(['hero.b.rangerHp', { hp: H.ranger.hp }]);
+      if (H.ranger.crit) out.push(['hero.b.rangerCrit', { c: pct(H.ranger.crit) }]);
       if (C.skills.hawk.guardN) out.push(['hero.b.rangerGuard', { n: C.skills.hawk.guardN }]);
       return out;
     }

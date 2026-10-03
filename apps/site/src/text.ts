@@ -380,6 +380,7 @@ export const TXT = {
   'hero.b.knight': { th: 'HP +{hp} แต่ช้าลง {s}%', en: '+{hp} max HP but {s}% slower' },
   'hero.b.ranger': { th: 'เร็วขึ้น {s}% ดูดของไกลขึ้น {p}%', en: '{s}% faster, {p}% wider pickup range' },
   'hero.b.rangerHp': { th: 'HP +{hp}', en: '+{hp} max HP' },
+  'hero.b.rangerCrit': { th: 'โ\u2060อ\u2060ก\u2060า\u2060ส\u2060ค\u2060ริ\u00a0+{c}%', en: '+{c}% crit chance' },
   'hero.b.rangerGuard': { th: 'ถ้ามอน {n} ตัวขึ้นไปรุมเข้ามาใกล้ เหยี่ยวจะโฉบตัวที่ใกล้ที่สุดเพื่อเปิดทาง', en: 'When {n}+ monsters crowd in close, the Hawk dives the nearest one to clear a way.' },
   'hero.b.alchemist': { th: 'คูลดาวน์ −{c}% สถานะอยู่นานขึ้น {st}%', en: '{c}% faster cooldowns, Statuses last {st}% longer' },
   'hero.b.necromancer': { th: 'ลูกน้อง (Skeleton, มังกรคู่หู, เงา) แรงขึ้น {m}%', en: 'Minions (Skeletons, Companion, Shadow Clone) deal +{m}% damage' },
