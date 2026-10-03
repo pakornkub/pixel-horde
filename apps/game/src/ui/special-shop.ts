@@ -89,6 +89,7 @@ function forgeRows(box: HTMLElement): void {
     const url = weaponImg(w);
     if (url) { const img = document.createElement('img'); img.alt = ''; img.src = url; ico.appendChild(img); } else ico.textContent = t(`weapon.${w}.name`).charAt(0);
     const txt = document.createElement('span');
+    txt.className = 'tx';
     const nm = document.createElement('span');
     nm.className = 'nm';
     const lvs = document.createElement('span');

@@ -22,10 +22,13 @@
 <div class="overlay title on" id="ovTitle">
   <div class="tbg" id="titleBg"></div>
   <div class="tmain">
+    <div class="tside">
     <h1 class="logo">PIXEL<br> HORDE</h1>
     <p class="draft" id="draftBadge" data-i18n="draft.badge" hidden></p>
     <p class="tagline" data-i18n="title.tagline"></p>
     <button class="thero" id="heroBtn2" data-i18n-aria="title.hero"><canvas id="titleHero" width="64" height="64"></canvas><span id="titleSel"></span></button>
+    </div>
+    <div class="tact">
     <button class="btn play" id="continueBtn" hidden></button>
     <div class="tplay"><button class="btn play big" id="startBtn" data-i18n="title.start"></button><button class="btn play endless" id="endlessRunBtn" hidden><span class="inf" aria-hidden="true">∞ </span><span data-i18n="title.endless"></span></button></div>
     <div class="tmenu">
@@ -44,6 +47,7 @@
       <div class="trow"><span class="who" id="acctTxt"></span><span class="acts"><button class="tlink" id="renameBtn" data-i18n="account.rename"></button><button class="tlink" id="langBtn" data-i18n="title.lang"></button><button class="tlink" id="feedbackBtn1" data-i18n="feedback.open"></button></span></div>
       <div class="link-row" id="linkRow" hidden><p class="linkhint" id="linkTxt" data-i18n="login.hint"></p><button class="gbtn" id="linkBtn"><svg class="glogo" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span data-i18n="login.button"></span></button></div>
     </div>
+    </div>
   </div>
 </div>
 
@@ -55,7 +59,7 @@
   <div class="weapons" id="weaponRow"></div>
   <div class="weapons" id="crackRow" hidden></div>
   <div class="keys" data-i18n-html="title.keys"></div>
-  <button class="btn" id="heroDone" data-i18n="title.heroDone"></button>
+  <button class="btn dock" id="heroDone" data-i18n="title.heroDone"></button>
 </div></div>
 
 <div class="overlay" id="ovLevel"><div class="box">
@@ -96,7 +100,7 @@
     <button data-tab="weapons" data-i18n="coll.weapons"></button>
   </div>
   <div class="coll" id="collBody"></div>
-  <button class="btn" id="collBack" data-i18n="coll.back"></button>
+  <button class="btn dock" id="collBack" data-i18n="coll.back"></button>
 </div></div>
 
 <div class="overlay" id="ovRevive"><div class="box">
@@ -128,19 +132,27 @@
 
 <div class="overlay" id="ovOver"><div class="box">
   <h2 id="overTitle" data-i18n="over.title"></h2>
-  <div class="stats score" id="scoreBox"></div>
-  <div class="stats score" id="endlessBox" hidden></div>
-  <p class="note" id="newAch" hidden></p>
-  <p class="note err" id="runRejected" role="status" hidden></p>
-  <p class="note" id="runUnranked" hidden></p>
-  <div class="stats" id="overStats"></div>
-  <button class="btn" id="retryBtn" data-i18n="over.retry"></button>
-  <button class="btn ghost" id="shopBtn2" data-i18n="title.shop"></button>
-  <button class="btn ghost" id="homeBtn" data-i18n="over.home"></button>
-  <button class="btn ghost" id="replayBtn2" data-i18n="replay.download"></button>
+  <div class="ocols">
+    <div class="ocol">
+      <div class="stats score" id="scoreBox"></div>
+      <div class="stats score" id="endlessBox" hidden></div>
+      <p class="note" id="newAch" hidden></p>
+      <p class="note err" id="runRejected" role="status" hidden></p>
+      <p class="note" id="runUnranked" hidden></p>
+    </div>
+    <div class="ocol">
+      <div class="stats" id="overStats"></div>
+      <div class="best" id="bestOver"></div>
+      <button class="tlink oreplay" id="replayBtn2" data-i18n="replay.download"></button>
+    </div>
+  </div>
   <button class="gbtn wide" id="linkBtn2" hidden><svg class="glogo" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span data-i18n="link.button"></span></button>
   <p class="linkhint" id="linkTxt2" hidden></p>
-  <div class="best" id="bestOver"></div>
+  <div class="oact dock">
+    <button class="btn" id="retryBtn" data-i18n="over.retry"></button>
+    <button class="btn ghost" id="shopBtn2" data-i18n="title.shop"></button>
+    <button class="btn ghost" id="homeBtn" data-i18n="over.home"></button>
+  </div>
 </div></div>
 
 <div class="overlay" id="ovChest"><div class="box">
@@ -173,7 +185,7 @@
   <div class="goldline" id="shopGold"></div>
   <p class="note err" id="shopMsg" role="status" hidden></p>
   <div id="shopList"></div>
-  <button class="btn ghost" id="shopBack" data-i18n="shop.back"></button>
+  <button class="btn ghost dock" id="shopBack" data-i18n="shop.back"></button>
 </div></div>
 
 <div class="overlay" id="ovPause"><div class="box">
@@ -182,8 +194,6 @@
   <button class="btn" id="resumeBtn" data-i18n="pause.resume"></button>
   <button class="btn ghost" id="skillsBtn" data-i18n="pause.skills"></button>
   <button class="btn ghost" id="settingsBtn2" data-i18n="title.settings"></button>
-  <button class="btn ghost" id="metBtn"></button>
-  <button class="btn ghost" id="replayBtn" data-i18n="replay.download"></button>
   <button class="btn ghost" id="saveQuitBtn" data-i18n="save.quit"></button>
   <p class="slots" style="margin:0 0 8px" id="saveQuitNote"></p>
   <button class="btn ghost" id="leaveBtn" data-i18n="pause.leave"></button>
@@ -200,9 +210,15 @@
   <h2 data-i18n="set.title"></h2>
   <p class="slots" data-i18n="set.note"></p>
   <div id="setList" class="setlist"></div>
+  <details class="setadv" id="setAdv">
+    <summary data-i18n="set.advanced"></summary>
+    <p class="slots" data-i18n="set.advancedNote"></p>
+    <button class="btn ghost" id="metBtn"></button>
+    <button class="btn ghost" id="replayBtn" data-i18n="replay.download"></button>
+  </details>
   <div class="link-row" id="setLinkRow" hidden><p class="linkhint" id="setLinkTxt" data-i18n="link.hint"></p><button class="gbtn" id="setLinkBtn"><svg class="glogo" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span data-i18n="link.button"></span></button></div>
   <button class="btn ghost" id="feedbackBtn2" data-i18n="feedback.open"></button>
-  <button class="btn ghost" id="setBack" data-i18n="set.back"></button>
+  <button class="btn ghost dock" id="setBack" data-i18n="set.back"></button>
 </div></div>
 
 <div class="overlay" id="ovFeedback"><div class="box">

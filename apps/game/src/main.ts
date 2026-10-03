@@ -21,7 +21,7 @@ import { DRAFT, announcementText, live } from './live';
 import { installTelemetry, telemetry } from './telemetry';
 import { createFpsWatch } from './fpswatch';
 import { parseDebug } from './debug';
-import { createTips, type TipId } from './tips';
+import { MENU_TIPS, createTips, type TipId } from './tips';
 import { initLobby, leaveRoom, openLobby, refreshLobbyName } from './ui/lobby';
 import { createTeam } from './coop/team';
 import type { NetStats, Session } from './coop/session';
@@ -72,6 +72,7 @@ function showTip(id: TipId | null): void {
   const bar = $('tipBar');
   bar.hidden = !id;
   if (id) bar.textContent = t(`tip.${id}`);
+  bar.dataset.kind = id && MENU_TIPS.includes(id) ? 'menu' : 'play'; // a play hint hides under a menu (style.css)
 }
 
 const cmd = (c: Command): void => { queue.push(c); };
@@ -689,8 +690,9 @@ const openInvite = (): void => { if (inviteCode) { const j = inviteCode; inviteC
 if (inviteCode) setTimeout(openInvite, 10_000); // the account never started (tab blocked…): join anyway
 $('shopBtn2').addEventListener('click', () => { initAudio(); openShop('ovOver'); });
 $('shopBack').addEventListener('click', closeShop);
-$('settingsBtn1').addEventListener('click', () => { initAudio(); openSettings('ovTitle'); });
-$('settingsBtn2').addEventListener('click', () => openSettings('ovPause'));
+// Settings → Advanced: the stats meter always, the replay download only from inside a Run
+$('settingsBtn1').addEventListener('click', () => { initAudio(); $('replayBtn').hidden = true; openSettings('ovTitle'); });
+$('settingsBtn2').addEventListener('click', () => { $('replayBtn').hidden = !sim; openSettings('ovPause'); });
 $('setBack').addEventListener('click', closeSettings);
 $('feedbackBtn1').addEventListener('click', () => openFeedback('ovTitle'));
 $('feedbackBtn2').addEventListener('click', () => openFeedback('ovSettings'));

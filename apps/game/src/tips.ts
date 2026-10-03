@@ -4,6 +4,8 @@ import { SKILL_LINES, benchSize, type SimEvent, type SimState } from '@pixel-hor
 
 export const TIP_IDS = ['move', 'auto', 'crystals', 'levelup', 'ult', 'king', 'stageEnd', 'combo', 'bench', 'bloodMoon', 'dragon', 'links', 'linkMax', 'awaken', 'escape', 'sp'] as const;
 export type TipId = (typeof TIP_IDS)[number];
+/** Hints about a menu (level-up cards, the Stage-end board); the others are about play and hide while a menu is open. */
+export const MENU_TIPS: readonly TipId[] = ['levelup', 'stageEnd', 'bench', 'links', 'linkMax', 'awaken', 'sp'];
 
 /** Seconds a hint stays up, and the pause before the next one. */
 export const TIP_TIME = 5.5, TIP_GAP = 1;
