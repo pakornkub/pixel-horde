@@ -97,7 +97,7 @@ npm run playtest -- heroes 16   # balance bot, see scripts/playtest/README.md
 
 - Game URL flags: `?offline` (no backend; the last cached Balance Config, else the built-in defaults) and
   `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (comma separated) to force events, `?debug=ending` for the Umbra ending;
-  press **I** in a Run for the balance meter (DPS, TTK, multipliers, Director, mob count).
+  press **I** in a Run (or open Settings → Advanced) for the balance meter (DPS, TTK, multipliers, Director, mob count).
 - Balance changes never touch the built-in defaults: passes live in `packages/config/src/balance-pass.ts` and are published
   as new Balance Config versions from the Admin Console (Admin → Balance), together with a report and patch notes.
 

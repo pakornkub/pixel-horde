@@ -81,7 +81,7 @@ npm run playtest -- heroes 16   # บอททดสอบบาลานซ์ 
 
 - ธงใน URL ของเกม: `?offline` (ไม่ต่อ backend ใช้ Balance Config ที่แคชไว้ล่าสุด ถ้าไม่มีใช้ค่าเริ่มต้นในเกม) และ
   `?debug=god|bloodmoon|dragon|frostdragon|stormdragon|rival|realm:<id>` (คั่นด้วยจุลภาค) เพื่อบังคับให้เกิดเหตุการณ์ `?debug=ending` เปิดฉากจบของ Umbra
-  กด **I** ระหว่างเล่นเพื่อดูมิเตอร์บาลานซ์ (DPS, TTK, ตัวคูณ, Director, จำนวนมอน)
+  กด **I** ระหว่างเล่น (หรือเปิด ตั้งค่า → ขั้นสูง) เพื่อดูมิเตอร์บาลานซ์ (DPS, TTK, ตัวคูณ, Director, จำนวนมอน)
 - การปรับบาลานซ์ไม่แก้ค่าเริ่มต้นในโค้ด: รอบจูนอยู่ใน `packages/config/src/balance-pass.ts` แล้วเผยแพร่เป็น
   Balance Config เวอร์ชันใหม่จาก Admin → Balance พร้อมรายงานและบันทึกอัปเดต
 - ภาพหน้าจอบนเว็บและใน README เป็นภาพจริงจากเกม: `npm run shots` (ดู [docs/deploy.md](docs/deploy.md))
