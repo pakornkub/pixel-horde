@@ -178,8 +178,8 @@ Recommended tuning lives in `packages/config/src/balance-pass.ts` (patch + Thai 
 published version in `config_reports` and shown in Admin → Balance → รายงาน) and is published from Admin → Balance, never by
 changing built-in defaults (version 0 must equal the migration seed). Passes loaded onto one draft stack their patches, reports
 and patch notes. Live history: v4 = pass 2026-09, v5 = 2026-09b, v6 = 2026-09c (Director), v7 = 2026-09d (Signatures, co-op),
-v8 = co-op pass 2 (`coop.goldSplit`), v9 = + 2026-09f/09g, v10 = + 2026-09e (Heart Crack 1–10), v11 (live) = + 2026-09h
-(Awakened slots), 09i (Ultimate) and 09-mora. Base difficulty (ticket 48,
+v8 = co-op pass 2 (`coop.goldSplit`), v9 = + 2026-09f/09g, v10 = + 2026-09e (partly), v11 = + 09e (Heart Crack 1–10),
+2026-09h (Awakened slots), 09i (Ultimate) and 09-mora, v12 = + 09j (Kit Hawk Gust), v13 (live) = + 09k (Kit Line crowd). Base difficulty (ticket 48,
 `packages/config/src/difficulty.ts`): the Balance Config group `shared.difficulty` multiplies the numbers written in the
 config (monster/boss HP and damage, spawns, EXP, boss warnings, King pace, player HP, hearts, Ultimate charge, Director
 max, in-Run Gold); `resolveConfig` applies it, so every number the sim or the website reads already includes it. Its defaults

@@ -89,7 +89,17 @@ Publish pass 2026-09d only after this code is deployed: an older client strips t
 `20260930000030_base_difficulty` (ticket 48: drops `shared.presets`, adds `shared.difficulty`) is applied. Published
 versions without the group get its defaults (the full old Relaxed preset, Gold ×0.2), so the live game got easier with the
 client deploy of PR #34, without a publish.
-Published configs: v4 = pass 2026-09, v5 = pass 2026-09b, v6 = pass 2026-09c (Director max 1.6, rise 0.04). Passes are
+Every later migration through `20260930000050` is applied too (checked by the Orchestrator on 2026-10-03; numbers 0029 and
+0039 were never used, the next free number is 0051): co-op choosing / XP share / Gold split / run checks / host wait (0026,
+0028, 0031, 0032), overflow picks (0027), Heart Crack tiers and the leaderboard tier (0033, 0035), Shadow Clone casts (0034),
+the special shop: Weapon forge, forge damage and outfits (0036, 0040, 0041), the 5th Hero (0037), Awakened slots (0038),
+Ultimate boss floor (0042), the title-Endless server gate (0043), Admin offline-run review (0044), Kit Hawk Gust and Kit
+Line crowd fields (0045, 0046), unlimited checkpoint resume and the resumed-hash reset (0047, 0048), and the
+`awaken.stages` description round-trip (0049, 0050).
+Published configs: v4 = pass 2026-09, v5 = pass 2026-09b, v6 = pass 2026-09c (Director max 1.6, rise 0.04),
+v7 = 2026-09d, v8 = co-op pass 2, v9 = + 2026-09f/09g, v10 = + 2026-09e (partly), v11 = + 09e (Heart Crack 1–10), 09h
+(Awakened slots), 09i (Ultimate) and 09-mora, v12 = + 09j (Kit Hawk Gust), v13 (live) = + 09k (Kit Line crowd). Each
+version's `balance_configs.note` has the exact pass list. Passes are
 loaded onto one draft in Admin → Balance (they stack, oldest first) and published from there.
 
 - New changes always go in a **new** migration file; never edit one that is already applied.
