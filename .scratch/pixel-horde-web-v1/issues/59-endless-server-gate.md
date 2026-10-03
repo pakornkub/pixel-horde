@@ -1,6 +1,6 @@
 # 59: The server checks the first win for title Endless Runs
 
-Status: ready-for-human (code in; the owner applies migration `20260930000043_endless_gate.sql`)
+**Status:** ready-for-human (code in; the owner applies migration `20260930000043_endless_gate.sql`)
 Blocked by: 55 (PR #51, merged)
 
 **Problem:** the title screen's Endless button (ticket 55, `#endlessRunBtn`, sim `mode: 'endless'`) opens only after the

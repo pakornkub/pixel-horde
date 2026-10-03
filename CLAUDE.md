@@ -114,7 +114,12 @@ clear screen — never at the next Stage start.
 - Statuses (Frozen, Gathered, Burning, Shocked, Poisoned) + 7 Combos (Shatter, Firestorm, Overload, Superconduct,
   Toxic Burst, Grinder, Catalyst); tags in `packages/sim/src/data/skills.ts`, logic in `systems/combos.ts`.
 - Heroes: Lyra/Mage (Arcane Sigil, +10% dmg, free), Bram/Knight (Holy Shield, +40 HP, −5% speed, free),
-  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded), Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%),
+  Kit/Ranger 500G (Hawk Companion, +12% speed, +30% pickup, `heroes.ranger.hp` bonus HP (default 0, 2026-09b +20); `skills.hawk.guardN` = Hawk defends Kit when crowded;
+  Hawk Gust `skills.hawk.gustKb/gustStun/gustR/gustCd` (pass 2026-09j) pushes back and stuns the non-boss monsters around Kit
+  when the Hawk defends; pass 2026-09k: Arrow Rain lands on the crowd near Kit and slows (`arrowRain.near/slow`), Gale Step
+  blades slow and Gale Burst fires when `galeStep.burstN` monsters close in; the Hawk texts switch on guardN/gustKb in
+  `apps/game/src/ui/text.ts`, the Arrow Rain / Gale Step texts always describe the 09k behaviour),
+  Vex/Alchemist 1000G (Volatile Flask, −8% CD, Statuses +20%),
   Mora/Necromancer 2000G, sold only after a win (ticket 57; Soul Rise Skeletons, minions +25%, Links Soul Drain / Bone Prison /
   Wailing Skulls, Lich form; `levelup.wLink` weighs a Hero's own Links; `legend` stays the original four + `winMora`).
 - Ultimate: gauge fills in 60 s (kills up to 2× faster), damage tied to the Chapter's mob HP (`ult.mobHp`), capped at 8% of a boss
