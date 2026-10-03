@@ -1,6 +1,6 @@
 # 63: Hawk description says nothing about guard and Hawk Gust
 
-**Status:** ready-for-human (owner review)
+**Status:** ready-for-human (merged in PR #86; live config v13 has `hawk.guardN` and `gustKb` on, so players see the new Hawk text. Waiting for owner review)
 
 **Scope note:** the first version of this ticket was broader ("skill descriptions might describe unpublished behaviour",
 i.e. read every description from the live Balance Config). It was dropped after the Orchestrator and the owner checked

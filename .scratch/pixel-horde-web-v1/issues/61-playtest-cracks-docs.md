@@ -1,6 +1,6 @@
 # 61: The playtest README's `cracks` example runs only tiers 0–3
 
-Status: done (docs only; no code, migration or config change)
+**Status:** done (merged in PR #84; docs only, no code, migration or config change)
 
 **Problem:** `scripts/playtest/README.md` documents `PT_PASS=1 npm run playtest -- cracks 10  # every Heart Crack tier on
 top of all balance passes`. The `cracks` suite (`scripts/playtest/suites.mjs`) takes its tiers from `PT_CRACKS` (default
