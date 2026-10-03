@@ -30,7 +30,8 @@ describe('heroDesc', () => {
     setLang('en');
     expect(heroDesc(cfg, 'ranger')).toBe('12% faster, +30% EXP pickup range, +10% crit chance');
     setLang('th');
-    expect(heroDesc(cfg, 'ranger')).toBe('เร็วขึ้น 12% ดูดของไกลขึ้น 30% โอกาสคริ +10%');
+    // word joiners + NBSP keep the phrase whole when the line wraps on a narrow screen
+    expect(heroDesc(cfg, 'ranger').replace(/\u2060/g, '').replace(/\u00a0/g, ' ')).toBe('เร็วขึ้น 12% ดูดของไกลขึ้น 30% โอกาสคริ +10%');
     expect(heroDesc(DEFAULT_RESOLVED, 'ranger')).not.toContain('คริ');
   });
 });

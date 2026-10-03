@@ -152,7 +152,7 @@
  "hero.ranger.name": "Kit",
  "hero.ranger.desc": "เร็วขึ้น {spd}% ดูดของไกลขึ้น {pick}%{hp}{crit}",
  "hero.ranger.hp": " HP +{n}",
- "hero.ranger.crit": " โอกาสคริ +{n}%",
+ "hero.ranger.crit": " โ\u2060อ\u2060ก\u2060า\u2060ส\u2060ค\u2060ริ\u00a0+{n}%",
  "hero.alchemist.name": "Vex",
  "hero.alchemist.desc": "คูลดาวน์ −{cd}% สถานะอยู่นานขึ้น {status}%",
  "shop.power.name": "Power",
