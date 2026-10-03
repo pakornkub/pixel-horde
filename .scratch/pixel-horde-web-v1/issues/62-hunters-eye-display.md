@@ -15,4 +15,4 @@ No migration / pgTAP; no Balance Config publish. Review gate: Tester + UX/UI (pl
 
 **Related:** 57 (Mora), Kit pass 2026-09b (`heroes.ranger.hp`).
 
-**Status:** in-progress
+**Status:** ready-for-human (owner review)
